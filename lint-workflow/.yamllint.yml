@@ -1,0 +1,12 @@
+---
+
+extends: default
+
+rules:
+  indentation:
+    spaces: 2
+  line-length:
+    level: warning
+    max: 120
+  truthy:
+    check-keys: false

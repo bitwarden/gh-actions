@@ -1,0 +1,11 @@
+name: 'Lint Workflow'
+description: 'Lints GitHub Actions Workflow'
+runs:
+  using: "composite"
+  steps:
+    - run: pip install --user yamllint
+      shell: bash
+    - run: python ${{ github.action_path }}/lint.py .github/workflows
+      shell: bash
+    - run: yamllint -f colored -c ${{ github.action_path }}/.yamllint.yml .github/workflows
+      shell: bash

@@ -13,7 +13,7 @@ rules:
     level: warning
   empty-lines:
     level: warning
-  hypens:
+  hyphens:
     level: warning
   indentation:
     level: warning

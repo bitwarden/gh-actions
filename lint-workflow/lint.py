@@ -25,9 +25,16 @@ def lint(filename):
             for job_key in jobs:
                 job = jobs[job_key]
 
+                # Make sure runner is using pinned version.
+                runner = job['runs-on']
+                if runner.split("-")[1] == "latest":
+                    findings.append(
+                        f"- Runner version is set to '{runner}', but needs to be pinned to a version.")
+
                 # Check for 'name' key for job.
                 if "name" not in job:
-                    findings.append(f"- Name key missing for job key '{job_key}'.")
+                    findings.append(
+                        f"- Name key missing for job key '{job_key}'.")
                 # Check for 'name' value to be capitallized in job.
                 elif not job["name"][0].isupper():
                     findings.append(

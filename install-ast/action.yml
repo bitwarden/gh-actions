@@ -12,10 +12,10 @@ runs:
           exit 1
         fi
 
-      - name: Set up dotnet
-        uses: actions/setup-dotnet@a71d1eb2c86af85faa8c772c03fb365e377e45ea  # v1.8.0
-        with:
-          dotnet-version: "3.1.x"
+    - name: Set up dotnet
+      uses: actions/setup-dotnet@a71d1eb2c86af85faa8c772c03fb365e377e45ea  # v1.8.0
+      with:
+        dotnet-version: "3.1.x"
 
     - name: Install AST
       shell: pwsh

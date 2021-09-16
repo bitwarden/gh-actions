@@ -36,12 +36,14 @@ runs:
                   dct-delegate-key"
 
     - name: Log into Docker
+      shell: bash
       env:
         DOCKER_USERNAME: ${{ steps.get-secrets.outputs.docker-username }}
         DOCKER_PASSWORD: ${{ steps.get-secrets.outputs.docker-password }}
       run: echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
     - name: Setup Docker Trust
+      shell: bash
       env:
         DCT_DELEGATION_KEY_ID: "c9bde8ec820701516491e5e03d3a6354e7bd66d05fa3df2b0062f68b116dc59c"
         DCT_DELEGATE_KEY: ${{ steps.get-secrets.outputs.dct-delegate-key }}

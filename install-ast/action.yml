@@ -1,0 +1,41 @@
+name: "Install Azure Sign Tool"
+inputs: {}
+outputs: {}
+runs:
+  using: "composite"
+  steps:
+    - name: Check Runner OS
+      shell: bash
+      run: |
+        if ["$RUNNER_OS" != "Windows"]; then
+          echo "[!] This workflow only supports Windows runners"
+          exit 1
+        fi
+
+    - name: Set up dotnet
+      uses: actions/setup-dotnet@a71d1eb2c86af85faa8c772c03fb365e377e45ea  # v1.8.0
+      with:
+        dotnet-version: "3.1.x"
+
+    - name: Install AST
+      shell: pwsh
+      env:
+        AST_PINNED_COMMIT: "ce87e84a58dff318f62ffe5177bf3e179d815108"
+      run: |
+        cd $HOME
+
+        git clone https://github.com/vcsjones/AzureSignTool.git
+        cd AzureSignTool
+        git switch --detach $env:AST_PINNED_COMMIT
+        $pinned_short_commit = $env:AST_PINNED_COMMIT[0..9] -join ""
+        $ast_version = "0.0.0-g$pinned_short_commit"
+
+        Write-Host "--------"
+        Write-Host "pinned git commit - $env:AST_PINNED_COMMIT"
+        Write-Host "pinned short git commit - $pinned_short_commit"
+        Write-Host "PACKAGE VERSION TO BUILD - $ast_version"
+        Write-Host "--------"
+
+        dotnet restore
+        dotnet pack --output ./nupkg
+        dotnet tool install --global --ignore-failed-sources --add-source ./nupkg --version $ast_version azuresigntool

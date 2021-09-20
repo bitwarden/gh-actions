@@ -27,7 +27,7 @@ def lint(filename):
 
                 # Make sure runner is using pinned version.
                 runner = job["runs-on"]
-                if runner.split("-")[1] == "latest":
+                if "-latest" in runner:
                     findings.append(
                         f"- Runner version is set to '{runner}', but needs to be pinned to a version."
                     )

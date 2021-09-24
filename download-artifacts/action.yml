@@ -1,0 +1,56 @@
+name: Download workflow artifact
+description: Download and extract an artifact associated with given workflow and commit
+authors: dawidd6 && bitwarden
+branding:
+  icon: download
+  color: blue
+inputs:
+  github_token:
+    description: GitHub token
+    required: false
+    default: ${{github.token}}
+  workflow:
+    description: Workflow name
+    required: true
+  workflow_conclusion:
+    description: |
+      Wanted status or conclusion to search for in recent runs
+
+      https://docs.github.com/en/free-pro-team@latest/rest/reference/actions#list-workflow-runs
+    required: false
+    default: success
+  repo:
+    description: Repository name with owner (like actions/checkout)
+    required: false
+    default: ${{github.repository}}
+  pr:
+    description: Pull request number
+    required: false
+  commit:
+    description: Commit hash
+    required: false
+  branch:
+    description: Branch name
+    required: false
+  event:
+    description: Event type
+    required: false
+  run_id:
+    description: Workflow run id
+    required: false
+  run_number:
+    description: Workflow run number
+    required: false
+  artifacts:
+    description: Artifact names (download all artifacts in not specified)
+    required: false
+  path:
+    description: Where to unpack the artifact
+    required: false
+    default: "./"
+  check_artifacts:
+    description: Check workflow run whether it has an artifact
+    required: false
+runs:
+  using: node12
+  main: main.js

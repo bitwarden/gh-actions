@@ -114,7 +114,7 @@ async function main() {
                 const builtRegexRule = "^" + regexRule.split("*").map(escapeSpecialChars).join(".*") + "$"
                 return new RegExp(builtRegexRule).test(stringToTest)
             }
-            const artifactNames = artifactNamesFrom.split(",").map(artifactName => artifactName.trim())
+            const artifactNames = artifactNamesFromAction.split(",").map(artifactName => artifactName.trim())
 
             const artifactsToDownload = allArtifacts.filter(artifact => {
                 return artifactNames.map(name => matchesWithRegex(artifact.name, name)).reduce((prevValue, currValue) => prevValue || currValue)

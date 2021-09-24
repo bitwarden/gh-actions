@@ -11,7 +11,7 @@ async function main() {
         const workflow = core.getInput("workflow", { required: true })
         const [owner, repo] = core.getInput("repo", { required: true }).split("/")
         const pathFromAction = core.getInput("path", { required: true })
-        const artifactNamesFromAction = core.getInput("artifacts")
+        const artifactNamesFromAction = core.getInput("artifacts") ? core.getInput("artifacts") : "*"
         let workflowConclusion = core.getInput("workflow_conclusion")
         let pr = core.getInput("pr")
         let commit = core.getInput("commit")
@@ -101,25 +101,23 @@ async function main() {
             throw new Error("no matching workflow run found")
         }
 
-        let allArtifacts = await client.paginate(client.actions.listWorkflowRunArtifacts, {
+        const allArtifacts = await client.paginate(client.actions.listWorkflowRunArtifacts, {
             owner: owner,
             repo: repo,
             run_id: runID,
         })
 
         // One artifact, a list of artifacts, or all if `name` input is not specified.
-        if (artifactNamesFromAction) {
-            const matchesWithRegex = (stringToTest, regexRule) => {
-                const escapeSpecialChars = (string) => string.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
-                const builtRegexRule = "^" + regexRule.split("*").map(escapeSpecialChars).join(".*") + "$"
-                return new RegExp(builtRegexRule).test(stringToTest)
-            }
-            const artifactNames = artifactNamesFromAction.split(",").map(artifactName => artifactName.trim())
-
-            const artifactsToDownload = allArtifacts.filter(artifact => {
-                return artifactNames.map(name => matchesWithRegex(artifact.name, name)).reduce((prevValue, currValue) => prevValue || currValue)
-            })
+        const matchesWithRegex = (stringToTest, regexRule) => {
+            const escapeSpecialChars = (string) => string.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+            const builtRegexRule = "^" + regexRule.split("*").map(escapeSpecialChars).join(".*") + "$"
+            return new RegExp(builtRegexRule).test(stringToTest)
         }
+        const artifactNames = artifactNamesFromAction.split(",").map(artifactName => artifactName.trim())
+
+        const artifactsToDownload = allArtifacts.filter(artifact => {
+            return artifactNames.map(name => matchesWithRegex(artifact.name, name)).reduce((prevValue, currValue) => prevValue || currValue)
+        })
 
         if (artifactsToDownload.length == 0)
             throw new Error("no artifacts found")

@@ -1,0 +1,120 @@
+name: Test Download Artifacts Action
+
+on:
+  workflow_dispatch:
+    inputs: {}
+
+jobs:
+  download-latest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Download
+        uses: ./
+        with:
+          workflow: upload.yml
+          name: artifact
+          path: artifact
+      - name: Test
+        run: cat artifact/sha | grep $GITHUB_SHA
+
+
+  download-branch:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Download
+        uses: ./
+        with:
+          workflow: upload.yml
+          name: artifact
+          path: artifact
+          branch: master
+      - name: Test
+        run: cat artifact/sha | grep $GITHUB_SHA
+
+
+  download-pr:
+    runs-on: ubuntu-latest
+    if: github.ref != 'refs/heads/master'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Download
+        uses: ./
+        with:
+          workflow: upload.yml
+          name: artifact
+          path: artifact
+          pr: ${{github.event.pull_request.number}}
+      - name: Test
+        run: cat artifact/sha | grep $GITHUB_SHA
+
+
+  download-all:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Download
+        uses: ./
+        with:
+          workflow: upload.yml
+      - name: Test
+        run: |
+          cat artifact1/sha1 | grep $GITHUB_SHA
+          cat artifact2/sha2 | grep $GITHUB_SHA
+
+
+  download-multiple:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Download
+        uses: ./
+        with:
+          workflow: upload.yml
+          name: 'artifact1,
+                 artifact2'
+      - name: Test
+        run: |
+          ls -alth
+          cat artifact1/sha1 | grep $GITHUB_SHA
+          cat artifact2/sha2 | grep $GITHUB_SHA
+
+
+  download-wildcard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Download
+        uses: ./
+        with:
+          workflow: upload.yml
+          name: '*.txt'
+      - name: Test
+        run: |
+          ls -alth
+          cat artifact1.txt/sha1 | grep $GITHUB_SHA
+          cat artifact2.txt/sha2 | grep $GITHUB_SHA
+
+
+  download-conclusion:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Download
+        uses: ./
+        with:
+          workflow: upload.yml
+          name: artifact
+          path: artifact
+          workflow_conclusion: ''
+      - name: Test
+        run: cat artifact/sha | grep $GITHUB_SHA

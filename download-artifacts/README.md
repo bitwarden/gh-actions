@@ -1,3 +1,7 @@
+Thanks to dawidd6 and his [Download Artifact](https://github.com/dawidd6/action-download-artifact) action! Most of the 
+functionality of this action comes from that. Unfortunately, we needed to handle downloads in a slightly different
+manner. 
+
 # Download workflow artifact GitHub Action
 
 An action that downloads and extracts uploaded artifact associated with given workflow and commit or other criteria.
@@ -39,10 +43,9 @@ Let's suppose you have a workflow with a job in it that at the end uploads an ar
     # Optional, run number from the workflow
     run_number: 34
     # Optional, uploaded artifact name or comma seperated list of artifact names
+    # This supports wild card names like "artifact*.zip"
     # If not specified, will download all artifacts
-    # If more than one artifact is downloaded, they will be extracted into their respective subdirectories
-    # https://github.com/actions/download-artifact#download-all-artifacts
-    name: artifact_name
+    artifacts: artifact_name
     # Optional, directory where to extract artifact. Defaults to the artifact name (see `name` input)
     path: extract_here
     # Optional, defaults to current repo

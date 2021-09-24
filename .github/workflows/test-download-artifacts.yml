@@ -11,7 +11,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Download
-        uses: ./
+        uses: ./download-artifacts
         with:
           workflow: upload.yml
           name: artifact
@@ -27,7 +27,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Download
-        uses: ./
+        uses: ./download-artifacts
         with:
           workflow: upload.yml
           name: artifact
@@ -44,7 +44,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Download
-        uses: ./
+        uses: ./download-artifacts
         with:
           workflow: upload.yml
           name: artifact
@@ -60,7 +60,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Download
-        uses: ./
+        uses: ./download-artifacts
         with:
           workflow: upload.yml
       - name: Test
@@ -75,7 +75,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Download
-        uses: ./
+        uses: ./download-artifacts
         with:
           workflow: upload.yml
           name: 'artifact1,
@@ -93,7 +93,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Download
-        uses: ./
+        uses: ./download-artifacts
         with:
           workflow: upload.yml
           name: '*.txt'
@@ -110,7 +110,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Download
-        uses: ./
+        uses: ./download-artifacts
         with:
           workflow: upload.yml
           name: artifact

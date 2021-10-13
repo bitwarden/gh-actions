@@ -1,3 +1,4 @@
+---
 name: Test Download Artifacts Action
 
 on:
@@ -6,63 +7,75 @@ on:
 
 jobs:
   download-latest:
-    runs-on: ubuntu-latest
+    name: Download Latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+
       - name: Download
         uses: ./download-artifacts
         with:
           workflow: upload.yml
-          name: artifact
+          artifacts: artifact
           path: artifact
+
       - name: Test
         run: cat artifact/sha | grep $GITHUB_SHA
 
 
   download-branch:
-    runs-on: ubuntu-latest
+    name: Download BRANCH
+    runs-on: ubuntu-20.04
     if: github.ref == 'refs/heads/master'
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+
       - name: Download
         uses: ./download-artifacts
         with:
           workflow: upload.yml
-          name: artifact
+          artifacts: artifact
           path: artifact
           branch: master
+
       - name: Test
         run: cat artifact/sha | grep $GITHUB_SHA
 
 
   download-pr:
-    runs-on: ubuntu-latest
+    name: Download Pull Request
+    runs-on: ubuntu-20.04
     if: github.ref != 'refs/heads/master'
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+
       - name: Download
         uses: ./download-artifacts
         with:
           workflow: upload.yml
-          name: artifact
+          artifacts: artifact
           path: artifact
           pr: ${{github.event.pull_request.number}}
+
       - name: Test
         run: cat artifact/sha | grep $GITHUB_SHA
 
 
   download-all:
-    runs-on: ubuntu-latest
+    name: Download All
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+
       - name: Download
         uses: ./download-artifacts
         with:
           workflow: upload.yml
+
       - name: Test
         run: |
           cat artifact1/sha1 | grep $GITHUB_SHA
@@ -70,16 +83,19 @@ jobs:
 
 
   download-multiple:
-    runs-on: ubuntu-latest
+    name: Download Multiple
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+
       - name: Download
         uses: ./download-artifacts
         with:
           workflow: upload.yml
-          name: 'artifact1,
+          artifacts: 'artifact1,
                  artifact2'
+
       - name: Test
         run: |
           ls -alth
@@ -88,15 +104,18 @@ jobs:
 
 
   download-wildcard:
-    runs-on: ubuntu-latest
+    name: Download Wildcard
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+
       - name: Download
         uses: ./download-artifacts
         with:
           workflow: upload.yml
-          name: '*.txt'
+          artifacts: '*.txt'
+
       - name: Test
         run: |
           ls -alth
@@ -105,16 +124,19 @@ jobs:
 
 
   download-conclusion:
-    runs-on: ubuntu-latest
+    name: Download Conclusion
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+
       - name: Download
         uses: ./download-artifacts
         with:
           workflow: upload.yml
-          name: artifact
+          artifacts: artifact
           path: artifact
           workflow_conclusion: ''
+
       - name: Test
         run: cat artifact/sha | grep $GITHUB_SHA

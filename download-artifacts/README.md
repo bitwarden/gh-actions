@@ -6,13 +6,30 @@ manner.
 
 An action that downloads and extracts uploaded artifact associated with given workflow and commit or other criteria.
 
-Let's suppose you have a workflow with a job in it that at the end uploads an artifact using `actions/upload-artifact` action and you want to download this artifact in another workflow that is run after the first one. Official `actions/download-artifact` does not allow this. That's why I decided to create this action. By knowing only the workflow name and commit SHA, you can download the previously uploaded artifact from different workflow associated with that commit and use it.
+Let's suppose you have a workflow with a job in it that at the end uploads an artifact using `actions/upload-artifact` 
+action and you want to download this artifact in another workflow that is run after the first one. Official 
+`actions/download-artifact` does not allow this. That's why I decided to create this action. By knowing only the 
+workflow name and commit SHA, you can download the previously uploaded artifact from different workflow associated 
+with that commit and use it.
+
+## Development
+We are using `ncc` to compile the dependencies and package the action. The compile script will be found at
+`dist/index.js` and that is the file that `action.yml` is configured to use.
+
+1. `npm install`
+2. `npx ncc build index.js --license licenses.txt`
+
+## Testing
+We are utilizing `jest` as a unit testing framework for to inspire TDD. This can be run in your development workflow
+(non-automated) by running `npm test`.
 
 ## Usage
 
-> If `commit` or `pr` or `branch` or `run_id` or `workflow_conclusion` is not specified then the artifact from the most recent successfully completed workflow run will be downloaded.
+> If `commit` or `pr` or `branch` or `run_id` or `workflow_conclusion` is not specified then the artifact from the 
+> most recent successfully completed workflow run will be downloaded.
 
-**Do not specify `pr`, `commit`, `branch`, `run_id` together or `workflow_conclusion` and `run_id` together. Pick just one of each or none.**
+**Do not specify `pr`, `commit`, `branch`, `run_id` together or `workflow_conclusion` and `run_id` together. Pick just 
+one of each or none.**
 
 ```yaml
 - name: Download artifact

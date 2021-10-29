@@ -16,7 +16,7 @@ jobs:
       - name: Download
         uses: ./download-artifacts
         with:
-          workflow: upload.yml
+          workflow: upload-test-artifacts.yml
           artifacts: artifact
           path: artifact
 
@@ -35,7 +35,7 @@ jobs:
       - name: Download
         uses: ./download-artifacts
         with:
-          workflow: upload.yml
+          workflow: upload-test-artifacts.yml
           artifacts: artifact
           path: artifact
           branch: master
@@ -55,7 +55,7 @@ jobs:
       - name: Download
         uses: ./download-artifacts
         with:
-          workflow: upload.yml
+          workflow: upload-test-artifacts.yml
           artifacts: artifact
           path: artifact
           pr: ${{github.event.pull_request.number}}
@@ -74,7 +74,7 @@ jobs:
       - name: Download
         uses: ./download-artifacts
         with:
-          workflow: upload.yml
+          workflow: upload-test-artifacts.yml
 
       - name: Test
         run: |
@@ -92,7 +92,7 @@ jobs:
       - name: Download
         uses: ./download-artifacts
         with:
-          workflow: upload.yml
+          workflow: upload-test-artifacts.yml
           artifacts: 'artifact1,
                       artifact2'
 
@@ -113,7 +113,7 @@ jobs:
       - name: Download
         uses: ./download-artifacts
         with:
-          workflow: upload.yml
+          workflow: upload-test-artifacts.yml
           artifacts: '*.txt'
 
       - name: Test
@@ -132,7 +132,7 @@ jobs:
       - name: Download
         uses: ./download-artifacts
         with:
-          workflow: upload.yml
+          workflow: upload-test-artifacts.yml
           artifacts: 'artifact1|renamed_artifact1,
                       artifact2|renamed_artifact2'
 
@@ -153,7 +153,7 @@ jobs:
       - name: Download
         uses: ./download-artifacts
         with:
-          workflow: upload.yml
+          workflow: upload-test-artifacts.yml
           artifacts: artifact
           path: artifact
           workflow_conclusion: ''

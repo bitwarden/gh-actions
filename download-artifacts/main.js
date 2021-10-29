@@ -3,9 +3,12 @@ const github = require('@actions/github')
 const AdmZip = require('adm-zip')
 const filesize = require('filesize')
 const pathname = require('path')
+const _ = require('underscore')
 const fs = require('fs')
 
-async function main() {
+const handleArtifacts = require('./handleArtifacts.js')
+
+async main = () => {
     try {
         const token = core.getInput("github_token", { required: true })
         const workflow = core.getInput("workflow", { required: true })
@@ -107,20 +110,18 @@ async function main() {
             run_id: runID,
         })
 
-        // One artifact, a list of artifacts, or all if `name` input is not specified.
-        const matchesWithRegex = (stringToTest, regexRule) => {
-            const escapeSpecialChars = (string) => string.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
-            const builtRegexRule = "^" + regexRule.split("*").map(escapeSpecialChars).join(".*") + "$"
-            return new RegExp(builtRegexRule).test(stringToTest)
-        }
-        const artifactNames = artifactNamesFromAction.split(",").map(artifactName => artifactName.trim())
-
-        const artifactsToDownload = allArtifacts.filter(artifact => {
-            return artifactNames.map(name => matchesWithRegex(artifact.name, name)).reduce((prevValue, currValue) => prevValue || currValue)
-        })
+        const { artifactsToDownload, renameCheckErrors } = handleArtifacts.getListOfArtifactsToDownload(allArtifacts, artifactNamesFromAction)
 
         if (artifactsToDownload.length == 0)
             throw new Error("no artifacts found")
+        
+        if (renameCheckErrors.length > 0) {
+            _.each(renameCheckErrors, element => {
+                console.log(`==> Multiple matches on "${element.namePattern}". Cannot use the artifact rename functionality`)
+            })
+
+            throw new Error("!!! trying to use the artifact rename functionality on a glob pattern with multiple matches")
+        }
 
         for (const artifact of artifactsToDownload) {
             console.log("==> Artifact:", artifact.id)

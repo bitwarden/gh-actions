@@ -94,7 +94,7 @@ jobs:
         with:
           workflow: upload.yml
           artifacts: 'artifact1,
-                 artifact2'
+                      artifact2'
 
       - name: Test
         run: |
@@ -121,6 +121,26 @@ jobs:
           ls -alth
           cat artifact1.txt/sha1 | grep $GITHUB_SHA
           cat artifact2.txt/sha2 | grep $GITHUB_SHA
+
+  download-rename:
+    name: Download Multiple
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+
+      - name: Download
+        uses: ./download-artifacts
+        with:
+          workflow: upload.yml
+          artifacts: 'artifact1|renamed_artifact1,
+                      artifact2|renamed_artifact2'
+
+      - name: Test
+        run: |
+          ls -alth
+          cat renamed_artifact1/sha1 | grep $GITHUB_SHA
+          cat renamed_artifact2/sha2 | grep $GITHUB_SHA
 
 
   download-conclusion:

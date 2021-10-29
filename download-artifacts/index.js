@@ -8,7 +8,7 @@ const fs = require('fs')
 
 const handleArtifacts = require('./handleArtifacts.js')
 
-async main = () => {
+async function main() {
     try {
         const token = core.getInput("github_token", { required: true })
         const workflow = core.getInput("workflow", { required: true })

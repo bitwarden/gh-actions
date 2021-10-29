@@ -11,5 +11,8 @@
     "filesize": "^6.2.2",
     "jest": "^27.3.1",
     "underscore": "^1.13.1"
+  },
+  "devDependencies": {
+    "@vercel/ncc": "^0.31.1"
   }
 }

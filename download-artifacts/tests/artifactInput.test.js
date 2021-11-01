@@ -1,4 +1,4 @@
-const handleArtifacts = require('./handleArtifacts.js')
+const artifactInput = require('../artifactInput.js')
 
 
 const allArtifacts = [
@@ -12,7 +12,7 @@ const allArtifacts = [
 test('single artifact filtering', () => {
     const artifactFilters = `artifact1.txt`
 
-    expect(handleArtifacts.getListOfArtifactsToDownload(allArtifacts, artifactFilters)).toStrictEqual({
+    expect(artifactInput.getListOfArtifactsToDownload(allArtifacts, artifactFilters)).toStrictEqual({
         artifactsToDownload: [{ "id": 1234, "name": "artifact1.txt", "size_in_bytes": 42, "downloadName": "artifact1.txt" }],
         errors: []
     })
@@ -23,7 +23,7 @@ test('multiple artifact filtering', () => {
                              artifact2.txt,
                              dump.zip`
 
-    expect(handleArtifacts.getListOfArtifactsToDownload(allArtifacts, artifactFilters)).toStrictEqual({
+    expect(artifactInput.getListOfArtifactsToDownload(allArtifacts, artifactFilters)).toStrictEqual({
         artifactsToDownload: [
             { "id": 1234, "name": "artifact1.txt", "size_in_bytes": 42, downloadName: "artifact1.txt" },
             { "id": 1235, "name": "artifact2.txt", "size_in_bytes": 42, downloadName: "artifact2.txt" },
@@ -36,7 +36,7 @@ test('multiple artifact filtering', () => {
 test('single artifact filtering with rename', () => {
     const artifactFilters = `artifact1.txt|renamed_artifact1.txt`
 
-    expect(handleArtifacts.getListOfArtifactsToDownload(allArtifacts, artifactFilters)).toStrictEqual({
+    expect(artifactInput.getListOfArtifactsToDownload(allArtifacts, artifactFilters)).toStrictEqual({
         artifactsToDownload: [{ "id": 1234, "name": "artifact1.txt", "size_in_bytes": 42, downloadName: "renamed_artifact1.txt" }],
         errors: []
     })
@@ -47,7 +47,7 @@ test('multiple artifact filtering with rename', () => {
                              artifact2.txt|renamed_artifact2.txt,
                              dump.zip|renamed_dump.zip`
 
-    expect(handleArtifacts.getListOfArtifactsToDownload(allArtifacts, artifactFilters)).toStrictEqual({
+    expect(artifactInput.getListOfArtifactsToDownload(allArtifacts, artifactFilters)).toStrictEqual({
         artifactsToDownload: [
             { "id": 1234, "name": "artifact1.txt", "size_in_bytes": 42, downloadName: "renamed_artifact1.txt" },
             { "id": 1235, "name": "artifact2.txt", "size_in_bytes": 42, downloadName: "renamed_artifact2.txt" },

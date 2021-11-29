@@ -1,0 +1,21 @@
+name: "PLIST/XML/JSON Version Bump"
+description: "Replaces versions in PLIST/JSON/XML for easier version updating."
+author: "Bitwarden"
+branding:
+  icon: download
+  color: blue
+inputs:
+  version:
+    description: "Newest version to use."
+    default: "1.0"
+    required: true
+  file_path:
+    description: "Path to the file to apply the new version."
+    default: "./"
+    required: true
+outputs:
+  status:
+    description: "Status"
+runs:
+  using: "docker"
+  image: "Dockerfile"

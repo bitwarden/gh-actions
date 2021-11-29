@@ -1,0 +1,9 @@
+<Project>
+
+	<PropertyGroup>
+		<TargetFramework>net5.0</TargetFramework>
+		<Version>5.8</Version>
+		<RootNamespace>Acme.$(MSBuildProjectName)</RootNamespace>
+	</PropertyGroup>
+
+</Project>

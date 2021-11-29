@@ -36,10 +36,18 @@ jobs:
           version: ${{ github.event.inputs.version_number }}
           file_path: "./version-bump/tests/AndroidManifest.xml"
 
+      - name: Bump Props Test
+        id: test_props
+        uses: ./version-bump
+        with:
+          version: ${{ github.event.inputs.version_number }}
+          file_path: "./version-bump/tests/dir.build.props"
+
       - name: Validate Outputs
         run: |
           echo "${{ steps.test_json.outputs.status }}"
           echo "${{ steps.test_plist.outputs.status }}"
           echo "${{ steps.test_xml.outputs.status }}"
+          echo "${{ steps.test_props.outputs.status }}"
 
       

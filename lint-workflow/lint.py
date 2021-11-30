@@ -86,6 +86,12 @@ def lint(filename):
                             findings.append(
                                 f"- Step {str(i)} of job key '{job_key}' does not have a valid action hash. (missing '@' character)"
                             )
+                    # If the step has a 'run' key and only has one command, check if it's a single line.
+                    if "run" in step:
+                        if step["run"].count('\n') == 1:
+                            findings.append(
+                                f"- Run in step {str(i)} of job key '{job_key}' should be a single line."
+                            )
 
     if len(findings) > 0:
         print("#", filename)

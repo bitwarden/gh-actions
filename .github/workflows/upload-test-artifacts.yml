@@ -16,7 +16,7 @@ jobs:
           echo $GITHUB_SHA > artifact/sha
 
       - name: Upload
-        uses: actions/upload-artifact@27121b0bdffd731efa15d66772be8dc71245d074  # v2.2.4
+        uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2  # v2.2.4
         with:
           name: artifact
           path: artifact
@@ -33,13 +33,13 @@ jobs:
           echo $GITHUB_SHA > artifact2/sha2
 
       - name: Upload first
-        uses: actions/upload-artifact@27121b0bdffd731efa15d66772be8dc71245d074  # v2.2.4
+        uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2  # v2.2.4
         with:
           name: artifact1
           path: artifact1
 
       - name: Upload second
-        uses: actions/upload-artifact@27121b0bdffd731efa15d66772be8dc71245d074  # v2.2.4
+        uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2  # v2.2.4
         with:
           name: artifact2
           path: artifact2
@@ -56,13 +56,13 @@ jobs:
           echo $GITHUB_SHA > artifact2/sha2
 
       - name: Upload first
-        uses: actions/upload-artifact@27121b0bdffd731efa15d66772be8dc71245d074  # v2.2.4
+        uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2  # v2.2.4
         with:
           name: artifact1.txt
           path: artifact1
 
       - name: Upload second
-        uses: actions/upload-artifact@27121b0bdffd731efa15d66772be8dc71245d074  # v2.2.4
+        uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2  # v2.2.4
         with:
           name: artifact2.txt
           path: artifact2

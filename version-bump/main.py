@@ -46,8 +46,15 @@ def update_xml(version, file):
             "tools", "http://schemas.android.com/tools")
         mytree.write(
             file, encoding="utf-8", xml_declaration=True, pretty_print=True)
+    # Microsoft .NET project files
+    elif 'Microsoft.NET.Sdk.Web' in myroot.attrib['Sdk']:
+        version_property = [x for x in myroot[0] if x.tag == 'Version'][-1]
+        version_property.text = version
+        mytree.write(
+            file
+        )
+    # MSBuild Props
     else:
-        # MSBuild Props
         myroot[0][1].text = version
         mytree.write(
             file, encoding="utf-8"
@@ -69,7 +76,7 @@ if __name__ == "__main__":
 
 
     # Handle the file based on the extension.
-    if file_type == ".xml" or file_type == ".props":
+    if file_type in {".xml", ".props", ".csproj"} :
         update_xml(version, file_path)
     elif file_type == ".json":
         update_json(version, file_path)

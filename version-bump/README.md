@@ -11,4 +11,3 @@ with:
     version: ${{ github.event.inputs.version_number }}
     file_path: "./AndroidManifest.xml"
 ```
-

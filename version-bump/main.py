@@ -44,7 +44,7 @@ def update_xml(version, file):
         ET.register_namespace("tools", "http://schemas.android.com/tools")
         mytree.write(file, encoding="utf-8", xml_declaration=True, pretty_print=True)
     # Microsoft .NET project files
-    elif "Microsoft.NET.Sdk.Web" in myroot.attrib["Sdk"]:
+    elif "Microsoft.NET.Sdk" in myroot.attrib["Sdk"]:
         version_property = [x for x in myroot[0] if x.tag == "Version"][-1]
         version_property.text = version
         mytree.write(file)

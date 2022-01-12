@@ -1,6 +1,7 @@
 import os
 import json
 import plistlib
+import re
 import lxml.etree as ET
 
 
@@ -39,14 +40,19 @@ def update_xml(version, file):
 
     # Android Manifests
     if myroot.tag == "manifest":
-        myroot.attrib[
-            "{http://schemas.android.com/apk/res/android}versionName"
-        ] = version
-        ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
-        ET.register_namespace("tools", "http://schemas.android.com/tools")
-        mytree.write(file, encoding="utf-8", xml_declaration=True, pretty_print=True)
+        with open(file, "r") as f:
+            data = f.read()
+            data_new = re.sub(
+                'android:versionName="[0-9]+\.[0-9]+\.[0-9]+"',
+                f'android:versionName="{version}"',
+                data,
+                flags=re.M,
+            )
+        with open(file, "w") as f:
+            f.write(data_new)
+
     # Microsoft .NET project files
-    elif "Microsoft.NET.Sdk" in myroot.attrib["Sdk"]:
+    elif myroot.attrib.has_key("Sdk") and "Microsoft.NET.Sdk" in myroot.attrib["Sdk"]:
         version_property = [x for x in myroot[0] if x.tag == "Version"][-1]
         version_property.text = version
         mytree.write(file)

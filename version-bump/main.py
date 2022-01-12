@@ -18,6 +18,8 @@ def update_json(version, file):
         except KeyError:
             pass
         json.dump(data, open(file, "w"), indent=2)
+    with open(file, "a") as f:
+        f.write("\n")  # Make sure we add the new line back in at EOF.
 
 
 def update_plist(version, file):

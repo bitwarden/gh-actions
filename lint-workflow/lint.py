@@ -1,6 +1,33 @@
 import argparse
 import os
 import yaml
+import json
+import urllib3 as urllib
+
+def get_action_update(action_id):
+    """
+        Takes and action id (bitwarden/gh-actions/version-bump@03ad9a873c39cdc95dd8d77dbbda67f84db43945)
+        and checks the action repo for the newest version.
+        If there is a new version, return the url to the updated version.
+    """
+
+    path, *hash = action_id.split("@")
+    http = urllib.PoolManager()
+    headers = {}
+
+    if os.getenv('GITHUB_PAT', None):
+        headers["Authorization"] = f"Token {os.environ['GITHUB_PAT']}"
+
+    if "bitwarden" in path:
+        return None
+
+    r = http.request('GET', f"https://api.github.com/repos/{path}/releases/latest", headers=headers)
+    tag_name = json.loads(r.data)['tag_name']
+    r = http.request('GET', f"https://api.github.com/repos/{path}/git/ref/tags/{tag_name}", headers=headers)
+    updated_action = json.loads(r.data)['object']['sha']
+    
+    if updated_action not in hash:
+        return f"https://github.com/{path}/commit/{updated_action}"
 
 
 def lint(filename):
@@ -63,8 +90,9 @@ def lint(filename):
                             f"- Name value in step {str(i)} of job key '{job_key}' is not capitalized. [{step['name']}]"
                         )
 
-                    # If the step has a 'uses' key, check value hash.
                     if "uses" in step:
+
+                        # If the step has a 'uses' key, check value hash.
                         try:
                             _, hash = step["uses"].split("@")
 
@@ -86,6 +114,14 @@ def lint(filename):
                             findings.append(
                                 f"- Step {str(i)} of job key '{job_key}' does not have a valid action hash. (missing '@' character)"
                             )
+
+                        # If the step has a 'uses' key, check the action id repo for an update.
+                        update_available = get_action_update(step["uses"])
+                        if update_available:
+                            findings.append(
+                                f"- Step {str(i)} of job key '{job_key}' uses an outdated action, consider updating it '{update_available}'."
+                            )
+                        
                     # If the step has a 'run' key and only has one command, check if it's a single line.
                     if "run" in step:
                         if step["run"].count('\n') == 1:

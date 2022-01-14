@@ -16,8 +16,8 @@ def get_action_update(action_id):
     http = urllib.PoolManager()
     headers = {}
 
-    if os.getenv("GITHUB_PAT", None):
-        headers["Authorization"] = f"Token {os.environ['GITHUB_PAT']}"
+    if os.getenv("GITHUB_TOKEN", None):
+        headers["Authorization"] = f"Token {os.environ['GITHUB_TOKEN']}"
 
     if "bitwarden" in path:
         path_list = path.split("/", 2)

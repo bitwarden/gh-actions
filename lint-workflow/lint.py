@@ -20,21 +20,28 @@ def get_action_update(action_id):
         headers["Authorization"] = f"Token {os.environ['GITHUB_PAT']}"
 
     if "bitwarden" in path:
-        return None
+        path_list = path.split("/", 2)
+        url = f"https://api.github.com/repos/{path_list[0]}/{path_list[1]}/commits?path={path_list[2]}"
+        r = http.request("GET", url, headers=headers)
+        sha = json.loads(r.data)[0]["sha"]
+        if sha not in hash:
+            return f"https://github.com/{path_list[0]}/{path_list[1]}/commit/{sha}"
+    else:
+        r = http.request(
+            "GET",
+            f"https://api.github.com/repos/{path}/releases/latest",
+            headers=headers,
+        )
+        tag_name = json.loads(r.data)["tag_name"]
+        r = http.request(
+            "GET",
+            f"https://api.github.com/repos/{path}/git/ref/tags/{tag_name}",
+            headers=headers,
+        )
+        sha = json.loads(r.data)["object"]["sha"]
 
-    r = http.request(
-        "GET", f"https://api.github.com/repos/{path}/releases/latest", headers=headers
-    )
-    tag_name = json.loads(r.data)["tag_name"]
-    r = http.request(
-        "GET",
-        f"https://api.github.com/repos/{path}/git/ref/tags/{tag_name}",
-        headers=headers,
-    )
-    updated_action = json.loads(r.data)["object"]["sha"]
-
-    if updated_action not in hash:
-        return f"https://github.com/{path}/commit/{updated_action}"
+        if sha not in hash:
+            return f"https://github.com/{path}/commit/{sha}"
 
 
 def lint(filename):

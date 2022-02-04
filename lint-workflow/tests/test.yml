@@ -1,5 +1,5 @@
 ---
-name: Test Download Artifacts Action
+name: Lint Test File, DO NOT USE
 
 on:
   workflow_dispatch:

@@ -15,7 +15,6 @@ def get_action_update(action_id):
     path, *hash = action_id.split("@")
     http = urllib.PoolManager()
     headers = {}
-
     if os.getenv("GITHUB_TOKEN", None):
         headers["Authorization"] = f"Token {os.environ['GITHUB_TOKEN']}"
 
@@ -27,18 +26,28 @@ def get_action_update(action_id):
         if sha not in hash:
             return f"https://github.com/{path_list[0]}/{path_list[1]}/commit/{sha}"
     else:
+        # Get tag from latest release
         r = http.request(
             "GET",
             f"https://api.github.com/repos/{path}/releases/latest",
             headers=headers,
         )
+
         tag_name = json.loads(r.data)["tag_name"]
+
+        # Get the URL to the commit for the tag
         r = http.request(
             "GET",
             f"https://api.github.com/repos/{path}/git/ref/tags/{tag_name}",
             headers=headers,
         )
-        sha = json.loads(r.data)["object"]["sha"]
+        if json.loads(r.data)["object"]["type"] == "commit":
+            sha = json.loads(r.data)["object"]["sha"]
+        else:
+            url = json.loads(r.data)["object"]["url"]
+            # Follow the URL and get the commit sha for tags
+            r = http.request("GET", url, headers=headers)
+            sha = json.loads(r.data)["object"]["sha"]
 
         if sha not in hash:
             return f"https://github.com/{path}/commit/{sha}"
@@ -76,7 +85,7 @@ def lint(filename):
                 # Check for 'name' key for job.
                 if "name" not in job:
                     findings.append(f"- Name key missing for job key '{job_key}'.")
-                # Check for 'name' value to be capitallized in job.
+                # Check for 'name' value to be capitalized in job.
                 elif not job["name"][0].isupper():
                     findings.append(
                         f"- Name value of job key '{job_key}' is not capitalized. [{job['name']}]"

@@ -5,8 +5,8 @@ name: CI-Lint
 on: [push]
 
 jobs:
-  build:
-    name: Build
+  CI:
+    name: CI
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
@@ -20,7 +20,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest
+          pip install pytest yaml
       - name: Test lint
         run: pytest
         working-directory: lint-workflow/tests

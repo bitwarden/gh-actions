@@ -1,0 +1,29 @@
+---
+
+name: CI-Lint
+
+on:
+  push:
+    paths:
+      - "lint-workflow/**"
+
+jobs:
+  CI:
+    name: CI
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+
+      - name: Set up Python
+        uses: actions/setup-python@7f80679172b057fc5e90d70d197929d454754a5a
+        with:
+          python-version: "3.8"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pyyaml urllib3
+      - name: Test lint
+        run: pytest
+        working-directory: lint-workflow/tests

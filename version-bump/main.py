@@ -2,12 +2,19 @@ import os
 import json
 import plistlib
 import re
+from stat import FILE_ATTRIBUTE_NO_SCRUB_DATA
 import lxml.etree as ET
+import yaml
 
 
-def get_file_type(file):
-    file_type = os.path.splitext(file)[1]
+def get_file_type(file_path):
+    file_type = os.path.splitext(file_path)[1]
     return file_type
+
+
+def get_file_name(file_path):
+    file_name = os.path.basename(file_path)
+    return file_name
 
 
 def update_json(version, file):
@@ -62,6 +69,17 @@ def update_xml(version, file):
         mytree.write(file, encoding="utf-8")
 
 
+# For updating Helm Charts - Chart.yaml version
+def update_yaml(version, file):
+    with open(file, "r") as f:
+        doc = yaml.load(f)
+
+    doc["version"] = version
+
+    with open(file, "w") as f:
+        yaml.dump(doc, f)
+
+
 if __name__ == "__main__":
     version = os.getenv("INPUT_VERSION")
     file_path = os.getenv("INPUT_FILE_PATH")
@@ -72,6 +90,7 @@ if __name__ == "__main__":
     except TypeError:
         raise Exception(f"File path for {file_path} not found.")
 
+    file_name = get_file_name(file_path)
     file_type = get_file_type(file_path)
 
     # Handle the file based on the extension.
@@ -81,6 +100,8 @@ if __name__ == "__main__":
         update_json(version, file_path)
     elif file_type == ".plist":
         update_plist(version, file_path)
+    elif file_name == "Chart.yaml" or file_name == "Chart.yml":
+        update_yaml(version, file_path)
     else:
         raise Exception("No file was recognized as a supported format.")
 

@@ -1,6 +1,7 @@
 # Version Bump Action
 
-A Github Action that will replace versions in JSON, PLIST, and XML files. Specifically created for interacting with AndroidManifest, iOS development plists, and Node package JSON files.
+A Github Action that will replace versions in JSON, PLIST, YAML, and XML files.
+Specifically created for interacting with AndroidManifest, iOS development plists, Helm Charts, and Node package JSON files.
 
 ## Usage
 

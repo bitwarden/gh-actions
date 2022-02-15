@@ -2,7 +2,6 @@ import os
 import json
 import plistlib
 import re
-from stat import FILE_ATTRIBUTE_NO_SCRUB_DATA
 import lxml.etree as ET
 import yaml
 

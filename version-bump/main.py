@@ -2,6 +2,7 @@ import os
 import json
 import plistlib
 import re
+from unittest import loader
 import lxml.etree as ET
 import yaml
 
@@ -71,7 +72,7 @@ def update_xml(version, file):
 # For updating Helm Charts - Chart.yaml version
 def update_yaml(version, file):
     with open(file, "r") as f:
-        doc = yaml.load(f)
+        doc = yaml.load(f, Loader=yaml.FullLoader)
 
     doc["version"] = version
 

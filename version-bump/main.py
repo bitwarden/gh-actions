@@ -2,7 +2,6 @@ import os
 import json
 import plistlib
 import re
-from unittest import loader
 import lxml.etree as ET
 import yaml
 

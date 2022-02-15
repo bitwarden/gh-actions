@@ -30,7 +30,7 @@ def update_json(version, file_path):
 
 
 def update_plist(version, file_path):
-    with open(file, "rb") as plist:
+    with open(file_path, "rb") as plist:
 
         pl = plistlib.load(plist)
         pl["CFBundleShortVersionString"] = version

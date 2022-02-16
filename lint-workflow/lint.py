@@ -11,10 +11,14 @@ def get_action_update(action_id):
     and checks the action repo for the newest version.
     If there is a new version, return the url to the updated version.
     """
+    if "." in action_id:
+        # Handle local workflow calls, return None since there will be no updates.
+        return None
 
     path, *hash = action_id.split("@")
     http = urllib.PoolManager()
-    headers = {}
+    headers = {"user-agent": "bw-linter"}
+
     if os.getenv("GITHUB_TOKEN", None):
         headers["Authorization"] = f"Token {os.environ['GITHUB_TOKEN']}"
 

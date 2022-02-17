@@ -80,7 +80,7 @@ def lint(filename):
                 job = jobs[job_key]
 
                 # Make sure runner is using pinned version.
-                runner = job["runs-on"]
+                runner = job.get("runs-on", "")
                 if "-latest" in runner:
                     findings.append(
                         f"- Runner version is set to '{runner}', but needs to be pinned to a version."
@@ -104,7 +104,7 @@ def lint(filename):
                             )
 
                 # Loop through steps in job.
-                steps = job["steps"]
+                steps = job.get("steps", "")
                 for i, step in enumerate(steps, start=1):
                     # Check for 'name' key for step.
                     if "name" not in step:

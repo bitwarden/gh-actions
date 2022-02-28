@@ -17,8 +17,10 @@ runs:
   steps:
     - name: Check Runner OS
       shell: bash
+      env:
+        RUNNER_OS: ${{ runner.os }}
       run: |
-        if ["$RUNNER_OS" != "Linux"]; then
+        if [ "$RUNNER_OS" != "Linux" ]; then
           echo "[!] This workflow only supports Linux runners"
           exit 1
         fi

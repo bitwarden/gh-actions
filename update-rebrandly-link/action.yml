@@ -33,10 +33,10 @@ runs:
         DOMAIN: ${{ inputs.domain }}
         SLASHTAG: ${{ inputs.slashtag }}
       run: |
-        ID=$(curl --request GET \
+        ID=$(curl --silent --request GET \
           --url "https://api.rebrandly.com/v1/links?domain.fullName=$DOMAIN&slashtag=$SLASHTAG" \
           --header "Accept: application/json" \
-          --header "apikey: $APIKEY" | jq '.[0].id')
+          --header "apikey: $APIKEY" | jq -r '.[0].id')
         echo "::set-output name=id::$ID"
 
     - name: Update Link Destination
@@ -46,13 +46,10 @@ runs:
         ID: ${{ steps.get-link-id.outputs.id }}
         DESTINATION: ${{ inputs.destination }}
       run: |
-        curl --request POST \
+        RESULT=$(curl --silent --request POST \
           --url https://api.rebrandly.com/v1/links/$ID \
           --header "Accept: application/json" \
           --header "Content-Type: application/json" \
           --header "apikey: $APIKEY" \
-          --data "
-          {
-            'destination': '$DESTINATION'
-          }
-          "
+          --data "{\"destination\": \"$DESTINATION\"}")
+        echo $RESULT | jq '.shortUrl, .destination, .updatedAt'

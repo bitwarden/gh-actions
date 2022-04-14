@@ -140,7 +140,6 @@ async function main() {
                 artifact_id: artifact.id,
                 archive_format: "zip",
             })
-            console.log("Got here")
 
             //const dir = artifacts.length == 1 ? pathFromAction : pathname.join(path, artifact.name)
 

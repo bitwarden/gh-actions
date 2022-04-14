@@ -6,7 +6,7 @@ on:
     inputs: {}
   push:
     paths:
-      - "download-artifacts"
+      - "download-artifacts/**"
 
 jobs:
   upload:

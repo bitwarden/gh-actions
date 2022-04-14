@@ -78,7 +78,8 @@ async function main() {
                 .sort((a, b) => {
                     a_date = new Date(a.created_at)
                     b_date = new Date(b.created_at)
-                    return a_date - b_date
+                    // descending order
+                    return b_date - a_date
                 })
             })
 

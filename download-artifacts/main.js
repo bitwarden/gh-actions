@@ -74,6 +74,7 @@ async function main() {
                 repo: repo,
                 workflow_id: workflow
             }).then(runs => {
+                console.log(`Type of runs: ${typeof(runs)}\nruns: ${runs}`)
                 return runs.filter(run => run.head_branch == branch)
                 .sort((a, b) => {
                     a_date = new Date(a.created_at)

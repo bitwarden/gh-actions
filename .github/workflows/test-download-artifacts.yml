@@ -23,6 +23,7 @@ jobs:
       - name: Test
         run: |
           ls -atlh
+          ls -atlh artifact
           cat artifact/sha | grep $GITHUB_SHA
 
 
@@ -45,6 +46,7 @@ jobs:
       - name: Test
         run: |
           ls -atlh
+          ls -atlh artifact
           cat artifact/sha | grep $GITHUB_SHA
 
 
@@ -67,6 +69,7 @@ jobs:
       - name: Test
         run: |
           ls -atlh
+          ls -atlh artifact
           cat artifact/sha | grep $GITHUB_SHA
 
 
@@ -148,4 +151,5 @@ jobs:
       - name: Test
         run: |
           ls -atlh
+          ls -atlh artifact
           cat artifact/sha | grep $GITHUB_SHA

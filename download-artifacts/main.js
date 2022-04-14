@@ -74,7 +74,6 @@ async function main() {
                 repo: repo,
                 workflow_id: workflow
             }).then(workflowRunsResponse => {
-                console.log(`Type of runs: ${typeof(workflowRunsResponse)}\nruns: ${JSON.stringify(workflowRunsResponse)}`)
                 return workflowRunsResponse.data.workflow_runs
                 .sort((a, b) => {
                     a_date = new Date(a.created_at)
@@ -83,13 +82,8 @@ async function main() {
                 })
             })
 
-            if (branch) {
-                let runs = runs.filter(run => {
-                    if (branch)
-                        return run.head_branch == branch
-                    return true == true
-                })
-            }
+            if (branch)
+                runs = runs.filter(run => run.head_branch == branch)
 
             console.log(`Type of runs: ${typeof(runs)}\nruns: ${JSON.stringify(runs, null, 4)}`)
             for (const run of runs) {

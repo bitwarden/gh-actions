@@ -21,7 +21,9 @@ jobs:
           path: artifact
 
       - name: Test
-        run: cat artifact/sha | grep $GITHUB_SHA
+        run: |
+          ls -alth
+          cat sha | grep $GITHUB_SHA
 
 
   download-branch:
@@ -41,7 +43,9 @@ jobs:
           branch: master
 
       - name: Test
-        run: cat artifact/sha | grep $GITHUB_SHA
+        run: |
+          ls -alth
+          cat sha | grep $GITHUB_SHA
 
 
   download-pr:
@@ -61,7 +65,9 @@ jobs:
           pr: ${{github.event.pull_request.number}}
 
       - name: Test
-        run: cat artifact/sha | grep $GITHUB_SHA
+        run: |
+          ls -alth
+          cat sha | grep $GITHUB_SHA
 
 
   download-all:
@@ -78,8 +84,8 @@ jobs:
 
       - name: Test
         run: |
-          cat artifact1/sha1 | grep $GITHUB_SHA
-          cat artifact2/sha2 | grep $GITHUB_SHA
+          cat sha1 | grep $GITHUB_SHA
+          cat sha2 | grep $GITHUB_SHA
 
 
   download-multiple:
@@ -99,8 +105,8 @@ jobs:
       - name: Test
         run: |
           ls -alth
-          cat artifact1/sha1 | grep $GITHUB_SHA
-          cat artifact2/sha2 | grep $GITHUB_SHA
+          cat sha1 | grep $GITHUB_SHA
+          cat sha2 | grep $GITHUB_SHA
 
 
   download-wildcard:
@@ -119,8 +125,8 @@ jobs:
       - name: Test
         run: |
           ls -alth
-          cat artifact1.txt/sha1 | grep $GITHUB_SHA
-          cat artifact2.txt/sha2 | grep $GITHUB_SHA
+          cat sha1 | grep $GITHUB_SHA
+          cat sha2 | grep $GITHUB_SHA
 
 
   download-conclusion:
@@ -139,4 +145,6 @@ jobs:
           workflow_conclusion: ''
 
       - name: Test
-        run: cat artifact/sha | grep $GITHUB_SHA
+        run: |
+          ls -alth
+          cat sha | grep $GITHUB_SHA

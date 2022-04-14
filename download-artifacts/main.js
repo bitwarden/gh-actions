@@ -103,9 +103,6 @@ async function main() {
                 runID = run.id
                 break
             }
-            if (runID) {
-                break
-            }
         }
 
         if (runID) {

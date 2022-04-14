@@ -73,13 +73,15 @@ async function main() {
                 owner: owner,
                 repo: repo,
                 workflow_id: workflow
+            }).then(runs => {
+                return runs.filter(run => run.head_branch == branch)
+                .sort((a, b) => {
+                    a_date = new Date(a.created_at)
+                    b_date = new Date(b.created_at)
+                    return a_date - b_date
+                })
             })
-            .filter(run => run.head_branch == branch)
-            .sort((a, b) => {
-                a_date = new Date(a.created_at)
-                b_date = new Date(b.created_at)
-                return a_date - b_date
-            })
+
             for (const run of runs.data) {
                 if (commit && run.head_sha != commit) {
                     continue

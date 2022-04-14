@@ -83,7 +83,8 @@ async function main() {
                 })
             })
 
-            for (const run of runs.data) {
+            console.log(`Type of runs: ${typeof(runs)}\nruns: ${JSON.stringify(runs)}`)
+            for (const run of runs) {
                 if (commit && run.head_sha != commit) {
                     continue
                 }

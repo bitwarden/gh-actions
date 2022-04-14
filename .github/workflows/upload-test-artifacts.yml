@@ -4,6 +4,9 @@ name: Upload Test Artifacts
 on:
   workflow_dispatch:
     inputs: {}
+  push:
+    paths:
+      - "download-artifacts/**"
 
 jobs:
   upload:

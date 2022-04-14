@@ -24,9 +24,7 @@ async function main() {
         const client = github.getOctokit(token)
 
         console.log("==> Workflow:", workflow)
-
         console.log("==> Repo:", owner + "/" + repo)
-
         console.log("==> Conclusion:", workflowConclusion)
 
         if (pr) {
@@ -39,6 +37,19 @@ async function main() {
             })
             commit = pull.data.head.sha
         }
+
+        /*
+        if (workflow.includes(".yml") || workflow.includes(".yaml")) {
+            try {
+                workflow = client.actions.listRepoWorkflows({
+                    owner: owner,
+                    repo: repo
+                }).filter(workflow => workflow.path == `.github/workflows/${workflow}`)[0].name
+            } catch (error) {
+                throw new Error("No matching workflow found in this repository")
+            }
+        }
+        */
 
         if (commit) {
             console.log("==> Commit:", commit)
@@ -58,40 +69,42 @@ async function main() {
         }
 
         if (!runID) {
-            for await (const runs of client.paginate.iterator(client.actions.listWorkflowRuns, {
+            const runs = await client.actions.listWorkflowRuns({
                 owner: owner,
                 repo: repo,
-                workflow_id: workflow,
-                branch: branch,
-                event: event,
+                workflow_id: workflow
+            })
+            .filter(run => run.head_branch == branch)
+            .sort((a, b) => {
+                a_date = new Date(a.created_at)
+                b_date = new Date(b.created_at)
+                return a_date - b_date
+            })
+            for (const run of runs.data) {
+                if (commit && run.head_sha != commit) {
+                    continue
+                }
+                if (runNumber && run.run_number != runNumber) {
+                    continue
+                }
+                if (workflowConclusion && (workflowConclusion != run.conclusion && workflowConclusion != run.status)) {
+                    continue
+                }
+                if (checkArtifacts) {
+                    let artifacts = await client.actions.listWorkflowRunArtifacts({
+                        owner: owner,
+                        repo: repo,
+                        run_id: run.id,
+                    })
+                    if (artifacts.data.artifacts.length == 0) {
+                        continue
+                    }
+                }
+                runID = run.id
+                break
             }
-            )) {
-                for (const run of runs.data) {
-                    if (commit && run.head_sha != commit) {
-                        continue
-                    }
-                    if (runNumber && run.run_number != runNumber) {
-                        continue
-                    }
-                    if (workflowConclusion && (workflowConclusion != run.conclusion && workflowConclusion != run.status)) {
-                        continue
-                    }
-                    if (checkArtifacts) {
-                        let artifacts = await client.actions.listWorkflowRunArtifacts({
-                            owner: owner,
-                            repo: repo,
-                            run_id: run.id,
-                        })
-                        if (artifacts.data.artifacts.length == 0) {
-                            continue
-                        }
-                    }
-                    runID = run.id
-                    break
-                }
-                if (runID) {
-                    break
-                }
+            if (runID) {
+                break
             }
         }
 

@@ -31,13 +31,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
 
+      - name: Extract branch name
+        shell: bash
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        id: extract_branch
+
       - name: Download
         uses: ./download-artifacts
         with:
           workflow: upload-test-artifacts.yml
           artifacts: artifact
           path: artifact
-          branch: master
+          branch: ${{ steps.extract_branch.outputs.branch }}
 
       - name: Test
         run: cat artifact/sha | grep $GITHUB_SHA

@@ -70,8 +70,9 @@ async function main() {
                 })
             })
 
-            if (branch)
+            if (branch) {
                 runs = runs.filter(run => run.head_branch == branch)
+            }
 
             for (const run of runs) {
                 if (commit && run.head_sha != commit) {
@@ -122,8 +123,9 @@ async function main() {
             return artifactNames.map(name => matchesWithRegex(artifact.name, name)).reduce((prevValue, currValue) => prevValue || currValue)
         })
 
-        if (artifactsToDownload.length == 0)
+        if (artifactsToDownload.length == 0) {
             throw new Error("no artifacts found")
+        }
 
         for (const artifact of artifactsToDownload) {
             console.log("==> Artifact:", artifact.id)

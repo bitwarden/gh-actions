@@ -22,9 +22,8 @@ jobs:
 
       - name: Test
         run: |
-          ls -atlh
-          ls -atlh artifact
-          cat artifact/sha | grep $GITHUB_SHA
+          cat artifact/sha
+          echo $GITHUB_SHA
 
 
   download-branch:
@@ -45,9 +44,8 @@ jobs:
 
       - name: Test
         run: |
-          ls -atlh
-          ls -atlh artifact
-          cat artifact/sha | grep $GITHUB_SHA
+          cat artifact/sha
+          echo $GITHUB_SHA
 
 
   download-pr:
@@ -68,9 +66,8 @@ jobs:
 
       - name: Test
         run: |
-          ls -atlh
-          ls -atlh artifact
-          cat artifact/sha | grep $GITHUB_SHA
+          cat artifact/sha
+          echo $GITHUB_SHA
 
 
   download-all:
@@ -88,8 +85,8 @@ jobs:
       - name: Test
         run: |
           ls -atlh
-          cat artifact1/sha1 | grep $GITHUB_SHA
-          cat artifact2/sha2 | grep $GITHUB_SHA
+          cat artifact1/sha1
+          cat artifact2/sha2
 
 
   download-multiple:
@@ -109,8 +106,8 @@ jobs:
       - name: Test
         run: |
           ls -alth
-          cat artifact1/sha1 | grep $GITHUB_SHA
-          cat artifact2/sha2 | grep $GITHUB_SHA
+          cat artifact1/sha1
+          cat artifact2/sha2
 
 
   download-wildcard:
@@ -129,8 +126,8 @@ jobs:
       - name: Test
         run: |
           ls -alth
-          cat artifact1.txt/sha1 | grep $GITHUB_SHA
-          cat artifact2.txt/sha2 | grep $GITHUB_SHA
+          cat artifact1.txt/sha1
+          cat artifact2.txt/sha2
 
 
   download-conclusion:
@@ -150,6 +147,5 @@ jobs:
 
       - name: Test
         run: |
-          ls -atlh
-          ls -atlh artifact
-          cat artifact/sha | grep $GITHUB_SHA
+          cat artifact/sha
+          echo $GITHUB_SHA

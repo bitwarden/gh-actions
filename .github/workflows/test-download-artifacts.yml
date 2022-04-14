@@ -27,14 +27,10 @@ jobs:
   download-branch:
     name: Download BRANCH
     runs-on: ubuntu-20.04
+    if: github.ref == 'refs/heads/master'
     steps:
       - name: Checkout
         uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
-
-      - name: Extract branch name
-        shell: bash
-        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
-        id: extract_branch
 
       - name: Download
         uses: ./download-artifacts
@@ -42,7 +38,7 @@ jobs:
           workflow: upload-test-artifacts.yml
           artifacts: artifact
           path: artifact
-          branch: ${{ steps.extract_branch.outputs.branch }}
+          branch: master
 
       - name: Test
         run: cat artifact/sha | grep $GITHUB_SHA

@@ -85,6 +85,12 @@ async function main() {
             if (branch)
                 runs = runs.filter(run => run.head_branch == branch)
 
+
+            let mini_runs = runs.map(run => {
+                return {id: run.id, created_at: run.created_at}
+            })
+            console.log(`mini_runs: ${JSON.stringify(mini_runs, null 4)}`)
+
             for (const run of runs) {
                 if (commit && run.head_sha != commit) {
                     continue

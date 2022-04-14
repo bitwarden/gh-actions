@@ -24,9 +24,7 @@ async function main() {
         const client = github.getOctokit(token)
 
         console.log("==> Workflow:", workflow)
-
         console.log("==> Repo:", owner + "/" + repo)
-
         console.log("==> Conclusion:", workflowConclusion)
 
         if (pr) {
@@ -58,40 +56,46 @@ async function main() {
         }
 
         if (!runID) {
-            for await (const runs of client.paginate.iterator(client.actions.listWorkflowRuns, {
+            let runs = await client.actions.listWorkflowRuns({
                 owner: owner,
                 repo: repo,
-                workflow_id: workflow,
-                branch: branch,
-                event: event,
+                workflow_id: workflow
+            }).then(workflowRunsResponse => {
+                return workflowRunsResponse.data.workflow_runs
+                .sort((a, b) => {
+                    a_date = new Date(a.created_at)
+                    b_date = new Date(b.created_at)
+                    // descending order
+                    return b_date - a_date
+                })
+            })
+
+            if (branch) {
+                runs = runs.filter(run => run.head_branch == branch)
             }
-            )) {
-                for (const run of runs.data) {
-                    if (commit && run.head_sha != commit) {
-                        continue
-                    }
-                    if (runNumber && run.run_number != runNumber) {
-                        continue
-                    }
-                    if (workflowConclusion && (workflowConclusion != run.conclusion && workflowConclusion != run.status)) {
-                        continue
-                    }
-                    if (checkArtifacts) {
-                        let artifacts = await client.actions.listWorkflowRunArtifacts({
-                            owner: owner,
-                            repo: repo,
-                            run_id: run.id,
-                        })
-                        if (artifacts.data.artifacts.length == 0) {
-                            continue
-                        }
-                    }
-                    runID = run.id
-                    break
+
+            for (const run of runs) {
+                if (commit && run.head_sha != commit) {
+                    continue
                 }
-                if (runID) {
-                    break
+                if (runNumber && run.run_number != runNumber) {
+                    continue
                 }
+                if (workflowConclusion && (workflowConclusion != run.conclusion && workflowConclusion != run.status)) {
+                    continue
+                }
+                if (checkArtifacts) {
+                    let artifacts = await client.actions.listWorkflowRunArtifacts({
+                        owner: owner,
+                        repo: repo,
+                        run_id: run.id,
+                    })
+                    if (artifacts.data.artifacts.length == 0) {
+                        continue
+                    }
+                }
+                runID = run.id
+                break
             }
         }
 
@@ -119,8 +123,9 @@ async function main() {
             return artifactNames.map(name => matchesWithRegex(artifact.name, name)).reduce((prevValue, currValue) => prevValue || currValue)
         })
 
-        if (artifactsToDownload.length == 0)
+        if (artifactsToDownload.length == 0) {
             throw new Error("no artifacts found")
+        }
 
         for (const artifact of artifactsToDownload) {
             console.log("==> Artifact:", artifact.id)

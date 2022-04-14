@@ -4,6 +4,11 @@ name: Test Download Artifacts Action
 on:
   workflow_dispatch:
     inputs: {}
+  workflow_run:
+    workflows:
+      - Upload Test Artifacts
+    types:
+      - completed
 
 jobs:
   download-latest:

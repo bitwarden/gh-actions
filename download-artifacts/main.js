@@ -69,13 +69,13 @@ async function main() {
         }
 
         if (!runID) {
-            const runs = await client.actions.listWorkflowRuns({
+            let runs = await client.actions.listWorkflowRuns({
                 owner: owner,
                 repo: repo,
                 workflow_id: workflow
             }).then(workflowRunsResponse => {
                 console.log(`Type of runs: ${typeof(workflowRunsResponse)}\nruns: ${JSON.stringify(workflowRunsResponse)}`)
-                return workflowRunsResponse.data.workflow_runs.filter(run => run.head_branch == branch)
+                return workflowRunsResponse.data.workflow_runs
                 .sort((a, b) => {
                     a_date = new Date(a.created_at)
                     b_date = new Date(b.created_at)
@@ -83,7 +83,15 @@ async function main() {
                 })
             })
 
-            console.log(`Type of runs: ${typeof(runs)}\nruns: ${JSON.stringify(runs)}`)
+            if (branch) {
+                let runs = runs.filter(run => {
+                    if (branch)
+                        return run.head_branch == branch
+                    return true == true
+                })
+            }
+
+            console.log(`Type of runs: ${typeof(runs)}\nruns: ${JSON.stringify(runs, null, 4)}`)
             for (const run of runs) {
                 if (commit && run.head_sha != commit) {
                     continue

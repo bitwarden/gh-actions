@@ -85,8 +85,9 @@ jobs:
       - name: Test
         run: |
           ls -atlh
-          cat artifact1/sha1
-          cat artifact2/sha2
+          cat sha
+          cat sha1
+          cat sha2
 
 
   download-multiple:
@@ -101,13 +102,13 @@ jobs:
         with:
           workflow: upload-test-artifacts.yml
           artifacts: 'artifact1,
-                 artifact2'
+                      artifact2'
 
       - name: Test
         run: |
-          ls -alth
-          cat artifact1/sha1
-          cat artifact2/sha2
+          ls -atlh
+          cat sha1
+          cat sha2
 
 
   download-wildcard:
@@ -125,9 +126,9 @@ jobs:
 
       - name: Test
         run: |
-          ls -alth
-          cat artifact1.txt/sha1
-          cat artifact2.txt/sha2
+          ls -atlh
+          cat sha1
+          cat sha2
 
 
   download-conclusion:

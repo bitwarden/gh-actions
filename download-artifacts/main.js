@@ -85,7 +85,6 @@ async function main() {
             if (branch)
                 runs = runs.filter(run => run.head_branch == branch)
 
-            console.log(`Type of runs: ${typeof(runs)}\nruns: ${JSON.stringify(runs, null, 4)}`)
             for (const run of runs) {
                 if (commit && run.head_sha != commit) {
                     continue
@@ -151,6 +150,7 @@ async function main() {
                 artifact_id: artifact.id,
                 archive_format: "zip",
             })
+            console.log("Got here")
 
             //const dir = artifacts.length == 1 ? pathFromAction : pathname.join(path, artifact.name)
 

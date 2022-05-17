@@ -13,6 +13,9 @@
 	<key>CFBundleShortVersionString</key>
 	<string>6.20</string>
 	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -22,5 +25,8 @@
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>UIDeviceFamily</key>
+	<array>
+		<integer>1</integer>
+	</array>
 </dict>
 </plist>

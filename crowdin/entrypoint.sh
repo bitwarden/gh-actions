@@ -218,7 +218,6 @@ else
 fi
 
 cd "${WORKING_DIRECTORY}" || exit 1
-ls -atlh
 
 git config --global --add safe.directory $GITHUB_WORKSPACE
 

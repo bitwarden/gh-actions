@@ -220,7 +220,7 @@ fi
 cd "${WORKING_DIRECTORY}" || exit 1
 ls -atlh
 
-git config --global --add safe.directory $WORKING_DIRECTORY
+git config --global --add safe.directory $GITHUB_WORKSPACE
 
 view_debug_output
 

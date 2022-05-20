@@ -211,13 +211,14 @@ get_branch_available_options() {
 
 echo "STARTING CROWDIN ACTION"
 
-if [ -n "INPUT_WORKING_DIRECTORY" = true ]; then 
+if [ -n "INPUT_WORKING_DIRECTORY" ]; then 
   WORKING_DIRECTORY="${GITHUB_WORKSPACE}/${INPUT_WORKING_DIRECTORY}"
 else
   WORKING_DIRECTORY="${GITHUB_WORKSPACE}"
 fi
 
 cd "${WORKING_DIRECTORY}" || exit 1
+ls -atlh
 
 git config --global --add safe.directory $WORKING_DIRECTORY
 

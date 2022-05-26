@@ -1,0 +1,62 @@
+---
+
+name: Test Version Check Action
+
+on:
+  pull_request:
+    path:
+      - "release-check-version"
+  push:
+    branches:
+      - "master"
+  workflow_dispatch:
+    inputs:
+      version_number:
+        description: "New Version"
+        required: true
+
+jobs:
+  test-version-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Version Check in TS project - SemVer Success
+        id: ts-semver-success
+        uses: ./release-version-check
+        with:
+          release-type: Initial Release
+          project-type: ts
+          file: release-version-check/test/fixtures/SemVer/package.json
+          override-version: 1.1.0
+
+      - name: Version Check in TS project - SemVer Failure
+        id: ts-semver-success
+        uses: ./release-version-check
+        with:
+          release-type: Initial Release
+          project-type: ts
+          file: release-version-check/test/fixtures/SemVer/package.json
+          override-version: 1.0.1
+
+      - name: Version Check in C# project - SemVer Success
+        id: ts-semver-success
+        uses: ./release-version-check
+        with:
+          release-type: Initial Release
+          project-type: csharp
+          file: release-version-check/test/fixtures/SemVer/Test.csproj
+          override-version: 1.1.0
+
+      - name: Version Check in C# project - SemVer Failure
+        id: ts-semver-success
+        uses: ./release-version-check
+        with:
+          release-type: Initial Release
+          project-type: csharp
+          file: release-version-check/test/fixtures/SemVer/Test.csproj
+          override-version: 1.0.1
+
+      - name: Validate Outputs
+        run: |
+          echo "${{ steps.ts-semver-success.outputs.status }}"
+
+      

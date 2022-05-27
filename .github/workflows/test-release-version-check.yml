@@ -80,17 +80,24 @@ jobs:
           test_outputs=()
 
           function assert() {
-            test_name=$1
-            value=$2
-            expected_value=$3
+            value=$1
+            expected_value=$2
+            test_name=$3
             if [[ "$value" == "$expected_value" ]]; then
               echo "${test_name}: pass"
               test_outputs+=("pass")
             else
-              echo "${test_name}: fail"
+        echo "${test_name}: fail"
               test_outputs+=("fail")
             fi
           }
+
+          assert "${{ needs.test-version-check.outputs.ts-semver-success-status }}" "success" "Test TS SemVer Success"
+          aseert "${{ needs.test-version-check.outputs.ts-semver-fail-status }}" "fail" "Test TS SemVer Fail" 
+          aseert "${{ needs.test-version-check.outputs.ts-calver-success-status }}" "success" "Test TS CalVer Success"
+          aseert "${{ needs.test-version-check.outputs.ts-calver-fail-status }}" "fail" "Test TS CalVer Fail"
+          aseert "${{ needs.test-version-check.outputs.csharp-calver-success-status }}" "success" "Test CSharp CalVer Success:" 
+          aseert "${{ needs.test-version-check.outputs.csharp-calver-fail-status }}" "fail" "Test CSharp CalVer Fail"
 
           if [[ "${test_outputs[@]}" =~ "fail" ]]; then
             exit 1

@@ -1,0 +1,24 @@
+---
+
+name: Test Version Check Action
+
+on:
+  pull_request:
+    path:
+      - "release-check-version"
+  push:
+    branches:
+      - "master"
+  workflow_dispatch:
+    inputs:
+      version_number:
+        description: "New Version"
+        required: true
+
+jobs:
+  test-version-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Stub
+        run: |
+          echo "This enables feature branch testing for this workflow"

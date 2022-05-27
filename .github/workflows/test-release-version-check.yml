@@ -87,7 +87,7 @@ jobs:
               echo "${test_name}: pass"
               test_outputs+=("pass")
             else
-        echo "${test_name}: fail"
+              echo "${test_name}: fail"
               test_outputs+=("fail")
             fi
           }

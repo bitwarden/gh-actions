@@ -3,7 +3,7 @@ name: Test Version Check Action
 
 on:
   pull_request:
-    path:
+    paths:
       - "release-check-version"
   push:
     branches:
@@ -45,11 +45,11 @@ jobs:
             override-version: 2022.05.0
     outputs:
       ts-semver-success-status: ${{ steps.set-status.outputs.ts-semver-success }}
-      #ts-semver-fail-status: ${{ steps.set-status.outputs.ts-semver-fail }}
+      ts-semver-fail-status: ${{ steps.set-status.outputs.ts-semver-fail }}
       ts-calver-success-status: ${{ steps.set-status.outputs.ts-calver-success }}
-      #ts-calver-fail-status: ${{ steps.set-status.outputs.ts-calver-fail }}
+      ts-calver-fail-status: ${{ steps.set-status.outputs.ts-calver-fail }}
       csharp-calver-success-status: ${{ steps.set-status.outputs.csharp-calver-success }}
-      #csharp-calver-fail-status: ${{ steps.set-status.outputs.csharp-calver-fail }}
+      csharp-calver-fail-status: ${{ steps.set-status.outputs.csharp-calver-fail }}
     steps:
       - uses: actions/checkout@v2
 
@@ -85,5 +85,3 @@ jobs:
           echo "Test CSharp CalVer Fail: ${{ needs.test-version-check.outputs.csharp-calver-fail-status }}"
 
           exit 0
-
-  

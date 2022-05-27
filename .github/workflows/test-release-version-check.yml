@@ -1,5 +1,4 @@
 ---
-
 name: Test Version Check Action
 
 on:
@@ -45,11 +44,11 @@ jobs:
             file: release-version-check/tests/fixtures/CalVer/Test.csproj
             override-version: 2022.05.0
     outputs:
-      ts-semver-succuess-status: ${{ steps.set-status.outputs.ts-semver-success }}
+      ts-semver-success-status: ${{ steps.set-status.outputs.ts-semver-success }}
       #ts-semver-fail-status: ${{ steps.set-status.outputs.ts-semver-fail }}
-      ts-calver-succuess-status: ${{ steps.set-status.outputs.ts-calver-success }}
+      ts-calver-success-status: ${{ steps.set-status.outputs.ts-calver-success }}
       #ts-calver-fail-status: ${{ steps.set-status.outputs.ts-calver-fail }}
-      csharp-calver-succuess-status: ${{ steps.set-status.outputs.csharp-calver-success }}
+      csharp-calver-success-status: ${{ steps.set-status.outputs.csharp-calver-success }}
       #csharp-calver-fail-status: ${{ steps.set-status.outputs.csharp-calver-fail }}
     steps:
       - uses: actions/checkout@v2
@@ -67,7 +66,7 @@ jobs:
       - name: Set Status
         id: set-status
         run: |
-          echo "Status Status - ${{ matrix.name }}: ${{ stesp.run-version-check.outputs.status }}"
+          echo "Status Status - ${{ matrix.name }}: ${{ steps.run-version-check.outputs.status }}"
           echo "::set-output name=${{ matrix.name }}::${{ steps.run-version-check.outputs.status }}"
 
 

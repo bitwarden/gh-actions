@@ -94,7 +94,7 @@ jobs:
 
           assert "${{ needs.test-version-check.outputs.ts-semver-success-status }}" "success" "Test TS SemVer Success"
           assert "${{ needs.test-version-check.outputs.ts-semver-fail-status }}" "fail" "Test TS SemVer Fail" 
-          assert "${{ needs.test-version-check.outputs.ts-calver-success-status }}" "success" "Test TS CalVer Success"
+          assert "${{ needs.test-version-check.outputs.ts-calver-success-status }}" "fail" "Test TS CalVer Success"
           assert "${{ needs.test-version-check.outputs.ts-calver-fail-status }}" "fail" "Test TS CalVer Fail"
           assert "${{ needs.test-version-check.outputs.csharp-calver-success-status }}" "success" "Test CSharp CalVer Success:" 
           assert "${{ needs.test-version-check.outputs.csharp-calver-fail-status }}" "fail" "Test CSharp CalVer Fail"

@@ -99,7 +99,9 @@ jobs:
           assert "${{ needs.test-version-check.outputs.csharp-calver-success-status }}" "success" "Test CSharp CalVer Success:" 
           assert "${{ needs.test-version-check.outputs.csharp-calver-fail-status }}" "fail" "Test CSharp CalVer Fail"
 
-          echo "Tests statuses: $test_outputs"
+          for value in "${test_outputs[@]}" do
+            echo -n "$value "
+          done 
 
           if [[ "${test_outputs[@]}" =~ "fail" ]]; then
             exit 1

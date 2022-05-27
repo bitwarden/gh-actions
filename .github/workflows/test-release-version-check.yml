@@ -77,11 +77,23 @@ jobs:
     steps:
       - name: Validate Outputs
         run: |
-          echo "Test TS SemVer Success: ${{ needs.test-version-check.outputs.ts-semver-success-status }}"
-          echo "Test TS SemVer Fail: ${{ needs.test-version-check.outputs.ts-semver-fail-status }}"
-          echo "Test TS CalVer Success: ${{ needs.test-version-check.outputs.ts-calver-success-status }}"
-          echo "Test TS CalVer Fail: ${{ needs.test-version-check.outputs.ts-calver-fail-status }}"
-          echo "Test CSharp CalVer Success: ${{ needs.test-version-check.outputs.csharp-calver-success-status }}"
-          echo "Test CSharp CalVer Fail: ${{ needs.test-version-check.outputs.csharp-calver-fail-status }}"
+          test_outputs=()
 
-          exit 0
+          function assert() {
+            test_name=$1
+            value=$2
+            expected_value=$3
+            if [[ "$value" == "$expected_value" ]]; then
+              echo "${test_name}: pass"
+              test_outputs+=("pass")
+            else
+              echo "${test_name}: fail"
+              test_outputs+=("fail")
+            fi
+          }
+
+          if [[ "${test_outputs[@]}" =~ "fail" ]]; then
+            exit 1
+          else
+            exit 0
+          fi

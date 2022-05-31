@@ -68,6 +68,12 @@ runs:
           echo "::set-output name=step-failed::true"
         fi
 
+        monorepo_project_valid_inputs=("browser" "cli" "desktop" "web")
+        if [[ ! "${monorepo_project_valid_inputs[@]}" =~ "${{ inputs.monorepo-project }}" ]]; then
+          echo "[!] 'monorepo-project' option only supports the following values: (${monorepo_project_valid_inputs})"
+          echo "::set-output name=step-failed::true"
+        fi
+
 
     - name: Get project new version
       shell: bash

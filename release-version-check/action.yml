@@ -6,24 +6,24 @@ branding:
   color: blue
 inputs:
   release-type:
-    description: "Release options"
+    description: "Release options: ('Initial Release', 'Redeploy', 'Dry Run')"
     required: true
   project-type:
-    description: ""
+    description: "The project's language: ('ts', 'csharp')"
     required: true
   file:
-    description: ""
+    description: "The file path to the code that contains the application's version"
     required: true
   monorepo:
-    description: "Identifies if the github repo is a monorepo"
+    description: "Identifies if the github repo is a monorepo: ('true', 'false')"
     required: false
     default: "false"
   monorepo-project:
-    description: "Identifies the monorepo project"
+    description: "Identifies the monorepo project: ('', 'browser', 'cli', 'desktop', 'web')"
     required: false
     default: ""
   override-version:
-    description: "Override the current version"
+    description: "Override the current version (for testing purposes)" 
     required: false
     default: ""
 outputs:

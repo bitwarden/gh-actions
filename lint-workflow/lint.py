@@ -11,50 +11,54 @@ def get_action_update(action_id):
     and checks the action repo for the newest version.
     If there is a new version, return the url to the updated version.
     """
-    if "." in action_id:
-        # Handle local workflow calls, return None since there will be no updates.
-        return None
+    try:
+        if "." in action_id:
+            # Handle local workflow calls, return None since there will be no updates.
+            return None
 
-    path, *hash = action_id.split("@")
-    http = urllib.PoolManager()
-    headers = {"user-agent": "bw-linter"}
+        path, *hash = action_id.split("@")
+        http = urllib.PoolManager()
+        headers = {"user-agent": "bw-linter"}
 
-    if os.getenv("GITHUB_TOKEN", None):
-        headers["Authorization"] = f"Token {os.environ['GITHUB_TOKEN']}"
+        if os.getenv("GITHUB_TOKEN", None):
+            headers["Authorization"] = f"Token {os.environ['GITHUB_TOKEN']}"
 
-    if "bitwarden" in path:
-        path_list = path.split("/", 2)
-        url = f"https://api.github.com/repos/{path_list[0]}/{path_list[1]}/commits?path={path_list[2]}"
-        r = http.request("GET", url, headers=headers)
-        sha = json.loads(r.data)[0]["sha"]
-        if sha not in hash:
-            return f"https://github.com/{path_list[0]}/{path_list[1]}/commit/{sha}"
-    else:
-        # Get tag from latest release
-        r = http.request(
-            "GET",
-            f"https://api.github.com/repos/{path}/releases/latest",
-            headers=headers,
-        )
-
-        tag_name = json.loads(r.data)["tag_name"]
-
-        # Get the URL to the commit for the tag
-        r = http.request(
-            "GET",
-            f"https://api.github.com/repos/{path}/git/ref/tags/{tag_name}",
-            headers=headers,
-        )
-        if json.loads(r.data)["object"]["type"] == "commit":
-            sha = json.loads(r.data)["object"]["sha"]
-        else:
-            url = json.loads(r.data)["object"]["url"]
-            # Follow the URL and get the commit sha for tags
+        if "bitwarden" in path:
+            path_list = path.split("/", 2)
+            url = f"https://api.github.com/repos/{path_list[0]}/{path_list[1]}/commits?path={path_list[2]}"
             r = http.request("GET", url, headers=headers)
-            sha = json.loads(r.data)["object"]["sha"]
+            sha = json.loads(r.data)[0]["sha"]
+            if sha not in hash:
+                return f"https://github.com/{path_list[0]}/{path_list[1]}/commit/{sha}"
+        else:
+            # Get tag from latest release
+            r = http.request(
+                "GET",
+                f"https://api.github.com/repos/{path}/releases/latest",
+                headers=headers,
+            )
 
-        if sha not in hash:
-            return f"https://github.com/{path}/commit/{sha}"
+            tag_name = json.loads(r.data)["tag_name"]
+
+            # Get the URL to the commit for the tag
+            r = http.request(
+                "GET",
+                f"https://api.github.com/repos/{path}/git/ref/tags/{tag_name}",
+                headers=headers,
+            )
+            if json.loads(r.data)["object"]["type"] == "commit":
+                sha = json.loads(r.data)["object"]["sha"]
+            else:
+                url = json.loads(r.data)["object"]["url"]
+                # Follow the URL and get the commit sha for tags
+                r = http.request("GET", url, headers=headers)
+                sha = json.loads(r.data)["object"]["sha"]
+
+            if sha not in hash:
+                return f"https://github.com/{path}/commit/{sha}"
+    except:
+        print(f"! Error trying to find latest version of action: {action_id}")
+        return None
 
 
 def lint(filename):

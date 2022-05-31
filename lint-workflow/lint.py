@@ -57,6 +57,7 @@ def get_action_update(action_id):
             if sha not in hash:
                 return f"https://github.com/{path}/commit/{sha}"
     except:
+        print(f"! Error trying to find latest version of action: {action_id}")
         return None
 
 

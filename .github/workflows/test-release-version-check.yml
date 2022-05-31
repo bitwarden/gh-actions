@@ -1,24 +1,106 @@
 ---
-
 name: Test Version Check Action
 
 on:
   pull_request:
-    path:
+    paths:
       - "release-check-version"
   push:
     branches:
       - "master"
   workflow_dispatch:
-    inputs:
-      version_number:
-        description: "New Version"
-        required: true
+    inputs: {}
+
 
 jobs:
   test-version-check:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ts-semver-success
+            project-type: ts
+            file: release-version-check/tests/fixtures/SemVer/package.json
+            override-version: 1.1.0
+          - name: ts-semver-fail
+            project-type: ts
+            file: release-version-check/tests/fixtures/SemVer/package.json
+            override-version: 1.0.1
+          - name: ts-calver-success
+            project-type: ts
+            file: release-version-check/tests/fixtures/CalVer/package.json
+            override-version: 2022.06.0
+          - name: ts-calver-fail
+            project-type: ts
+            file: release-version-check/tests/fixtures/CalVer/package.json
+            override-version: 2022.05.0
+          - name: csharp-calver-success
+            project-type: csharp
+            file: release-version-check/tests/fixtures/CalVer/Test.csproj
+            override-version: 2022.06.0
+          - name: csharp-calver-fail
+            project-type: csharp
+            file: release-version-check/tests/fixtures/CalVer/Test.csproj
+            override-version: 2022.05.0
+    outputs:
+      ts-semver-success-status: ${{ steps.set-status.outputs.ts-semver-success }}
+      ts-semver-fail-status: ${{ steps.set-status.outputs.ts-semver-fail }}
+      ts-calver-success-status: ${{ steps.set-status.outputs.ts-calver-success }}
+      ts-calver-fail-status: ${{ steps.set-status.outputs.ts-calver-fail }}
+      csharp-calver-success-status: ${{ steps.set-status.outputs.csharp-calver-success }}
+      csharp-calver-fail-status: ${{ steps.set-status.outputs.csharp-calver-fail }}
     steps:
-      - name: Stub
+      - uses: actions/checkout@v2
+
+      - name: Version Check - ${{ matrix.name }}
+        id: run-version-check
+        continue-on-error: true
+        uses: ./release-version-check
+        with:
+          release-type: Initial Release
+          project-type: ${{ matrix.project-type }}
+          file: ${{ matrix.file }}
+          override-version: ${{ matrix.override-version }}
+
+      - name: Set Status
+        id: set-status
         run: |
-          echo "This enables feature branch testing for this workflow"
+          echo "Status Status - ${{ matrix.name }}: ${{ steps.run-version-check.outputs.status }}"
+          echo "::set-output name=${{ matrix.name }}::${{ steps.run-version-check.outputs.status }}"
+
+
+  run-version-check-test:
+    runs-on: ubuntu-latest
+    needs: [test-version-check]
+    if: always()
+    steps:
+      - name: Validate Outputs
+        run: |
+          test_outputs=()
+
+          function assert() {
+            value=$1
+            expected_value=$2
+            test_name=$3
+            if [[ "$value" == "$expected_value" ]]; then
+              echo "${test_name}: pass"
+              test_outputs+=("pass")
+            else
+              echo "${test_name}: fail"
+              test_outputs+=("fail")
+            fi
+          }
+
+          assert "${{ needs.test-version-check.outputs.ts-semver-success-status }}" "success" "Test TS SemVer Success"
+          assert "${{ needs.test-version-check.outputs.ts-semver-fail-status }}" "fail" "Test TS SemVer Fail" 
+          assert "${{ needs.test-version-check.outputs.ts-calver-success-status }}" "success" "Test TS CalVer Success"
+          assert "${{ needs.test-version-check.outputs.ts-calver-fail-status }}" "fail" "Test TS CalVer Fail"
+          assert "${{ needs.test-version-check.outputs.csharp-calver-success-status }}" "success" "Test CSharp CalVer Success" 
+          assert "${{ needs.test-version-check.outputs.csharp-calver-fail-status }}" "fail" "Test CSharp CalVer Fail"
+
+          if [[ "${test_outputs[@]}" =~ "fail" ]]; then
+            exit 1
+          else
+            exit 0
+          fi

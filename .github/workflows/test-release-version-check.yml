@@ -1,10 +1,9 @@
 ---
-
 name: Test Version Check Action
 
 on:
   pull_request:
-    path:
+    paths:
       - "release-check-version"
   push:
     branches:
@@ -45,12 +44,12 @@ jobs:
             file: release-version-check/tests/fixtures/CalVer/Test.csproj
             override-version: 2022.05.0
     outputs:
-      ts-semver-succuess-status: ${{ steps.set-status.outputs.ts-semver-success }}
-      #ts-semver-fail-status: ${{ steps.set-status.outputs.ts-semver-fail }}
-      ts-calver-succuess-status: ${{ steps.set-status.outputs.ts-calver-success }}
-      #ts-calver-fail-status: ${{ steps.set-status.outputs.ts-calver-fail }}
-      csharp-calver-succuess-status: ${{ steps.set-status.outputs.csharp-calver-success }}
-      #csharp-calver-fail-status: ${{ steps.set-status.outputs.csharp-calver-fail }}
+      ts-semver-success-status: ${{ steps.set-status.outputs.ts-semver-success }}
+      ts-semver-fail-status: ${{ steps.set-status.outputs.ts-semver-fail }}
+      ts-calver-success-status: ${{ steps.set-status.outputs.ts-calver-success }}
+      ts-calver-fail-status: ${{ steps.set-status.outputs.ts-calver-fail }}
+      csharp-calver-success-status: ${{ steps.set-status.outputs.csharp-calver-success }}
+      csharp-calver-fail-status: ${{ steps.set-status.outputs.csharp-calver-fail }}
     steps:
       - uses: actions/checkout@v2
 
@@ -67,7 +66,7 @@ jobs:
       - name: Set Status
         id: set-status
         run: |
-          echo "Status Status - ${{ matrix.name }}: ${{ stesp.run-version-check.outputs.status }}"
+          echo "Status Status - ${{ matrix.name }}: ${{ steps.run-version-check.outputs.status }}"
           echo "::set-output name=${{ matrix.name }}::${{ steps.run-version-check.outputs.status }}"
 
 
@@ -78,13 +77,30 @@ jobs:
     steps:
       - name: Validate Outputs
         run: |
-          echo "Test TS SemVer Success: ${{ needs.test-version-check.outputs.ts-semver-success-status }}"
-          echo "Test TS SemVer Fail: ${{ needs.test-version-check.outputs.ts-semver-fail-status }}"
-          echo "Test TS CalVer Success: ${{ needs.test-version-check.outputs.ts-calver-success-status }}"
-          echo "Test TS CalVer Fail: ${{ needs.test-version-check.outputs.ts-calver-fail-status }}"
-          echo "Test CSharp CalVer Success: ${{ needs.test-version-check.outputs.csharp-calver-success-status }}"
-          echo "Test CSharp CalVer Fail: ${{ needs.test-version-check.outputs.csharp-calver-fail-status }}"
+          test_outputs=()
 
-          exit 0
+          function assert() {
+            value=$1
+            expected_value=$2
+            test_name=$3
+            if [[ "$value" == "$expected_value" ]]; then
+              echo "${test_name}: pass"
+              test_outputs+=("pass")
+            else
+              echo "${test_name}: fail"
+              test_outputs+=("fail")
+            fi
+          }
 
-  
+          assert "${{ needs.test-version-check.outputs.ts-semver-success-status }}" "success" "Test TS SemVer Success"
+          assert "${{ needs.test-version-check.outputs.ts-semver-fail-status }}" "fail" "Test TS SemVer Fail" 
+          assert "${{ needs.test-version-check.outputs.ts-calver-success-status }}" "success" "Test TS CalVer Success"
+          assert "${{ needs.test-version-check.outputs.ts-calver-fail-status }}" "fail" "Test TS CalVer Fail"
+          assert "${{ needs.test-version-check.outputs.csharp-calver-success-status }}" "success" "Test CSharp CalVer Success:" 
+          assert "${{ needs.test-version-check.outputs.csharp-calver-fail-status }}" "fail" "Test CSharp CalVer Fail"
+
+          if [[ "${test_outputs[@]}" =~ "fail" ]]; then
+            exit 1
+          else
+            exit 0
+          fi

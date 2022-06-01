@@ -53,7 +53,7 @@ runs:
 
         # Pure input validation
         release_valid_inputs=("Initial Release" "Redeploy" "Dry Run")
-        validate_definite_inputs "release-type" "${{ inputs.release-type }}" "${release_valid_inputs[@}}"
+        validate_definite_inputs "release-type" "${{ inputs.release-type }}" "${release_valid_inputs[@]}"
 
         project_type_valid_inputs=("ts" "dotnet" "xamarin")
         validate_definite_inputs "project-type" "${{ inputs.project-type }}" "${project_type_valid_inputs[@]}"

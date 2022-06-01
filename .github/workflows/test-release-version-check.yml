@@ -108,6 +108,8 @@ jobs:
           assert "${{ needs.test-version-check.outputs.ts-calver-fail-status }}" "fail" "Test TS CalVer Fail"
           assert "${{ needs.test-version-check.outputs.dotnet-calver-success-status }}" "success" "Test .NET CalVer Success" 
           assert "${{ needs.test-version-check.outputs.dotnet-calver-fail-status }}" "fail" "Test .NET CalVer Fail"
+          assert "${{ needs.test-version-check.outputs.xamarin-calver-success-status }}" "success" "Test Xamarin CalVer Success" 
+          assert "${{ needs.test-version-check.outputs.xamarin-calver-fail-status }}" "fail" "Test Xamarin CalVer Fail"
 
           if [[ "${test_outputs[@]}" =~ "fail" ]]; then
             exit 1

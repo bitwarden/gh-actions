@@ -45,11 +45,11 @@ jobs:
             override-version: 2022.05.0
           - name: xamarin-calver-success
             project-type: xamarin
-            file: release-version-check/tests/fixtures/CalVer/Mobile-Android.csproj
+            file: release-version-check/tests/fixtures/CalVer/Mobile-Android.xml
             override-version: 2022.05.1
           - name: xamarin-calver-fail
             project-type: xamarin
-            file: release-version-check/tests/fixtures/CalVer/Mobile-Android.csproj
+            file: release-version-check/tests/fixtures/CalVer/Mobile-Android.xml
             override-version: 2022.05.0
     outputs:
       ts-semver-success-status: ${{ steps.set-status.outputs.ts-semver-success }}
@@ -109,7 +109,7 @@ jobs:
           assert "${{ needs.test-version-check.outputs.dotnet-calver-success-status }}" "success" "Test .NET CalVer Success" 
           assert "${{ needs.test-version-check.outputs.dotnet-calver-fail-status }}" "fail" "Test .NET CalVer Fail"
           assert "${{ needs.test-version-check.outputs.xamarin-calver-success-status }}" "success" "Test Xamarin CalVer Success" 
-          assert "${{ needs.test-version-check.outputs.xamarin-calver-fail-status }}" "fail" "Test Xamarin CalVer Fail"
+          assert "${{ needs.test-version-check.outputs.xamarin-calver-fail-status }}" "fail" "Test  CalVer Fail"
 
           if [[ "${test_outputs[@]}" =~ "fail" ]]; then
             exit 1

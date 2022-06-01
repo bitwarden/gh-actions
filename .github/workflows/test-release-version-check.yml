@@ -35,21 +35,31 @@ jobs:
             project-type: ts
             file: release-version-check/tests/fixtures/CalVer/package.json
             override-version: 2022.05.0
-          - name: csharp-calver-success
-            project-type: csharp
+          - name: dotnet-calver-success
+            project-type: dotnet
             file: release-version-check/tests/fixtures/CalVer/Test.csproj
             override-version: 2022.06.0
-          - name: csharp-calver-fail
-            project-type: csharp
+          - name: dotnet-calver-fail
+            project-type: dotnet
             file: release-version-check/tests/fixtures/CalVer/Test.csproj
+            override-version: 2022.05.0
+          - name: xamarin-calver-success
+            project-type: xamarin
+            file: release-version-check/tests/fixtures/CalVer/Mobile-Android.csproj
+            override-version: 2022.05.1
+          - name: xamarin-calver-fail
+            project-type: xamarin
+            file: release-version-check/tests/fixtures/CalVer/Mobile-Android.csproj
             override-version: 2022.05.0
     outputs:
       ts-semver-success-status: ${{ steps.set-status.outputs.ts-semver-success }}
       ts-semver-fail-status: ${{ steps.set-status.outputs.ts-semver-fail }}
       ts-calver-success-status: ${{ steps.set-status.outputs.ts-calver-success }}
       ts-calver-fail-status: ${{ steps.set-status.outputs.ts-calver-fail }}
-      csharp-calver-success-status: ${{ steps.set-status.outputs.csharp-calver-success }}
-      csharp-calver-fail-status: ${{ steps.set-status.outputs.csharp-calver-fail }}
+      dotnet-calver-success-status: ${{ steps.set-status.outputs.dotnet-calver-success }}
+      dotnet-calver-fail-status: ${{ steps.set-status.outputs.dotnet-calver-fail }}
+      xamarin-calver-success-status: ${{ steps.set-status.outputs.xamarin-calver-success }}
+      xamarin-calver-fail-status: ${{ steps.set-status.outputs.xamarin-calver-fail }}
     steps:
       - uses: actions/checkout@v2
 
@@ -96,8 +106,8 @@ jobs:
           assert "${{ needs.test-version-check.outputs.ts-semver-fail-status }}" "fail" "Test TS SemVer Fail" 
           assert "${{ needs.test-version-check.outputs.ts-calver-success-status }}" "success" "Test TS CalVer Success"
           assert "${{ needs.test-version-check.outputs.ts-calver-fail-status }}" "fail" "Test TS CalVer Fail"
-          assert "${{ needs.test-version-check.outputs.csharp-calver-success-status }}" "success" "Test CSharp CalVer Success" 
-          assert "${{ needs.test-version-check.outputs.csharp-calver-fail-status }}" "fail" "Test CSharp CalVer Fail"
+          assert "${{ needs.test-version-check.outputs.dotnet-calver-success-status }}" "success" "Test .NET CalVer Success" 
+          assert "${{ needs.test-version-check.outputs.dotnet-calver-fail-status }}" "fail" "Test .NET CalVer Fail"
 
           if [[ "${test_outputs[@]}" =~ "fail" ]]; then
             exit 1

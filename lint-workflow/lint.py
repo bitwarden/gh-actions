@@ -1,3 +1,4 @@
+import sys
 import argparse
 import os
 import yaml
@@ -167,12 +168,16 @@ def lint(filename):
         print()
 
 
-def main():
+def main(args=None):
+
+    # Pull the arguments from the command line
+    if not args:
+        args = sys.argv[1:]
 
     # Read arguments from command line.
     parser = argparse.ArgumentParser()
     parser.add_argument("input", help="file or directory input")
-    args = parser.parse_args()
+    args = parser.parse_args(args)
 
     # Set up list for files to lint.
     input_files = []
@@ -182,8 +187,7 @@ def main():
         input_files.append(args.input)
     # Check if argument contains multiple files.
     elif len(args.input.split()) > 1:
-        for file in args.input.split():
-            input_files.append(file)
+        input_files.extend(args.input.split())
     # Check if argument is directory, then recursively add all *.yml and *.yaml files to input files.
     elif os.path.isdir(args.input):
         for subdir, dirs, files in os.walk(args.input):

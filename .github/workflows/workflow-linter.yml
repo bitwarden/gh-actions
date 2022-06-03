@@ -24,8 +24,7 @@ jobs:
 
       - name: Changed files
         run: |
-          echo "CHANGED_FILES=$(git diff --name-only ${{ github.event.before }}..${{ github.event.after }})" >> $GITHUB_ENV
-          echo $CHANGED_FILES
+          git diff --name-only ${{ github.event.before }}..${{ github.event.after }}
 
       - name: Workflow Lint
         env:

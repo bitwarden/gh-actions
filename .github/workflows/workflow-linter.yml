@@ -30,3 +30,4 @@ jobs:
         uses: bitwarden/gh-actions/lint-workflow@a0fa60871dd132eb9126855b8f80078071457058
         with:
           workflows: ${{ steps.files-changed.outputs.changed-files }}
+

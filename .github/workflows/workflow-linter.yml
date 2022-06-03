@@ -13,8 +13,11 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
 
-      - name: Checkout Version Branch
+      - name: Checkout Branch
         uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+
+      - name: TEST - View files
+        run: ls -la
 
       - name: Workflow Lint
         env:

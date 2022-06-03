@@ -168,16 +168,16 @@ def lint(filename):
         print()
 
 
-def main(args=None):
+def main(input_args=None):
 
     # Pull the arguments from the command line
-    if not args:
-        args = sys.argv[1:]
+    if not input_args:
+        input_args = sys.argv[1:]
 
     # Read arguments from command line.
     parser = argparse.ArgumentParser()
     parser.add_argument("input", help="file or directory input")
-    args = parser.parse_args(args)
+    args = parser.parse_args(input_args)
 
     # Set up list for files to lint.
     input_files = []

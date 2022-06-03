@@ -7,7 +7,7 @@ import urllib3 as urllib
 
 def get_action_update(action_id):
     """
-    Takes and action id (bitwarden/gh-actions/version-bump@03ad9a873c39cdc95dd8d77dbbda67f84db43945)
+    Takes in an action id (bitwarden/gh-actions/version-bump@03ad9a873c39cdc95dd8d77dbbda67f84db43945)
     and checks the action repo for the newest version.
     If there is a new version, return the url to the updated version.
     """
@@ -180,6 +180,10 @@ def main():
     # Check if argument is file, then append to input files.
     if os.path.isfile(args.input):
         input_files.append(args.input)
+    # Check if argument contains multiple files.
+    elif len(args.input.split()) > 1:
+        for file in args.input.split():
+            input_files.append(file)
     # Check if argument is directory, then recursively add all *.yml and *.yaml files to input files.
     elif os.path.isdir(args.input):
         for subdir, dirs, files in os.walk(args.input):
@@ -189,7 +193,7 @@ def main():
                 if filepath.endswith(".yml") or filepath.endswith(".yaml"):
                     input_files.append(filepath)
     else:
-        print("File/Directory does not exist, exiting.")
+        print("File(s)/Directory does not exist, exiting.")
 
     for filename in input_files:
         lint(filename)

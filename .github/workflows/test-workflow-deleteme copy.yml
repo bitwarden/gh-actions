@@ -1,0 +1,32 @@
+---
+name: Lint Test File, DO NOT USE COPY
+
+on:
+  workflow_dispatch:
+    inputs: {}
+
+jobs:
+  call-workflow:
+    uses: bitwarden/server/.github/workflows/workflow-linter.yml@master
+
+  test-normal-action:
+    name: Download Latest
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@5a4ac9002d0be2fb38bd78bde5606d7042f
+
+      - run: |
+          echo test
+
+  test-local-action:
+    name: Testing a local action call
+    runs-on: ubuntu-20.04
+    steps:
+      - name: local-action
+        uses: ./version-bump
+
+
+
+
+

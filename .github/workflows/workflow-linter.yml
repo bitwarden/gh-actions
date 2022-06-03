@@ -15,9 +15,17 @@ jobs:
 
       - name: Checkout Branch
         uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+        with:
+          fetch-depth: 0
+          
 
       - name: TEST - View files
         run: ls -la .github/workflows
+
+      - name: Changed files
+        run: |
+          echo "CHANGED_FILES=$(git diff --name-only ${{ github.event.before }}..${{ github.event.after }})" >> $GITHUB_ENV
+          echo $GITHUB_ENV
 
       - name: Workflow Lint
         env:

@@ -25,14 +25,3 @@ jobs:
     steps:
       - name: local-action
         uses: ./version-bump
-
-
-
-
-
-
-
-
-
-
-

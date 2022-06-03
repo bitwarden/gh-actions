@@ -18,17 +18,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Changed files
-        id: files-changed
-        run: |
-          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }}..${{ github.event.after }})
-          echo $CHANGED_FILES
-          echo "::set-output name=changed-files::'$CHANGED_FILES'"
-
       - name: Workflow Lint
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        uses: bitwarden/gh-actions/lint-workflow@a0fa60871dd132eb9126855b8f80078071457058
+        uses: bitwarden/gh-actions/lint-workflow@c675b5828b61d050193c251a860127e9358ebc2b
         with:
           workflows: $(git diff --name-only ${{ github.event.before }}..${{ github.event.after }})
 

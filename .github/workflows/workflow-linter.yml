@@ -17,16 +17,16 @@ jobs:
         uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
         with:
           fetch-depth: 0
-          
-
-      - name: TEST - View files
-        run: ls -la .github/workflows
 
       - name: Changed files
+        id: files-changed
         run: |
-          echo $(git diff --name-only ${{ github.event.before }}..${{ github.event.after }})
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }}..${{ github.event.after }})
+          echo "::set-output name=changed-files::$CHANGED_FILES"
 
       - name: Workflow Lint
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        uses: bitwarden/gh-actions/lint-workflow@676ae4100b19625c0b0b70525e6c0181bd2d405f
+        uses: bitwarden/gh-actions/lint-workflow@a0fa60871dd132eb9126855b8f80078071457058
+        with:
+          workflows: ${{ steps.files-changed.outputs.changed-files }}

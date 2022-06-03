@@ -5,6 +5,8 @@ on:
   workflow_dispatch:
     inputs: {}
 
+    
+
 jobs:
   call-workflow:
     uses: bitwarden/server/.github/workflows/workflow-linter.yml@master

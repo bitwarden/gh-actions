@@ -23,7 +23,7 @@ jobs:
         run: |
           CHANGED_FILES=$(git diff --name-only ${{ github.event.before }}..${{ github.event.after }})
           echo $CHANGED_FILES
-          echo "::set-output name=changed-files::$CHANGED_FILES"
+          echo "::set-output name=changed-files::'$CHANGED_FILES'"
 
       - name: Workflow Lint
         env:

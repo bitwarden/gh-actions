@@ -10,7 +10,7 @@ on:
         required: true
 
 jobs:
-  build:
+  test-version-bumps:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -20,28 +20,35 @@ jobs:
         uses: ./version-bump
         with:
           version: ${{ github.event.inputs.version_number }}
-          file_path: "./version-bump/tests/package-lock.json"
+          file_path: "./version-bump/tests/fixtures/package-lock.json"
 
       - name: Bump PLIST Test
         id: test_plist
         uses: ./version-bump
         with:
           version: ${{ github.event.inputs.version_number }}
-          file_path: "./version-bump/tests/Info.plist"
+          file_path: "./version-bump/tests/fixtures/Info.plist"
 
       - name: Bump XML Test
         id: test_xml
         uses: ./version-bump
         with:
           version: ${{ github.event.inputs.version_number }}
-          file_path: "./version-bump/tests/AndroidManifest.xml"
+          file_path: "./version-bump/tests/fixtures/AndroidManifest.xml"
 
       - name: Bump Props Test
         id: test_props
         uses: ./version-bump
         with:
           version: ${{ github.event.inputs.version_number }}
-          file_path: "./version-bump/tests/dir.build.props"
+          file_path: "./version-bump/tests/fixtures/dir.build.props"
+
+      - name: Bump CSProj Test
+        id: test_csproj
+        uses: ./version-bump
+        with:
+          version: ${{ github.event.inputs.version_number }}
+          file_path: "./version-bump/tests/fixtures/test.csproj"
 
       - name: Validate Outputs
         run: |
@@ -49,5 +56,4 @@ jobs:
           echo "${{ steps.test_plist.outputs.status }}"
           echo "${{ steps.test_xml.outputs.status }}"
           echo "${{ steps.test_props.outputs.status }}"
-
-      
+          echo "${{ steps.test_csproj.outputs.status }}"

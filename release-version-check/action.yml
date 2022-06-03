@@ -1,0 +1,151 @@
+name: "Release Version Check"
+description: "Checks to make sure the version has been bumped before creating a release"
+author: "Bitwarden"
+branding:
+  icon: download
+  color: blue
+inputs:
+  release-type:
+    description: "Release options: ('Initial Release', 'Redeploy', 'Dry Run')"
+    required: true
+  project-type:
+    description: "The project's language: ('ts', 'dotnet', 'xamarin')"
+    required: true
+  file:
+    description: "The file path to the code that contains the application's version"
+    required: true
+  monorepo:
+    description: "Identifies if the github repo is a monorepo: ('true', 'false')"
+    required: false
+    default: "false"
+  monorepo-project:
+    description: "Identifies the monorepo project: ('', 'browser', 'cli', 'desktop', 'web')"
+    required: false
+    default: ""
+  override-version:
+    description: "Override the current version (for testing purposes)" 
+    required: false
+    default: ""
+outputs:
+  version:
+    description: "The new version being released"
+    value: ${{ steps.new-version.outputs.version }}
+  status:
+    description: "The status of the job as a whole: ('success', 'fail')"
+    value: ${{ steps.status.outputs.status}}
+runs:
+  using: "composite"
+  steps:
+    - name: Input validation
+      id: validation
+      shell: bash
+      run: |
+        release_valid_inputs=("Initial Release" "Redeploy" "Dry Run")
+        if [[ ! "${release_valid_inputs[@]}" =~ "${{ inputs.release-type }}" ]]; then
+          echo "[!] 'release-type' option only supports the following values: (${release_valid_inputs})"
+          echo "::set-output name=step-failed::true"
+        fi
+
+        project_type_valid_inputs=("ts" "dotnet" "xamarin")
+        if [[ ! "${project_type_valid_inputs[@]}" =~ "${{ inputs.project-type }}" ]]; then
+          echo "[!] 'project-type' option only supports the following values: (${project_type_valid_inputs})"
+          echo "::set-output name=step-failed::true"
+        fi
+
+        if [ ! -f "${{ inputs.file }}" ]; then
+          echo "[!] The relative path '${{ inputs.file}}' doesn't exist"
+          echo "::set-output name=step-failed::true"
+        fi
+
+        monorepo_valid_inputs=("true" "false")
+        if [[ ! "${monorepo_valid_inputs[@]}" =~ "${{ inputs.monorepo }}" ]]; then
+          echo "[!] 'monorepo' option only supports the following values: (${monorepo_valid_inputs})"
+          echo "::set-output name=step-failed::true"
+        fi
+
+        if [ "${{ inputs.monorepo }}" == "true" ] && [ "${{ inputs.monorepo-project }}" == "" ]; then
+          echo "[!] using the 'monorepo' option requires the use of 'monorepo-project'"
+          echo "::set-output name=step-failed::true"
+        fi
+
+        monorepo_project_valid_inputs=("" "browser" "cli" "desktop" "web")
+        if [[ ! "${monorepo_project_valid_inputs[@]}" =~ "${{ inputs.monorepo-project }}" ]]; then
+          echo "[!] 'monorepo-project' option only supports the following values: (${monorepo_project_valid_inputs})"
+          echo "::set-output name=step-failed::true"
+        fi
+
+
+    - name: Get project new version
+      shell: bash
+      id: new-version
+      run: |
+        # Get version from file depending on project type
+        case "${{ inputs.project-type }}" in
+          "ts")
+            version=$( jq -r ".version" ${{ inputs.file }} )
+            ;;
+          "dotnet")
+            version=$( grep -o "<Version>.*</Version>" ${{ inputs.file }} | grep -Eo "[0-9]{4}\.[0-9]{2}\.[0-9]+" )
+            ;;
+          "xamarin")
+            version=$(sed -E -n '/^<manifest/s/^.*[ ]android:versionName="([^"]+)".*$/\1/p' ${{ inputs.file }} | tr -d '"')
+            ;;
+        esac
+        echo "::set-output name=version::$version"
+
+
+    - name: Get current released version
+      shell: bash
+      id: current-version
+      run: |
+        if [ "${{ inputs.override-version }}" == "" ]; then
+          # Pull the latest 
+          case "${{ inputs.monorepo }}" in
+            "true")
+              previous_release_tag_version=$(
+                curl -sL https://api.github.com/repos/$GITHUB_REPOSITORY/releases | \
+                jq -r 'first(.[] | select(.tag_name | startswith("${{ inputs.monorepo-project }}"))).tag_name'
+              )
+              ;;
+            "false")
+              previous_release_tag_version=$(
+                curl -sL https://api.github.com/repos/$GITHUB_REPOSITORY/releases/latest | jq -r ".tag_name"
+              )
+              ;;
+          esac
+          previous_release_version=${previous_release_tag_version:1}
+        else
+          previous_release_version=${{ inputs.override-version }}
+        fi
+        echo "::set-output name=version::$previous_release_version"
+
+
+    - name: Check versions
+      id: check
+      shell: bash
+      run: |
+        new_version=${{ steps.new-version.outputs.version }}
+        current_version=${{ steps.current-version.outputs.version }}
+        if [ "$new_version" == "$current_version" ] && \
+        [ "${{ inputs.release-type }}" == "Initial Release" ]; then
+          echo "[!] Already released $new_version. Please bump version to continue"
+          echo "::set-output name=step-failed::true"
+        fi
+
+    - name: Set status
+      id: status
+      shell: bash
+      run: |
+        failed_statuses=(\
+        '${{ steps.validation.outputs.step-failed }}' \
+          '${{ steps.check.outputs.step-failed }}' \
+        )
+
+        echo $failed_statuses
+
+        if [[ "${failed_statuses[@]}" =~ "true" ]]; then
+          echo "::set-output name=status::fail"
+          exit 1
+        else
+          echo "::set-output name=status::success"
+        fi

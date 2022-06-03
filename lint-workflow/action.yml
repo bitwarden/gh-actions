@@ -11,5 +11,7 @@ runs:
       shell: bash
     - run: python ${{ github.action_path }}/lint.py "${{ inputs.workflows }}"
       shell: bash
-    - run: yamllint -f colored -c ${{ github.action_path }}/.yamllint.yml "${{ inputs.workflows }}"
+    - run: |
+        TRIM_PATH=$(echo ${{ inputs.workflows }} | | tr '\n' ' ')
+        yamllint -f colored -c ${{ github.action_path }}/.yamllint.yml "$TRIM_PATH"
       shell: bash

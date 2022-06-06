@@ -89,8 +89,9 @@ def get_github_api_response(url, action_id):
 
 def action_repo_exists(action_id):
     """
-    Takes and action id (bitwarden/gh-actions/version-bump@03ad9a873c39cdc95dd8d77dbbda67f84db43945)
-    and checks if the action repo exists.
+    Takes and action id and checks if the action repo exists.
+    
+    Example action_id: bitwarden/gh-actions/version-bump@03ad9a873c39cdc95dd8d77dbbda67f84db43945
     """
 
     if "." in action_id:

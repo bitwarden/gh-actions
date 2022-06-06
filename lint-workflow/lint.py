@@ -94,7 +94,7 @@ def action_repo_exists(action_id):
     Example action_id: bitwarden/gh-actions/version-bump@03ad9a873c39cdc95dd8d77dbbda67f84db43945
     """
 
-    if "." in action_id:
+    if "./" in action_id:
         # Handle local workflow calls, return None since there will be no updates.
         return True
 

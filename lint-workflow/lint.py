@@ -35,14 +35,11 @@ class LintFinding(object):
         self.level = level
 
 
-def get_error_level(findings):
+def get_max_error_level(findings):
     """Get max error level from list of findings."""
-    max_error_level = 0
-
-    for finding in findings:
-        max_error_level = max(max_error_level, PROBLEM_LEVELS[finding.level])
-
-    return max_error_level
+    max_problem= max(findings, key=lambda finding: finding.level)
+    max_problem_level=PROBLEM_LEVELS[max_problem.level]
+    return max_problem_level
 
 
 def print_finding(finding: LintFinding):
@@ -54,9 +51,7 @@ def print_finding(finding: LintFinding):
     else:
         color = Colors.white
 
-    line = f"  - \033[{color}{finding.level}\033[0m "
-    # line += max(38 - len(line), 0) * ' '
-    line += finding.description
+    line = f"  - \033[{color}{finding.level}\033[0m {finding.description}"
 
     print(line)
 
@@ -288,8 +283,7 @@ def lint(filename):
                         # If the step has a 'uses' key, check path for external workflow
                         path_list = path.split("/", 2)
 
-                        if "bitwarden" in path:
-                            if len(path_list) < 3:
+                        if "bitwarden" in path and len(path_list) < 3:
                                 findings.append(
                                     LintFinding(
                                         f"Step {str(i)} of job key '{job_key}' does not have a valid action path. (missing name of the repository or workflow)",
@@ -339,7 +333,7 @@ def lint(filename):
             print_finding(finding)
         print()
 
-    max_error_level = get_error_level(findings)
+    max_error_level = get_max_error_level(findings)
 
     return max_error_level
 

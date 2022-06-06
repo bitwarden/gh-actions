@@ -64,12 +64,6 @@ def print_finding(finding: LintFinding):
 def get_github_api_response(url, action_id):
     """Call GitHub API with retry and error logging without throwing an exception."""
     http = urllib.PoolManager()
-    retry = Retry(
-        3,
-        backoff_factor=0.1,
-        raise_on_status=True,
-        status_forcelist=[403, range(500, 600)],
-    )
     headers = {"user-agent": "bw-linter"}
 
     if os.getenv("GITHUB_TOKEN", None):
@@ -78,12 +72,7 @@ def get_github_api_response(url, action_id):
     message = f"Failed to call GitHub API for action: {action_id} due to "
 
     try:
-        response = http.request("GET", url, headers=headers, retries=retry)
-
-    except MaxRetryError as m_err:
-        message += m_err.reason
-        logging.error(message)
-        return None
+        response = http.request("GET", url, headers=headers)
     except:
         e = sys.exc_info()[0]
         message += e

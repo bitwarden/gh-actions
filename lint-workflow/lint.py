@@ -37,7 +37,7 @@ class LintFinding(object):
 
 def get_max_error_level(findings):
     """Get max error level from list of findings."""
-    max_problem= max(findings, key=lambda finding: finding.level)
+    max_problem= max(findings, key=lambda finding: PROBLEM_LEVELS[finding.level])
     max_problem_level=PROBLEM_LEVELS[max_problem.level]
     return max_problem_level
 
@@ -57,7 +57,7 @@ def print_finding(finding: LintFinding):
 
 
 def get_github_api_response(url, action_id):
-    """Call GitHub API with retry and error logging without throwing an exception."""
+    """Call GitHub API with error logging without throwing an exception."""
     http = urllib.PoolManager()
     headers = {"user-agent": "bw-linter"}
 
@@ -74,13 +74,19 @@ def get_github_api_response(url, action_id):
         logging.error(message)
         return None
 
+    if response.status == 403 and response.reason == "rate limit exceeded":
+        logging.error(f"Failed to call GitHub API for action: {action_id} due to rate limit exceeded.")
+        # Handle github api limit exceed by returning that the action exists without actually checking
+        # to prevent false errors on linter output. Only show it as an linter error.
+        return None
+
     return response
 
 
 def action_repo_exists(action_id):
     """
     Takes and action id and checks if the action repo exists.
-    
+
     Example action_id: bitwarden/gh-actions/version-bump@03ad9a873c39cdc95dd8d77dbbda67f84db43945
     """
 
@@ -104,6 +110,12 @@ def action_repo_exists(action_id):
     if r.status == 404:
         return False
 
+    if r.status == 403 and r.reason == "rate limit exceeded":
+        logging.error(f"Failed to call GitHub API to check if action exists: {action_id} due to rate limit exceeded.")
+        # Handle github api limit exceed by returning that the action exists without actually checking
+        # to prevent false errors on linter output. Only show it as an linter error.
+        return True
+
     return True
 
 
@@ -113,7 +125,7 @@ def get_action_update(action_id):
     and checks the action repo for the newest version.
     If there is a new version, return the url to the updated version.
     """
-    if "." in action_id:
+    if "./" in action_id:
         # Handle local workflow calls, return None since there will be no updates.
         return None
 
@@ -369,11 +381,15 @@ def main():
         print("File/Directory does not exist, exiting.")
         return -1
 
-    max_error_level = 0
+    # max_error_level = 0
 
-    for filename in input_files:
-        prob_level = lint(filename)
-        max_error_level = max(max_error_level, prob_level)
+    # for filename in input_files:
+    #     prob_level = lint(filename)
+    #     max_error_level = max(max_error_level, prob_level)
+
+    prob_levels = list(map(lint, input_files))
+
+    max_error_level = max(prob_levels)
 
     if max_error_level == PROBLEM_LEVELS["error"]:
         return_code = 2

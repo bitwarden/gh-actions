@@ -105,16 +105,12 @@ def action_repo_exists(action_id):
         r = get_github_api_response(f"https://api.github.com/repos/{path}", action_id)
 
     if r is None:
-        return None
-
-    if r.status == 404:
-        return False
-
-    if r.status == 403 and r.reason == "rate limit exceeded":
-        logging.error(f"Failed to call GitHub API to check if action exists: {action_id} due to rate limit exceeded.")
         # Handle github api limit exceed by returning that the action exists without actually checking
         # to prevent false errors on linter output. Only show it as an linter error.
         return True
+
+    if r.status == 404:
+        return False
 
     return True
 

@@ -64,20 +64,10 @@ def get_github_api_response(url, action_id):
     if os.getenv("GITHUB_TOKEN", None):
         headers["Authorization"] = f"Token {os.environ['GITHUB_TOKEN']}"
 
-    message = f"Failed to call GitHub API for action: {action_id} due to "
-
-    try:
-        response = http.request("GET", url, headers=headers)
-    except:
-        e = sys.exc_info()[0]
-        message += e
-        logging.error(message)
-        return None
+    response = http.request("GET", url, headers=headers)
 
     if response.status == 403 and response.reason == "rate limit exceeded":
         logging.error(f"Failed to call GitHub API for action: {action_id} due to rate limit exceeded.")
-        # Handle github api limit exceed by returning that the action exists without actually checking
-        # to prevent false errors on linter output. Only show it as an linter error.
         return None
 
     return response

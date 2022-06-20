@@ -37,6 +37,8 @@ class LintFinding(object):
 
 def get_max_error_level(findings):
     """Get max error level from list of findings."""
+    if len(findings) == 0:
+        return 0
     max_problem= max(findings, key=lambda finding: PROBLEM_LEVELS[finding.level])
     max_problem_level=PROBLEM_LEVELS[max_problem.level]
     return max_problem_level

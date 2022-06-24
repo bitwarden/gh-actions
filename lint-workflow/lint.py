@@ -6,6 +6,25 @@ import json
 import urllib3 as urllib
 
 
+def workflow_files(input: str) -> list:
+    """
+    Takes in an argument of directory and/or files in string format from the CLI.
+    Returns a sorted set of all workflow files in the path(s) specified.
+    """
+    workflow_files = []
+    for path in input.split():
+        if os.path.isfile(path):
+            workflow_files.append(path)
+        elif os.path.isdir(path):
+            for subdir, dirs, files in os.walk(path):
+                for filename in files:
+                    filepath = subdir + os.sep + filename
+                    if filepath.endswith((".yml", ".yaml")):
+                        workflow_files.append(filepath)
+
+    return sorted(set(workflow_files))
+
+
 def get_action_update(action_id):
     """
     Takes in an action id (bitwarden/gh-actions/version-bump@03ad9a873c39cdc95dd8d77dbbda67f84db43945)
@@ -179,29 +198,15 @@ def main(input_args=None):
     parser.add_argument("input", help="file or directory input")
     args = parser.parse_args(input_args)
 
-    # Set up list for files to lint.
-    input_files = []
+    # Get all the workflow files.
+    input_files = workflow_files(args.input)
 
-    # Check if argument is file, then append to input files.
-    if os.path.isfile(args.input):
-        input_files.append(args.input)
-    # Check if argument contains multiple files.
-    elif len(args.input.split()) > 1:
-        input_files.extend(args.input.split())
-    # Check if argument is directory, then recursively add all *.yml and *.yaml files to input files.
-    elif os.path.isdir(args.input):
-        for subdir, dirs, files in os.walk(args.input):
-            for filename in files:
-                filepath = subdir + os.sep + filename
-
-                if filepath.endswith(".yml") or filepath.endswith(".yaml"):
-                    input_files.append(filepath)
+    # If there are files to lint, lint each file.
+    if len(input_files) > 0:
+        for filename in input_files:
+            lint(filename)
     else:
-        print("File(s)/Directory does not exist, exiting.")
-
-    for filename in input_files:
-        lint(filename)
-
+        print(f'File(s)/Directory: "{args.input}"  does not exist, exiting.')
 
 if __name__ == "__main__":
     main()

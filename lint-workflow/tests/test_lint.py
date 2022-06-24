@@ -5,7 +5,6 @@ def test_lint(capfd):
     file_path = "test.yml"
     lint_output = lint(file_path)
     out, err = capfd.readouterr()
-    print(out)
     assert (
         "\x1b[33mwarning\x1b[0m Name value for workflow is not capitalized. [crowdin Pull]"
         in out

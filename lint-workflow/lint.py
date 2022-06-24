@@ -4,9 +4,6 @@ import os
 import yaml
 import json
 import urllib3 as urllib
-import sys
-from urllib3.util import Retry
-from urllib3.exceptions import MaxRetryError
 import logging
 
 PROBLEM_LEVELS = {
@@ -40,8 +37,8 @@ def get_max_error_level(findings):
     """Get max error level from list of findings."""
     if len(findings) == 0:
         return 0
-    max_problem= max(findings, key=lambda finding: PROBLEM_LEVELS[finding.level])
-    max_problem_level=PROBLEM_LEVELS[max_problem.level]
+    max_problem = max(findings, key=lambda finding: PROBLEM_LEVELS[finding.level])
+    max_problem_level = PROBLEM_LEVELS[max_problem.level]
     return max_problem_level
 
 
@@ -70,11 +67,15 @@ def get_github_api_response(url, action_id):
     response = http.request("GET", url, headers=headers)
 
     if response.status == 403 and response.reason == "rate limit exceeded":
-        logging.error(f"Failed to call GitHub API for action: {action_id} due to rate limit exceeded.")
+        logging.error(
+            f"Failed to call GitHub API for action: {action_id} due to rate limit exceeded."
+        )
         return None
 
     if response.status == 401 and response.reason == "Unauthorized":
-        logging.error(f"Failed to call GitHub API for action: {action_id}: {response.data}.")
+        logging.error(
+            f"Failed to call GitHub API for action: {action_id}: {response.data}."
+        )
         return None
 
     return response
@@ -273,9 +274,8 @@ def lint(filename):
                         try:
                             path, hash = step["uses"].split("@")
                         except ValueError:
-                            if step["uses"].startswith("."):
-                                # Workflow us using a local action. Skip it.
-                                pass
+                            logging.info("Skipping local action in workflow.")
+                            break
 
                         # If the step has a 'uses' key, check value hash.
                         try:
@@ -312,12 +312,12 @@ def lint(filename):
                         path_list = path.split("/", 2)
 
                         if "bitwarden" in path and len(path_list) < 3:
-                                findings.append(
-                                    LintFinding(
-                                        f"Step {str(i)} of job key '{job_key}' does not have a valid action path. (missing name of the repository or workflow)",
-                                        "error",
-                                    )
+                            findings.append(
+                                LintFinding(
+                                    f"Step {str(i)} of job key '{job_key}' does not have a valid action path. (missing name of the repository or workflow)",
+                                    "error",
                                 )
+                            )
                         elif len(path_list) < 2:
                             findings.append(
                                 LintFinding(
@@ -404,6 +404,7 @@ def main(input_args=None):
     else:
         print(f'File(s)/Directory: "{args.input}" does not exist, exiting.')
         return -1
+
 
 if __name__ == "__main__":
     return_code = main()

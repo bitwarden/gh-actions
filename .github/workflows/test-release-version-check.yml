@@ -61,7 +61,7 @@ jobs:
       xamarin-calver-success-status: ${{ steps.set-status.outputs.xamarin-calver-success }}
       xamarin-calver-fail-status: ${{ steps.set-status.outputs.xamarin-calver-fail }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
 
       - name: Version Check - ${{ matrix.name }}
         id: run-version-check

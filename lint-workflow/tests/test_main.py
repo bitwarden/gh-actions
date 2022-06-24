@@ -42,17 +42,17 @@ def test_main_not_found(capsys):
     result = captured.out
     assert isinstance(result, str)
     assert (
-        'File(s)/Directory: "not-a-real-file.yml"  does not exist, exiting.' in result
+        'File(s)/Directory: "not-a-real-file.yml" does not exist, exiting.' in result
     )
     # Empty string
     main([""])
     captured = capsys.readouterr()
     result = captured.out
     assert isinstance(result, str)
-    assert 'File(s)/Directory: ""  does not exist, exiting.' in result
+    assert 'File(s)/Directory: "" does not exist, exiting.' in result
     # Spaces in string
     main(["  "])
     captured = capsys.readouterr()
     result = captured.out
     assert isinstance(result, str)
-    assert 'File(s)/Directory: "  "  does not exist, exiting.' in result
+    assert 'File(s)/Directory: "  " does not exist, exiting.' in result

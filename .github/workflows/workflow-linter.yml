@@ -17,6 +17,11 @@ jobs:
         uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
         with:
           fetch-depth: 0
+          
+      - name: Files to lint
+        run: |
+          files=$(git diff --name-only ${{ github.event.before }}..${{ github.event.after }})
+          echo $files
 
       - name: Workflow Lint
         env:

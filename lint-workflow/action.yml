@@ -1,11 +1,18 @@
 name: 'Lint Workflow'
 description: 'Lints GitHub Actions Workflow'
+inputs:
+  workflows:
+    description: "Path to workflow file(s)"
+    required: true
 runs:
   using: "composite"
   steps:
     - run: pip install --user yamllint
       shell: bash
-    - run: python ${{ github.action_path }}/lint.py .github/workflows
+    - run: python ${{ github.action_path }}/lint.py "${{ inputs.workflows }}"
       shell: bash
-    - run: yamllint -f colored -c ${{ github.action_path }}/.yamllint.yml .github/workflows
+    - run: |
+        TRIM_PATH=$(echo ${{ inputs.workflows }} | tr '\n' ' ')
+        yamllint -f colored -c ${{ github.action_path }}/.yamllint.yml $TRIM_PATH
       shell: bash
+      working-directory: ${{ github.workspace }}

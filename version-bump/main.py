@@ -64,7 +64,8 @@ def update_xml(version, file_path):
         mytree.write(file_path)
     # MSBuild Props
     else:
-        myroot[0][1].text = version
+        version_property = [x for x in myroot[0] if x.tag == "Version"][-1]
+        version_property.text = version
         mytree.write(file_path, encoding="utf-8")
 
 

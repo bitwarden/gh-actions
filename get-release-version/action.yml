@@ -29,7 +29,7 @@ runs:
       id: validation
       shell: bash
       run: |
-        trim_valid_inputs("true" "false")
+        trim_valid_inputs=("true" "false")
         if [[ ! "${trim_valid_inputs[@]}" =~ "${{ inputs.trim }}" ]]; then
           echo "[!] 'trim' option only supports the following values: (${trim_valid_inputs})"
           exit 1

@@ -1,8 +1,19 @@
+---
+
 name: "Get GitHub Latest Release Version"
+description: "Retrieves the lasted release tag from a GitHub repository."
 inputs:
   repository:
     description: 'This is the repository that we get the latest release version from'
     required: true
+  monorepo:
+    description: "Identifies if the github repo is a monorepo: ('true', 'false')"
+    required: false
+    default: "false"
+  monorepo-project:
+    description: "Identifies the monorepo project: ('', 'browser', 'cli', 'desktop', 'web')"
+    required: false
+    default: ""
 outputs:
   version:
     description: 'GitHub Latest Release version from specified repository'
@@ -10,6 +21,25 @@ outputs:
 runs:
   using: "composite"
   steps:
+    - name: Input validation
+      id: validation
+      shell: bash
+      run: |
+        monorepo_valid_inputs=("true" "false")
+        if [[ ! "${monorepo_valid_inputs[@]}" =~ "${{ inputs.monorepo }}" ]]; then
+          echo "[!] 'monorepo' option only supports the following values: (${monorepo_valid_inputs})"
+          echo "::set-output name=step-failed::true"
+        fi
+        if [ "${{ inputs.monorepo }}" == "true" ] && [ "${{ inputs.monorepo-project }}" == "" ]; then
+          echo "[!] using the 'monorepo' option requires the use of 'monorepo-project'"
+          echo "::set-output name=step-failed::true"
+        fi
+        monorepo_project_valid_inputs=("" "browser" "cli" "desktop" "web")
+        if [[ ! "${monorepo_project_valid_inputs[@]}" =~ "${{ inputs.monorepo-project }}" ]]; then
+          echo "[!] 'monorepo-project' option only supports the following values: (${monorepo_project_valid_inputs})"
+          echo "::set-output name=step-failed::true"
+        fi
+
     - name: Check Runner OS
       shell: bash
       env:
@@ -26,7 +56,17 @@ runs:
       env:
         REPOSITORY: ${{ inputs.repository }}
       run: |
-        VERSION=$(
-          curl -sL https://api.github.com/repos/$REPOSITORY/releases/latest | jq -r ".tag_name[1:]"
-        )
-        echo "::set-output name=version::$VERSION"
+        case "${{ inputs.monorepo }}" in
+            "true")
+              LATEST_RELEASE_TAG_VERSION=$(
+                curl -sL https://api.github.com/repos/$REPOSITORY/releases | \
+                jq -r 'first(.[] | select(.tag_name | startswith("${{ inputs.monorepo-project }}"))).tag_name'
+              )
+              ;;
+            "false")
+              LATEST_RELEASE_TAG_VERSION=$(
+                curl -sL https://api.github.com/repos/$REPOSITORY/releases/latest | jq -r ".tag_name"
+              )
+              ;;
+          esac
+        echo "::set-output name=version::$LATEST_RELEASE_TAG_VERSION"

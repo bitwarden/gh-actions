@@ -6,6 +6,10 @@ inputs:
   repository:
     description: 'This is the repository that we get the latest release version from'
     required: true
+  trim:
+    description: "Trims the returned value of all letter characters: ('true', 'false')"
+    required: false
+    default: "false"
   monorepo:
     description: "Identifies if the github repo is a monorepo: ('true', 'false')"
     required: false
@@ -25,19 +29,24 @@ runs:
       id: validation
       shell: bash
       run: |
+        trim_valid_inputs("true" "false")
+        if [[ ! "${trim_valid_inputs[@]}" =~ "${{ inputs.trim }}" ]]; then
+          echo "[!] 'trim' option only supports the following values: (${trim_valid_inputs})"
+          exit 1
+        fi
         monorepo_valid_inputs=("true" "false")
         if [[ ! "${monorepo_valid_inputs[@]}" =~ "${{ inputs.monorepo }}" ]]; then
           echo "[!] 'monorepo' option only supports the following values: (${monorepo_valid_inputs})"
-          echo "::set-output name=step-failed::true"
+          exit 1
         fi
         if [ "${{ inputs.monorepo }}" == "true" ] && [ "${{ inputs.monorepo-project }}" == "" ]; then
           echo "[!] using the 'monorepo' option requires the use of 'monorepo-project'"
-          echo "::set-output name=step-failed::true"
+          exit 1
         fi
         monorepo_project_valid_inputs=("" "browser" "cli" "desktop" "web")
         if [[ ! "${monorepo_project_valid_inputs[@]}" =~ "${{ inputs.monorepo-project }}" ]]; then
           echo "[!] 'monorepo-project' option only supports the following values: (${monorepo_project_valid_inputs})"
-          echo "::set-output name=step-failed::true"
+          exit 1
         fi
 
     - name: Check Runner OS
@@ -69,4 +78,13 @@ runs:
               )
               ;;
           esac
-        echo "::set-output name=version::$LATEST_RELEASE_TAG_VERSION"
+
+        case "${{ inputs.trim }}" in
+            "true")
+              LATEST_RELEASE_TAG_VERSION=$(echo "${LATEST_RELEASE_TAG_VERSION//[a-z-]}")
+                echo "::set-output name=version::$LATEST_RELEASE_TAG_VERSION"
+              ;;
+            "false")
+              echo "::set-output name=version::$LATEST_RELEASE_TAG_VERSION"
+              ;;
+          esac

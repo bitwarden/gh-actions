@@ -1,11 +1,9 @@
+import sys
 import argparse
 import os
 import yaml
 import json
 import urllib3 as urllib
-import sys
-from urllib3.util import Retry
-from urllib3.exceptions import MaxRetryError
 import logging
 
 PROBLEM_LEVELS = {
@@ -39,8 +37,8 @@ def get_max_error_level(findings):
     """Get max error level from list of findings."""
     if len(findings) == 0:
         return 0
-    max_problem= max(findings, key=lambda finding: PROBLEM_LEVELS[finding.level])
-    max_problem_level=PROBLEM_LEVELS[max_problem.level]
+    max_problem = max(findings, key=lambda finding: PROBLEM_LEVELS[finding.level])
+    max_problem_level = PROBLEM_LEVELS[max_problem.level]
     return max_problem_level
 
 
@@ -69,7 +67,15 @@ def get_github_api_response(url, action_id):
     response = http.request("GET", url, headers=headers)
 
     if response.status == 403 and response.reason == "rate limit exceeded":
-        logging.error(f"Failed to call GitHub API for action: {action_id} due to rate limit exceeded.")
+        logging.error(
+            f"Failed to call GitHub API for action: {action_id} due to rate limit exceeded."
+        )
+        return None
+
+    if response.status == 401 and response.reason == "Unauthorized":
+        logging.error(
+            f"Failed to call GitHub API for action: {action_id}: {response.data}."
+        )
         return None
 
     return response
@@ -107,9 +113,28 @@ def action_repo_exists(action_id):
     return True
 
 
+def workflow_files(input: str) -> list:
+    """
+    Takes in an argument of directory and/or files in string format from the CLI.
+    Returns a sorted set of all workflow files in the path(s) specified.
+    """
+    workflow_files = []
+    for path in input.split():
+        if os.path.isfile(path):
+            workflow_files.append(path)
+        elif os.path.isdir(path):
+            for subdir, dirs, files in os.walk(path):
+                for filename in files:
+                    filepath = subdir + os.sep + filename
+                    if filepath.endswith((".yml", ".yaml")):
+                        workflow_files.append(filepath)
+
+    return sorted(set(workflow_files))
+
+
 def get_action_update(action_id):
     """
-    Takes and action id (bitwarden/gh-actions/version-bump@03ad9a873c39cdc95dd8d77dbbda67f84db43945)
+    Takes in an action id (bitwarden/gh-actions/version-bump@03ad9a873c39cdc95dd8d77dbbda67f84db43945)
     and checks the action repo for the newest version.
     If there is a new version, return the url to the updated version.
     """
@@ -246,8 +271,11 @@ def lint(filename):
                         )
 
                     if "uses" in step:
-
-                        path, hash = step["uses"].split("@")
+                        try:
+                            path, hash = step["uses"].split("@")
+                        except ValueError:
+                            logging.info("Skipping local action in workflow.")
+                            break
 
                         # If the step has a 'uses' key, check value hash.
                         try:
@@ -284,12 +312,12 @@ def lint(filename):
                         path_list = path.split("/", 2)
 
                         if "bitwarden" in path and len(path_list) < 3:
-                                findings.append(
-                                    LintFinding(
-                                        f"Step {str(i)} of job key '{job_key}' does not have a valid action path. (missing name of the repository or workflow)",
-                                        "error",
-                                    )
+                            findings.append(
+                                LintFinding(
+                                    f"Step {str(i)} of job key '{job_key}' does not have a valid action path. (missing name of the repository or workflow)",
+                                    "error",
                                 )
+                            )
                         elif len(path_list) < 2:
                             findings.append(
                                 LintFinding(
@@ -338,7 +366,11 @@ def lint(filename):
     return max_error_level
 
 
-def main():
+def main(input_args=None):
+
+    # Pull the arguments from the command line
+    if not input_args:
+        input_args = sys.argv[1:]
 
     # Read arguments from command line.
     parser = argparse.ArgumentParser()
@@ -349,44 +381,29 @@ def main():
         action="store_true",
         help="return non-zero exit code on warnings " "as well as errors",
     )
-    args = parser.parse_args()
-
-    # Set up list for files to lint.
-    input_files = []
-
-    # Check if argument is file, then append to input files.
-    if os.path.isfile(args.input):
-        input_files.append(args.input)
-    # Check if argument is directory, then recursively add all *.yml and *.yaml files to input files.
-    elif os.path.isdir(args.input):
-        for subdir, dirs, files in os.walk(args.input):
-            for filename in files:
-                filepath = subdir + os.sep + filename
-
-                if filepath.endswith(".yml") or filepath.endswith(".yaml"):
-                    input_files.append(filepath)
-    else:
-        print("File/Directory does not exist, exiting.")
-        return -1
-
+    args = parser.parse_args(input_args)
     # max_error_level = 0
 
     # for filename in input_files:
     #     prob_level = lint(filename)
     #     max_error_level = max(max_error_level, prob_level)
+    input_files = workflow_files(args.input)
+    if len(input_files) > 0:
+        prob_levels = list(map(lint, input_files))
 
-    prob_levels = list(map(lint, input_files))
+        max_error_level = max(prob_levels)
 
-    max_error_level = max(prob_levels)
+        if max_error_level == PROBLEM_LEVELS["error"]:
+            return_code = 2
+        elif max_error_level == PROBLEM_LEVELS["warning"]:
+            return_code = 1 if args.strict else 0
+        else:
+            return_code = 0
 
-    if max_error_level == PROBLEM_LEVELS["error"]:
-        return_code = 2
-    elif max_error_level == PROBLEM_LEVELS["warning"]:
-        return_code = 1 if args.strict else 0
+        return return_code
     else:
-        return_code = 0
-
-    return return_code
+        print(f'File(s)/Directory: "{args.input}" does not exist, exiting.')
+        return -1
 
 
 if __name__ == "__main__":

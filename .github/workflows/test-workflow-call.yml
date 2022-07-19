@@ -1,0 +1,11 @@
+
+
+---
+name: Workflow Linter
+
+on:
+  push
+
+jobs:
+  call-workflow:
+    uses: bitwarden/gh-actions/.github/workflows/workflow-linter.yml@a24313e9816bbfd7a6146da10c24ad8b078dde6d

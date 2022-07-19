@@ -10,17 +10,13 @@ on:
 jobs:
   lint:
     name: "Workflow Linter"
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
     steps:
 
-      - name: Checkout Full History
+      - name: Checkout Version Branch
         uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
-        with:
-          fetch-depth: 0
 
       - name: Workflow Lint
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        uses: bitwarden/gh-actions/lint-workflow@7bdcb9d0dbd4851a7225319fb962fa7bdd45bba9
-        with:
-          workflows: $(git diff --name-only ${{ github.event.before }}..${{ github.event.after }})
+        uses: bitwarden/gh-actions/lint-workflow@676ae4100b19625c0b0b70525e6c0181bd2d405f

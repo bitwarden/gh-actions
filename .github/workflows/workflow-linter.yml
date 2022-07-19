@@ -22,7 +22,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: contains($(git diff --name-only ${{ github.event.before }}..${{ github.event.after }}), 'workflows')
-        uses: bitwarden/gh-actions/lint-workflow@7bdcb9d0dbd4851a7225319fb962fa7bdd45bba9
+        uses: bitwarden/gh-actions/lint-workflow@7b3fd93e0f1376e7b177205fb0df1370f11415a4
         with:
           workflows: $(git diff --name-only ${{ github.event.before }}..${{ github.event.after }})
 

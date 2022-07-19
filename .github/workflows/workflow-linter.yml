@@ -23,7 +23,6 @@ jobs:
         run: |
           changes=$(git diff --name-only ${{ github.event.before }}..${{ github.event.after }})
           if [[ $changes == *"workflows"* ]]; then
-            echo "::set-output name=workflow_changes::$changes"
             echo "::set-output name=workflows_changed::true"
           fi
 
@@ -33,4 +32,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         uses: bitwarden/gh-actions/lint-workflow@7bdcb9d0dbd4851a7225319fb962fa7bdd45bba9
         with:
-          workflows: {{ steps.changes.outputs.workflow_changes }}
+          workflows: $(git diff --name-only ${{ github.event.before }}..${{ github.event.after }})

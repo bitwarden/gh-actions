@@ -27,7 +27,7 @@ jobs:
           fi
 
       - name: Workflow Lint
-        if: workflows_changed
+        if: {{ steps.changes.outputs.workflows_changed }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         uses: bitwarden/gh-actions/lint-workflow@7bdcb9d0dbd4851a7225319fb962fa7bdd45bba9

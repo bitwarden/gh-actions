@@ -26,7 +26,7 @@ jobs:
       - name: Workflow Lint
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        uses: bitwarden/gh-actions/lint-workflow@84d394259550c2de29b28529b9442abe7b5f8a5b
+        uses: bitwarden/gh-actions/lint-workflow@7b3fd93e0f1376e7b177205fb0df1370f11415a4
         with:
           workflows: $(git diff --name-only ${{ github.event.before }}..${{ github.event.after }})
 

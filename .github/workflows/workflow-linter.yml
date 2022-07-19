@@ -21,15 +21,15 @@ jobs:
       # - name: Check for changed workflows
       #   id: changes
       #   run: |
-      #     changes=$(git diff --name-only ${{ github.event.before }}..${{ github.event.after }})
+      #     changes=$(git diff --name-only ${{ github.base_ref }}..${{ github.event.after }})
       #     if [[ $changes == *"workflows"* ]]; then
       #       echo "::set-output name=workflows_changed::true"
       #     fi
 
       - name: Workflow Lint
-        if: contains($(git diff --name-only ${{ github.event.before }}..${{ github.event.after }}), "workflows")
+        if: contains($(git diff --name-only ${{ github.base_ref }}..${{ github.event.after }}), "workflows")
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         uses: bitwarden/gh-actions/lint-workflow@7bdcb9d0dbd4851a7225319fb962fa7bdd45bba9
         with:
-          workflows: $(git diff --name-only ${{ github.event.before }}..${{ github.event.after }})
+          workflows: $(git diff --name-only ${{ github.base_ref }}..${{ github.event.after }})

@@ -25,3 +25,4 @@ jobs:
         uses: bitwarden/gh-actions/lint-workflow@7bdcb9d0dbd4851a7225319fb962fa7bdd45bba9
         with:
           workflows: $(git diff --name-only ${{ github.event.before }}..${{ github.event.after }})
+

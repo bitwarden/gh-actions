@@ -5,6 +5,26 @@ const filesize = require('filesize')
 const pathname = require('path')
 const fs = require('fs')
 
+async function getRuns(pageNumber) {
+    let runs = await client.actions.listWorkflowRuns({
+        owner: owner,
+        repo: repo,
+        workflow_id: workflow,
+        per_page: 100,
+        page: pageNumber
+    }).then(workflowRunsResponse => {
+        return workflowRunsResponse.data.workflow_runs
+        .sort((a, b) => {
+            a_date = new Date(a.created_at)
+            b_date = new Date(b.created_at)
+            // descending order
+            return b_date - a_date
+        })
+    })
+
+    return runs
+}
+
 async function main() {
     try {
         const token = core.getInput("github_token", { required: true })
@@ -56,47 +76,44 @@ async function main() {
         }
 
         if (!runID) {
-            let runs = await client.actions.listWorkflowRuns({
-                owner: owner,
-                repo: repo,
-                workflow_id: workflow,
-                per_page: 100
-            }).then(workflowRunsResponse => {
-                return workflowRunsResponse.data.workflow_runs
-                .sort((a, b) => {
-                    a_date = new Date(a.created_at)
-                    b_date = new Date(b.created_at)
-                    // descending order
-                    return b_date - a_date
-                })
-            })
 
-            if (branch) {
-                runs = runs.filter(run => run.head_branch == branch)
-            }
+            for (let page = 1; index < 5 && !runID; page++) {
+                runs = getRuns(page)
 
-            for (const run of runs) {
-                if (commit && run.head_sha != commit) {
-                    continue
+                if (branch) {
+                    runs = runs.filter(run => run.head_branch == branch)
                 }
-                if (runNumber && run.run_number != runNumber) {
-                    continue
-                }
-                if (workflowConclusion && (workflowConclusion != run.conclusion && workflowConclusion != run.status)) {
-                    continue
-                }
-                if (checkArtifacts) {
-                    let artifacts = await client.actions.listWorkflowRunArtifacts({
-                        owner: owner,
-                        repo: repo,
-                        run_id: run.id,
-                    })
-                    if (artifacts.data.artifacts.length == 0) {
+
+                for (const run of runs) {
+                    if (commit && run.head_sha != commit) {
                         continue
                     }
+                    if (runNumber && run.run_number != runNumber) {
+                        continue
+                    }
+                    if (workflowConclusion && (workflowConclusion != run.conclusion && workflowConclusion != run.status)) {
+                        continue
+                    }
+                    if (checkArtifacts) {
+                        let artifacts = await client.actions.listWorkflowRunArtifacts({
+                            owner: owner,
+                            repo: repo,
+                            run_id: run.id,
+                        })
+                        if (artifacts.data.artifacts.length == 0) {
+                            continue
+                        }
+                    }
+                    runID = run.id
+                    break
                 }
-                runID = run.id
-                break
+                if (runID) {
+                    break
+                }
+            }
+
+            if (!runID) {
+                throw new Error("no matching workflow run found in last 500 runs")
             }
         }
 

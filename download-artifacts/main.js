@@ -59,7 +59,8 @@ async function main() {
             let runs = await client.actions.listWorkflowRuns({
                 owner: owner,
                 repo: repo,
-                workflow_id: workflow
+                workflow_id: workflow,
+                per_page: 100
             }).then(workflowRunsResponse => {
                 return workflowRunsResponse.data.workflow_runs
                 .sort((a, b) => {

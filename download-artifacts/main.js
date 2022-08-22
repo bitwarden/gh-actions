@@ -77,7 +77,7 @@ async function main() {
 
         if (!runID) {
 
-            for (let page = 1; index < 5 && !runID; page++) {
+            for (let page = 1; page < 5 && !runID; page++) {
                 runs = getRuns(page)
 
                 if (branch) {

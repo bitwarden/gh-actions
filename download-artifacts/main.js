@@ -5,26 +5,6 @@ const filesize = require('filesize')
 const pathname = require('path')
 const fs = require('fs')
 
-async function getRuns(pageNumber) {
-    let runs = await client.actions.listWorkflowRuns({
-        owner: owner,
-        repo: repo,
-        workflow_id: workflow,
-        per_page: 100,
-        page: pageNumber
-    }).then(workflowRunsResponse => {
-        return workflowRunsResponse.data.workflow_runs
-        .sort((a, b) => {
-            a_date = new Date(a.created_at)
-            b_date = new Date(b.created_at)
-            // descending order
-            return b_date - a_date
-        })
-    })
-
-    return runs
-}
-
 async function main() {
     try {
         const token = core.getInput("github_token", { required: true })
@@ -77,8 +57,23 @@ async function main() {
 
         if (!runID) {
 
-            for (let page = 1; page < 5 && !runID; page++) {
-                runs = getRuns(page)
+            for (let pageNumber = 1; pageNumber < 5 && !runID; pageNumber++) {
+
+                let runs = await client.actions.listWorkflowRuns({
+                    owner: owner,
+                    repo: repo,
+                    workflow_id: workflow,
+                    per_page: 100,
+                    page: pageNumber
+                }).then(workflowRunsResponse => {
+                    return workflowRunsResponse.data.workflow_runs
+                    .sort((a, b) => {
+                        a_date = new Date(a.created_at)
+                        b_date = new Date(b.created_at)
+                        // descending order
+                        return b_date - a_date
+                    })
+                })
 
                 if (branch) {
                     runs = runs.filter(run => run.head_branch == branch)

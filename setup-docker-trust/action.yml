@@ -27,13 +27,20 @@ runs:
 
     - name: Retrieve secrets
       id: get-secrets
-      uses: Azure/get-keyvault-secrets@80ccd3fafe5662407cc2e55f202ee34bfff8c403
-      with:
-        keyvault: ${{ inputs.azure-keyvault-name }}
-        secrets: "docker-password,
-                  docker-username,
-                  dct-delegate-repo-passphrase,
-                  dct-delegate-key"
+      env:
+        KEYVAULT: ${{ inputs.azure-keyvault-name }}
+        SECRETS: |
+          docker-password,
+          docker-username,
+          dct-delegate-repo-passphrase,
+          dct-delegate-key
+      run: |
+        for i in ${SECRETS//,/ }
+        do
+          VALUE=$(az keyvault secret show --vault-name $KEYVAULT --name $i --query value --output tsv)
+          echo "::add-mask::$VALUE"
+          echo "::set-output name=$i::$VALUE"
+        done
 
     - name: Log into Docker
       shell: bash

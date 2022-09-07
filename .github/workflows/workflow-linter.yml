@@ -19,4 +19,4 @@ jobs:
       - name: Workflow Lint
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        uses: bitwarden/gh-actions/lint-workflow@01cfa748cfdd4983ee7fd134f1f04127a11d907b
+        uses: bitwarden/gh-actions/lint-workflow@850faad0cf6c02a8c0dc46eddde2363fbd6c373a

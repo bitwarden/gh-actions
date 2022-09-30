@@ -10,7 +10,7 @@ def test_lint(capfd):
         in out
     )
     assert (
-        "\x1b[33mwarning\x1b[0m Step 3 of job key 'crowdin-pull' uses an outdated action, consider updating it"
+        "\x1b[33mwarning\x1b[0m Step 4 of job key 'crowdin-pull' uses an outdated action, consider updating it"
         in out
     )
     assert (

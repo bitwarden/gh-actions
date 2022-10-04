@@ -1,6 +1,3 @@
-# Deprecation notice
-
-This Action is deprecated. Instead, one can use [azure/cli@v1 action](https://github.com/Azure/cli) and pass a custom script to it to access [azure key vault](https://docs.microsoft.com/en-us/azure/key-vault/secrets/quick-create-cli).
 # GitHub Action to fetch secrets from Azure Key Vault
 
 With the Get Key Vault Secrets action, you can fetch secrets from an [Azure Key Vault](https://docs.microsoft.com/en-us/rest/api/keyvault/about-keys--secrets-and-certificates) instance and consume in your GitHub Action workflows.
@@ -36,7 +33,7 @@ jobs:
     - uses: Azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }} 
-    - uses: Azure/get-keyvault-secrets@v1
+    - uses: Azure/get-keyvault-secrets@v1.0
       with:
         keyvault: "my
         Vault"
@@ -90,7 +87,7 @@ jobs:
     - uses: Azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }} # Define secret variable in repository settings as per action documentation
-    - uses: Azure/get-keyvault-secrets@v1
+    - uses: Azure/get-keyvault-secrets@v1.0
       with:
         keyvault: "myKeyVault"
         secrets: 'mySecret1, mySecret2'

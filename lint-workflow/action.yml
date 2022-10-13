@@ -7,12 +7,26 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - run: pip install --user yamllint
+    - name: Install dependencies
+      run: pip install --user yamllint
       shell: bash
-    - run: python ${{ github.action_path }}/lint.py "${{ inputs.workflows }}"
+
+    - name: Setup
+      id: setup 
+      run: |
+        FORMAT_PATH=$(echo ${{ inputs.workflows }} | sed 's/ *$//')
+        echo "::set-output name=path::$FORMAT_PATH"
       shell: bash
-    - run: |
-        TRIM_PATH=$(echo ${{ inputs.workflows }} | tr '\n' ' ')
-        yamllint -f colored -c ${{ github.action_path }}/.yamllint.yml $TRIM_PATH
+
+    - name: Python lint
+      run: python ${{ github.action_path }}/lint.py "${{ steps.setup.outputs.path }}"
+      shell: bash
+
+    - name: YAML lint
+      run: |
+        WORKFLOWS=($(echo "${{ steps.setup.outputs.path }}" | tr ' ' '\n'))
+        for WORKFLOW in "${WORKFLOWS[@]}"; do
+          yamllint -f colored -c ${{ github.action_path }}/.yamllint.yml $WORKFLOW
+        done
       shell: bash
       working-directory: ${{ github.workspace }}

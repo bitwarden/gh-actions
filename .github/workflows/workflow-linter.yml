@@ -13,10 +13,20 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
 
-      - name: Checkout Version Branch
-        uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+      - name: Checkout Branch
+        uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791
+        with:
+          fetch-depth: 0
+
+      - name: Get changed workflows
+        id: changed-workflows
+        run: |
+          MODIFIED_WORKFLOWS=$(git diff --name-only origin/${{ github.base_ref	}} | grep -E '.github/workflows/.*.yml' | tr '\n' ' ')
+          echo "::set-output name=modified-workflows::$MODIFIED_WORKFLOWS"
 
       - name: Workflow Lint
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        uses: bitwarden/gh-actions/lint-workflow@01cfa748cfdd4983ee7fd134f1f04127a11d907b
+        uses: bitwarden/gh-actions/lint-workflow@1d934d9ae0adc1d230e00e320c987986467b6498
+        with:
+          workflows: ${{ steps.changed-workflows.outputs.modified-workflows }}

@@ -14,7 +14,7 @@ runs:
     - name: Setup
       id: setup 
       run: |
-        FORMAT_PATH=$(echo ${{ inputs.workflows }} | tr '\n' ' ')
+        FORMAT_PATH=$(echo ${{ inputs.workflows }} | sed 's/ *$//')
         echo "::set-output name=path::$FORMAT_PATH"
       shell: bash
 
@@ -23,6 +23,10 @@ runs:
       shell: bash
 
     - name: YAML lint
-      run: yamllint -f colored -c ${{ github.action_path }}/.yamllint.yml "${{ steps.setup.outputs.path }}"
+      run: |
+        WORKFLOWS=($(echo "${{ steps.setup.outputs.path }}" | tr ' ' '\n'))
+        for WORKFLOW in "${WORKFLOWS[@]}"; do
+          yamllint -f colored -c ${{ github.action_path }}/.yamllint.yml $WORKFLOW
+        done
       shell: bash
       working-directory: ${{ github.workspace }}

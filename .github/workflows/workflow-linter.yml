@@ -14,19 +14,19 @@ jobs:
     steps:
 
       - name: Checkout Branch
-        uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b'
+        uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Get changed workflows
         id: changed-workflows
         run: |
-          MODIFIED_WORKFLOWS=$(git diff --name-only HEAD | grep -E '.github/workflows/.*.yml' | tr )
+          MODIFIED_WORKFLOWS=$(git diff --name-only origin/${{ github.base_ref	}} | grep -E '.github/workflows/.*.yml' | tr '\n' ' ')
           echo "::set-output name=modified-workflows::$MODIFIED_WORKFLOWS"
 
       - name: Workflow Lint
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        uses: bitwarden/gh-actions/lint-workflow@feature/workflow-selective-linting
+        uses: bitwarden/gh-actions/lint-workflow@951c0e4f9a5ab96ee90c64bccc87b34fa31b3c1c
         with:
           workflows: ${{ steps.changed-workflows.outputs.modified-workflows }}

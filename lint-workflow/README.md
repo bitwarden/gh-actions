@@ -9,7 +9,7 @@
 ### Setup
 
 ```
-pipenv install
+pipenv install --dev
 pipenv shell
 ```
 

@@ -25,5 +25,5 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest pyyaml urllib3
       - name: Test lint
-        run: pytest
-        working-directory: lint-workflow/tests
+        run: pytest tests
+        working-directory: lint-workflow

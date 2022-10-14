@@ -30,4 +30,4 @@ jobs:
 
       - name: Test lint
         working-directory: lint-workflow
-        run: pytest tests
+        run: pipenv run pytest tests

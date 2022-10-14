@@ -3,7 +3,8 @@ from .configs import FIXTURES_DIR
 
 # Tests for argparse inputs and outputs using capsys.readouterr()
 
-FIXTURES_DIR="./tests/fixtures"
+FIXTURES_DIR = "./tests/fixtures"
+
 
 def test_main_single_file(capsys):
     main([f"{FIXTURES_DIR}/test.yml"])
@@ -43,9 +44,7 @@ def test_main_not_found(capsys):
     captured = capsys.readouterr()
     result = captured.out
     assert isinstance(result, str)
-    assert (
-        'File(s)/Directory: "not-a-real-file.yml" does not exist, exiting.' in result
-    )
+    assert 'File(s)/Directory: "not-a-real-file.yml" does not exist, exiting.' in result
     # Empty string
     main([""])
     captured = capsys.readouterr()

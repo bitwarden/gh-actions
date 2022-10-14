@@ -103,7 +103,9 @@ def action_repo_exists(action_id):
         response = get_github_api_response(url, action_id)
 
     else:
-        response = get_github_api_response(f"https://api.github.com/repos/{path}", action_id)
+        response = get_github_api_response(
+            f"https://api.github.com/repos/{path}", action_id
+        )
 
     if response is None:
         # Handle github api limit exceed by returning that the action exists without actually checking
@@ -159,7 +161,9 @@ def get_action_update(action_id):
 
             sha = json.loads(response.data)[0]["sha"]
             if sha not in hash:
-                update_url = f"https://github.com/{path_list[0]}/{path_list[1]}/commit/{sha}"
+                update_url = (
+                    f"https://github.com/{path_list[0]}/{path_list[1]}/commit/{sha}"
+                )
                 memoized_action_update_urls[path] = update_url
                 return update_url
         else:
@@ -174,7 +178,8 @@ def get_action_update(action_id):
 
             # Get the URL to the commit for the tag
             response = get_github_api_response(
-                f"https://api.github.com/repos/{path}/git/ref/tags/{tag_name}", action_id
+                f"https://api.github.com/repos/{path}/git/ref/tags/{tag_name}",
+                action_id,
             )
             if not response:
                 return None

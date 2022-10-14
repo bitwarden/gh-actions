@@ -1,5 +1,6 @@
-from lint import get_action_update
 import urllib3 as urllib
+
+from lint import get_action_update
 
 http = urllib.PoolManager()
 

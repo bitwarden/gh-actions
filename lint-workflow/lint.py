@@ -12,6 +12,9 @@ PROBLEM_LEVELS = {
 }
 
 
+memoized_action_update_urls = {}
+
+
 class Colors:
     """Class containing color codes for printing strings to output."""
 
@@ -97,17 +100,17 @@ def action_repo_exists(action_id):
     if "bitwarden" in path:
         path_list = path.split("/", 2)
         url = f"https://api.github.com/repos/{path_list[0]}/{path_list[1]}"
-        r = get_github_api_response(url, action_id)
+        response = get_github_api_response(url, action_id)
 
     else:
-        r = get_github_api_response(f"https://api.github.com/repos/{path}", action_id)
+        response = get_github_api_response(f"https://api.github.com/repos/{path}", action_id)
 
-    if r is None:
+    if response is None:
         # Handle github api limit exceed by returning that the action exists without actually checking
         # to prevent false errors on linter output. Only show it as an linter error.
         return True
 
-    if r.status == 404:
+    if response.status == 404:
         return False
 
     return True
@@ -144,46 +147,53 @@ def get_action_update(action_id):
 
     path, *hash = action_id.split("@")
 
-    if "bitwarden" in path:
-        path_list = path.split("/", 2)
-        url = f"https://api.github.com/repos/{path_list[0]}/{path_list[1]}/commits?path={path_list[2]}"
-        r = get_github_api_response(url, action_id)
-        if r is None:
-            return None
-
-        sha = json.loads(r.data)[0]["sha"]
-        if sha not in hash:
-            return f"https://github.com/{path_list[0]}/{path_list[1]}/commit/{sha}"
+    if path in memoized_action_update_urls:
+        return memoized_action_update_urls[path]
     else:
-        # Get tag from latest release
-        r = get_github_api_response(
-            f"https://api.github.com/repos/{path}/releases/latest", action_id
-        )
-        if r is None:
-            return None
-
-        tag_name = json.loads(r.data)["tag_name"]
-
-        # Get the URL to the commit for the tag
-        r = get_github_api_response(
-            f"https://api.github.com/repos/{path}/git/ref/tags/{tag_name}", action_id
-        )
-        if r is None:
-            return None
-
-        if json.loads(r.data)["object"]["type"] == "commit":
-            sha = json.loads(r.data)["object"]["sha"]
-        else:
-            url = json.loads(r.data)["object"]["url"]
-            # Follow the URL and get the commit sha for tags
-            r = get_github_api_response(url, action_id)
-            if r is None:
+        if "bitwarden" in path:
+            path_list = path.split("/", 2)
+            url = f"https://api.github.com/repos/{path_list[0]}/{path_list[1]}/commits?path={path_list[2]}"
+            response = get_github_api_response(url, action_id)
+            if not response:
                 return None
 
-            sha = json.loads(r.data)["object"]["sha"]
+            sha = json.loads(response.data)[0]["sha"]
+            if sha not in hash:
+                update_url = f"https://github.com/{path_list[0]}/{path_list[1]}/commit/{sha}"
+                memoized_action_update_urls[path] = update_url
+                return update_url
+        else:
+            # Get tag from latest release
+            response = get_github_api_response(
+                f"https://api.github.com/repos/{path}/releases/latest", action_id
+            )
+            if not response:
+                return None
 
-        if sha not in hash:
-            return f"https://github.com/{path}/commit/{sha}"
+            tag_name = json.loads(response.data)["tag_name"]
+
+            # Get the URL to the commit for the tag
+            response = get_github_api_response(
+                f"https://api.github.com/repos/{path}/git/ref/tags/{tag_name}", action_id
+            )
+            if not response:
+                return None
+
+            if json.loads(response.data)["object"]["type"] == "commit":
+                sha = json.loads(response.data)["object"]["sha"]
+            else:
+                url = json.loads(response.data)["object"]["url"]
+                # Follow the URL and get the commit sha for tags
+                response = get_github_api_response(url, action_id)
+                if not response:
+                    return None
+
+                sha = json.loads(response.data)["object"]["sha"]
+
+            if sha not in hash:
+                update_url = f"https://github.com/{path}/commit/{sha}"
+                memoized_action_update_urls[path] = update_url
+                return update_url
 
 
 def lint(filename):
@@ -408,4 +418,5 @@ def main(input_args=None):
 
 if __name__ == "__main__":
     return_code = main()
+    print(memoized_action_update_urls)
     sys.exit(return_code)

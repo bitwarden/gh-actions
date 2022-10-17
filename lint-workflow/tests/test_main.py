@@ -1,17 +1,20 @@
 from lint import main
+from .configs import FIXTURES_DIR
 
 # Tests for argparse inputs and outputs using capsys.readouterr()
 
+FIXTURES_DIR = "./tests/fixtures"
+
 
 def test_main_single_file(capsys):
-    main(["test.yml"])
+    main([f"{FIXTURES_DIR}/test.yml"])
     captured = capsys.readouterr()
     result = captured.out
     assert "test.yml" in result
 
 
 def test_main_multiple_files(capsys):
-    main(["test.yml test-alt.yml"])
+    main([f"{FIXTURES_DIR}/test.yml {FIXTURES_DIR}/test-alt.yml"])
     captured = capsys.readouterr()
     result = captured.out
     assert isinstance(result, str)
@@ -20,7 +23,7 @@ def test_main_multiple_files(capsys):
 
 
 def test_main_folder(capsys):
-    main(["./"])
+    main([f"{FIXTURES_DIR}"])
     captured = capsys.readouterr()
     result = captured.out
     assert isinstance(result, str)
@@ -29,7 +32,7 @@ def test_main_folder(capsys):
 
 
 def test_main_folder_and_files(capsys):
-    main(["test.yml ./"])
+    main([f"{FIXTURES_DIR}/test.yml {FIXTURES_DIR}"])
     captured = capsys.readouterr()
     result = captured.out
     print(result)
@@ -41,9 +44,7 @@ def test_main_not_found(capsys):
     captured = capsys.readouterr()
     result = captured.out
     assert isinstance(result, str)
-    assert (
-        'File(s)/Directory: "not-a-real-file.yml" does not exist, exiting.' in result
-    )
+    assert 'File(s)/Directory: "not-a-real-file.yml" does not exist, exiting.' in result
     # Empty string
     main([""])
     captured = capsys.readouterr()

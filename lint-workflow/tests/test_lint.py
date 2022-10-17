@@ -1,8 +1,9 @@
 from lint import lint
+from .configs import FIXTURES_DIR
 
 
 def test_lint(capfd):
-    file_path = "test.yml"
+    file_path = f"{FIXTURES_DIR}/test.yml"
     lint_output = lint(file_path)
     out, err = capfd.readouterr()
     assert (

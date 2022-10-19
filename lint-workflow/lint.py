@@ -234,7 +234,7 @@ def lint(filename):
                     findings.append(
                         LintFinding(
                             f"Runner version is set to '{runner}', but needs to be pinned to a version.",
-                            "warning",
+                            "error",
                         )
                     )
 

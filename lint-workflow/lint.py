@@ -234,7 +234,7 @@ def lint(filename):
                     findings.append(
                         LintFinding(
                             f"Runner version is set to '{runner}', but needs to be pinned to a version.",
-                            "error",
+                            "warning",
                         )
                     )
 
@@ -366,7 +366,7 @@ def lint(filename):
                             findings.append(
                                 LintFinding(
                                     f"Run in step {str(i)} of job key '{job_key}' should be a single line.",
-                                    "warning",
+                                    "error",
                                 )
                             )
 

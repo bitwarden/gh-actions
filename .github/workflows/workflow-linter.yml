@@ -27,6 +27,6 @@ jobs:
       - name: Workflow Lint
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        uses: bitwarden/gh-actions/lint-workflow@90380413e6428ae49f54858e6fa51df5b34868c9
+        uses: bitwarden/gh-actions/lint-workflow@d4c288b3cebb5e86ba34591b7d57cf5e5bdfe924
         with:
           workflows: ${{ steps.changed-workflows.outputs.modified-workflows }}

@@ -10,6 +10,8 @@ urllib3 = "*"
 [dev-packages]
 black = "*"
 pytest = "*"
+anyio = "*"
+dagger-io = "*"
 
 [requires]
-python_version = "3.9"
+python_version = "3.10"

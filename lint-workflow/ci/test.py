@@ -9,7 +9,7 @@ async def test():
     async with dagger.Connection(config) as client:
 
         # get reference to the local project
-        src_id = await client.host().directory("lint-workflow").id()
+        src_id = await client.host().directory("").id()
 
         python = (
             client.container()

@@ -77,7 +77,7 @@ jobs:
         id: set-status
         run: |
           echo "Status Status - ${{ matrix.name }}: ${{ steps.run-version-check.outputs.status }}"
-          echo "::set-output name=${{ matrix.name }}::${{ steps.run-version-check.outputs.status }}"
+          echo "${{ matrix.name }}=${{ steps.run-version-check.outputs.status }}" >> $GITHUB_OUTPUT
 
 
   run-version-check-test:

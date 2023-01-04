@@ -37,4 +37,6 @@ if __name__ == "__main__":
     with open(file_path, "w") as f:
         f.write(hashes)
 
+    print(hashes)
+
     print(f"::set-output name=status::Saved checksums in file: {file_path}")

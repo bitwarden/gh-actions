@@ -13,13 +13,13 @@ if __name__ == "__main__":
     packages_dir = os.getenv("INPUT_PACKAGES_DIR")
     file_path = os.getenv("INPUT_FILE_PATH")
 
-    if os.path.isdir(file_path):
-        file_path = os.path.join(file_path, "sha256-checksums.txt")
-    elif not os.path.isfile(file_path):
-        raise Exception("file_path input must be directory or full file path.")
+    # if os.path.isdir(file_path):
+    #     file_path = os.path.join(file_path, "sha256-checksums.txt")
+    # elif not os.path.isfile(file_path):
+    #     raise Exception("file_path input must be directory or full file path.")
 
-    if not os.path.isdir(packages_dir):
-        raise Exception("packages_dir input must be directory.")
+    # if not os.path.isdir(packages_dir):
+    #     raise Exception("packages_dir input must be directory.")
 
     hashes = ""
 

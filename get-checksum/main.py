@@ -15,11 +15,9 @@ if __name__ == "__main__":
 
     if os.path.isdir(file_path):
         file_path = os.path.join(file_path, "sha256-checksums.txt")
-    elif not os.path.isfile(file_path):
-        raise Exception("file_path input must be directory or full file path.")
 
-    if not os.path.isdir(packages_dir):
-        raise Exception("packages_dir input must be directory.")
+    print(f"Packages directory: {packages_dir}")
+    print(f"File which will contain SHA256 checksums will be: {file_path}")
 
     hashes = ""
 
@@ -36,5 +34,7 @@ if __name__ == "__main__":
 
     with open(file_path, "w") as f:
         f.write(hashes)
+
+    print(hashes)
 
     print(f"::set-output name=status::Saved checksums in file: {file_path}")

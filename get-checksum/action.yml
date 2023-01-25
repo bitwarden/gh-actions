@@ -1,0 +1,21 @@
+name: "Get SHA checksum for artifacts"
+description: "Generates a file containing SHA checksums for provided files."
+author: "Bitwarden"
+branding:
+  icon: download
+  color: blue
+inputs:
+  packages_dir:
+    description: "Path to directory from which every package will get it's SHA checksum in the output file."
+    default: "./"
+    required: true
+  file_path:
+    description: "Path to the file which will contain all SHA checksums."
+    default: "./"
+    required: true
+outputs:
+  status:
+    description: "Status"
+runs:
+  using: "docker"
+  image: "Dockerfile"

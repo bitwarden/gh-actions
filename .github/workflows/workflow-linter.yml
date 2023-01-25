@@ -21,7 +21,7 @@ jobs:
       - name: Get changed workflows
         id: changed-workflows
         run: |
-          MODIFIED_WORKFLOWS=$(git diff --name-only origin/${{ github.base_ref	}} | grep -E '.github/workflows/.*.yml' | tr '\n' ' ')
+          MODIFIED_WORKFLOWS=$(git diff --name-only origin/${{ github.base_ref	}} | grep -E '.github/workflows/.*.(yml|yaml)' | tr '\n' ' ')
           echo "::set-output name=modified-workflows::$MODIFIED_WORKFLOWS"
 
       - name: Workflow Lint

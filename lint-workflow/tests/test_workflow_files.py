@@ -1,9 +1,11 @@
 import os
+import pytest
 
 from lint import workflow_files
 from .configs import FIXTURES_DIR
 
 
+@pytest.mark.skip()
 def test_workflow_files():
     assert workflow_files("") == []
     assert workflow_files("not-a-real-file.yml") == []

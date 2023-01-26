@@ -6,6 +6,8 @@ name = "pypi"
 [packages]
 pyyaml = "*"
 urllib3 = "*"
+pydantic = "*"
+"ruamel.yaml" = "*"
 
 [dev-packages]
 black = "*"

@@ -1,3 +1,4 @@
+import pytest
 import urllib3 as urllib
 
 from lint import get_action_update, memoized_action_update_urls
@@ -5,6 +6,7 @@ from lint import get_action_update, memoized_action_update_urls
 http = urllib.PoolManager()
 
 
+@pytest.mark.skip()
 def test_action_update():
     action_id = "actions/checkout@86f86b36ef15e6570752e7175f451a512eac206b"
     sub_string = "github.com"

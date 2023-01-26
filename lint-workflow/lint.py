@@ -28,7 +28,7 @@ class Colors:
     white = "37m"
 
 
-class LintFinding(object):
+class LintFinding:
     """Represents a linting problem."""
 
     def __init__(self, description="<no description>", level=None):

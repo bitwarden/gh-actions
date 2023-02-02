@@ -15,7 +15,7 @@ runs:
       id: setup 
       run: |
         FORMAT_PATH=$(echo ${{ inputs.workflows }} | sed 's/ *$//')
-        echo "::set-output name=path::$FORMAT_PATH"
+        echo "path=$FORMAT_PATH" >> $GITHUB_OUTPUT
       shell: bash
 
     - name: Python lint

@@ -33,7 +33,7 @@ jobs:
           do
             VALUE=$(az keyvault secret show --vault-name $KEYVAULT --name $i --query value --output tsv)
             echo "::add-mask::$VALUE"
-            echo "::set-output name=$i::$VALUE"
+            echo "$i=$VALUE" >> $GITHUB_OUTPUT
           done
 
       - name: Download translations

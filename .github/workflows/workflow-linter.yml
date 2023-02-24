@@ -22,7 +22,13 @@ jobs:
         id: changed-workflows
         run: |
           MODIFIED_WORKFLOWS=$(git diff --name-only origin/${{ github.base_ref	}} | grep -E '.github/workflows/.*.(yml|yaml)' | tr '\n' ' ')
-          echo "::set-output name=modified-workflows::$MODIFIED_WORKFLOWS"
+          MODIFIED_EXISTING_WORKFLOWS=""
+          for workflow in $MODIFIED_WORKFLOWS; do
+              if [ -f $workflow ]; then
+                  MODIFIED_EXISTING_WORKFLOWS+="${workflow}"
+              fi
+          done
+          echo "::set-output name=modified-workflows::$MODIFIED_EXISTING_WORKFLOWS"
 
       - name: Workflow Lint
         env:

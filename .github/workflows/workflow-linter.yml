@@ -25,7 +25,7 @@ jobs:
           MODIFIED_EXISTING_WORKFLOWS=""
           for workflow in $MODIFIED_WORKFLOWS; do
               if [ -f $workflow ]; then
-                  MODIFIED_EXISTING_WORKFLOWS+="${workflow}"
+                  MODIFIED_EXISTING_WORKFLOWS+=" ${workflow}"
               fi
           done
           echo "::set-output name=modified-workflows::$MODIFIED_EXISTING_WORKFLOWS"

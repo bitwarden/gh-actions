@@ -38,23 +38,13 @@ jobs:
 
       - name: Get changed files
         id: changed-files
+        env:
+          CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
         uses: tj-actions/changed-files@b109d83a62e94cf7c522bf6c15cb25c175850b16 # v35.7.12
         with:
           files: |
             .github/workflows/**
       - name: Check for pinned versions
         if: steps.changed-files.outputs.any_changed == 'true'
-        run: |
-          echo "${{ steps.changed-files.outputs.all_changed_files }}"
-          MISSING_VERSION_FILES="";
-          IFS=' ' read -ra lines <<< "${{ steps.changed-files.outputs.all_changed_files }}"
-          for line in "${lines[@]}"; do
-            VERSION_PATTERN=cat "${line}" | grep 'uses: ' | awk -F "@" '{print $2}' | awk -F "#" '{print $2}'
-            # v starts a release tag, n is for our actions that have "no release tag" comment
-            if ! echo $VERSION_PATTERN | grep -qE ' v'; then
-              echo "Workflow file ${line} is missing a version tag"
-              MISSING_VERSION_FILES+=" ${line} "
-            fi
-          done
-          echo "### :mega: Workflow files ${MISSING_VERSION_FILES} is missing actions version tag" >> $GITHUB_STEP_SUMMARY
-          exit 1
+        run: ../check-pinned-versions.sh
+          

@@ -45,6 +45,7 @@ jobs:
           files: |
             .github/workflows/**
       - name: Check for pinned versions
+        shell: bash
         if: steps.changed-files.outputs.any_changed == 'true'
         run: $GITHUB_WORKSPACE/.github/check-pinned-version.sh
           

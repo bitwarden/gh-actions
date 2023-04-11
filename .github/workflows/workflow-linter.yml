@@ -45,6 +45,7 @@ jobs:
       - name: Check for pinned versions
         if: steps.changed-files.outputs.any_changed == 'true'
         run: |
+          echo "${{ steps.changed-files.outputs.all_changed_files }}"
           MISSING_VERSION_FILES="";
           IFS=' ' read -ra lines <<< "${{ steps.changed-files.outputs.all_changed_files }}"
           for line in "${lines[@]}"; do

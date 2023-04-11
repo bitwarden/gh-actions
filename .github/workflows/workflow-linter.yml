@@ -50,10 +50,12 @@ jobs:
           IFS=' ' read -ra lines <<< "${{ steps.changed-files.outputs.all_changed_files }}"
           for line in "${lines[@]}"; do
             VERSION_PATTERN=$(cat "${line}" | grep 'uses: ' | awk -F "@" '{print $2}' | awk -F "#" '{print $2}')
+            echo "$VERSION_PATTERN"
             if echo $VERSION_PATTERN | grep -E '^$'; then
               echo "Workflow file ${line} is missing a version tag"
               MISSING_VERSION_FILES+=" ${line} "
             fi
+            echo $MISSING_VERSION_FILES
           done
           echo "$MISSING_VERSION_FILES" >> $GITHUB_OUTPUT
           if [ -n "$MISSING_VERSION_FILES" ]; then

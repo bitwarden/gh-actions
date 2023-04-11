@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout Branch
-        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8
+        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
         with:
           fetch-depth: 0
 
@@ -52,7 +52,9 @@ jobs:
             VERSION_PATTERN=$(cat "${line}" | grep 'uses: ' | awk -F "@" '{print $2}' | awk -F "#" '{print $2}')
             if ! echo $VERSION_PATTERN | grep -qE ' v'; then
               echo "Workflow file ${line} is missing a version tag"
-              $MISSING_VERSION_FILES+=" ${line} "
+              MISSING_VERSION_FILES+=" ${line} "
             fi
           done
-          echo "### :mega: Workflow files ${MISSING_VERSION_FILES} is missing actions version tag" >> $GITHUB_STEP_SUMMARY
+          if [ -n "$MISSING_VERSION_FILES" ]; then
+            echo "### :mega: Workflow files ${MISSING_VERSION_FILES} is missing actions version tag" >> $GITHUB_STEP_SUMMARY
+          fi

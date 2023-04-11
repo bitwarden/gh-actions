@@ -55,6 +55,7 @@ jobs:
               MISSING_VERSION_FILES+=" ${line} "
             fi
           done
+          echo "modified-workflows=$MISSING_VERSION_FILES" >> $GITHUB_OUTPUT
           if [ -n "$MISSING_VERSION_FILES" ]; then
             echo "### :mega: Workflow files ${MISSING_VERSION_FILES} is missing actions version tag" >> $GITHUB_STEP_SUMMARY
           fi

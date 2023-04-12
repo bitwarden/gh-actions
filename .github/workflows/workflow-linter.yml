@@ -42,6 +42,7 @@ jobs:
         with:
           files: |
             .github/workflows/**
+
       - name: Check for pinned versions
         shell: bash
         if: steps.changed-files.outputs.any_changed == 'true'
@@ -49,15 +50,13 @@ jobs:
           MISSING_VERSION_FILES=""
           IFS=' ' read -ra lines <<< "${{ steps.changed-files.outputs.all_changed_files }}"
           for line in "${lines[@]}"; do
-            VERSION_PATTERN=$(cat "${line}" | grep 'uses: ' | awk -F "@" '{print $2}' | awk -F "#" '{print $2}')
-            echo "$VERSION_PATTERN"
-            if echo $VERSION_PATTERN | grep -E '^$'; then
-              echo "Workflow file ${line} is missing a version tag"
-              MISSING_VERSION_FILES+=" ${line} "
-            fi
-            echo $MISSING_VERSION_FILES
+          VERSION_PATTERN=$(cat "${line}" | grep 'uses: ' | grep -vE '#\s+v[0-9.]+(\s|$)')
+          if [[ $(grep -E 'uses: ' <<< $VERSION_PATTERN) ]]; then
+            echo "Workflow file ${line} is missing one or more version tags"
+            MISSING_VERSION_FILES+=" ${line}"
+          fi
           done
           echo "$MISSING_VERSION_FILES" >> $GITHUB_OUTPUT
-          if [ -n "$MISSING_VERSION_FILES" ]; then
-            echo "### :mega: Workflow files ${MISSING_VERSION_FILES} is missing actions version tag" >> $GITHUB_STEP_SUMMARY
+          if  [ $( wc -w <<< $MISSING_VERSION_FILES) -gt 0 ]; then
+            echo "### :mega: Workflow file ${MISSING_VERSION_FILES} is missing one or more version tags" >> $GITHUB_STEP_SUMMARY
           fi

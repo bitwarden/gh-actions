@@ -37,7 +37,7 @@ runs:
           --url "https://api.rebrandly.com/v1/links?domain.fullName=$DOMAIN&slashtag=$SLASHTAG" \
           --header "Accept: application/json" \
           --header "apikey: $APIKEY" | jq -r '.[0].id')
-        echo "::set-output name=id::$ID"
+        echo "id=$ID" >> $GITHUB_OUTPUT
 
     - name: Update Link Destination
       shell: bash

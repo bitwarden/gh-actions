@@ -82,9 +82,9 @@ runs:
         case "${{ inputs.trim }}" in
             "true")
               LATEST_RELEASE_TAG_VERSION=$(echo "${LATEST_RELEASE_TAG_VERSION//[a-z-]}")
-                echo "::set-output name=version::$LATEST_RELEASE_TAG_VERSION"
+                echo "version=$LATEST_RELEASE_TAG_VERSION" >> $GITHUB_OUTPUT
               ;;
             "false")
-              echo "::set-output name=version::$LATEST_RELEASE_TAG_VERSION"
+              echo "version=$LATEST_RELEASE_TAG_VERSION" >> $GITHUB_OUTPUT
               ;;
           esac

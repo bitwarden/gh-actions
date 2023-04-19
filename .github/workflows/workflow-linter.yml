@@ -35,29 +35,3 @@ jobs:
         uses: bitwarden/gh-actions/lint-workflow@e9dbc0b5edc4f5724124d18b65d8b3fcde767dd9
         with:
           workflows: ${{ steps.changed-workflows.outputs.modified-workflows }}
-
-      - name: Get changed files
-        id: changed-files
-        uses: tj-actions/changed-files@b109d83a62e94cf7c522bf6c15cb25c175850b16 # v35.7.12
-        with:
-          files: |
-            .github/workflows/**
-
-      - name: Check for pinned versions
-        shell: bash
-        if: steps.changed-files.outputs.any_changed == 'true'
-        run: |
-          MISSING_VERSION_FILES=""
-          IFS=' ' read -ra lines <<< "${{ steps.changed-files.outputs.all_changed_files }}"
-          for line in "${lines[@]}"; do
-            VERSION_PATTERN=$(cat "${line}" | grep 'uses: ' | grep -vE '#\s+v[0-9.]+(\s|$)')
-            if [[ $(grep -E 'uses: ' <<< $VERSION_PATTERN) ]]; then
-              echo "Workflow file ${line} is missing one or more version tags"
-              MISSING_VERSION_FILES+=" ${line}"
-            fi
-          done
-          echo "$MISSING_VERSION_FILES" >> $GITHUB_OUTPUT
-          if [ $( wc -w <<< $MISSING_VERSION_FILES) -gt 0 ]; then
-            echo "### :mega: Workflow file ${MISSING_VERSION_FILES} is missing one or more version tags" >> $GITHUB_STEP_SUMMARY
-            exit 1
-          fi

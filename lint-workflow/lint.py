@@ -1,7 +1,7 @@
 import sys
 import argparse
 import os
-import ruamel.yaml as YAML
+from ruamel.yaml import YAML
 import json
 import urllib3 as urllib
 import logging
@@ -209,8 +209,12 @@ def lint(filename):
 
     with open(filename) as file:
         yaml = YAML()
-        workflow = yaml.load(file)
+        data = yaml.load(file)
+        workflow = yaml.dump(data, sys.stdout)
 
+        #here, workflow is empty, and data doesn't include the comments
+        print('>>>>>>>>>>>>>>>>>', data)
+        print('>>>>>>>>>>>>>>>>>', workflow)
         # Check for 'name' key for the workflow.
         if "name" not in workflow:
             findings.append(LintFinding("Name key missing for workflow.", "warning"))
@@ -290,8 +294,8 @@ def lint(filename):
                         try:
                             # hash_version is the hash of the job step and version pin for non-bitwarden actions and just version for bitwarden actions.
                             path, hash_version = step["uses"].split("@")
-                            print(hash_version)
-                            print(step["uses"])
+                            # print(hash_version)
+                            # print(step["uses"])
                         except ValueError:
                             logging.info("Skipping local action in workflow.")
                             break
@@ -310,12 +314,12 @@ def lint(filename):
                             # Check to make sure non-Bitwarden actions have a version pinned.
                             if "bitwarden" not in path:
                                 split_hash = hash_version.split(" # ", 2)
-                                print(split_hash)
+                                # print(split_hash)
                                 if len(split_hash) == 2:
                                     hash = split_hash[0]
                                     version = split_hash[1]
-                                    print(hash)
-                                    print(version)
+                                    # print(hash)
+                                    # print(version)
                                     if len(hash) != 40:
                                       findings.append(
                                           LintFinding(
@@ -342,7 +346,6 @@ def lint(filename):
                                             )
                                         )
                                 else:
-                                    print(len(hash_version))
                                     findings.append(
                                         LintFinding(
                                             f"Step {str(i)} of job key '{job_key}' does not have a valid version pinned. (not in the format '# v1.2.3')",

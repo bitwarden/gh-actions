@@ -1,13 +1,14 @@
-from pydantic import BaseModel, Extra, Field, root_validator
+from dataclasses import dataclass, field
+
+#from pydantic import BaseModel, Extra, Field, root_validator
 from ruamel.yaml.comments import CommentedMap
 
 
-class Step(BaseModel, extra=Extra.allow):
+@dataclass
+class Step:
     name: str = None
-    id: str = None
     env: CommentedMap = None
     uses: str = None
-    with_field: CommentedMap = Field(None, alias="with")
     run: str = None
 
     #@root_validator

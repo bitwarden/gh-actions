@@ -1,43 +1,44 @@
+from collections.abc import Callable
+
+from .models.workflow import Workflow
+from .models.job import Job
+from .models.step import Step
+
+
 class LintFinding:
     """Represents a linting problem."""
-
-    def __init__(self, description="<no description>", level=None):
-        self.description = description
-        self.level = level
+    description: str = "<no description>"
+    level: str = None
 
 
-class Rule:
-    def __init__(self, obj, field, rule, failure_message, failure_level="warning"):
-        self.obj = obj
-        self.field = field
-        self.rule = rule
-        self.failure_level = failure_level
-        self.failure_message = failure_message
+def _validate(
+    obj: Workflow | Job | Step,
+    rule: Callable[[Workflow | Job | Step], bool | None],
+    message: str,
+    warning_level: str
+) -> LintFinding | None:
+    try:
+        if rule(obj):
+            return None
+    except:
+        message = f"failed to apply {rule.__name__}"
+        warning_level = "error"
 
-    def run(self):
-        failure_message = f"{self.obj}.{self.field} => {self.failure_message}"
-
-        if not self.rule(self.obj[self.field]):
-            return LintFinding(failure_message, self.failure_level)
-        return None
-
-
-def enforce_field_exists(field):
-    return False if field is None else return True
-
-def enforce_field_starts_upper(field):
-    if field is None or not field[0].isupper():
-        return False
-    return True
+    return LintFinding(f"{obj.__name__}.{obj.name} => {message}", warning_level)
 
 
-findings = []
+# -------- Rules ---------
 
-rules: [
-    Rule(workflow, "name", enforce_field_exists, "field required", "error")
-    Rule(workflow, "name", enforce_field_starts_upper, "field must be capitalized", "error")
-]
+def workflow_name_exists( obj: Workflow | Job | Step):
+    return obj.name is not None
+
+def workflow_name_capitalized( obj: Workflow | Job | Step):
+    return obj.name.isupper()
+
+# ----- End of Rules -----
 
 
-for rule in rules:
-    findings.append(rule.run())
+findings = list(filter(lambda a: a is not None, [
+    _validate(workflow, workflow_name_exists, "field required", "error"),
+    _validate(workflow, workflow_name_capitalized, "field must be capitalized", "error")
+]))

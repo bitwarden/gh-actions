@@ -17,6 +17,6 @@ def test_load_workflow(workflow_filename):
     assert len(workflow.jobs["crowdin-pull"].steps) == 4
     assert workflow.dict()["name"] == "crowdin Pull"
 
-    print(workflow.dict(exclude_unset=True))
+    #print(workflow.dict(exclude_unset=True))
 
-    assert False
+    #assert False

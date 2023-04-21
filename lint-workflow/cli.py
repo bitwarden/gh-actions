@@ -7,6 +7,9 @@ import urllib3 as urllib
 import logging
 
 
+from src.rules import LintFinding
+
+
 PROBLEM_LEVELS = {
     "warning": 1,
     "error": 2,

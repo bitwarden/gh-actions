@@ -47,6 +47,6 @@ jobs:
         env:
           FILE: ${{ steps.changed-files.outputs.all_changed_files }}
         run: |
-          FILES=$(echo \"$FILE\") 
-          $GITHIB_WORKSPACE/.github/version-lint.sh $FILES
+          FILES=$(echo \"${{ env.FILE }}\") 
+          $GITHUB_WORKSPACE/.github/version-lint.sh $FILES
         shell: bash

@@ -45,6 +45,6 @@ jobs:
       - name: Check for pinned versions
         if: steps.changed-files.outputs.any_changed == 'true'
         run: |
-          FILES=$(echo \"${{ steps.changed-files.outputs.all_changed_files }}\") 
+          FILES=$(echo \"${ steps.changed-files.outputs.all_changed_files }\") 
           $GITHIB_WORKSPACE/.github/version-lint.sh $FILES
         shell: bash

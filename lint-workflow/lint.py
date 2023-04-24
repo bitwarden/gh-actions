@@ -1,11 +1,10 @@
 import sys
 import argparse
 import os
-from ruamel.yaml import YAML
+import yaml
 import json
 import urllib3 as urllib
 import logging
-import re
 
 PROBLEM_LEVELS = {
     "warning": 1,
@@ -208,13 +207,8 @@ def lint(filename):
     max_error_level = 0
 
     with open(filename) as file:
-        yaml = YAML()
-        data = yaml.load(file)
-        workflow = yaml.dump(data, sys.stdout)
+        workflow = yaml.load(file, Loader=yaml.FullLoader)
 
-        #here, workflow is empty, and data doesn't include the comments
-        print('>>>>>>>>>>>>>>>>>', data)
-        print('>>>>>>>>>>>>>>>>>', workflow)
         # Check for 'name' key for the workflow.
         if "name" not in workflow:
             findings.append(LintFinding("Name key missing for workflow.", "warning"))
@@ -290,12 +284,10 @@ def lint(filename):
                                 "warning",
                             )
                         )
+
                     if "uses" in step:
                         try:
-                            # hash_version is the hash of the job step and version pin for non-bitwarden actions and just version for bitwarden actions.
-                            path, hash_version = step["uses"].split("@")
-                            # print(hash_version)
-                            # print(step["uses"])
+                            path, hash = step["uses"].split("@")
                         except ValueError:
                             logging.info("Skipping local action in workflow.")
                             break
@@ -303,55 +295,26 @@ def lint(filename):
                         # If the step has a 'uses' key, check value hash.
                         try:
 
-                            # Check to make sure Bitwarden actions SHA1 hash is 40 characters.
-                            if "bitwarden" in path and len(hash_version) != 40:
+                            # Check to make sure SHA1 hash is 40 characters.
+                            if len(hash) != 40:
                                 findings.append(
                                     LintFinding(
                                         f"Step {str(i)} of job key '{job_key}' does not have a valid action hash. (not 40 characters)",
                                         "error",
                                     )
                                 )
-                            # Check to make sure non-Bitwarden actions have a version pinned.
-                            if "bitwarden" not in path:
-                                split_hash = hash_version.split(" # ", 2)
-                                # print(split_hash)
-                                if len(split_hash) == 2:
-                                    hash = split_hash[0]
-                                    version = split_hash[1]
-                                    # print(hash)
-                                    # print(version)
-                                    if len(hash) != 40:
-                                      findings.append(
-                                          LintFinding(
-                                              f"Step {str(i)} of job key '{job_key}' does not have a valid action hash. (not 40 characters)",
-                                              "error",
-                                          )
-                                      )
-                                    if not bool(re.match(r"v[0-9.]+", version)):
-                                      findings.append(
-                                          LintFinding(
-                                              f"Step {str(i)} of job key '{job_key}' does not have a valid version pinned. (not in the format '# v1.2.3')",
-                                              "error",
-                                          )
-                                      )
-                                    # Attempts to convert the hash to a integer
-                                    # which will succeed if all characters are hexadecimal
-                                    try:
-                                        int(hash, 16)
-                                    except ValueError:
-                                        findings.append(
-                                            LintFinding(
-                                                f"Step {str(i)} of job key '{job_key}' does not have a valid action hash. (not all hexadecimal characters)",
-                                                "error",
-                                            )
-                                        )
-                                else:
-                                    findings.append(
-                                        LintFinding(
-                                            f"Step {str(i)} of job key '{job_key}' does not have a valid version pinned. (not in the format '# v1.2.3')",
-                                            "error",
-                                        )
+
+                            # Attempts to convert the hash to a integer
+                            # which will succeed if all characters are hexadecimal
+                            try:
+                                int(hash, 16)
+                            except ValueError:
+                                findings.append(
+                                    LintFinding(
+                                        f"Step {str(i)} of job key '{job_key}' does not have a valid action hash. (not all hexadecimal characters)",
+                                        "error",
                                     )
+                                )
                         except:
                             findings.append(
                                 LintFinding(

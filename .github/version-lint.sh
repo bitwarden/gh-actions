@@ -8,7 +8,7 @@ while IFS= read -r line; do
   
   while IFS= read -r each_line; do
     if ! grep -qE 'bitwarden/gh-actions/*' <<< $each_line ; then
-      echo "### :mega: Workflow file ${line} is missing actions version tag" >> $GITHUB_OUTPUT
+      #echo "### :mega: Workflow file ${line} is missing actions version tag" >> $GITHUB_OUTPUT
       MISSING_VERSION_FILES+=" ${line} "
     fi
   done <<< "$VERSION_PATTERN"

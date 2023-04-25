@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout Branch
-        uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247
+        uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247 # v2.3.4
         with:
           fetch-depth: 0
 
@@ -44,10 +44,9 @@ jobs:
       
       - name: Check for pinned versions
         if: steps.changed-files.outputs.any_changed == 'true'
+        shell: bash
         env:
           FILE: ${{ steps.changed-files.outputs.all_changed_files }}
         run: |
           FILES=$(echo "${{ env.FILE }}")
-
           $GITHUB_WORKSPACE/.github/version-lint.sh $FILES
-        shell: bash

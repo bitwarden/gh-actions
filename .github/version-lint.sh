@@ -15,6 +15,7 @@ while IFS= read -r line; do
 
 done <<< "$FILES_TO_CHANGE"
 
+MISSING_FILES=$(echo $MISSING_VERSION_FILES | tr '\n' ' ')
 if [ -n "$MISSING_VERSION_FILES" ]; then
-  echo "### :mega: Workflow files ${MISSING_VERSION_FILES} is missing actions version tag" >> $GITHUB_STEP_SUMMARY
+  echo "### :mega: Workflow files ${MISSING_FILES} are missing actions version tag" >> $GITHUB_STEP_SUMMARY
 fi

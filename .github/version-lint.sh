@@ -17,6 +17,6 @@ done <<< "$FILES_TO_CHANGE"
 
 MISSING_FILES=$(echo $MISSING_VERSION_FILES | tr '\n' ' ')
 if [ -n "$MISSING_VERSION_FILES" ]; then
-  echo "### :mega: Workflow files ${MISSING_FILES} are missing actions version tag" # >> $GITHUB_STEP_SUMMARY
+  echo "### :mega: Workflow files ${MISSING_FILES} are missing actions version tag" >> $GITHUB_STEP_SUMMARY
   exit 1
 fi

@@ -19,8 +19,7 @@ jobs:
           ref: master
       
       - name: Move the script to WORKSSPACE
-        run: |
-          mv $GITHUB_WORKSPACE/.github/version-lint.sh $GITHUB_WORKSPACE/
+        run: mv $GITHUB_WORKSPACE/.github/version-lint.sh $GITHUB_WORKSPACE/
       
       - name: Checkout Branch
         uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247 # v2.3.4

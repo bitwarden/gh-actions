@@ -12,15 +12,6 @@ jobs:
     name: "Workflow Linter"
     runs-on: ubuntu-20.04
     steps:
-      - name: checkout gh-action master branch
-        uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247 # v2.3.4
-        with:
-          repository: bitwarden/gh-actions
-          ref: master
-      
-      - name: Move the script to WORKSSPACE
-        run: mv $GITHUB_WORKSPACE/.github/version-lint.sh $GITHUB_WORKSPACE/
-      
       - name: Checkout Branch
         uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247 # v2.3.4
         with:
@@ -58,4 +49,5 @@ jobs:
           FILE: ${{ steps.changed-files.outputs.all_changed_files }}
         run: |
           FILES=$(echo "${{ env.FILE }}")
-          $GITHUB_WORKSPACE/version-lint.sh $FILES
+          curl -o $PWD/version-lint.sh https://raw.githubusercontent.com/bitwarden/gh-actions/master/.github/version-lint.sh
+          chmod +x $PWD/version-lint.sh && $PWD/version-lint.sh $FILES

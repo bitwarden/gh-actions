@@ -42,12 +42,6 @@ jobs:
         with:
           files: .github/workflows/**
       
-      - name: checkout gh-action master branch
-        uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247 # v2.3.4
-        with:
-          repository: bitwarden/gh-actions
-          ref: master
-      
       - name: Check for pinned versions
         if: steps.changed-files.outputs.any_changed == 'true'
         shell: bash
@@ -55,4 +49,5 @@ jobs:
           FILE: ${{ steps.changed-files.outputs.all_changed_files }}
         run: |
           FILES=$(echo "${{ env.FILE }}")
-          $GITHUB_WORKSPACE/.github/version-lint.sh $FILES
+          curl -o $PWD/version-lint.sh https://raw.githubusercontent.com/bitwarden/gh-actions/master/.github/version-lint.sh
+          chmod +x $PWD/version-lint.sh && $PWD/version-lint.sh $FILES

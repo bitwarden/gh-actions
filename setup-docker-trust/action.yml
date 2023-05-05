@@ -27,6 +27,7 @@ runs:
 
     - name: Retrieve secrets
       id: get-secrets
+      shell: bash
       env:
         KEYVAULT: ${{ inputs.azure-keyvault-name }}
         SECRETS: |

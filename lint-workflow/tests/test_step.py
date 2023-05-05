@@ -10,6 +10,7 @@ def step_default_data():
         "run": "echo \"test\""
     }
 
+
 def test_step_default(step_default_data):
     step = src.models.Step.from_dict(step_default_data)
     assert step.name == None

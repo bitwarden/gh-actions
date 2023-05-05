@@ -15,7 +15,7 @@ jobs:
       _CROWDIN_PROJECT_ID: "308189"
     steps:
       - name: Checkout repo
-        uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b  # v2.3.4
+        uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v2.3.4
 
       - name: Login to Azure
         uses: Azure/logi@77f1b2e3fb80c0e8645114159d17008b8a2e475a
@@ -37,7 +37,7 @@ jobs:
           done
 
       - name: Download translations
-        uses: crowdin/github-action@e39093fd75daae7859c68eded4b43d42ec78d8ea  # v1.3.2
+        uses: crowdin/github-action@e39093fd75daae7859c68eded4b43d42ec78d8ea # v1.3.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CROWDIN_API_TOKEN: ${{ steps.retrieve-secrets.outputs.crowdin-api-token }}

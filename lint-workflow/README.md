@@ -43,9 +43,9 @@ workflows:
   - assert name exists
   - assert name is capitalized
 jobs:
-  - assert runs-on is pinned
   - assert name exists
   - assert name is capitalized
+  - assert runs-on is pinned
   - assert any environment variables start with "_"
 steps:
   shared: 

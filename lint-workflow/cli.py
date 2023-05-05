@@ -7,7 +7,8 @@ import urllib3 as urllib
 import logging
 
 
-from src.rules import LintFinding
+from src.rules import LintFinding, workflow_rules, job_rules, step_rules, uses_step_rules, run_step_rules
+from src.load import get_workflow
 
 
 PROBLEM_LEVELS = {
@@ -194,6 +195,42 @@ def get_action_update(action_id):
                 update_url = f"https://github.com/{path}/commit/{sha}"
                 memoized_action_update_urls[path] = update_url
                 return update_url
+
+
+def _new_lint(filename):
+    findings = []
+    max_error_level = 0
+
+    print(f"Linting: {filename}")
+    with open(filename) as file:
+        workflow = get_workflow(filename)
+
+        for rule in workflow_rules:
+            findings.append(rule.execute(workflow))
+
+        for job_key, job in workflow.jobs.items():
+            for rule in job_rules:
+                findings.append(rule.execute(job))
+
+            for step in job.steps:
+                if step.uses is not None:
+                    for rule in [*step_rules, *uses_step_rules]:
+                        findings.append(rule.execute(step))
+                else:
+                    for rule in [*step_rules, *run_step_rules]:
+                        findings.append(rule.execute(step))
+
+    findings = list(filter(lambda a: a is not None, findings))
+
+    if len(findings) > 0:
+        print("#", filename)
+        for finding in findings:
+            print_finding(finding)
+        print()
+
+    max_error_level = get_max_error_level(findings)
+
+    return max_error_level
 
 
 def lint(filename):

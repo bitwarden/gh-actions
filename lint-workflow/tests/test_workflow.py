@@ -1,6 +1,7 @@
 import json
 import pytest
 
+from .conftest import FIXTURE_DIR
 from .context import src
 
 
@@ -10,16 +11,18 @@ def workflow_default_data():
         "name": "Test Workflow",
         "on": {},
         "jobs": {
-            "job-key": src.models.Job(**{
+            "job-key": src.models.Job.from_dict({
                 "name": "Test",
                 "runs-on": "ubuntu-latest",
-                "steps": [src.models.Step(run="echo stub")]
+                "steps": [src.models.Step.from_dict({ "run": "echo stub"})]
             })
         }
     }
 
 
-def test_workflow_creation(workflow_default_data):
+def test_workflow_default(workflow_default_data):
     workflow = src.models.Workflow(**workflow_default_data)
 
     assert workflow.name == "Test Workflow"
+    assert len(workflow.on.keys()) == 0
+    assert len(workflow.jobs.keys()) == 1

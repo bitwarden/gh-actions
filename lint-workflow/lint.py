@@ -28,6 +28,12 @@ class Colors:
     white = "37m"
 
 
+class LintFinding:
+    """Represents a linting problem."""
+    description: str = "<no description>"
+    level: str = None
+
+
 def get_max_error_level(findings):
     """Get max error level from list of findings."""
     if len(findings) == 0:

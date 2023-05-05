@@ -8,6 +8,7 @@ pyyaml = "*"
 urllib3 = "*"
 pydantic = "*"
 "ruamel.yaml" = "*"
+dataclasses-json = "*"
 
 [dev-packages]
 black = "*"

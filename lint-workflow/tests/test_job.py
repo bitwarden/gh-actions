@@ -13,7 +13,10 @@ def job_default_data():
     }
 
 
-def test_job_creation(job_default_data):
-    job = src.models.Job(**job_default_data)
+def test_job_default(job_default_data):
+    job = src.models.Job.from_dict(job_default_data)
 
     assert job.name == "Test"
+    assert job.runs_on == "ubuntu-latest"
+    assert job.env == None
+    assert len(job.steps) == 1

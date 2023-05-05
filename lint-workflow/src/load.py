@@ -13,10 +13,10 @@ def load_workflow(filename: str) -> Workflow:
         #workflow = sanitize_yaml(file.read())
         workflow = yaml.load(file)
 
-    return Workflow(**{
+    return Workflow.from_dict({
         **workflow,
-        "jobs": {str(job_key): Job(**{
+        "jobs": {str(job_key): Job.from_dict({
             **job,
-            "steps": [Step(**step) for step in job["steps"]]
+            "steps": [Step.from_dict(step) for step in job["steps"]]
         }) for job_key, job in workflow["jobs"].items()}
     })

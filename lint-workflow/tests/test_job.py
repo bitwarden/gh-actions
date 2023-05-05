@@ -20,3 +20,13 @@ def test_job_default(job_default_data):
     assert job.runs_on == "ubuntu-latest"
     assert job.env == None
     assert len(job.steps) == 1
+
+
+def test_job_extra_kwargs(job_default_data):
+    job = src.models.Job.from_dict({
+        "extra": "test",
+        **job_default_data
+    })
+
+    with pytest.raises(Exception) as e_info:
+        assert job.extra == "test"

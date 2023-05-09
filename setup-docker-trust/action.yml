@@ -27,21 +27,13 @@ runs:
 
     - name: Retrieve secrets
       id: get-secrets
-      shell: bash
-      env:
-        KEYVAULT: ${{ inputs.azure-keyvault-name }}
-        SECRETS: |
-          docker-password,
+      uses: bitwarden/gh-actions/get-keyvault-secrets@34ecb67b2a357795dc893549df0795e7383ff50f
+      with:
+        keyvault: "${{ inputs.azure-keyvault-name }}"
+        secrets: "docker-password,
           docker-username,
           dct-delegate-repo-passphrase,
-          dct-delegate-key
-      run: |
-        for i in ${SECRETS//,/ }
-        do
-          VALUE=$(az keyvault secret show --vault-name $KEYVAULT --name $i --query value --output tsv)
-          echo "::add-mask::$VALUE"
-          echo "$i=$VALUE" >> $GITHUB_OUTPUT
-        done
+          dct-delegate-key"
 
     - name: Log into Docker
       shell: bash

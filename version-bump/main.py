@@ -105,4 +105,4 @@ if __name__ == "__main__":
     else:
         raise Exception("No file was recognized as a supported format.")
 
-    print(f"status=Updated {file_path} >> $GITHUB_OUTPUT")
+    os.environ["GITHUB_OUTPUT"] += f"status=Updated {file_path}"

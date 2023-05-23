@@ -1,7 +1,11 @@
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -114,7 +118,7 @@ class KeyVaultClient extends AzureRestClient_1.ServiceClient {
                 }
             }
             else {
-                return new AzureRestClient_1.ApiResult(AzureRestClient_1.ToError(response));
+                return new AzureRestClient_1.ApiResult((0, AzureRestClient_1.ToError)(response));
             }
         })).then((apiResult) => callback(apiResult.error, apiResult.result), (error) => callback(error));
     }
@@ -140,7 +144,7 @@ class KeyVaultClient extends AzureRestClient_1.ServiceClient {
                 return new AzureRestClient_1.ApiResult('Get Secret Failed Because Of Invalid Characters', secretName);
             }
             else {
-                return new AzureRestClient_1.ApiResult(AzureRestClient_1.ToError(response));
+                return new AzureRestClient_1.ApiResult((0, AzureRestClient_1.ToError)(response));
             }
         })).then((apiResult) => callback(apiResult.error, apiResult.result), (error) => callback(error));
     }

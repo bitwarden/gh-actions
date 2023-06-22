@@ -10,13 +10,13 @@
   "author": "Romil Goyal",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^20.2.3",
-    "typescript": "^5.0.4"
+    "@types/node": "20.2.3",
+    "typescript": "5.0.4"
   },
   "dependencies": {
-    "@actions/core": "^1.2.6",
-    "@actions/exec": "^1.0.1",
-    "azure-actions-webclient": "^1.1.0"
+    "@actions/core": "1.10.0",
+    "@actions/exec": "1.1.1",
+    "azure-actions-webclient": "1.1.1"
   },
   "repository": {
     "type": "git",

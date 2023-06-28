@@ -13,8 +13,8 @@ while IFS= read -r line; do
   if [[ ! -z "$VERSION_PATTERN" ]]; then
     # Read each line that does not have version tag
     while IFS= read -r each_line; do
-      # if the line does contain bitwarden/gh-actions
-      if ! grep -qE 'bitwarden/gh-actions/*' <<< $each_line ; then
+      # if the line does not contain bitwarden/gh-actions/* or a .github path
+      if ! grep -qE 'bitwarden/gh-actions/*|.github/' <<< $each_line ; then
         echo "${each_line} in file ${line} is missing actions version tag"
         # Add that filename to the variable storing files with missing actions version
         MISSING_VERSION_FILES+=" ${line} "

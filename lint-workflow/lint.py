@@ -97,7 +97,7 @@ def action_repo_exists(action_id):
 
     path, *hash = action_id.split("@")
 
-    if "bitwarden" in path:
+    if "bitwarden/gh-actions" in path:
         path_list = path.split("/", 2)
         url = f"https://api.github.com/repos/{path_list[0]}/{path_list[1]}"
         response = get_github_api_response(url, action_id)

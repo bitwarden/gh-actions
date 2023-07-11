@@ -152,7 +152,7 @@ def get_action_update(action_id):
     if path in memoized_action_update_urls:
         return memoized_action_update_urls[path]
     else:
-        if "bitwarden" in path:
+        if "bitwarden/gh-actions" in path:
             path_list = path.split("/", 2)
             url = f"https://api.github.com/repos/{path_list[0]}/{path_list[1]}/commits?path={path_list[2]}"
             response = get_github_api_response(url, action_id)

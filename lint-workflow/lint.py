@@ -97,7 +97,7 @@ def action_repo_exists(action_id):
 
     path, *hash = action_id.split("@")
 
-    if "bitwarden" in path:
+    if "bitwarden/gh-actions" in path:
         path_list = path.split("/", 2)
         url = f"https://api.github.com/repos/{path_list[0]}/{path_list[1]}"
         response = get_github_api_response(url, action_id)
@@ -152,7 +152,7 @@ def get_action_update(action_id):
     if path in memoized_action_update_urls:
         return memoized_action_update_urls[path]
     else:
-        if "bitwarden" in path:
+        if "bitwarden/gh-actions" in path:
             path_list = path.split("/", 2)
             url = f"https://api.github.com/repos/{path_list[0]}/{path_list[1]}/commits?path={path_list[2]}"
             response = get_github_api_response(url, action_id)
@@ -326,7 +326,7 @@ def lint(filename):
                         # If the step has a 'uses' key, check path for external workflow
                         path_list = path.split("/", 2)
 
-                        if "bitwarden" in path and len(path_list) < 3:
+                        if "bitwarden/gh-actions" in path and len(path_list) < 3:
                             findings.append(
                                 LintFinding(
                                     f"Step {str(i)} of job key '{job_key}' does not have a valid action path. (missing name of the repository or workflow)",

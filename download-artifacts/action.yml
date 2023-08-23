@@ -52,5 +52,5 @@ inputs:
     description: Check workflow run whether it has an artifact
     required: false
 runs:
-  using: node12
+  using: node16
   main: main.js

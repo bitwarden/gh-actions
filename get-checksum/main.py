@@ -37,4 +37,4 @@ if __name__ == "__main__":
 
     print(hashes)
 
-    print(f"::set-output name=status::Saved checksums in file: {file_path}")
+    print(f"Saved checksums in file: {file_path} >> $GITHUB_OUTPUT")

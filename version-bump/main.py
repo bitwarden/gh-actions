@@ -69,12 +69,19 @@ def update_xml(version, file_path):
         mytree.write(file_path, encoding="utf-8")
 
 
-# For updating Helm Charts - Chart.yaml version
+# For updating Helm and Kustomize yaml files.
 def update_yaml(version, file_path):
     with open(file_path, "r") as f:
         doc = yaml.load(f, Loader=yaml.FullLoader)
 
-    doc["version"] = version
+    # Helm Chart
+    if doc["version"]:
+        doc["version"] = version
+
+    # Kustomize
+    label = [x for x in doc if x['path'] == "/metadata/labels/app.kubernetes.io~1version"]
+    if label:
+        label[0]['value'] = version
 
     with open(file_path, "w") as f:
         yaml.dump(doc, f)
@@ -100,7 +107,7 @@ if __name__ == "__main__":
         update_json(version, file_path)
     elif file_type == ".plist":
         update_plist(version, file_path)
-    elif file_name == "Chart.yaml" or file_name == "Chart.yml":
+    elif file_name == ".yaml" or file_name == ".yml":
         update_yaml(version, file_path)
     else:
         raise Exception("No file was recognized as a supported format.")

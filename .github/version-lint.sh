@@ -27,6 +27,7 @@ done <<< "$FILES_TO_CHANGE"
 MISSING_FILES=$(echo $MISSING_VERSION_FILES | tr '\n' ' ')
 # Check if the variable is not empty
 if [ -n "$MISSING_VERSION_FILES" ]; then
-  echo "### :mega: Workflow files ${MISSING_FILES} are missing actions version tag" >> $GITHUB_OUTPUT
-  echo "### :mega: Workflow files ${MISSING_FILES} are missing actions version tag" >> $GITHUB_STEP_SUMMARY
+  EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+  echo "text<<EOF"$'\n'"### :mega: Workflow files ${MISSING_FILES} are missing actions version tag"$'\n'EOF >> $GITHUB_OUTPUT
+  echo "text<<EOF"$'\n'"### :mega: Workflow files ${MISSING_FILES} are missing actions version tag"$'\n'EOF  >> $GITHUB_STEP_SUMMARY
 fi

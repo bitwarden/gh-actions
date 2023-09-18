@@ -11,7 +11,7 @@ on:
 jobs:
   upload:
     name: Upload
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Dump
         run: |
@@ -27,7 +27,7 @@ jobs:
 
   upload-multiple:
     name: Upload Multiple
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Dump
         run: |
@@ -50,7 +50,7 @@ jobs:
 
   upload-multiple-wildcard-test:
     name: Upload Multiple Wildcard Test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Dump
         run: |

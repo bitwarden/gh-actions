@@ -13,7 +13,7 @@ runs:
         fi
 
     - name: Set up dotnet
-      uses: actions/setup-dotnet@a6be55a915808728eafbfb7fcba6275352dcf6e8
+      uses: actions/setup-dotnet@736bc6dea68eb71addebd0c89e1200178e145f0e
       with:
         dotnet-version: "3.1.x"
 

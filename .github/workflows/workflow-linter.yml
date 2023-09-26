@@ -38,7 +38,7 @@ jobs:
 
       - name: Get changed files
         id: changed-files
-        uses: tj-actions/changed-files@bb3376162b179308a79fc4450262a15a8e1d6888 # v37.0.4
+        uses: tj-actions/changed-files@a0585ff9904b77d046192a7846e59783d6ea287b # v37.6.1
         with:
           files: .github/workflows/**
       

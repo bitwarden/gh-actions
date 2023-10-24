@@ -32,7 +32,7 @@ jobs:
       - name: Workflow Lint
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        uses: bitwarden/gh-actions/lint-workflow@f1125802b1ccae8c601d7c4f61ce39ea254b10c8
+        uses: bitwarden/gh-actions/lint-workflow@master
         with:
           workflows: ${{ steps.changed-workflows.outputs.modified-workflows }}
 
@@ -41,7 +41,7 @@ jobs:
         uses: tj-actions/changed-files@8238a4103220c636f2dad328ead8a7c8dbe316a3 # v39.2.0
         with:
           files: .github/workflows/**
-      
+
       - name: Check for pinned versions
         if: steps.changed-files.outputs.any_changed == 'true'
         shell: bash

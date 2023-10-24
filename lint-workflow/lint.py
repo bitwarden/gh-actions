@@ -292,36 +292,36 @@ def lint(filename):
                             logging.info("Skipping local action in workflow.")
                             break
 
-                        # If the step has a 'uses' key, check value hash.
-                        try:
-
-                            # Check to make sure SHA1 hash is 40 characters.
-                            if len(hash) != 40:
-                                findings.append(
-                                    LintFinding(
-                                        f"Step {str(i)} of job key '{job_key}' does not have a valid action hash. (not 40 characters)",
-                                        "error",
-                                    )
-                                )
-
-                            # Attempts to convert the hash to a integer
-                            # which will succeed if all characters are hexadecimal
+                        # If the step has a 'uses' key, check value hash, except bitwarden actions.
+                        if "bitwarden/gh-actions" not in path:
                             try:
-                                int(hash, 16)
-                            except ValueError:
+                                # Check to make sure SHA1 hash is 40 characters.
+                                if len(hash) != 40:
+                                    findings.append(
+                                        LintFinding(
+                                            f"Step {str(i)} of job key '{job_key}' does not have a valid action hash. (not 40 characters)",
+                                            "error",
+                                        )
+                                    )
+
+                                # Attempts to convert the hash to a integer
+                                # which will succeed if all characters are hexadecimal
+                                try:
+                                    int(hash, 16)
+                                except ValueError:
+                                    findings.append(
+                                        LintFinding(
+                                            f"Step {str(i)} of job key '{job_key}' does not have a valid action hash. (not all hexadecimal characters)",
+                                            "error",
+                                        )
+                                    )
+                            except:
                                 findings.append(
                                     LintFinding(
-                                        f"Step {str(i)} of job key '{job_key}' does not have a valid action hash. (not all hexadecimal characters)",
+                                        f"Step {str(i)} of job key '{job_key}' does not have a valid action hash. (missing '@' character)",
                                         "error",
                                     )
                                 )
-                        except:
-                            findings.append(
-                                LintFinding(
-                                    f"Step {str(i)} of job key '{job_key}' does not have a valid action hash. (missing '@' character)",
-                                    "error",
-                                )
-                            )
 
                         # If the step has a 'uses' key, check path for external workflow
                         path_list = path.split("/", 2)

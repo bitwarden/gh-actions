@@ -1,0 +1,55 @@
+name: "Report deployment status to Slack"
+inputs:
+  project:
+    description: "The name of the project."
+    required: true
+  tag:
+    description: "The name of the branch or tag."
+    required: true
+  environment:
+    description: "The name of the environment."
+    required: true
+  slack-channel:
+    description: "The name of the slack channel."
+    required: true
+    default: team-eng-qa-devops
+  failure:
+    description: "If message should be a failure message"
+    required: false
+    default: 'false'
+  AZURE_KV_CI_SERVICE_PRINCIPAL:
+    description: "The service principal used to authenticate to Azure."
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Login to Azure - Prod Subscription
+      uses: Azure/login@92a5484dfaf04ca78a94597f4f19fea633851fa2 # v1.4.7
+      with:
+        creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+
+    - name: Retrieve slack secrets
+      id: retrieve-slack-secrets
+      uses: bitwarden/gh-actions/get-keyvault-secrets@master
+      with:
+        keyvault: bitwarden-ci
+        secrets: "slack-bot-token"
+
+    - name: Post to a Slack channel on success
+      if: ${{ inputs.failure == 'false' }}
+      uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
+      with:
+        channel-id: ${{ inputs.slack-channel }}
+        slack-message: ":white_check_mark: Updated ${{ inputs.environment }} to `${{ inputs.tag }}` on Server."
+      env:
+        SLACK_BOT_TOKEN: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}
+
+    - name: Post to a Slack channel on failure
+      if: ${{ inputs.failure == 'true' }}
+      uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
+      with:
+        channel-id: ${{ inputs.slack-channel }}
+        slack-message: ":x: Failed to update ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\nPlease retry or contact @devops team."
+      env:
+        SLACK_BOT_TOKEN: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}

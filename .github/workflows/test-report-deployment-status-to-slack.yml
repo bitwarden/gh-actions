@@ -1,0 +1,28 @@
+---
+name: Test report-deployment-status-to-slack
+on:
+  pull_request:
+      paths:
+      - "./report-deployment-status-to-slack"
+      - ".github/workflows/test-report-deployment-status-to-slack.yml"
+
+jobs:
+  test-report:
+    uses: ./.github/workflows/_report_status_to_slack.yml
+    with:
+      environment: US QA Cloud
+      tag: test-workflow
+      slack-channel: devops-alerts
+      failure: false
+      AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+
+  test-report-failure:
+    uses: ./.github/workflows/_report_status_to_slack.yml
+    with:
+      project: Server
+      environment: US QA Cloud
+      tag: test-workflow-failure
+      slack-channel: devops-alerts
+      failure: true
+      AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+

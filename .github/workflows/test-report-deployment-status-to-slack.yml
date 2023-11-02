@@ -8,9 +8,11 @@ on:
 
 jobs:
   test-report:
-    name: Test Slack report failure
+    name: Test Slack report
     runs-on: ubuntu-22.04
     steps:
+      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+
       - uses: ./report-deployment-status-to-slack
         with:
           environment: US QA Cloud
@@ -23,6 +25,8 @@ jobs:
     name: Test Slack report failure
     runs-on: ubuntu-22.04
     steps:
+      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+
       - uses: ./report-deployment-status-to-slack
         with:
           project: Server

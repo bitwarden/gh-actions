@@ -8,21 +8,27 @@ on:
 
 jobs:
   test-report:
-    uses: ./.github/workflows/_report_status_to_slack.yml
-    with:
-      environment: US QA Cloud
-      tag: test-workflow
-      slack-channel: devops-alerts
-      failure: false
-      AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+    name: Test Slack report failure
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: ./report-deployment-status-to-slack
+        with:
+          environment: US QA Cloud
+          tag: test-workflow
+          slack-channel: devops-alerts
+          failure: false
+          AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
   test-report-failure:
-    uses: ./.github/workflows/_report_status_to_slack.yml
-    with:
-      project: Server
-      environment: US QA Cloud
-      tag: test-workflow-failure
-      slack-channel: devops-alerts
-      failure: true
-      AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+    name: Test Slack report failure
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: ./report-deployment-status-to-slack
+        with:
+          project: Server
+          environment: US QA Cloud
+          tag: test-workflow-failure
+          slack-channel: devops-alerts
+          failure: true
+          AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 

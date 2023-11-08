@@ -2,7 +2,7 @@
 
 With the Get Key Vault Secrets action, you can fetch secrets from an [Azure Key Vault](https://docs.microsoft.com/en-us/rest/api/keyvault/about-keys--secrets-and-certificates) instance and consume in your GitHub Action workflows.
 
-The definition of this GitHub Action is in [action.yml](https://github.com/bitwarden/gh-actions/blob/master/get-keyvault-secrets/action.yml).
+The definition of this GitHub Action is in [action.yml](https://github.com/bitwarden/gh-actions/blob/main/get-keyvault-secrets/action.yml).
 
 Secrets fetched will be set as [outputs](https://help.github.com/en/actions/automating-your-workflow-with-github-actions/metadata-syntax-for-github-actions#outputs) of the keyvault action instance and can be consumed in the subsequent actions in the workflow using the notation: `${{ steps.<Id-of-the-KeyVault-Action>.outputs.<Secret-Key> }}`. In addition, secrets are also set as environment variables. All the variables are automatically masked if printed to the console or to logs.
 

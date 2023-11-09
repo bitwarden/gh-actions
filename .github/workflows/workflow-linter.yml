@@ -32,7 +32,7 @@ jobs:
       - name: Workflow Lint
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        uses: bitwarden/gh-actions/lint-workflow@master
+        uses: bitwarden/gh-actions/lint-workflow@main
         with:
           workflows: ${{ steps.changed-workflows.outputs.modified-workflows }}
 
@@ -49,5 +49,5 @@ jobs:
           FILE: ${{ steps.changed-files.outputs.all_changed_files }}
         run: |
           FILES=$(echo "${{ env.FILE }}")
-          curl -o $PWD/version-lint.sh https://raw.githubusercontent.com/bitwarden/gh-actions/master/.github/version-lint.sh
+          curl -o $PWD/version-lint.sh https://raw.githubusercontent.com/bitwarden/gh-actions/main/.github/version-lint.sh
           chmod +x $PWD/version-lint.sh && $PWD/version-lint.sh $FILES

@@ -20,7 +20,7 @@ runs:
     - name: Install AST
       shell: pwsh
       env:
-        AST_PINNED_COMMIT: "9f30f7a267eff7f3fe494c49e5a536a337c8dfde"
+        AST_PINNED_COMMIT: "9f30f7a267eff7f3fe494c49e5a536a337c8dfde" # v4.0.1
       run: |
         cd $HOME
 

@@ -1,0 +1,45 @@
+---
+name: Test Jobs - Python
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/jobs-py/**
+      - .github/workflows/test_jobs_py.yml
+
+
+jobs:
+  test_jobs_py:
+    name: Test Jobs - Python
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Sparse Checkout of Jobs dir
+        uses: actions/checkout@v4.1.1
+        with:
+          sparse-checkout: |
+            .github/jobs-py
+
+      - name: Setup Python
+        uses: actions/setup-python@v4.7.1
+        with:
+          python-version: '3.11'
+
+      - name: Install pipenv and setup project
+        run: |
+          pip install pipenv
+          pipenv install
+          pipenv install --dev
+
+      - name: Run Unit Tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pipenv run pytest tests/unit
+
+      - name: Run E2E Tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pipenv run pytest tests/e2e

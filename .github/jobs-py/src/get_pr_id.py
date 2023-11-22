@@ -29,7 +29,7 @@ def get_pr_id(commit_sha: str) -> int | None:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print(f'[!] Please pass in commit hash: {sys.argv}')
+        print(f"[!] Please pass in commit hash: {sys.argv}")
         exit(1)
 
     print(get_pr_id(sys.argv[1]))

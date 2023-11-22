@@ -29,7 +29,6 @@ jobs:
       - name: Install pipenv and setup project
         run: |
           pip install pipenv
-          pipenv install
           pipenv install --dev
 
       - name: Run Unit Tests

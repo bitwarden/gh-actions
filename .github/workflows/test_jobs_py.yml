@@ -27,17 +27,20 @@ jobs:
           python-version: '3.11'
 
       - name: Install pipenv and setup project
+        working-directory: .github/jobs-py
         run: |
           pip install pipenv
           pipenv install --dev
 
       - name: Run Unit Tests
+        working-directory: .github/jobs-py
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           pipenv run pytest tests/unit
 
       - name: Run E2E Tests
+        working-directory: .github/jobs-py
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

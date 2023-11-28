@@ -48,13 +48,13 @@ runs:
         MESSAGE=""
         case $EVENT in
           "start")
-           echo "message=':loading: Updating ${{ inputs.environment }} to `${{ inputs.tag }}` on [${{ inputs.project }}](${{ inputs.url }}).'" >> $GITHUB_OUTPUT
+           echo "message=:loading: Updating ${{ inputs.environment }} to `${{ inputs.tag }}` on [${{ inputs.project }}](${{ inputs.url }})." >> $GITHUB_OUTPUT
             ;;
           "success")
-            echo "message=':white_check_mark: Updated ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.'" >> $GITHUB_OUTPUT
+            echo "message=:white_check_mark: Updated ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}." >> $GITHUB_OUTPUT
             ;;
           "failure")
-            echo "message=':x: Failed to update ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\nPlease retry or contact @devops team.'" >> $GITHUB_OUTPUT
+            echo "message=:x: Failed to update ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\nPlease retry or contact @devops team." >> $GITHUB_OUTPUT
             ;;
         esac
 
@@ -62,6 +62,18 @@ runs:
       uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
       with:
         channel-id: ${{ inputs.slack-channel }}
-        slack-message: ${{ steps.get-slack-message.outputs.message }}
+        payload: |
+          {
+            "text": "${{ steps.get-slack-message.outputs.message }}",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "${{ steps.get-slack-message.outputs.message }}"
+                }
+              }
+            ]
+          }
       env:
         SLACK_BOT_TOKEN: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}

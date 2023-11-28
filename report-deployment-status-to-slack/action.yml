@@ -44,7 +44,7 @@ runs:
       uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
       with:
         channel-id: ${{ inputs.slack-channel }}
-        slack-message: ":loading: Updating ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}: ${{ inputs.url }}."
+        slack-message: ":loading: Updating ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\n ${{ inputs.url }}."
       env:
         SLACK_BOT_TOKEN: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}
 
@@ -53,7 +53,7 @@ runs:
       uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
       with:
         channel-id: ${{ inputs.slack-channel }}
-        slack-message: ":white_check_mark: Updated ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}: ${{ inputs.url }}."
+        slack-message: ":white_check_mark: Updated ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\n ${{ inputs.url }}."
       env:
         SLACK_BOT_TOKEN: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}
 
@@ -62,6 +62,6 @@ runs:
       uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
       with:
         channel-id: ${{ inputs.slack-channel }}
-        slack-message: ":x: Failed to update ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}: ${{ inputs.url }}.\nPlease retry or contact @devops team."
+        slack-message: ":x: Failed to update ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\n ${{ inputs.url }}.\nPlease retry or contact @devops team."
       env:
         SLACK_BOT_TOKEN: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}

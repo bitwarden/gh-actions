@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout Branch
-        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           fetch-depth: 0
 
@@ -32,13 +32,13 @@ jobs:
       - name: Workflow Lint
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        uses: bitwarden/gh-actions/lint-workflow@master
+        uses: bitwarden/gh-actions/lint-workflow@main
         with:
           workflows: ${{ steps.changed-workflows.outputs.modified-workflows }}
 
       - name: Get changed files
         id: changed-files
-        uses: tj-actions/changed-files@8238a4103220c636f2dad328ead8a7c8dbe316a3 # v39.2.0
+        uses: tj-actions/changed-files@25ef3926d147cd02fc7e931c1ef50772bbb0d25d # v40.1.1
         with:
           files: .github/workflows/**
 
@@ -49,5 +49,5 @@ jobs:
           FILE: ${{ steps.changed-files.outputs.all_changed_files }}
         run: |
           FILES=$(echo "${{ env.FILE }}")
-          curl -o $PWD/version-lint.sh https://raw.githubusercontent.com/bitwarden/gh-actions/master/.github/version-lint.sh
+          curl -o $PWD/version-lint.sh https://raw.githubusercontent.com/bitwarden/gh-actions/main/.github/version-lint.sh
           chmod +x $PWD/version-lint.sh && $PWD/version-lint.sh $FILES

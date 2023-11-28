@@ -47,13 +47,13 @@ runs:
       run: |
         MESSAGE=""
         case $EVENT in
-          start)
+          "start")
             MESSAGE=":loading: Updating ${{ inputs.environment }} to `${{ inputs.tag }}` on [${{ inputs.project }}](${{ inputs.url }})."
             ;;
-          success)
+          "success")
             MESSAGE=":white_check_mark: Updated ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}."
             ;;
-          failure)
+          "failure")
             MESSAGE=":x: Failed to update ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\nPlease retry or contact @devops team."
             ;;
         esac

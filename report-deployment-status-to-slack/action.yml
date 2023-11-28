@@ -40,6 +40,7 @@ runs:
         secrets: "slack-bot-token"
 
     - name: Get slack message
+      shell: bash
       id: get-slack-message
       env:
         EVENT: ${{ inputs.event }}

@@ -48,17 +48,15 @@ runs:
         MESSAGE=""
         case $EVENT in
           "start")
-            MESSAGE=":loading: Updating ${{ inputs.environment }} to `${{ inputs.tag }}` on [${{ inputs.project }}](${{ inputs.url }})."
+           echo "message=:loading: Updating ${{ inputs.environment }} to `${{ inputs.tag }}` on [${{ inputs.project }}](${{ inputs.url }})." >> $GITHUB_OUTPUT
             ;;
           "success")
-            MESSAGE=":white_check_mark: Updated ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}."
+            echo "message=:white_check_mark: Updated ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}." >> $GITHUB_OUTPUT
             ;;
           "failure")
-            MESSAGE=":x: Failed to update ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\nPlease retry or contact @devops team."
+            echo "message=:x: Failed to update ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\nPlease retry or contact @devops team." >> $GITHUB_OUTPUT
             ;;
         esac
-
-        echo "message=$MESSAGE" >> $GITHUB_OUTPUT
 
     - name: Post to a Slack channel on ${{ inputs.event }}
       uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0

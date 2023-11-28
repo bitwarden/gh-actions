@@ -39,29 +39,29 @@ runs:
         keyvault: bitwarden-ci
         secrets: "slack-bot-token"
 
-    - name: Post to a Slack channel on start
-      if: ${{ inputs.event == 'start' }}
-      uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
-      with:
-        channel-id: ${{ inputs.slack-channel }}
-        slack-message: ":loading: Updating ${{ inputs.environment }} to `${{ inputs.tag }}` on [${{ inputs.project }}](${{ inputs.url }})."
+    - name: Get slack message
+      id: get-slack-message
       env:
-        SLACK_BOT_TOKEN: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}
+        EVENT: ${{ inputs.event }}
+      run: |
+        case $EVENT in
+          start)
+            MESSAGE=":loading: Updating ${{ inputs.environment }} to `${{ inputs.tag }}` on [${{ inputs.project }}](${{ inputs.url }})."
+            ;;
+          success)
+            MESSAGE=":white_check_mark: Updated ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}."
+            ;;
+          failure)
+            MESSAGE=":x: Failed to update ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\nPlease retry or contact @devops team."
+            ;;
+        esac
 
-    - name: Post to a Slack channel on success
-      if: ${{ inputs.event == 'success' }}
+        echo "message=$MESSAGE" >> $GITHUB_OUTPUT
+
+    - name: Post to a Slack channel on ${{ inputs.event }}
       uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
       with:
         channel-id: ${{ inputs.slack-channel }}
-        slack-message: ":white_check_mark: Updated ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}."
-      env:
-        SLACK_BOT_TOKEN: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}
-
-    - name: Post to a Slack channel on failure
-      if: ${{ inputs.event == 'failure' }}
-      uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
-      with:
-        channel-id: ${{ inputs.slack-channel }}
-        slack-message: ":x: Failed to update ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\nPlease retry or contact @devops team."
+        slack-message: ${{ steps.run_tests.outputs.message }}
       env:
         SLACK_BOT_TOKEN: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}

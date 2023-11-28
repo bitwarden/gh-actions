@@ -31,6 +31,7 @@ jobs:
 
       - uses: ./report-deployment-status-to-slack
         with:
+          project: Server
           environment: US QA Cloud
           tag: test-workflow-success
           slack-channel: devops-alerts

@@ -62,6 +62,6 @@ runs:
       uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
       with:
         channel-id: ${{ inputs.slack-channel }}
-        slack-message: ${{ steps.run_tests.outputs.message }}
+        slack-message: ${{ steps.get-slack-message.outputs.message }}
       env:
         SLACK_BOT_TOKEN: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}

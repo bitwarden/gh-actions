@@ -18,7 +18,7 @@ jobs:
           project: Server
           environment: US QA Cloud
           tag: test-workflow-start
-          slack-channel: devops-alerts
+          slack-channel: devops-alerts-test
           event: 'start'
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
@@ -34,7 +34,7 @@ jobs:
           project: Server
           environment: US QA Cloud
           tag: test-workflow-success
-          slack-channel: devops-alerts
+          slack-channel: devops-alerts-test
           event: 'success'
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
@@ -50,7 +50,7 @@ jobs:
           project: Server
           environment: US QA Cloud
           tag: test-workflow-failure
-          slack-channel: devops-alerts
+          slack-channel: devops-alerts-test
           event: 'failure'
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}

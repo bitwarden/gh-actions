@@ -13,10 +13,13 @@ inputs:
     description: "The name of the slack channel."
     required: true
     default: team-eng-qa-devops
-  failure:
-    description: "If message should be a failure message"
+  event:
+    description: "Deployment event type. Possible values are start, success, or failure."
+    required: true
+  url:
+    description: "Deployment event type. Possible values are start, success, or failure."
     required: false
-    default: 'false'
+    default: ${{ github.event.deployment_status.target_url }}
   AZURE_KV_CI_SERVICE_PRINCIPAL:
     description: "The service principal used to authenticate to Azure."
     required: true
@@ -36,17 +39,26 @@ runs:
         keyvault: bitwarden-ci
         secrets: "slack-bot-token"
 
-    - name: Post to a Slack channel on success
-      if: ${{ inputs.failure == 'false' }}
+    - name: Post to a Slack channel on start
+      if: ${{ inputs.event == 'start' }}
       uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
       with:
         channel-id: ${{ inputs.slack-channel }}
-        slack-message: ":white_check_mark: Updated ${{ inputs.environment }} to `${{ inputs.tag }}` on Server."
+        slack-message: ":loading: Updating ${{ inputs.environment }} to `${{ inputs.tag }}` on [${{ inputs.project }}](${{ inputs.url }})."
+      env:
+        SLACK_BOT_TOKEN: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}
+
+    - name: Post to a Slack channel on success
+      if: ${{ inputs.event == 'success' }}
+      uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
+      with:
+        channel-id: ${{ inputs.slack-channel }}
+        slack-message: ":white_check_mark: Updated ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}."
       env:
         SLACK_BOT_TOKEN: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}
 
     - name: Post to a Slack channel on failure
-      if: ${{ inputs.failure == 'true' }}
+      if: ${{ inputs.event == 'failure' }}
       uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
       with:
         channel-id: ${{ inputs.slack-channel }}

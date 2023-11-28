@@ -45,6 +45,7 @@ runs:
       env:
         EVENT: ${{ inputs.event }}
       run: |
+        MESSAGE=""
         case $EVENT in
           start)
             MESSAGE=":loading: Updating ${{ inputs.environment }} to `${{ inputs.tag }}` on [${{ inputs.project }}](${{ inputs.url }})."

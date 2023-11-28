@@ -22,13 +22,13 @@ runs:
         fi
 
     - name: Login to Azure
-      uses: Azure/login@92a5484dfaf04ca78a94597f4f19fea633851fa2 # v1.4.7
+      uses: Azure/login@4c88f01b0e3a5600e08a37889921afd060f75cf0 # v1.5.0
       with:
         creds: ${{ inputs.azure-creds }}
 
     - name: Retrieve secrets
       id: get-secrets
-      uses: bitwarden/gh-actions/get-keyvault-secrets@master
+      uses: bitwarden/gh-actions/get-keyvault-secrets@main
       with:
         keyvault: "${{ inputs.azure-keyvault-name }}"
         secrets: "docker-password,

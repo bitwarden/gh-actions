@@ -7,6 +7,22 @@ on:
       - ".github/workflows/test-report-deployment-status-to-slack.yml"
 
 jobs:
+  test-report-start:
+    name: Test Slack report failure
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+
+      - uses: ./report-deployment-status-to-slack
+        with:
+          project: Server
+          environment: US QA Cloud
+          tag: test-workflow-start
+          slack-channel: devops-alerts-test
+          event: 'start'
+          url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
+          AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+
   test-report:
     name: Test Slack report
     runs-on: ubuntu-22.04
@@ -15,10 +31,12 @@ jobs:
 
       - uses: ./report-deployment-status-to-slack
         with:
+          project: Server
           environment: US QA Cloud
-          tag: test-workflow
-          slack-channel: devops-alerts
-          failure: false
+          tag: test-workflow-success
+          slack-channel: devops-alerts-test
+          event: 'success'
+          url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
   test-report-failure:
@@ -32,7 +50,8 @@ jobs:
           project: Server
           environment: US QA Cloud
           tag: test-workflow-failure
-          slack-channel: devops-alerts
-          failure: true
+          slack-channel: devops-alerts-test
+          event: 'failure'
+          url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 

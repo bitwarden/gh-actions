@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # checkout the repo
-    - uses: actions/checkout@master
+    - uses: actions/checkout@main
     - uses: Azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
@@ -86,7 +86,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # checkout the repo
-      - uses: actions/checkout@master
+      - uses: actions/checkout@main
       - uses: Azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }} # Define secret variable in repository settings as per action documentation

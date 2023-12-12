@@ -34,7 +34,7 @@ runs:
 
     - name: Retrieve slack secrets
       id: retrieve-slack-secrets
-      uses: bitwarden/gh-actions/get-keyvault-secrets@master
+      uses: bitwarden/gh-actions/get-keyvault-secrets@main
       with:
         keyvault: bitwarden-ci
         secrets: "slack-bot-token"

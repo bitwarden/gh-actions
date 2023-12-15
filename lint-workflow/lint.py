@@ -209,7 +209,7 @@ def lint(filename):
     with open(filename) as file:
         workflow = yaml.load(file, Loader=yaml.FullLoader)
 
-    with open("supported-action.json") as file:
+    with open("supported-actions.json") as file:
         supported_actions = json.load(file)
 
         # Check for 'name' key for the workflow.

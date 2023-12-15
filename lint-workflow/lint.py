@@ -209,6 +209,9 @@ def lint(filename):
     with open(filename) as file:
         workflow = yaml.load(file, Loader=yaml.FullLoader)
 
+    with open("supported-action.json") as file:
+        supported_actions = json.load(file)
+
         # Check for 'name' key for the workflow.
         if "name" not in workflow:
             findings.append(LintFinding("Name key missing for workflow.", "warning"))
@@ -292,9 +295,24 @@ def lint(filename):
                             logging.info("Skipping local action in workflow.")
                             break
 
-                        # If the step has a 'uses' key, check value hash, except bitwarden actions.
+                        # If the step has a 'uses' key, check if actions are in supported actions list and also value hash, except bitwarden actions.
                         if "bitwarden/gh-actions" not in path:
                             try:
+                                # Check if actions are in supported actions list.
+                                actions_count = 0
+                                for action in supported_actions['supported_actions']:
+                                    if action in path:
+                                        break
+                                    else:
+                                        actions_count += 1
+
+                                if actions_count > 0:
+                                    findings.append(
+                                        LintFinding(
+                                            f"Step {str(i)} of job key '{job_key}' uses an unsupported action: {path}.",
+                                            "warning",
+                                        )
+                                    )
                                 # Check to make sure SHA1 hash is 40 characters.
                                 if len(hash) != 40:
                                     findings.append(

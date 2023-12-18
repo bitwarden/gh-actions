@@ -299,14 +299,7 @@ def lint(filename):
                         if "bitwarden/gh-actions" not in path:
                             try:
                                 # Check if actions are in supported actions list.
-                                actions_count = 0
-                                for action in supported_actions['supported_actions']:
-                                    if action in path:
-                                        break
-                                    else:
-                                        actions_count += 1
-
-                                if actions_count > 0:
+                                if path != supported_actions[path]:
                                     findings.append(
                                         LintFinding(
                                             f"Step {str(i)} of job key '{job_key}' uses an unsupported action: {path}.",

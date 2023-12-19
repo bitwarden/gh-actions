@@ -10,9 +10,11 @@ inputs:
     description: "The name of the environment."
     required: true
   slack-channel:
-    description: "The name of the slack channel."
-    required: true
+    description: "The name of the Slack channel."
     default: team-eng-qa-devops
+  update-ts:
+    description: "Message ID to update in Slack channel."
+    required: false
   event:
     description: "Deployment event type. Possible values are start, success, or failure."
     required: true
@@ -32,7 +34,7 @@ runs:
       with:
         creds: ${{ inputs.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
-    - name: Retrieve slack secrets
+    - name: Retrieve Slack secrets
       id: retrieve-slack-secrets
       uses: bitwarden/gh-actions/get-keyvault-secrets@main
       with:
@@ -53,6 +55,7 @@ runs:
       uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
       with:
         channel-id: ${{ inputs.slack-channel }}
+        update-ts: ${{ inputs.update-ts }}
         slack-message: ":white_check_mark: Updated ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\n ${{ inputs.url }}."
       env:
         SLACK_BOT_TOKEN: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}
@@ -62,6 +65,7 @@ runs:
       uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
       with:
         channel-id: ${{ inputs.slack-channel }}
+        update-ts: ${{ inputs.update-ts }}
         slack-message: ":x: Failed to update ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\n ${{ inputs.url }}.\nPlease retry or contact @devops team."
       env:
         SLACK_BOT_TOKEN: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}

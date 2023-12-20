@@ -1,4 +1,5 @@
 name: "Report deployment status to Slack"
+description: "Report deployment status to Slack"
 inputs:
   project:
     description: "The name of the project."
@@ -25,6 +26,13 @@ inputs:
   AZURE_KV_CI_SERVICE_PRINCIPAL:
     description: "The service principal used to authenticate to Azure."
     required: true
+outputs:
+  channel-id:
+    description: "Channel ID where the Slack message was posted"
+    value: ${{ steps.slack-message.outputs.channel_id }}
+  ts:
+    description: "Message ID of the Slack message"
+    value: ${{ steps.slack-message.outputs.ts }}
 
 runs:
   using: "composite"
@@ -41,31 +49,32 @@ runs:
         keyvault: bitwarden-ci
         secrets: "slack-bot-token"
 
-    - name: Post to a Slack channel on start
-      if: ${{ inputs.event == 'start' }}
-      uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
-      with:
-        channel-id: ${{ inputs.slack-channel }}
-        slack-message: ":loading: Updating ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\n ${{ inputs.url }}."
-      env:
-        SLACK_BOT_TOKEN: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}
+    - name: Slack message setup
+      id: setup
+      shell: bash
+      run: |
+        case "${{ inputs.event }}" in
+          "start")
+            SLACK_MESSAGE=":loading: Updating ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\n ${{ inputs.url }}."
+            ;;
 
-    - name: Post to a Slack channel on success
-      if: ${{ inputs.event == 'success' }}
-      uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
-      with:
-        channel-id: ${{ inputs.slack-channel }}
-        update-ts: ${{ inputs.update-ts }}
-        slack-message: ":white_check_mark: Updated ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\n ${{ inputs.url }}."
-      env:
-        SLACK_BOT_TOKEN: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}
+          "success")
+            SLACK_MESSAGE=":white_check_mark: Updated ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\n ${{ inputs.url }}."
+            ;;
+        
+          "failure")
+            SLACK_MESSAGE=":x: Failed to update ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\n ${{ inputs.url }}.\nPlease retry or contact @devops team."
+            ;;
+        esac
 
-    - name: Post to a Slack channel on failure
-      if: ${{ inputs.event == 'failure' }}
+        echo "slack_message=$SLACK_MESSAGE" >> $GITHUB_OUTPUT
+
+    - name: Post message to a Slack channel
+      id: slack-message
       uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
       with:
         channel-id: ${{ inputs.slack-channel }}
+        slack-message: ${{ steps.setup.outputs.slack_message }}
         update-ts: ${{ inputs.update-ts }}
-        slack-message: ":x: Failed to update ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\n ${{ inputs.url }}.\nPlease retry or contact @devops team."
       env:
         SLACK_BOT_TOKEN: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}

@@ -56,8 +56,6 @@ runs:
         case "${{ inputs.event }}" in
           start)
             SLACK_MESSAGE=$(echo -e ":loading: Updating ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.\n${{ inputs.url }}.")
-              END
-              )
             ;;
 
           success)

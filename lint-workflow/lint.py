@@ -203,6 +203,10 @@ def get_action_update(action_id):
 
 def lint(filename):
 
+    supported_actions = {"act10ns/slack", "actions/cache", "actions/checkout", "actions/delete-package-versions", "actions/download-artifact", "actions/github-script", "actions/labeler", "actions/setup-dotnet", "actions/setup-java", "actions/setup-node", "actions/setup-python", "actions/stale", "actions/upload-artifact", "android-actions/setup-android", "Asana/create-app-attachment-github-action", "Azure/functions-action", "Azure/get-keyvault-secrets", "Azure/login", "azure/webapps-deploy", "bitwarden/sm-action", "checkmarx/ast-github-action", "chrnorm/deployment-action", "chrnorm/deployment-status", "chromaui/action", "cloudflare/pages-action", "convictional/trigger-workflow-and-wait", "crazy-max/ghaction-import-gpg", "crowdin/github-action", "dawidd6/action-download-artifact", "dawidd6/action-homebrew-bump-formula", "digitalocean/action-doctl", "docker/build-push-action", "docker/setup-buildx-action", "docker/setup-qemu-action", "dorny/test-reporter", "dtolnay/rust-toolchain", "futureware-tech/simulator-action", "hashicorp/setup-packer", "macauley/action-homebrew-bump-cask", "microsoft/setup-msbuild", "ncipollo/release-action", "peter-evans/close-issue", "ruby/setup-ruby", "samuelmeuli/action-snapcraft", "snapcore/action-build", "sonarsource/sonarcloud-github-action", "stackrox/kube-linter-action", "Swatinem/rust-cache", "SwiftDocOrg/github-wiki-publish-action", "SwiftDocOrg/swift-doc", "tj-actions/changed-files", "yogevbd/enforce-label-action"}
+
+
+
     findings = []
     max_error_level = 0
 
@@ -292,9 +296,17 @@ def lint(filename):
                             logging.info("Skipping local action in workflow.")
                             break
 
-                        # If the step has a 'uses' key, check value hash, except bitwarden actions.
+                        # If the step has a 'uses' key, check if actions are in supported actions list and also value hash, except bitwarden actions.
                         if "bitwarden/gh-actions" not in path:
                             try:
+                                # Check if actions are in supported actions list.
+                                if path not in supported_actions:
+                                    findings.append(
+                                        LintFinding(
+                                            f"Step {str(i)} of job key '{job_key}' uses an unsupported action: {path}.",
+                                            "warning",
+                                        )
+                                    )
                                 # Check to make sure SHA1 hash is 40 characters.
                                 if len(hash) != 40:
                                     findings.append(

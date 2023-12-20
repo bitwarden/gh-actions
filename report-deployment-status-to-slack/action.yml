@@ -75,7 +75,7 @@ runs:
         echo "$SLACK_MESSAGE" >> $GITHUB_OUTPUT
         echo 'EOF' >> $GITHUB_OUTPUT
 
-    - name: Post message to a Slack channel
+    - name: Post/Edit message to a Slack channel
       id: slack-message
       uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
       with:

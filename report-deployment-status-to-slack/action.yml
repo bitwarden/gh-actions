@@ -67,6 +67,7 @@ runs:
             ;;
         esac
 
+        echo "${SLACK_MESSAGE}"
         echo "slack_message=$SLACK_MESSAGE" >> $GITHUB_OUTPUT
 
     - name: Post message to a Slack channel

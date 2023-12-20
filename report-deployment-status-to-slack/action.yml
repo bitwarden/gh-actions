@@ -55,15 +55,15 @@ runs:
       run: |
         case "${{ inputs.event }}" in
           start)
-            SLACK_MESSAGE=":loading: Updating ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.\n ${{ inputs.url }}."
+            SLACK_MESSAGE=":loading: Updating ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.\\n${{ inputs.url }}."
             ;;
 
           success)
-            SLACK_MESSAGE=":white_check_mark: Updated ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.\n ${{ inputs.url }}."
+            SLACK_MESSAGE=":white_check_mark: Updated ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.\\n${{ inputs.url }}."
             ;;
         
           failure)
-            SLACK_MESSAGE=":x: Failed to update ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.\n ${{ inputs.url }}.\nPlease retry or contact @devops team."
+            SLACK_MESSAGE=":x: Failed to update ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.\n ${{ inputs.url }}.\\nPlease retry or contact @devops team."
             ;;
         esac
 

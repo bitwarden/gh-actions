@@ -55,20 +55,25 @@ runs:
       run: |
         case "${{ inputs.event }}" in
           start)
-            SLACK_MESSAGE=':loading: Updating ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\n${{ inputs.url }}.'
+            SLACK_MESSAGE=":loading: Updating ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
+            ${{ inputs.url }}."
             ;;
 
           success)
-            SLACK_MESSAGE=':white_check_mark: Updated ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\n${{ inputs.url }}.'
+            SLACK_MESSAGE=":white_check_mark: Updated ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
+            ${{ inputs.url }}."
             ;;
         
           failure)
-            SLACK_MESSAGE=':x: Failed to update ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\n${{ inputs.url }}.\nPlease retry or contact @devops team.'
+            SLACK_MESSAGE=":x: Failed to update ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
+            ${{ inputs.url }}.
+            Please retry or contact @devops team."
             ;;
         esac
 
-        echo "${SLACK_MESSAGE}"
-        echo "slack_message=$SLACK_MESSAGE" >> $GITHUB_OUTPUT
+        echo 'slack_message<<EOF' >> $GITHUB_OUTPUT
+        echo "$SLACK_MESSAGE" >> $GITHUB_OUTPUT
+        echo 'EOF' >> $GITHUB_OUTPUT
 
     - name: Post message to a Slack channel
       id: slack-message

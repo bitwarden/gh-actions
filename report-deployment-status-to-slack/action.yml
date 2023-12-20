@@ -54,15 +54,15 @@ runs:
       shell: bash
       run: |
         case "${{ inputs.event }}" in
-          "start")
+          start)
             SLACK_MESSAGE=":loading: Updating ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\n ${{ inputs.url }}."
             ;;
 
-          "success")
+          success)
             SLACK_MESSAGE=":white_check_mark: Updated ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\n ${{ inputs.url }}."
             ;;
         
-          "failure")
+          failure)
             SLACK_MESSAGE=":x: Failed to update ${{ inputs.environment }} to `${{ inputs.tag }}` on ${{ inputs.project }}.\n ${{ inputs.url }}.\nPlease retry or contact @devops team."
             ;;
         esac

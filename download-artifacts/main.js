@@ -177,7 +177,7 @@ async function main() {
             run_id: runID,
         })
 
-        // One artifact, a list of artifacts, or all if `name` input is not specified.
+        // One artifact, a list of artifacts, or all if `artifacts` input is not specified.
         const matchesWithRegex = (stringToTest, regexRule) => {
             const escapeSpecialChars = (string) => string.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
             const builtRegexRule = "^" + regexRule.split("*").map(escapeSpecialChars).join(".*") + "$"

@@ -24,7 +24,7 @@ async function main() {
         const token = core.getInput("github_token", { required: true })
         const [owner, repo] = core.getInput("repo", { required: true }).split("/")
         const path = core.getInput("path", { required: true })
-        const name = core.getInput("artifacts")
+        const names = core.getInput("artifacts") ? core.getInput("artifacts") : "*"
         const nameIsRegExp = core.getBooleanInput("name_is_regexp")
         const skipUnpack = core.getBooleanInput("skip_unpack")
         const ifNoArtifactFound = core.getInput("if_no_artifact_found")
@@ -44,7 +44,7 @@ async function main() {
         const client = github.getOctokit(token)
 
         core.info(`==> Repository: ${owner}/${repo}`)
-        core.info(`==> Artifact name: ${name}`)
+        core.info(`==> Artifact name(s): ${names}`)
         core.info(`==> Local path: ${path}`)
 
         if (!workflow) {
@@ -177,23 +177,17 @@ async function main() {
             run_id: runID,
         })
 
-        // One artifact if 'name' input is specified, one or more if `name` is a regular expression, all otherwise.
-        if (name) {
-            filtered = artifacts.filter((artifact) => {
-                if (nameIsRegExp) {
-                    return artifact.name.match(name) !== null
-                }
-                return artifact.name == name
-            })
-            if (filtered.length == 0) {
-                core.info(`==> (not found) Artifact: ${name}`)
-                core.info('==> Found the following artifacts instead:')
-                for (const artifact of artifacts) {
-                    core.info(`\t==> (found) Artifact: ${artifact.name}`)
-                }
-            }
-            artifacts = filtered
+        // One artifact, a list of artifacts, or all if `artifacts` input is not specified.
+        const matchesWithRegex = (stringToTest, regexRule) => {
+            const escapeSpecialChars = (string) => string.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+            const builtRegexRule = "^" + regexRule.split("*").map(escapeSpecialChars).join(".*") + "$"
+            return new RegExp(builtRegexRule).test(stringToTest)
         }
+
+        const artifactNames = names.split(",").map(artifactName => artifactName.trim())
+        artifacts = artifacts.filter(artifact => {
+            return artifactNames.map(name => matchesWithRegex(artifact.name, name)).reduce((prevValue, currValue) => prevValue || currValue)
+        })
 
         core.setOutput("artifacts", artifacts)
 

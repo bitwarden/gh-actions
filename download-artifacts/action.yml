@@ -1,6 +1,6 @@
 name: Download workflow artifact
-description: Download and extract an artifact associated with given workflow and commit
-authors: dawidd6 && bitwarden
+description: Download and extract an artifact associated with given workflow and commit or other criteria
+author: dawidd6 && bitwarden
 branding:
   icon: download
   color: blue
@@ -8,10 +8,13 @@ inputs:
   github_token:
     description: GitHub token
     required: false
-    default: ${{github.token}}
+    default: ${{ github.token }}
   workflow:
-    description: Workflow name
-    required: true
+    description: |
+      Workflow name.
+
+      If not specified, will be inferred from run_id (if run_id is specified), or will be the current workflow
+    required: false
   workflow_conclusion:
     description: |
       Wanted status or conclusion to search for in recent runs
@@ -22,7 +25,7 @@ inputs:
   repo:
     description: Repository name with owner (like actions/checkout)
     required: false
-    default: ${{github.repository}}
+    default: ${{ github.repository }}
   pr:
     description: Pull request number
     required: false
@@ -42,15 +45,52 @@ inputs:
     description: Workflow run number
     required: false
   artifacts:
-    description: Artifact names (download all artifacts in not specified)
+    description: Artifact names (download all artifacts if not specified)
     required: false
+  name_is_regexp:
+    description: Treat artifact name as a regular expression and download only artifacts with matching names
+    required: false
+    default: false
   path:
     description: Where to unpack the artifact
     required: false
     default: "./"
+  allow_forks:
+    description: Allow forks
+    required: false
+    default: true
   check_artifacts:
     description: Check workflow run whether it has an artifact
     required: false
+    default: false
+  search_artifacts:
+    description: Search workflow runs for artifact with specified name
+    required: false
+    default: false
+  skip_unpack:
+    description: Choose to skip unpacking the downloaded artifact(s)
+    required: false
+    default: false
+  dry_run:
+    description: Check the existence of artifact(s) without downloading
+    required: false
+  if_no_artifact_found:
+    required: false
+    description: |
+      Choose how to exit the action if no artifact is found
+      
+      fail, warn or ignore
+    default: fail
+outputs:
+  error_message:
+    description: The error message, if an error occurs
+  # TODO: dry_run should be merged with found_artifact output
+  dry_run:
+    description: Boolean output which is true if the dry run was successful and false otherwise
+  found_artifact:
+    description: Boolean output which is true if the artifact was found and false otherwise
+  artifacts:
+    description: JSON array with details about found artifacts
 runs:
-  using: node16
+  using: node20
   main: main.js

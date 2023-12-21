@@ -1,3 +1,7 @@
+Thanks to dawidd6 and his [Download Artifact](https://github.com/dawidd6/action-download-artifact) action! Most of the 
+functionality of this action comes from that. Unfortunately, we needed to handle downloads in a slightly different
+manner. 
+
 # Download workflow artifact GitHub Action
 
 An action that downloads and extracts uploaded artifacts associated with a given workflow and commit or other criteria.

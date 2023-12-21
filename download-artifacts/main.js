@@ -24,7 +24,7 @@ async function main() {
         const token = core.getInput("github_token", { required: true })
         const [owner, repo] = core.getInput("repo", { required: true }).split("/")
         const path = core.getInput("path", { required: true })
-        const name = core.getInput("name")
+        const name = core.getInput("artifacts")
         const nameIsRegExp = core.getBooleanInput("name_is_regexp")
         const skipUnpack = core.getBooleanInput("skip_unpack")
         const ifNoArtifactFound = core.getInput("if_no_artifact_found")
@@ -252,7 +252,7 @@ async function main() {
                 continue
             }
 
-            const dir = name && !nameIsRegExp ? path : pathname.join(path, artifact.name)
+            const dir = path
 
             fs.mkdirSync(dir, { recursive: true })
 

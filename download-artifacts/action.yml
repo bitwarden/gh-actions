@@ -1,6 +1,6 @@
 name: Download workflow artifact
 description: Download and extract an artifact associated with given workflow and commit or other criteria
-author: dawidd6
+author: dawidd6 && bitwarden
 branding:
   icon: download
   color: blue
@@ -44,8 +44,8 @@ inputs:
   run_number:
     description: Workflow run number
     required: false
-  name:
-    description: Artifact name (download all artifacts if not specified)
+  artifacts:
+    description: Artifact names (download all artifacts if not specified)
     required: false
   name_is_regexp:
     description: Treat artifact name as a regular expression and download only artifacts with matching names

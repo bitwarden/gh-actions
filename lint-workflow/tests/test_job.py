@@ -5,7 +5,7 @@ from .context import src
 
 
 @pytest.fixture
-def job_default_data():
+def default_job_data():
     return {
         "name": "Test",
         "runs-on": "ubuntu-latest",
@@ -13,19 +13,23 @@ def job_default_data():
     }
 
 
-def test_job_default(job_default_data):
-    job = src.models.Job.from_dict(job_default_data)
-
-    assert job.name == "Test"
-    assert job.runs_on == "ubuntu-latest"
-    assert job.env == None
-    assert len(job.steps) == 1
+@pytest.fixture
+def default_job(default_job_data):
+    return src.models.Job.init('default-job', default_job_data)
 
 
-def test_job_extra_kwargs(job_default_data):
-    job = src.models.Job.from_dict({
+def test_job_default(default_job):
+    assert default_job.key == "default-job"
+    assert default_job.name == "Test"
+    assert default_job.runs_on == "ubuntu-latest"
+    assert default_job.env == None
+    assert len(default_job.steps) == 1
+
+
+def test_job_extra_kwargs(default_job_data):
+    job = src.models.Job.init('test-job', {
         "extra": "test",
-        **job_default_data
+        **default_job_data
     })
 
     with pytest.raises(Exception) as e_info:

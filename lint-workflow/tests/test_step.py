@@ -1,48 +1,77 @@
 import json
 import pytest
 
+from ruamel.yaml import YAML
+
 from .context import src
 
 
 @pytest.fixture
-def step_default_data():
-    return {
-        "run": "echo \"test\""
-    }
+def default_step():
+    step_str = """\
+name: Default Step
+run: echo "test"
+"""
+    yaml = YAML()
+    step_yaml = yaml.load(step_str)
+    return src.models.Step.init(0, "default", step_yaml)
 
 
-def test_step_default(step_default_data):
-    step = src.models.Step.from_dict(step_default_data)
-    assert step.name == None
-    assert step.env == None
-    assert step.uses == None
-    assert step.run == "echo \"test\""
+@pytest.fixture
+def uses_step():
+    step_str = """\
+name: Download Artifacts
+uses: bitwarden/download-artifacts@main # v1.0.0
+with:
+    workflow: upload-test-artifacts.yml
+    artifacts: artifact
+    path: artifact
+    branch: main
+
+"""
+    yaml = YAML()
+    step_yaml = yaml.load(step_str)
+    return src.models.Step.init(0, "default", step_yaml)
 
 
-@pytest.mark.skip()
-def test_step_keyword_field(step_default_data):
-    data = {
-        "with": {"config": "test.json"},
-        **step_default_data
-    }
-    step = src.models.Step.from_dict(data)
-    assert "with_field" not in step.json(by_alias=True)
-    assert json.loads(step.json(by_alias=True))["with"] == {"config": "test.json"}
+def test_step_default(default_step):
+    assert default_step.key == 0
+    assert default_step.job == "default"
+    assert default_step.name == "Default Step"
+    assert default_step.env == None
+    assert default_step.uses == None
+    assert default_step.uses_with == None
+    assert default_step.run == "echo \"test\""
 
 
-@pytest.mark.skip()
-def test_step_no_keyword_field(step_default_data):
-    step = src.models.Step.from_dict(step_default_data)
-    assert step.with_field == None
-    assert "with_field" not in step.json(by_alias=True)
+def test_step_no_keyword_field(default_step):
+    assert default_step.uses_with == None
+    assert "uses_with" not in default_step.to_json()
 
 
-def test_step_extra_kwargs(step_default_data):
-    step = src.models.Step.from_dict({
-        "name": "test step",
-        "extra": "test",
-        **step_default_data
-    })
-
+def test_step_extra_kwargs(default_step):
     with pytest.raises(Exception) as e_info:
-        assert step.extra == "test"
+        assert default_step.extra == "test"
+
+
+def test_step_keyword_field(uses_step):
+    expected_response = {
+        "workflow": "upload-test-artifacts.yml",
+        "artifacts": "artifact",
+        "path": "artifact",
+        "branch": "main"
+    }
+
+    step_json = uses_step.to_json()
+    assert uses_step.key == 0
+    assert "uses_with" not in step_json
+    assert "with" in step_json
+    assert json.loads(uses_step.to_json())["with"] == expected_response
+
+
+
+def test_step_comment(uses_step):
+    assert uses_step.key == 0
+    assert uses_step.job == "default"
+    assert uses_step.uses_comment is not None
+    assert uses_step.uses_comment == "# v1.0.0"

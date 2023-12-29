@@ -6,9 +6,10 @@ import json
 import urllib3 as urllib
 import logging
 
-
-from src.rules import LintFinding, workflow_rules, job_rules, step_rules, uses_step_rules, run_step_rules
-from src.load import get_workflow
+#from src.rules import workflow_rules, job_rules, step_rules, uses_step_rules, run_step_rules
+from settings import enabled_rules
+from src.load import WorkflowBuilder, Rules
+from src.utils import LintFinding
 
 
 PROBLEM_LEVELS = {
@@ -17,6 +18,11 @@ PROBLEM_LEVELS = {
 }
 
 memoized_action_update_urls = {}
+
+
+lint_rules = Rules(enabled_rules, verbose=True)
+
+#print(lint_rules.workflow)
 
 
 class Colors:
@@ -203,22 +209,18 @@ def _new_lint(filename):
 
     print(f"Linting: {filename}")
     with open(filename) as file:
-        workflow = get_workflow(filename)
+        workflow = WorkflowBuilder.build(filename)
 
-        for rule in workflow_rules:
+        for rule in lint_rules.workflow:
             findings.append(rule.execute(workflow))
 
         for job_key, job in workflow.jobs.items():
-            for rule in job_rules:
+            for rule in lint_rules.job:
                 findings.append(rule.execute(job))
 
             for step in job.steps:
-                if step.uses is not None:
-                    for rule in [*step_rules, *uses_step_rules]:
-                        findings.append(rule.execute(step))
-                else:
-                    for rule in [*step_rules, *run_step_rules]:
-                        findings.append(rule.execute(step))
+                for rule in lint_rules.step:
+                    findings.append(rule.execute(step))
 
     findings = list(filter(lambda a: a is not None, findings))
 
@@ -234,6 +236,10 @@ def _new_lint(filename):
 
 
 def lint(filename):
+    return _new_lint(filename)
+
+
+def _old_lint(filename):
 
     findings = []
     max_error_level = 0
@@ -429,11 +435,7 @@ def main(input_args=None):
         help="return non-zero exit code on warnings " "as well as errors",
     )
     args = parser.parse_args(input_args)
-    # max_error_level = 0
 
-    # for filename in input_files:
-    #     prob_level = lint(filename)
-    #     max_error_level = max(max_error_level, prob_level)
     input_files = workflow_files(args.input)
     if len(input_files) > 0:
         prob_levels = list(map(lint, input_files))

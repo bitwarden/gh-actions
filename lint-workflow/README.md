@@ -3,7 +3,7 @@
 ## Development
 ### Requirements
 
-- Python 3.9
+- Python 3.11
 - pipenv
 
 ### Setup
@@ -38,26 +38,31 @@ black .
 
 ### Rules
 
-```yaml
-workflows:
-  - assert name exists
-  - assert name is capitalized
-jobs:
-  - assert name exists
-  - assert name is capitalized
-  - assert runs-on is pinned
-  - assert any environment variables start with "_"
-steps:
-  shared: 
-    - assert name exists
-    - assert name is capitilized
-  uses:
-    - assert valid hash format - correct length
-    - assert valid hash format - cast to hexidecimal
-    - assert valid action repo path format
-    - assert action exists in GitHub
-    - warn out of date Action
-  run:
-    - assert correct format for single line run
+#### workflows
+
+- [x] assert name exists
+- [x] assert name is capitalized
+
+#### jobs
+
+- [x] assert name exists
+- [x] assert name is capitalized
+- [ ] assert runs-on is pinned
+- [ ] assert any environment variables start with "_"
+
+#### shared steps
+- [x] assert name exists
+- [x] assert name is capitilized
+
+#### uses steps
+- [ ] assert valid hash format - correct length
+- [ ] assert valid hash format - cast to hexidecimal
+- [ ] assert valid action repo path format
+- [ ] assert action exists in GitHub
+- [ ] warn out of date Action
+- [ ] warn using an unapproved Action
+
+#### run steps
+- [ ] assert correct format for single line run
 ```
 

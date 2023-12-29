@@ -105,4 +105,7 @@ if __name__ == "__main__":
     else:
         raise Exception("No file was recognized as a supported format.")
 
-    print(f"::set-output name=status::Updated {file_path}")
+    if "GITHUB_OUTPUT" in os.environ:
+        with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+            print("{0}={1}".format("status", f"Updated {file_path}"), file=f)
+

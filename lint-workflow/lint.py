@@ -95,7 +95,7 @@ def action_repo_exists(action_id):
 
     path, *hash = action_id.split("@")
 
-    if "bitwarden" in path:
+    if "bitwarden/gh-actions" in path:
         path_list = path.split("/", 2)
         url = f"https://api.github.com/repos/{path_list[0]}/{path_list[1]}"
         response = get_github_api_response(url, action_id)
@@ -150,7 +150,7 @@ def get_action_update(action_id):
     if path in memoized_action_update_urls:
         return memoized_action_update_urls[path]
     else:
-        if "bitwarden" in path:
+        if "bitwarden/gh-actions" in path:
             path_list = path.split("/", 2)
             url = f"https://api.github.com/repos/{path_list[0]}/{path_list[1]}/commits?path={path_list[2]}"
             response = get_github_api_response(url, action_id)
@@ -200,6 +200,10 @@ def get_action_update(action_id):
 
 
 def lint(filename):
+
+    supported_actions = {"act10ns/slack", "actions/cache", "actions/checkout", "actions/delete-package-versions", "actions/download-artifact", "actions/github-script", "actions/labeler", "actions/setup-dotnet", "actions/setup-java", "actions/setup-node", "actions/setup-python", "actions/stale", "actions/upload-artifact", "android-actions/setup-android", "Asana/create-app-attachment-github-action", "Azure/functions-action", "Azure/get-keyvault-secrets", "Azure/login", "azure/webapps-deploy", "bitwarden/sm-action", "checkmarx/ast-github-action", "chrnorm/deployment-action", "chrnorm/deployment-status", "chromaui/action", "cloudflare/pages-action", "convictional/trigger-workflow-and-wait", "crazy-max/ghaction-import-gpg", "crowdin/github-action", "dawidd6/action-download-artifact", "dawidd6/action-homebrew-bump-formula", "digitalocean/action-doctl", "docker/build-push-action", "docker/setup-buildx-action", "docker/setup-qemu-action", "dorny/test-reporter", "dtolnay/rust-toolchain", "futureware-tech/simulator-action", "hashicorp/setup-packer", "macauley/action-homebrew-bump-cask", "microsoft/setup-msbuild", "ncipollo/release-action", "peter-evans/close-issue", "ruby/setup-ruby", "samuelmeuli/action-snapcraft", "snapcore/action-build", "sonarsource/sonarcloud-github-action", "stackrox/kube-linter-action", "Swatinem/rust-cache", "SwiftDocOrg/github-wiki-publish-action", "SwiftDocOrg/swift-doc", "tj-actions/changed-files", "yogevbd/enforce-label-action"}
+
+
 
     findings = []
     max_error_level = 0
@@ -290,41 +294,49 @@ def lint(filename):
                             logging.info("Skipping local action in workflow.")
                             break
 
-                        # If the step has a 'uses' key, check value hash.
-                        try:
-
-                            # Check to make sure SHA1 hash is 40 characters.
-                            if len(hash) != 40:
-                                findings.append(
-                                    LintFinding(
-                                        f"Step {str(i)} of job key '{job_key}' does not have a valid action hash. (not 40 characters)",
-                                        "error",
-                                    )
-                                )
-
-                            # Attempts to convert the hash to a integer
-                            # which will succeed if all characters are hexadecimal
+                        # If the step has a 'uses' key, check if actions are in supported actions list and also value hash, except bitwarden actions.
+                        if "bitwarden/gh-actions" not in path:
                             try:
-                                int(hash, 16)
-                            except ValueError:
+                                # Check if actions are in supported actions list.
+                                if path not in supported_actions:
+                                    findings.append(
+                                        LintFinding(
+                                            f"Step {str(i)} of job key '{job_key}' uses an unsupported action: {path}.",
+                                            "warning",
+                                        )
+                                    )
+                                # Check to make sure SHA1 hash is 40 characters.
+                                if len(hash) != 40:
+                                    findings.append(
+                                        LintFinding(
+                                            f"Step {str(i)} of job key '{job_key}' does not have a valid action hash. (not 40 characters)",
+                                            "error",
+                                        )
+                                    )
+
+                                # Attempts to convert the hash to a integer
+                                # which will succeed if all characters are hexadecimal
+                                try:
+                                    int(hash, 16)
+                                except ValueError:
+                                    findings.append(
+                                        LintFinding(
+                                            f"Step {str(i)} of job key '{job_key}' does not have a valid action hash. (not all hexadecimal characters)",
+                                            "error",
+                                        )
+                                    )
+                            except:
                                 findings.append(
                                     LintFinding(
-                                        f"Step {str(i)} of job key '{job_key}' does not have a valid action hash. (not all hexadecimal characters)",
+                                        f"Step {str(i)} of job key '{job_key}' does not have a valid action hash. (missing '@' character)",
                                         "error",
                                     )
                                 )
-                        except:
-                            findings.append(
-                                LintFinding(
-                                    f"Step {str(i)} of job key '{job_key}' does not have a valid action hash. (missing '@' character)",
-                                    "error",
-                                )
-                            )
 
                         # If the step has a 'uses' key, check path for external workflow
                         path_list = path.split("/", 2)
 
-                        if "bitwarden" in path and len(path_list) < 3:
+                        if "bitwarden/gh-actions" in path and len(path_list) < 3:
                             findings.append(
                                 LintFinding(
                                     f"Step {str(i)} of job key '{job_key}' does not have a valid action path. (missing name of the repository or workflow)",

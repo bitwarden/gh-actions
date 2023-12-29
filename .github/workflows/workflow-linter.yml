@@ -5,16 +5,16 @@ on:
   pull_request:
     paths:
       - .github/workflows/**
-  workflow_call:
+  workflow_call: {}
+  workflow_dispatch: {}
 
 jobs:
   lint:
     name: "Workflow Linter"
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
-
       - name: Checkout Branch
-        uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           fetch-depth: 0
 
@@ -28,11 +28,27 @@ jobs:
                   MODIFIED_EXISTING_WORKFLOWS+=" ${workflow}"
               fi
           done
-          echo "::set-output name=modified-workflows::$MODIFIED_EXISTING_WORKFLOWS"
+          echo "modified-workflows=$MODIFIED_EXISTING_WORKFLOWS" >> $GITHUB_OUTPUT
 
       - name: Workflow Lint
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        uses: bitwarden/gh-actions/lint-workflow@e9dbc0b5edc4f5724124d18b65d8b3fcde767dd9
+        uses: bitwarden/gh-actions/lint-workflow@main
         with:
           workflows: ${{ steps.changed-workflows.outputs.modified-workflows }}
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@94549999469dbfa032becf298d95c87a14c34394 # v40.2.2
+        with:
+          files: .github/workflows/**
+
+      - name: Check for pinned versions
+        if: steps.changed-files.outputs.any_changed == 'true'
+        shell: bash
+        env:
+          FILE: ${{ steps.changed-files.outputs.all_changed_files }}
+        run: |
+          FILES=$(echo "${{ env.FILE }}")
+          curl -o $PWD/version-lint.sh https://raw.githubusercontent.com/bitwarden/gh-actions/main/.github/version-lint.sh
+          chmod +x $PWD/version-lint.sh && $PWD/version-lint.sh $FILES

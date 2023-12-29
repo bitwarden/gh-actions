@@ -13,10 +13,10 @@ on:
 jobs:
   download-latest:
     name: Download Latest
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Download
         uses: ./download-artifacts
@@ -31,13 +31,13 @@ jobs:
           echo $GITHUB_SHA
 
 
-  download-master:
-    name: Download master
-    runs-on: ubuntu-20.04
-    if: github.ref == 'refs/heads/master'
+  download-main:
+    name: Download main
+    runs-on: ubuntu-22.04
+    if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout
-        uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Download
         uses: ./download-artifacts
@@ -45,7 +45,7 @@ jobs:
           workflow: upload-test-artifacts.yml
           artifacts: artifact
           path: artifact
-          branch: master
+          branch: main
 
       - name: Test
         run: |
@@ -54,14 +54,16 @@ jobs:
 
   download-branch:
     name: Download current branch
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Extract branch name
-        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
         id: extract_branch
+        run: |
+         branch=${GITHUB_REF#refs/heads/}
+         echo "branch=$branch" >> $GITHUB_OUTPUT
 
       - name: Download
         uses: ./download-artifacts
@@ -78,11 +80,11 @@ jobs:
 
   download-pr:
     name: Download Pull Request
-    runs-on: ubuntu-20.04
-    if: github.ref != 'refs/heads/master'
+    runs-on: ubuntu-22.04
+    if: github.ref != 'refs/heads/main'
     steps:
       - name: Checkout
-        uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Download
         uses: ./download-artifacts
@@ -100,10 +102,10 @@ jobs:
 
   download-all:
     name: Download All
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Download
         uses: ./download-artifacts
@@ -120,10 +122,10 @@ jobs:
 
   download-multiple:
     name: Download Multiple
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Download
         uses: ./download-artifacts
@@ -141,10 +143,10 @@ jobs:
 
   download-wildcard:
     name: Download Wildcard
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Download
         uses: ./download-artifacts
@@ -161,10 +163,10 @@ jobs:
 
   download-conclusion:
     name: Download Conclusion
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Download
         uses: ./download-artifacts

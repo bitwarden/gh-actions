@@ -1,4 +1,5 @@
 name: "Setup Docker Trust"
+description: "Configures Docker Trust"
 inputs:
   azure-creds:
     description: 'Credentials for the Azure Subscription that contains the docker trust secrets'
@@ -21,26 +22,19 @@ runs:
         fi
 
     - name: Login to Azure
-      uses: Azure/login@77f1b2e3fb80c0e8645114159d17008b8a2e475a
+      uses: Azure/login@de95379fe4dadc2defb305917eaa7e5dde727294 # v1.5.1
       with:
         creds: ${{ inputs.azure-creds }}
 
     - name: Retrieve secrets
       id: get-secrets
-      env:
-        KEYVAULT: ${{ inputs.azure-keyvault-name }}
-        SECRETS: |
-          docker-password,
+      uses: bitwarden/gh-actions/get-keyvault-secrets@main
+      with:
+        keyvault: "${{ inputs.azure-keyvault-name }}"
+        secrets: "docker-password,
           docker-username,
           dct-delegate-repo-passphrase,
-          dct-delegate-key
-      run: |
-        for i in ${SECRETS//,/ }
-        do
-          VALUE=$(az keyvault secret show --vault-name $KEYVAULT --name $i --query value --output tsv)
-          echo "::add-mask::$VALUE"
-          echo "$i=$VALUE" >> $GITHUB_OUTPUT
-        done
+          dct-delegate-key"
 
     - name: Log into Docker
       shell: bash

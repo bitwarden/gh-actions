@@ -11,7 +11,7 @@ on:
 jobs:
   upload:
     name: Upload
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Dump
         run: |
@@ -19,7 +19,7 @@ jobs:
           echo $GITHUB_SHA > artifact/sha
 
       - name: Upload
-        uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
         with:
           name: artifact
           path: artifact
@@ -27,7 +27,7 @@ jobs:
 
   upload-multiple:
     name: Upload Multiple
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Dump
         run: |
@@ -36,13 +36,13 @@ jobs:
           echo $GITHUB_SHA > artifact2/sha2
 
       - name: Upload first
-        uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
         with:
           name: artifact1
           path: artifact1
 
       - name: Upload second
-        uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
         with:
           name: artifact2
           path: artifact2
@@ -50,7 +50,7 @@ jobs:
 
   upload-multiple-wildcard-test:
     name: Upload Multiple Wildcard Test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Dump
         run: |
@@ -59,13 +59,13 @@ jobs:
           echo $GITHUB_SHA > artifact2/sha2
 
       - name: Upload first
-        uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
         with:
           name: artifact1.txt
           path: artifact1
 
       - name: Upload second
-        uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
         with:
           name: artifact2.txt
           path: artifact2

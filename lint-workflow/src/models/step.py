@@ -13,8 +13,13 @@ class Step:
     name: Optional[str] = None
     env: Optional[CommentedMap] = None
     uses: Optional[str] = None
+    uses_path: Optional[str] = None
+    uses_ref: Optional[str] = None
     uses_comment: Optional[str] = None
-    uses_with: Optional[CommentedMap] = field(metadata=config(field_name="with"), default=None)
+    uses_version: Optional[str] = None
+    uses_with: Optional[CommentedMap] = field(
+        metadata=config(field_name="with"), default=None
+    )
     run: Optional[str] = None
 
     @classmethod
@@ -25,6 +30,9 @@ class Step:
         new_step.job = job
 
         if "uses" in data.ca.items and data.ca.items["uses"][2]:
-            new_step.uses_comment = data.ca.items["uses"][2].value.replace('\n', '')
+            new_step.uses_comment = data.ca.items["uses"][2].value.replace("\n", "")
+            if "@" in new_step.uses:
+                new_step.uses_path, new_step.uses_ref = new_step.uses.split("@")
+                new_step.uses_version = new_step.uses_comment.split(" ")[-1]
 
         return new_step

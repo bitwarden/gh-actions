@@ -12,4 +12,6 @@ class RuleNameExists(Rule):
         self.on_fail = "error"
 
     def fn(self, obj: Union[Workflow, Job, Step]):
-        return obj.name is not None
+        if obj.name is not None:
+            return True, ""
+        return False, self.message

@@ -6,10 +6,10 @@ import json
 import urllib3 as urllib
 import logging
 
-#from src.rules import workflow_rules, job_rules, step_rules, uses_step_rules, run_step_rules
-from settings import enabled_rules
+# from src.rules import workflow_rules, job_rules, step_rules, uses_step_rules, run_step_rules
+import settings
 from src.load import WorkflowBuilder, Rules
-from src.utils import LintFinding
+from src.utils import LintFinding, Settings, SettingsError
 
 
 PROBLEM_LEVELS = {
@@ -19,10 +19,22 @@ PROBLEM_LEVELS = {
 
 memoized_action_update_urls = {}
 
+try:
+    lint_settings = Settings(
+        enabled_rules=settings.enabled_rules,
+        approved_actions=settings.approved_actions
+    )
+except:
+    raise SettingsError(
+        (
+            "Required settings: enabled_rules, approved_actions\n"
+            "Please see documentation for more information"
+        )
+    )
 
-lint_rules = Rules(enabled_rules, verbose=True)
+lint_rules = Rules(settings=lint_settings, verbose=True)
 
-#print(lint_rules.workflow)
+# print(lint_rules.workflow)
 
 
 class Colors:
@@ -240,7 +252,6 @@ def lint(filename):
 
 
 def _old_lint(filename):
-
     findings = []
     max_error_level = 0
 
@@ -332,7 +343,6 @@ def _old_lint(filename):
 
                         # If the step has a 'uses' key, check value hash.
                         try:
-
                             # Check to make sure SHA1 hash is 40 characters.
                             if len(hash) != 40:
                                 findings.append(
@@ -420,7 +430,6 @@ def _old_lint(filename):
 
 
 def main(input_args=None):
-
     # Pull the arguments from the command line
     if not input_args:
         input_args = sys.argv[1:]

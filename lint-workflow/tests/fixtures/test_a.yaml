@@ -7,7 +7,7 @@ on:
 
 jobs:
   call-workflow:
-    uses: bitwarden/server/.github/workflows/workflow-linter.yml@main
+    uses: bitwarden/server/.github/workflows/workflow-linter.yml@master
 
   test-normal-action:
     name: Download Latest

@@ -41,7 +41,7 @@ def test_step_default(default_step):
     assert default_step.env == None
     assert default_step.uses == None
     assert default_step.uses_with == None
-    assert default_step.run == "echo \"test\""
+    assert default_step.run == 'echo "test"'
 
 
 def test_step_no_keyword_field(default_step):
@@ -59,7 +59,7 @@ def test_step_keyword_field(uses_step):
         "workflow": "upload-test-artifacts.yml",
         "artifacts": "artifact",
         "path": "artifact",
-        "branch": "main"
+        "branch": "main",
     }
 
     step_json = uses_step.to_json()
@@ -67,7 +67,6 @@ def test_step_keyword_field(uses_step):
     assert "uses_with" not in step_json
     assert "with" in step_json
     assert json.loads(uses_step.to_json())["with"] == expected_response
-
 
 
 def test_step_comment(uses_step):

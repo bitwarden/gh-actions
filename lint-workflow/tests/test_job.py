@@ -9,13 +9,13 @@ def default_job_data():
     return {
         "name": "Test",
         "runs-on": "ubuntu-latest",
-        "steps": [src.models.Step(run="echo stub")]
+        "steps": [src.models.Step(run="echo stub")],
     }
 
 
 @pytest.fixture
 def default_job(default_job_data):
-    return src.models.Job.init('default-job', default_job_data)
+    return src.models.Job.init("default-job", default_job_data)
 
 
 def test_job_default(default_job):
@@ -27,10 +27,7 @@ def test_job_default(default_job):
 
 
 def test_job_extra_kwargs(default_job_data):
-    job = src.models.Job.init('test-job', {
-        "extra": "test",
-        **default_job_data
-    })
+    job = src.models.Job.init("test-job", {"extra": "test", **default_job_data})
 
     with pytest.raises(Exception) as e_info:
         assert job.extra == "test"

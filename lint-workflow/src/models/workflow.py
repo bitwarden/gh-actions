@@ -13,4 +13,4 @@ class Workflow:
     key: str = ""
     name: Optional[str] = None
     on: Optional[CommentedMap] = None
-    jobs: Optional[CommentedMap] = None 
+    jobs: Optional[CommentedMap] = None

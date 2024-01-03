@@ -23,13 +23,23 @@ def rule():
 
 
 def test_rule_on_correct_workflow(rule, correct_workflow):
-    assert rule.fn(correct_workflow) == True
-    assert rule.fn(correct_workflow.jobs['job-key']) == True
-    assert rule.fn(correct_workflow.jobs['job-key'].steps[0]) == True
+    result, message = rule.fn(correct_workflow)
+    assert result == True
+
+    result, message = rule.fn(correct_workflow.jobs["job-key"])
+    assert result == True
+
+    result, message = rule.fn(correct_workflow.jobs["job-key"].steps[0])
+    assert result == True
 
 
 def test_rule_on_incorrect_workflow(rule, incorrect_workflow):
     print(f"Workflow name: {incorrect_workflow.name}")
-    assert rule.fn(incorrect_workflow) == False
-    assert rule.fn(incorrect_workflow.jobs['job-key']) == False
-    assert rule.fn(incorrect_workflow.jobs['job-key'].steps[0]) == False
+    result, message = rule.fn(incorrect_workflow)
+    assert result == False
+
+    result, message = rule.fn(incorrect_workflow.jobs["job-key"])
+    assert result == False
+
+    result, message = rule.fn(incorrect_workflow.jobs["job-key"].steps[0])
+    assert result == False

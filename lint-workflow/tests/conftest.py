@@ -1,1 +1,1 @@
-FIXTURE_DIR="./tests/fixtures"
+FIXTURE_DIR = "./tests/fixtures"

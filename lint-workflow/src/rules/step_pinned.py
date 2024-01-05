@@ -2,13 +2,15 @@ from typing import Tuple
 
 from ..rule import Rule
 from ..models.step import Step
+from ..utils import Settings
 
 
 class RuleStepUsesPinned(Rule):
-    def __init__(self) -> None:
+    def __init__(self, settings: Settings = None) -> None:
         self.message = f"error"
         self.on_fail = "error"
         self.compatibility = [Step]
+        self.settings = settings
 
     def force_pass(self, obj: Step) -> bool:
         if not obj.uses:

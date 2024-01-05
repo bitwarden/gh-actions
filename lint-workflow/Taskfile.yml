@@ -1,0 +1,29 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  fmt:
+    silent: true
+    cmds:
+      - pipenv run black .
+  
+  test:unit:
+    cmds:
+      - pipenv run pytest tests
+
+  test:unit:cov:
+    cmds:
+      - pipenv run pytest tests --cov=src
+
+  test:e2e:lint:
+    cmds:
+      - pipenv run python cli.py -v lint --files tests/fixtures/test.yml
+
+  test:e2e:actions:add:
+    cmds:
+      - pipenv run python cli.py -v actions --output test.json add bitwarden/sm-action
+
+  test:e2e:actions:update:
+    cmds:
+      - pipenv run python cli.py -v actions update --output test.json 

@@ -15,18 +15,20 @@ yaml = YAML()
 
 @pytest.fixture
 def settings():
-    return Settings(approved_actions=[
-        {
-            "name": "actions/checkout",
-            "version": "v4.1.1",
-            "sha": "b4ffde65f46336ab88eb53be808477a3936bae11"
-        },
-        {
-            "name": "actions/download-artifact",
-            "version": "v4.1.0",
-            "sha": "f44cd7b40bfd40b6aa1cc1b9b5b7bf03d3c67110"
+    return Settings(
+        approved_actions={
+            "actions/checkout": {
+                "name": "actions/checkout",
+                "version": "v4.1.1",
+                "sha": "b4ffde65f46336ab88eb53be808477a3936bae11",
+            },
+            "actions/download-artifact": {
+                "name": "actions/download-artifact",
+                "version": "v4.1.0",
+                "sha": "f44cd7b40bfd40b6aa1cc1b9b5b7bf03d3c67110",
+            },
         }
-    ])
+    )
 
 
 @pytest.fixture

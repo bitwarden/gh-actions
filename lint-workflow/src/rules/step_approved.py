@@ -43,14 +43,13 @@ class RuleStepUsesApproved(Rule):
                 ),
             )
 
-        action_data = self.settings.approved_actions_data[path]
+        action = self.settings.approved_actions[path]
 
-        if obj.uses_version != action_data["version"] or obj.uses_ref != action_data["sha"]:
+        if obj.uses_version != action.version or obj.uses_ref != action.sha:
             return False, (
                 "Action is out of date. Please update to:\n"
-                f"  commit: {action_data['version']}"
-                f"  version: {action_data['sha']}"
+                f"  commit: {action.version}"
+                f"  version: {action.sha}"
             )
-
 
         return True, ""

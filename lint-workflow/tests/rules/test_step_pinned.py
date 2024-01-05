@@ -54,7 +54,6 @@ jobs:
     return WorkflowBuilder.build(yaml=yaml.load(workflow), from_file=False)
 
 
-
 @pytest.fixture
 def rule():
     return RuleStepUsesPinned()

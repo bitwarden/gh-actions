@@ -80,8 +80,8 @@ class Rules:
                     self.job.append(rule_inst)
                 if Step in rule_inst.compatibility:
                     self.step.append(rule_inst)
-            except Error:
-                print(f"Error loading: {rule}\n{Error}")
+            except Exception as err:
+                print(f"Error loading: {rule}\n{err}")
 
         if verbose:
             print("===== Loaded Rules =====")

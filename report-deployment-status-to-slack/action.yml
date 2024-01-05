@@ -63,11 +63,16 @@ runs:
             SLACK_MESSAGE=":white_check_mark: Updated ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
             ${{ inputs.url }}"
             ;;
-        
+
           failure)
             SLACK_MESSAGE=":x: Failed to update ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
             ${{ inputs.url }}
             Please retry or contact @devops team."
+            ;;
+
+          cancelled)
+            SLACK_MESSAGE=":hand: Cancelled update of ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
+            ${{ inputs.url }}"
             ;;
         esac
 

@@ -6,13 +6,13 @@ import json
 
 # from src.rules import workflow_rules, job_rules, step_rules, uses_step_rules, run_step_rules
 import settings
-from src.actions import Actions
+from src.actions import ActionsCmd
 from src.utils import Settings, SettingsError
-from src.lint import Linter
+from src.lint import LinterCmd
 
 
 try:
-    lint_settings = Settings(
+    local_settings = Settings(
         enabled_rules=settings.enabled_rules, approved_actions=settings.approved_actions
     )
 except:
@@ -23,49 +23,24 @@ except:
         )
     )
 
-linter = Linter(settings=lint_settings)
-actions = Actions(settings=lint_settings)
-
-# print(lint_rules.workflow)
-
 
 def main(input_args=None):
+    """CLI utility to lint GitHub Action Workflows.
+
+    A CLI utility to enforce coding standards on GitHub Action workflows. The
+    utility also provides other sub-commands to assist with other workflow
+    maintenance tasks; such as maintaining the list of approved GitHub Actions.
+    """
+    linter_cmd = LinterCmd(settings=local_settings)
+    actions_cmd = ActionsCmd(settings=local_settings)
+
     # Read arguments from command line.
     parser = argparse.ArgumentParser(prog="workflow-linter")
     parser.add_argument("-v", "--verbose", action="store_true", default=False)
     subparsers = parser.add_subparsers(required=True, dest="command")
 
-    parser_actions = subparsers.add_parser("actions", help="actions help")
-    parser_actions.add_argument(
-        "-o", "--output", action="store", default="actions.json"
-    )
-    subparsers_actions = parser_actions.add_subparsers(
-        required=True, dest="actions_command"
-    )
-
-    parser_actions_update = subparsers_actions.add_parser(
-        "update", help="update action versions"
-    )
-
-    parser_actions_add = subparsers_actions.add_parser(
-        "add", help="add action to approved list"
-    )
-    parser_actions_add.add_argument("name", help="action name [git owener/repo]")
-
-    parser_lint = subparsers.add_parser("lint", help="lint help")
-    parser_lint.add_argument(
-        "-s",
-        "--strict",
-        action="store_true",
-        help="return non-zero exit code on warnings as well as errors",
-    )
-    parser_lint.add_argument("-f", "--files", action="append", help="files to lint")
-    parser_lint.add_argument(
-        "--output",
-        action="store",
-        help="output format: [stdout|json|md]",
-        default="stdout",
-    )
+    subparsers = LinterCmd.extend_parser(subparsers)
+    subparsers = ActionsCmd.extend_parser(subparsers)
 
     # Pull the arguments from the command line
     input_args = sys.argv[1:]
@@ -78,17 +53,16 @@ def main(input_args=None):
         print(f"Args:\n{args}")
 
     if args.command == "lint":
-        return linter.run(args.files)
+        return linter_cmd.run(args.files)
 
     if args.command == "actions":
         if args.actions_command == "add":
-            return actions.add(args.name, args.output)
+            return actions_cmd.add(args.name, args.output)
         elif args.actions_command == "update":
-            return actions.update(args.output)
+            return actions_cmd.update(args.output)
         return -1
 
 
 if __name__ == "__main__":
     return_code = main()
-    # print(memoized_action_update_urls)
     sys.exit(return_code)

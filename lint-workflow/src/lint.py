@@ -1,3 +1,4 @@
+import argparse
 import os
 
 from src.load import WorkflowBuilder, Rules
@@ -10,9 +11,31 @@ PROBLEM_LEVELS = {
 }
 
 
-class Linter:
+class LinterCmd:
     def __init__(self, settings: Settings = None, verbose: bool = True) -> None:
         self.rules = Rules(settings=settings, verbose=verbose)
+
+    @staticmethod
+    def extend_parser(subparsers: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        """Extends the CLI subparser with the options for LintCmd.
+
+        Add 'lint' as a sub command along with its options and arguments
+        """
+        parser_lint = subparsers.add_parser("lint", help="lint help")
+        parser_lint.add_argument(
+            "-s",
+            "--strict",
+            action="store_true",
+            help="return non-zero exit code on warnings as well as errors",
+        )
+        parser_lint.add_argument("-f", "--files", action="append", help="files to lint")
+        parser_lint.add_argument(
+            "--output",
+            action="store",
+            help="output format: [stdout|json|md]",
+            default="stdout",
+        )
+        return subparsers
 
     def get_max_error_level(self, findings: list[LintFinding]) -> int:
         """Get max error level from list of findings."""

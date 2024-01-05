@@ -67,6 +67,16 @@ class RuleNameExists(Rule):
         return obj.name is not None, self.message
 
 
+class RuleException(Rule):
+    def __init__(self):
+        self.message = "should raise Exception"
+        self.on_fail = "error"
+
+    def fn(self, obj: Union[Workflow, Job, Step]) -> bool:
+        raise Exception("test Exception")
+        return True, self.message
+
+
 @pytest.fixture
 def step_rule():
     return RuleStep()
@@ -75,6 +85,11 @@ def step_rule():
 @pytest.fixture
 def exists_rule():
     return RuleNameExists()
+
+
+@pytest.fixture
+def exception_rule():
+    return RuleException()
 
 
 def test_build_lint_message(step_rule, correct_workflow):
@@ -119,3 +134,7 @@ def test_incorrect_rule_execution(exists_rule, incorrect_workflow):
         "name must exist"
         in exists_rule.execute(incorrect_workflow.jobs["job-key"].steps[0]).description
     )
+
+
+def test_exception_rule_execution(exception_rule, incorrect_workflow):
+    assert "failed to apply" in exception_rule.execute(incorrect_workflow).description

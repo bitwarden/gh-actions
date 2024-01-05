@@ -27,6 +27,12 @@ jobs:
 
       - name: Test Internal Action
         uses: bitwarden/gh-actions/get-keyvault-secrets@main
+
+      - name: Test Local Action
+        uses: ./actions/test-action
+
+      - name: Test Run Action
+        run: echo "test"
 """
     return WorkflowBuilder.build(yaml=yaml.load(workflow), from_file=False)
 
@@ -66,6 +72,12 @@ def test_rule_on_correct_workflow(rule, correct_workflow):
     result, message = rule.fn(correct_workflow.jobs["job-key"].steps[1])
     assert result == True
 
+    result, message = rule.fn(correct_workflow.jobs["job-key"].steps[2])
+    assert result == True
+
+    result, message = rule.fn(correct_workflow.jobs["job-key"].steps[3])
+    assert result == True
+
 
 def test_rule_on_incorrect_workflow_external_branch(rule, incorrect_workflow):
     result, message = rule.fn(incorrect_workflow.jobs["job-key"].steps[0])
@@ -83,3 +95,11 @@ def test_rule_on_incorrect_workflow_internal_commit(rule, incorrect_workflow):
     result, message = rule.fn(incorrect_workflow.jobs["job-key"].steps[2])
     assert result == False
     assert "Please pin to main" in message
+
+
+def test_fail_compatibility(rule, correct_workflow):
+    finding = rule.execute(correct_workflow)
+    assert "Workflow not compatible with" in finding.description
+
+    finding = rule.execute(correct_workflow.jobs["job-key"])
+    assert "Job not compatible with" in finding.description

@@ -12,9 +12,17 @@ tasks:
     cmds:
       - pipenv run pytest tests
 
-  test:unit:cov:
+  test:unit:
     cmds:
-      - pipenv run pytest tests --cov=src
+      - pipenv run pytest tests
+
+  test:cov:
+    cmds:
+      - pipenv run pytest --cov-report term --cov=src tests
+
+  test:cov:detailed:
+    cmds:
+      - pipenv run pytest --cov-report term-missing --cov=src tests
 
   test:e2e:lint:
     cmds:

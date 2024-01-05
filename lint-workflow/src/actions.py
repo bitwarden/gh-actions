@@ -1,3 +1,4 @@
+import argparse
 import json
 import logging
 import os
@@ -9,9 +10,33 @@ from typing import Union, Tuple
 from src.utils import Colors, LintFinding, Settings, SettingsError, Action
 
 
-class Actions:
+class ActionsCmd:
     def __init__(self, settings: Settings = None) -> None:
         self.settings = settings
+
+    @staticmethod
+    def extend_parser(subparsers: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        """Extends the CLI subparser with the options for ActionCmd.
+
+        Add 'actions add' and 'actions update' to the CLI as sub-commands
+        along with the options and arguments for each.
+        """
+        parser_actions = subparsers.add_parser("actions", help="actions help")
+        parser_actions.add_argument(
+            "-o", "--output", action="store", default="actions.json"
+        )
+        subparsers_actions = parser_actions.add_subparsers(
+            required=True, dest="actions_command"
+        )
+        parser_actions_update = subparsers_actions.add_parser(
+            "update", help="update action versions"
+        )
+        parser_actions_add = subparsers_actions.add_parser(
+            "add", help="add action to approved list"
+        )
+        parser_actions_add.add_argument("name", help="action name [git owener/repo]")
+
+        return subparsers
 
     def get_github_api_response(
         self, url: str, action_name: str
@@ -89,15 +114,11 @@ class Actions:
 
         return Action(name=action.name, version=tag_name, sha=sha)
 
-    def add(self, new_action_name: str, filename: str) -> None:
-        print("Actions: add")
-        updated_actions = self.settings.approved_actions
-        proposed_action = Action(name=new_action_name)
+    def save_actions(self, updated_actions: dict[str, Action], filename: str) -> None:
+        """Save Actions to disk.
 
-        if self.exists(proposed_action):
-            latest = self.get_latest_version(proposed_action)
-            updated_actions[latest.name] = latest
-
+        This is used to track the list of approved actions.
+        """
         with open(filename, "w") as action_file:
             converted_updated_actions = {
                 name: asdict(action) for name, action in updated_actions.items()
@@ -106,7 +127,30 @@ class Actions:
                 json.dumps(converted_updated_actions, indent=2, sort_keys=True)
             )
 
+    def add(self, new_action_name: str, filename: str) -> None:
+        """Sub-command to add a new Action to the list of approved Actions.
+
+        'actions add' will add an Action and all of its metadata and dump all
+        approved actions (including the new one) to either the default JSON file
+        or the one provided by '--output'
+        """
+        print("Actions: add")
+        updated_actions = self.settings.approved_actions
+        proposed_action = Action(name=new_action_name)
+
+        if self.exists(proposed_action):
+            latest = self.get_latest_version(proposed_action)
+            updated_actions[latest.name] = latest
+
+        self.save_actions(updated_actions, filename)
+
     def update(self, filename: str) -> None:
+        """Sub-command to update all of the versions of the approved actions.
+
+        'actions update' will update all of the approved to the newest version
+        and dump all of the new data to either the default JSON file or the
+        one provided by '--output'
+        """
         print("Actions: update")
         updated_actions = {}
         for action in self.settings.approved_actions.values():
@@ -123,10 +167,5 @@ class Actions:
                     print(f" - {action.name} \033[{Colors.green}ok\033[0m")
                 updated_actions[action.name] = latest_release
 
-        with open(filename, "w") as action_file:
-            converted_updated_actions = {
-                name: asdict(action) for name, action in updated_actions.items()
-            }
-            action_file.write(
-                json.dumps(converted_updated_actions, indent=2, sort_keys=True)
-            )
+        self.save_actions(updated_actions, filename)
+

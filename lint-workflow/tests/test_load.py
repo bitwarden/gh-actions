@@ -7,6 +7,8 @@ from ruamel.yaml.comments import CommentedMap
 from .conftest import FIXTURE_DIR
 from .context import src
 
+from src.utils import Settings
+
 
 yaml = YAML()
 
@@ -43,5 +45,4 @@ def test_load_workflow_from_file(workflow_filename: str) -> None:
 
 def test_load_workflow_from_yaml(workflow_yaml: CommentedMap) -> None:
     workflow = src.load.WorkflowBuilder.build(yaml=workflow_yaml, from_file=False)
-
     assert type(workflow) == src.models.Workflow

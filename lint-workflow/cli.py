@@ -49,9 +49,6 @@ def main(input_args=None):
 
     args = parser.parse_args(input_args)
 
-    if args.verbose:
-        print(f"Args:\n{args}")
-
     if args.command == "lint":
         return linter_cmd.run(args.files)
 

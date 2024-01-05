@@ -12,8 +12,8 @@ PROBLEM_LEVELS = {
 
 
 class LinterCmd:
-    def __init__(self, settings: Settings = None, verbose: bool = True) -> None:
-        self.rules = Rules(settings=settings, verbose=verbose)
+    def __init__(self, settings: Settings = None) -> None:
+        self.rules = Rules(settings=settings)
 
     @staticmethod
     def extend_parser(subparsers: argparse.ArgumentParser) -> argparse.ArgumentParser:
@@ -62,7 +62,7 @@ class LinterCmd:
         findings = []
         max_error_level = 0
 
-        print(f"Linting: {filename}\n")
+        print(f"Linting: {filename}")
         with open(filename) as file:
             workflow = WorkflowBuilder.build(filename)
 

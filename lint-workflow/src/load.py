@@ -64,7 +64,7 @@ class Rules:
     job: List[Rule] = []
     step: List[Rule] = []
 
-    def __init__(self, settings: Settings, verbose: bool = False) -> None:
+    def __init__(self, settings: Settings) -> None:
         for rule in settings.enabled_rules:
             module_name = rule.split(".")
             module_name = ".".join(module_name[:-1])
@@ -83,15 +83,15 @@ class Rules:
             except Exception as err:
                 print(f"Error loading: {rule}\n{err}")
 
-        if verbose:
-            print("===== Loaded Rules =====")
-            print("workflow rules:")
-            for rule in self.workflow:
-                print(f" - {type(rule).__name__}")
-            print("job rules:")
-            for rule in self.job:
-                print(f" - {type(rule).__name__}")
-            print("step rules:")
-            for rule in self.step:
-                print(f" - {type(rule).__name__}")
-            print("========================\n")
+    def list(self) -> None:
+        print("===== Loaded Rules =====")
+        print("workflow rules:")
+        for rule in self.workflow:
+            print(f" - {type(rule).__name__}")
+        print("job rules:")
+        for rule in self.job:
+            print(f" - {type(rule).__name__}")
+        print("step rules:")
+        for rule in self.step:
+            print(f" - {type(rule).__name__}")
+        print("========================\n")

@@ -1,18 +1,26 @@
 import argparse
 import os
 
+from functools import reduce
+
 from src.load import WorkflowBuilder, Rules
 from src.utils import Colors, LintFinding, Settings, SettingsError
 
 
-PROBLEM_LEVELS = {
-    "warning": 1,
-    "error": 2,
-}
-
-
 class LinterCmd:
     def __init__(self, settings: Settings = None) -> None:
+        """Command to lint GitHub Action Workflow files
+
+        This class contains logic to lint workflows that are passed in. 
+        Supporting logic is supplied to:
+          - build out the list of Rules desired
+          - select and validate the workflow files to lint
+
+        Args:
+          settings:
+            A Settings object that contains any default, overriden, or custom settings
+            required anywhere in the application.
+        """
         self.rules = Rules(settings=settings)
 
     @staticmethod
@@ -20,6 +28,10 @@ class LinterCmd:
         """Extends the CLI subparser with the options for LintCmd.
 
         Add 'lint' as a sub command along with its options and arguments
+
+        Args:
+          subparsers:
+            The main argument parser to add sub commands and arguments to
         """
         parser_lint = subparsers.add_parser("lint", help="lint help")
         parser_lint.add_argument(
@@ -38,27 +50,35 @@ class LinterCmd:
         return subparsers
 
     def get_max_error_level(self, findings: list[LintFinding]) -> int:
-        """Get max error level from list of findings."""
+        """Get max error level from list of findings.
+
+        Compute the maximum error level to determine the exit code required.
+        # if max(error) return exit(1); else return exit(0)
+
+        Args:
+          findings:
+            All of the findings that the linter found while linting a workflows.
+
+        Return:
+          The numeric value of the maximum lint finding
+        """
         if len(findings) == 0:
             return 0
-        max_problem = max(findings, key=lambda finding: PROBLEM_LEVELS[finding.level])
-        max_problem_level = PROBLEM_LEVELS[max_problem.level]
-        return max_problem_level
-
-    def print_finding(self, finding: LintFinding) -> None:
-        """Print formatted and colored finding."""
-        if finding.level == "warning":
-            color = Colors.yellow
-        elif finding.level == "error":
-            color = Colors.red
-        else:
-            color = Colors.white
-
-        line = f"  - \033[{color}{finding.level}\033[0m {finding.description}"
-
-        print(line)
+        return max(findings, key=lambda finding: finding.level.code).level.code
 
     def lint_file(self, filename: str) -> int:
+        """Lint a single workflow.
+
+        Run all of the Workflow, Job, and Step level rules that have been enabled.
+
+        Args:
+          filename:
+            The name of the file that contains the workflow to lint
+
+        Returns:
+          The maximum error level found in the file (none, warning, error) to
+          calculate the exit code from.
+        """
         findings = []
         max_error_level = 0
 
@@ -81,17 +101,24 @@ class LinterCmd:
 
         if len(findings) > 0:
             for finding in findings:
-                self.print_finding(finding)
+                print(f" - {finding}")
             print()
 
         max_error_level = self.get_max_error_level(findings)
 
         return max_error_level
 
-    def generate_files(self, files: list) -> list:
-        """
-        Takes in an argument of directory and/or files in list format from the CLI.
-        Returns a sorted set of all workflow files in the path(s) specified.
+    def generate_files(self, files: list[str]) -> list[str]:
+        """Generate the list of files to lint.
+
+        Searches the list of directory and/or files taken from the CLI.
+
+        Args:
+          files:
+            list of file names or director names.
+
+        Returns:
+          A sorted set of all workflow files in the path(s) specified.
         """
         workflow_files = []
         for path in files:
@@ -106,19 +133,27 @@ class LinterCmd:
 
         return sorted(set(workflow_files))
 
-    def run(self, input_files: list[str]) -> int:
+    def run(self, input_files: list[str], strict: bool = False) -> int:
+        """Execute the LinterCmd.
+
+        Args:
+          input_files:
+            list of file names or director names.
+          strict:
+            fail on WARNING instead of succeed
+
+        Returns
+          The return_code for the entire CLI to indicate success/failure
+        """
         files = self.generate_files(input_files)
 
         if len(input_files) > 0:
-            prob_levels = list(map(self.lint_file, files))
+            return_code = reduce(
+                lambda a, b: a if a > b else b,
+                map(self.lint_file, files)
+            )
 
-            max_error_level = max(prob_levels)
-
-            if max_error_level == PROBLEM_LEVELS["error"]:
-                return_code = 2
-            elif max_error_level == PROBLEM_LEVELS["warning"]:
-                return_code = 1 if args.strict else 0
-            else:
+            if return_code == 1 and not strict:
                 return_code = 0
 
             return return_code

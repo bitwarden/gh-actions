@@ -7,11 +7,26 @@ import urllib3 as urllib
 from dataclasses import asdict
 from typing import Union, Tuple
 
-from src.utils import Colors, LintFinding, Settings, SettingsError, Action
+from src.utils import Colors, Settings, SettingsError, Action
 
 
 class ActionsCmd:
     def __init__(self, settings: Settings = None) -> None:
+        """Command to manage the pre-approved list of Actions
+
+        This class contains logic to manage the list of pre-approved actions
+        to include:
+          - updating the action data in the list
+          - adding a new pre-approved action to the list with the data from the
+            latest release
+
+        This class also includes supporting logic to interact with GitHub
+
+        Args:
+          settings:
+            A Settings object that contains any default, overriden, or custom settings
+            required anywhere in the application.
+        """
         self.settings = settings
 
     @staticmethod
@@ -20,6 +35,10 @@ class ActionsCmd:
 
         Add 'actions add' and 'actions update' to the CLI as sub-commands
         along with the options and arguments for each.
+
+        Args:
+          subparsers:
+            The main argument parser to add sub commands and arguments to
         """
         parser_actions = subparsers.add_parser("actions", help="actions help")
         parser_actions.add_argument(

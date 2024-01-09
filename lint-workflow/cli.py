@@ -50,7 +50,7 @@ def main(input_args=None):
     args = parser.parse_args(input_args)
 
     if args.command == "lint":
-        return linter_cmd.run(args.files)
+        return linter_cmd.run(args.files, args.strict)
 
     if args.command == "actions":
         if args.actions_command == "add":

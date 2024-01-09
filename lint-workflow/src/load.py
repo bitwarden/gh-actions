@@ -15,17 +15,38 @@ yaml = YAML()
 
 
 class WorkflowBuilderError(Exception):
+    """Custom Exception to indicate an error with the WorkflowBuilder."""
     pass
 
 
 class WorkflowBuilder:
     @classmethod
     def __load_workflow_from_file(cls, filename: str) -> CommentedMap:
+        """Load YAML from disk.
+
+        Args:
+          filename:
+            The name of the YAML file to read.
+
+        Returns:
+          A CommentedMap that contains the dict() representation of the
+          yaml file. It includes the comments as a part of their respective
+          objects (depending on their location in the file).
+        """
         with open(filename) as file:
             return yaml.load(file)
 
     @classmethod
     def __build_workflow(cls, loaded_yaml: CommentedMap) -> Workflow:
+        """Parse the YAML and build out the workflow to run Rules against.
+
+        Args:
+          loaded_yaml:
+            YAML that was loaded from either code or a file
+
+        Returns
+          A Workflow to run linting Rules against
+        """
         return Workflow.from_dict(
             {
                 **loaded_yaml,
@@ -49,6 +70,20 @@ class WorkflowBuilder:
     def build(
         cls, filename: str = None, yaml: CommentedMap = None, from_file: bool = True
     ) -> Workflow:
+        """Build a Workflow from either code or a file.
+
+        This is a method that assists in testing by abstracting the disk IO
+        and allows for passing in a YAML object in code.
+
+        Args:
+          filename:
+            The name of the file to load the YAML workflow from
+          yaml:
+            Pre-loaded YAML of a workflow
+          from_file:
+            Flag to determine if the YAML has already been loaded or needs to
+            be loaded from disk
+        """
         if from_file and filename is not None:
             return cls.__build_workflow(cls.__load_workflow_from_file(filename))
         elif not from_file and yaml is not None:
@@ -65,6 +100,17 @@ class Rules:
     step: List[Rule] = []
 
     def __init__(self, settings: Settings) -> None:
+        """A collection of all of the types of rules.
+
+        Rules is used as a collection of which Rules apply to which parts of the
+        workflow. It also assists in making sure the Rules that apply to multiple
+        types are not skipped.
+
+        Args:
+          settings:
+            A Settings object that contains any default, overriden, or custom settings
+            required anywhere in the application.
+        """
         for rule in settings.enabled_rules:
             module_name = rule.split(".")
             module_name = ".".join(module_name[:-1])
@@ -84,6 +130,7 @@ class Rules:
                 print(f"Error loading: {rule}\n{err}")
 
     def list(self) -> None:
+        """Print the loaded Rules."""
         print("===== Loaded Rules =====")
         print("workflow rules:")
         for rule in self.workflow:

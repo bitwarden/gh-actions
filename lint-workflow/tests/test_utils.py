@@ -7,7 +7,7 @@ from ruamel.yaml.comments import CommentedMap
 from .conftest import FIXTURE_DIR
 from .context import src
 
-from src.utils import Action
+from src.utils import Action, Colors, LintFinding, LintLevels
 
 
 def test_action_eq():
@@ -38,3 +38,17 @@ def test_action_ne():
 
     assert (action_a == action_b) == False
     assert (action_a != action_b) == True
+
+
+def test_lint_level():
+    warning = LintLevels.WARNING
+    assert warning.code == 1
+    assert warning.color == Colors.yellow
+
+
+def test_lint_finding():
+    warning = LintFinding(level=LintLevels.WARNING)
+    assert str(warning) == '\x1b[33mwarning\x1b[0m <no description>'
+
+    error = LintFinding(level=LintLevels.ERROR)
+    assert str(error) == '\x1b[31merror\x1b[0m <no description>'

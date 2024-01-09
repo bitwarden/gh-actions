@@ -15,6 +15,7 @@ black = "*"
 pytest = "*"
 coverage = "*"
 pytest-cov = "*"
+pylint = "*"
 
 [requires]
 python_version = "3.11"

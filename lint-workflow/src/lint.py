@@ -33,7 +33,10 @@ class LinterCmd:
           subparsers:
             The main argument parser to add sub commands and arguments to
         """
-        parser_lint = subparsers.add_parser("lint", help="lint help")
+        parser_lint = subparsers.add_parser(
+            "lint",
+            help="Verify that a GitHub Action Workflow follows all of the Rules."
+        )
         parser_lint.add_argument(
             "-s",
             "--strict",

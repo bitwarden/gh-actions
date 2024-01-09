@@ -8,6 +8,7 @@ from .utils import LintFinding, LintLevels, Settings
 
 class Rule:
     """Base class of a Rule to extend to create a linting Rule."""
+
     message: str = "error"
     on_fail: str = "error"
     compatibility: List[Union[Workflow, Job, Step]] = [Workflow, Job, Step]

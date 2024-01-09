@@ -11,11 +11,7 @@ from src.utils import Action, Colors, LintFinding, LintLevels
 
 
 def test_action_eq():
-    action_def = {
-        "name": "bitwarden/sm-action",
-        "version": "1.0.0",
-        "sha": "some-sha"
-    }
+    action_def = {"name": "bitwarden/sm-action", "version": "1.0.0", "sha": "some-sha"}
 
     action_a = Action(**action_def)
     action_b = Action(**action_def)
@@ -25,16 +21,8 @@ def test_action_eq():
 
 
 def test_action_ne():
-    action_a = Action(
-        name = "bitwarden/sm-action",
-        version = "1.0.0",
-        sha = "some-sha"
-    )
-    action_b = Action(
-        name = "bitwarden/sm-action",
-        version = "1.1.0",
-        sha = "some-other-sha"
-    )
+    action_a = Action(name="bitwarden/sm-action", version="1.0.0", sha="some-sha")
+    action_b = Action(name="bitwarden/sm-action", version="1.1.0", sha="some-other-sha")
 
     assert (action_a == action_b) == False
     assert (action_a != action_b) == True
@@ -48,7 +36,7 @@ def test_lint_level():
 
 def test_lint_finding():
     warning = LintFinding(level=LintLevels.WARNING)
-    assert str(warning) == '\x1b[33mwarning\x1b[0m <no description>'
+    assert str(warning) == "\x1b[33mwarning\x1b[0m <no description>"
 
     error = LintFinding(level=LintLevels.ERROR)
-    assert str(error) == '\x1b[31merror\x1b[0m <no description>'
+    assert str(error) == "\x1b[31merror\x1b[0m <no description>"

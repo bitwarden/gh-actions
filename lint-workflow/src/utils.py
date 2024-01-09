@@ -20,12 +20,14 @@ class Colors:
 @dataclass
 class LintLevel:
     """Class to contain the numeric level and color of linting."""
+
     code: int
     color: Colors
 
 
 class LintLevels(LintLevel, Enum):
     """Collection of the different types of LintLevels available."""
+
     NONE = 0, Colors.white
     WARNING = 1, Colors.yellow
     ERROR = 2, Colors.red
@@ -35,9 +37,7 @@ class LintFinding:
     """Represents a problem detected by linting."""
 
     def __init__(
-        self,
-        description: str = "<no description>",
-        level: LintLevel = None
+        self, description: str = "<no description>", level: LintLevel = None
     ) -> None:
         self.description = description
         self.level = level
@@ -54,6 +54,7 @@ class LintFinding:
 @dataclass
 class Action:
     """Collection of the metadata associated with a GitHub Action."""
+
     name: str
     version: str = ""
     sha: str = ""
@@ -89,6 +90,7 @@ class Action:
 
 class SettingsError(Exception):
     """Custom Exception to indicate an error with loading Settings."""
+
     pass
 
 

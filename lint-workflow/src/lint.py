@@ -11,7 +11,7 @@ class LinterCmd:
     def __init__(self, settings: Settings = None) -> None:
         """Command to lint GitHub Action Workflow files
 
-        This class contains logic to lint workflows that are passed in. 
+        This class contains logic to lint workflows that are passed in.
         Supporting logic is supplied to:
           - build out the list of Rules desired
           - select and validate the workflow files to lint
@@ -149,8 +149,7 @@ class LinterCmd:
 
         if len(input_files) > 0:
             return_code = reduce(
-                lambda a, b: a if a > b else b,
-                map(self.lint_file, files)
+                lambda a, b: a if a > b else b, map(self.lint_file, files)
             )
 
             if return_code == 1 and not strict:

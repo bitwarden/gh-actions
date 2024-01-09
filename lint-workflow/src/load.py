@@ -16,6 +16,7 @@ yaml = YAML()
 
 class WorkflowBuilderError(Exception):
     """Custom Exception to indicate an error with the WorkflowBuilder."""
+
     pass
 
 

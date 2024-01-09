@@ -16,19 +16,31 @@ def settings():
 def test_get_max_error_level(settings):
     linter = LinterCmd(settings=settings)
 
-    assert linter.get_max_error_level([
-        LintFinding(level=LintLevels.WARNING),
-        LintFinding(level=LintLevels.WARNING)
-    ]) == 1
+    assert (
+        linter.get_max_error_level(
+            [
+                LintFinding(level=LintLevels.WARNING),
+                LintFinding(level=LintLevels.WARNING),
+            ]
+        )
+        == 1
+    )
 
-    assert linter.get_max_error_level([
-        LintFinding(level=LintLevels.ERROR),
-        LintFinding(level=LintLevels.ERROR)
-    ]) == 2
+    assert (
+        linter.get_max_error_level(
+            [LintFinding(level=LintLevels.ERROR), LintFinding(level=LintLevels.ERROR)]
+        )
+        == 2
+    )
 
-    assert linter.get_max_error_level([
-        LintFinding(level=LintLevels.ERROR),
-        LintFinding(level=LintLevels.ERROR),
-        LintFinding(level=LintLevels.WARNING),
-        LintFinding(level=LintLevels.WARNING)
-    ]) == 2
+    assert (
+        linter.get_max_error_level(
+            [
+                LintFinding(level=LintLevels.ERROR),
+                LintFinding(level=LintLevels.ERROR),
+                LintFinding(level=LintLevels.WARNING),
+                LintFinding(level=LintLevels.WARNING),
+            ]
+        )
+        == 2
+    )

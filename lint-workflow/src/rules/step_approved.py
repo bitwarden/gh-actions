@@ -63,7 +63,7 @@ class RuleStepUsesApproved(Rule):
                 run: echo "test"
 
         In this example, 'actions/checkout' must be on the pre-approved list
-        and the metadata must match in order to succeed. The other three 
+        and the metadata must match in order to succeed. The other three
         Steps will be skipped.
         """
         if self.skip(obj):

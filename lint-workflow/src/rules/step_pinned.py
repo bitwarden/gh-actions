@@ -36,7 +36,7 @@ class RuleStepUsesPinned(Rule):
         break the pipelines or be the entry point to a supply chain attack.
 
         Pinning internal Actions to branches allow for less updates as work
-        is done on those repos. This is mainly to support our Action 
+        is done on those repos. This is mainly to support our Action
         monorepo architecture of our Actions.
 
         Example:
@@ -52,7 +52,7 @@ class RuleStepUsesPinned(Rule):
         - name: Test Run Action
           run: echo "test"
 
-        In this example, 'actions/checkout' must be pinned to the full commit 
+        In this example, 'actions/checkout' must be pinned to the full commit
         of the tag while 'bitwarden/gh-actions/get-keyvault-secrets' must be
         pinned to 'main'. The other two Steps will be skipped.
         """

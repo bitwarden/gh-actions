@@ -187,4 +187,3 @@ class ActionsCmd:
                 updated_actions[action.name] = latest_release
 
         self.save_actions(updated_actions, filename)
-

@@ -1,5 +1,4 @@
 """This psuedo-module is essentially configuration-as-code."""
-
 import json
 
 

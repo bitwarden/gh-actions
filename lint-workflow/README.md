@@ -49,12 +49,22 @@ pytest tests --cov=src
 
 ### Code Reformatting
 
-We strictly adhere to PEP8 and use `black` to maintain this adherence. `black` should be run on any change being merged
+We adhere to PEP8 and use `black` to maintain this adherence. `black` should be run on any change being merged
 to `main`.
 
 ```
 pipenv shell
 black .
+```
+
+### Linting
+
+We loosely use [Google's Python style guide](https://google.github.io/styleguide/pyguide.html), but yield to 
+`black` when there is a conflict
+
+```
+pipenv shell
+pylint --rcfile pylintrc src/ tests/
 ```
 
 ### Add a new Rule

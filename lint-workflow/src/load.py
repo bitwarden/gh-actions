@@ -1,3 +1,4 @@
+"""Module to load for Worflows and Rules."""
 import importlib
 from typing import List
 
@@ -15,12 +16,14 @@ yaml = YAML()
 
 
 class WorkflowBuilderError(Exception):
-    """Custom Exception to indicate an error with the WorkflowBuilder."""
+    """Exception to indicate an error with the WorkflowBuilder."""
 
     pass
 
 
 class WorkflowBuilder:
+    """Collection of methods to build Workflow objects."""
+
     @classmethod
     def __load_workflow_from_file(cls, filename: str) -> CommentedMap:
         """Load YAML from disk.
@@ -34,7 +37,7 @@ class WorkflowBuilder:
           yaml file. It includes the comments as a part of their respective
           objects (depending on their location in the file).
         """
-        with open(filename) as file:
+        with open(filename, encoding="utf8") as file:
             return yaml.load(file)
 
     @classmethod
@@ -69,7 +72,7 @@ class WorkflowBuilder:
 
     @classmethod
     def build(
-        cls, filename: str = None, yaml: CommentedMap = None, from_file: bool = True
+        cls, filename: str = None, workflow: CommentedMap = None, from_file: bool = True
     ) -> Workflow:
         """Build a Workflow from either code or a file.
 
@@ -87,25 +90,33 @@ class WorkflowBuilder:
         """
         if from_file and filename is not None:
             return cls.__build_workflow(cls.__load_workflow_from_file(filename))
-        elif not from_file and yaml is not None:
-            return cls.__build_workflow(yaml)
+        elif not from_file and workflow is not None:
+            return cls.__build_workflow(workflow)
 
-        raise WorkflowBuilderException(
+        raise WorkflowBuilderError(
             "The workflow must either be built from a file or from a CommentedMap"
         )
 
 
+class LoadRulesError(Exception):
+    """Exception to indicate an error with loading rules."""
+
+    pass
+
+
 class Rules:
+    """A collection of all of the types of rules.
+
+    Rules is used as a collection of which Rules apply to which parts of the
+    workflow. It also assists in making sure the Rules that apply to multiple
+    types are not skipped.
+    """
     workflow: List[Rule] = []
     job: List[Rule] = []
     step: List[Rule] = []
 
     def __init__(self, settings: Settings) -> None:
-        """A collection of all of the types of rules.
-
-        Rules is used as a collection of which Rules apply to which parts of the
-        workflow. It also assists in making sure the Rules that apply to multiple
-        types are not skipped.
+        """Initializes the Rules 
 
         Args:
           settings:
@@ -127,7 +138,7 @@ class Rules:
                     self.job.append(rule_inst)
                 if Step in rule_inst.compatibility:
                     self.step.append(rule_inst)
-            except Exception as err:
+            except LoadRulesError as err:
                 print(f"Error loading: {rule}\n{err}")
 
     def list(self) -> None:

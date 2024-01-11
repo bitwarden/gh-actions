@@ -1,9 +1,7 @@
 """This is the entrypoint module for the workflow-linter CLI."""
-
 import argparse
 import sys
 
-# from src.rules import workflow_rules, job_rules, step_rules, uses_step_rules, run_step_rules
 import settings
 from src.actions import ActionsCmd
 from src.utils import Settings, SettingsError

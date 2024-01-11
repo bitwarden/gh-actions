@@ -16,6 +16,7 @@ pytest = "*"
 coverage = "*"
 pytest-cov = "*"
 pylint = "*"
+pytype = "*"
 
 [requires]
 python_version = "3.11"

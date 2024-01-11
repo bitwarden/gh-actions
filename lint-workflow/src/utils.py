@@ -1,4 +1,5 @@
-from dataclasses import asdict, dataclass
+"""Module of a collection of random utilities."""
+from dataclasses import dataclass
 from enum import Enum
 from typing import Self
 
@@ -48,7 +49,10 @@ class LintFinding:
         Returns:
         String representation of itself.
         """
-        return f"\033[{self.level.color}{self.level.name.lower()}\033[0m {self.description}"
+        return (
+            f"\033[{self.level.color}{self.level.name.lower()}\033[0m "
+            f"{self.description}"
+        )
 
 
 @dataclass
@@ -95,13 +99,14 @@ class SettingsError(Exception):
 
 
 class Settings:
+    """Class that contains configuration-as-code for any portion of the app."""
     enabled_rules: list[str]
     approved_actions: dict[str, Action]
 
     def __init__(
         self,
-        enabled_rules: list[str] = [],
-        approved_actions: dict[str, dict[str, str]] = {},
+        enabled_rules: list[str] = None,
+        approved_actions: dict[str, dict[str, str]] = None,
     ):
         """Settings object that can be overriden in settings.py.
 
@@ -113,6 +118,12 @@ class Settings:
             The colleciton of GitHub Actions that are pre-approved to be used
             in any workflow (Required by src.rules.step_approved)
         """
+        if enabled_rules is None:
+            enabled_rules = []
+
+        if approved_actions is None:
+            approved_actions = {}
+
         self.enabled_rules = enabled_rules
         self.approved_actions = {
             name: Action(**action) for name, action in approved_actions.items()

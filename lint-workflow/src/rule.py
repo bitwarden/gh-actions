@@ -1,9 +1,15 @@
+"""Base Rule class to build rules by extending."""
 from typing import Union, List
 
 from .models.workflow import Workflow
 from .models.job import Job
 from .models.step import Step
 from .utils import LintFinding, LintLevels, Settings
+
+
+class RuleExecutionException(Exception):
+    """Exeception for the Base Rule class."""
+    pass
 
 
 class Rule:
@@ -24,7 +30,7 @@ class Rule:
         Returns:
           The success/failure of the result of the Rule ran on the input.
         """
-        return False, self.message
+        return False, f"{obj.name}: {self.message}"
 
     def build_lint_message(self, message: str, obj: Union[Workflow, Job, Step]) -> str:
         """Build the lint failure message.
@@ -83,7 +89,7 @@ class Rule:
 
             if passed:
                 return None
-        except Exception as err:
+        except RuleExecutionException as err:
             return LintFinding(
                 self.build_lint_message(
                     f"failed to apply {type(self).__name__}\n{err}", obj

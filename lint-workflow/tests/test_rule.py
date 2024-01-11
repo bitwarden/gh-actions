@@ -1,10 +1,8 @@
+"""Tests src/rule.py."""
 import pytest
 from typing import Union
 
 from ruamel.yaml import YAML
-
-from .conftest import FIXTURE_DIR
-from .context import src
 
 from src.load import WorkflowBuilder
 from src.rule import Rule
@@ -14,8 +12,8 @@ from src.models import Workflow, Job, Step
 yaml = YAML()
 
 
-@pytest.fixture
-def correct_workflow():
+@pytest.fixture(name="correct_workflow")
+def fixture_correct_workflow():
     workflow = """\
 ---
 name: Test Workflow
@@ -31,11 +29,11 @@ jobs:
       - name: Test
         uses: actions/checkout@main
 """
-    return WorkflowBuilder.build(yaml=yaml.load(workflow), from_file=False)
+    return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
 
 
-@pytest.fixture
-def incorrect_workflow():
+@pytest.fixture(name="incorrect_workflow")
+def fixture_incorrect_workflow():
     workflow = """\
 ---
 on:
@@ -47,7 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@main
 """
-    return WorkflowBuilder.build(yaml=yaml.load(workflow), from_file=False)
+    return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
 
 
 class RuleStep(Rule):
@@ -67,28 +65,32 @@ class RuleNameExists(Rule):
         return obj.name is not None, self.message
 
 
+class TestException(Exception):
+    """Test Exception."""
+    pass
+
+
 class RuleException(Rule):
     def __init__(self):
         self.message = "should raise Exception"
         self.on_fail = "error"
 
     def fn(self, obj: Union[Workflow, Job, Step]) -> bool:
-        raise Exception("test Exception")
-        return True, self.message
+        raise TestException("test Exception")
 
 
-@pytest.fixture
-def step_rule():
+@pytest.fixture(name="step_rule")
+def fixture_step_rule():
     return RuleStep()
 
 
-@pytest.fixture
-def exists_rule():
+@pytest.fixture(name="exists_rule")
+def fixture_exists_rule():
     return RuleNameExists()
 
 
-@pytest.fixture
-def exception_rule():
+@pytest.fixture(name="exception_rule")
+def fixture_exception_rule():
     return RuleException()
 
 
@@ -119,9 +121,9 @@ def test_rule_compatibility(step_rule, correct_workflow):
 
 
 def test_correct_rule_execution(exists_rule, correct_workflow):
-    assert exists_rule.execute(correct_workflow) == None
-    assert exists_rule.execute(correct_workflow.jobs["job-key"]) == None
-    assert exists_rule.execute(correct_workflow.jobs["job-key"].steps[0]) == None
+    assert exists_rule.execute(correct_workflow) is None
+    assert exists_rule.execute(correct_workflow.jobs["job-key"]) is None
+    assert exists_rule.execute(correct_workflow.jobs["job-key"].steps[0]) is None
 
 
 def test_incorrect_rule_execution(exists_rule, incorrect_workflow):

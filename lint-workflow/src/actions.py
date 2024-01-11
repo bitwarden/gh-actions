@@ -1,3 +1,4 @@
+"""Module providing Actions subcommand to manage list of pre-approved Actions."""
 import argparse
 import json
 import logging
@@ -7,20 +8,24 @@ import urllib3 as urllib
 from dataclasses import asdict
 from typing import Union, Tuple
 
-from src.utils import Colors, Settings, SettingsError, Action
+from src.utils import Colors, Settings, Action
 
 
 class ActionsCmd:
+    """Command to manage the pre-approved list of Actions
+
+    This class contains logic to manage the list of pre-approved actions
+    to include:
+      - updating the action data in the list
+      - adding a new pre-approved action to the list with the data from the
+        latest release
+
+    This class also includes supporting logic to interact with GitHub
+
+    """
+
     def __init__(self, settings: Settings = None) -> None:
-        """Command to manage the pre-approved list of Actions
-
-        This class contains logic to manage the list of pre-approved actions
-        to include:
-          - updating the action data in the list
-          - adding a new pre-approved action to the list with the data from the
-            latest release
-
-        This class also includes supporting logic to interact with GitHub
+        """Initialize the the ActionsCmd class.
 
         Args:
           settings:
@@ -41,8 +46,7 @@ class ActionsCmd:
             The main argument parser to add sub commands and arguments to
         """
         parser_actions = subparsers.add_parser(
-            "actions",
-            help="Add or Update Actions in the pre-approved list."
+            "actions", help="Add or Update Actions in the pre-approved list."
         )
         parser_actions.add_argument(
             "-o", "--output", action="store", default="actions.json"
@@ -50,7 +54,7 @@ class ActionsCmd:
         subparsers_actions = parser_actions.add_subparsers(
             required=True, dest="actions_command"
         )
-        parser_actions_update = subparsers_actions.add_parser(
+        subparsers_actions.add_parser(
             "update", help="update action versions"
         )
         parser_actions_add = subparsers_actions.add_parser(
@@ -75,13 +79,16 @@ class ActionsCmd:
 
         if response.status == 403 and response.reason == "rate limit exceeded":
             logging.error(
-                f"Failed to call GitHub API for action: {action_name} due to rate limit exceeded."
+                "Failed to call GitHub API for action: %s due to rate limit exceeded.",
+                action_name
             )
             return None
 
         if response.status == 401 and response.reason == "Unauthorized":
             logging.error(
-                f"Failed to call GitHub API for action: {action_name}: {response.data}."
+                "Failed to call GitHub API for action: %s: %s.",
+                action_name,
+                response.data
             )
             return None
 
@@ -94,8 +101,9 @@ class ActionsCmd:
         response = self.get_github_api_response(url, action.name)
 
         if response is None:
-            # Handle github api limit exceed by returning that the action exists without actually checking
-            # to prevent false errors on linter output. Only show it as an linter error.
+            # Handle github api limit exceed by returning that the action exists
+            # without actually checking to prevent false errors on linter output. Only
+            # show it as an linter error.
             return True
 
         if response.status == 404:
@@ -141,7 +149,7 @@ class ActionsCmd:
 
         This is used to track the list of approved actions.
         """
-        with open(filename, "w") as action_file:
+        with open(filename, "w", encoding="utf8") as action_file:
             converted_updated_actions = {
                 name: asdict(action) for name, action in updated_actions.items()
             }
@@ -182,7 +190,8 @@ class ActionsCmd:
                     print(
                         (
                             f" - {action.name} \033[{Colors.yellow}changed\033[0m: "
-                            f"({action.version}, {action.sha}) => ({latest_release.version}, {latest_release.sha})"
+                            f"({action.version}, {action.sha}) => ("
+                            f"{latest_release.version}, {latest_release.sha})"
                         )
                     )
                 else:

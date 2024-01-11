@@ -1,20 +1,24 @@
+"""Module providing Lint subcommand to run custom linting rules against GitHub Action
+Workflows."""
 import argparse
 import os
 
 from functools import reduce
 
 from src.load import WorkflowBuilder, Rules
-from src.utils import Colors, LintFinding, Settings, SettingsError
+from src.utils import LintFinding, Settings
 
 
 class LinterCmd:
-    def __init__(self, settings: Settings = None) -> None:
-        """Command to lint GitHub Action Workflow files
+    """Command to lint GitHub Action Workflow files
 
-        This class contains logic to lint workflows that are passed in.
-        Supporting logic is supplied to:
-          - build out the list of Rules desired
-          - select and validate the workflow files to lint
+    This class contains logic to lint workflows that are passed in.
+    Supporting logic is supplied to:
+      - build out the list of Rules desired
+      - select and validate the workflow files to lint
+      """
+    def __init__(self, settings: Settings = None) -> None:
+        """Initailized the LinterCmd class.
 
         Args:
           settings:
@@ -35,7 +39,7 @@ class LinterCmd:
         """
         parser_lint = subparsers.add_parser(
             "lint",
-            help="Verify that a GitHub Action Workflow follows all of the Rules."
+            help="Verify that a GitHub Action Workflow follows all of the Rules.",
         )
         parser_lint.add_argument(
             "-s",
@@ -86,19 +90,18 @@ class LinterCmd:
         max_error_level = 0
 
         print(f"Linting: {filename}")
-        with open(filename) as file:
-            workflow = WorkflowBuilder.build(filename)
+        workflow = WorkflowBuilder.build(filename)
 
-            for rule in self.rules.workflow:
-                findings.append(rule.execute(workflow))
+        for rule in self.rules.workflow:
+            findings.append(rule.execute(workflow))
 
-            for job_key, job in workflow.jobs.items():
-                for rule in self.rules.job:
-                    findings.append(rule.execute(job))
+        for _, job in workflow.jobs.items():
+            for rule in self.rules.job:
+                findings.append(rule.execute(job))
 
-                for step in job.steps:
-                    for rule in self.rules.step:
-                        findings.append(rule.execute(step))
+            for step in job.steps:
+                for rule in self.rules.step:
+                    findings.append(rule.execute(step))
 
         findings = list(filter(lambda a: a is not None, findings))
 
@@ -128,7 +131,7 @@ class LinterCmd:
             if os.path.isfile(path):
                 workflow_files.append(path)
             elif os.path.isdir(path):
-                for subdir, dirs, files in os.walk(path):
+                for subdir, _, files in os.walk(path):
                     for filename in files:
                         filepath = subdir + os.sep + filename
                         if filepath.endswith((".yml", ".yaml")):

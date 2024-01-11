@@ -7,6 +7,16 @@ tasks:
     silent: true
     cmds:
       - pipenv run black .
+
+  lint:
+    silent: true
+    cmds:
+      - pipenv run pylint --rcflie pylintrc {{.CLI_ARGS}}
+
+  type:
+    silent: true
+    cmds:
+      - pipenv run pytype src
   
   test:unit:
     cmds:

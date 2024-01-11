@@ -1,5 +1,6 @@
+"""This psuedo-module is essentially configuration-as-code."""
+
 import json
-import os
 
 
 enabled_rules = [
@@ -11,5 +12,5 @@ enabled_rules = [
 ]
 
 
-with open("actions.json", "r") as action_file:
+with open("actions.json", "r", encoding="utf8") as action_file:
     approved_actions = json.loads(action_file.read())

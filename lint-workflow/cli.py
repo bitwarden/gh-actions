@@ -1,8 +1,7 @@
-import sys
+"""This is the entrypoint module for the workflow-linter CLI."""
+
 import argparse
-import os
-import yaml
-import json
+import sys
 
 # from src.rules import workflow_rules, job_rules, step_rules, uses_step_rules, run_step_rules
 import settings
@@ -15,16 +14,16 @@ try:
     local_settings = Settings(
         enabled_rules=settings.enabled_rules, approved_actions=settings.approved_actions
     )
-except:
+except Exception as exc:
     raise SettingsError(
         (
             "Required settings: enabled_rules, approved_actions\n"
             "Please see documentation for more information"
         )
-    )
+    ) from exc
 
 
-def main(input_args=None):
+def main(input_args: list[str] = None) -> int:
     """CLI utility to lint GitHub Action Workflows.
 
     A CLI utility to enforce coding standards on GitHub Action workflows. The
@@ -55,11 +54,11 @@ def main(input_args=None):
     if args.command == "actions":
         if args.actions_command == "add":
             return actions_cmd.add(args.name, args.output)
-        elif args.actions_command == "update":
+        if args.actions_command == "update":
             return actions_cmd.update(args.output)
-        return -1
+
+    return -1
 
 
 if __name__ == "__main__":
-    return_code = main()
-    sys.exit(return_code)
+    sys.exit(main())

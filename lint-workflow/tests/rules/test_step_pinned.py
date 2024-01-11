@@ -34,7 +34,7 @@ jobs:
       - name: Test Run Action
         run: echo "test"
 """
-    return WorkflowBuilder.build(yaml=yaml.load(workflow), from_file=False)
+    return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
 
 
 @pytest.fixture
@@ -57,7 +57,7 @@ jobs:
       - name: Test Internal Commit
         uses: bitwarden/gh-actions/get-keyvault-secrets@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 """
-    return WorkflowBuilder.build(yaml=yaml.load(workflow), from_file=False)
+    return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
 
 
 @pytest.fixture

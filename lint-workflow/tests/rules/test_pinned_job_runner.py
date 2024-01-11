@@ -24,7 +24,7 @@ jobs:
     steps:
       - run: echo test
 """
-    return WorkflowBuilder.build(yaml=yaml.load(workflow), from_file=False)
+    return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
 
 
 @pytest.fixture
@@ -40,7 +40,7 @@ jobs:
     steps:
       - run: echo test
 """
-    return WorkflowBuilder.build(yaml=yaml.load(workflow), from_file=False)
+    return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
 
 
 @pytest.fixture

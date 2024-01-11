@@ -5,7 +5,7 @@ from typing import Union
 from ruamel.yaml import YAML
 
 from src.load import WorkflowBuilder
-from src.rule import Rule
+from src.rule import Rule, RuleExecutionException
 from src.models import Workflow, Job, Step
 
 
@@ -65,18 +65,13 @@ class RuleNameExists(Rule):
         return obj.name is not None, self.message
 
 
-class TestException(Exception):
-    """Test Exception."""
-    pass
-
-
 class RuleException(Rule):
     def __init__(self):
         self.message = "should raise Exception"
         self.on_fail = "error"
 
     def fn(self, obj: Union[Workflow, Job, Step]) -> bool:
-        raise TestException("test Exception")
+        raise RuleExecutionException("test Exception")
 
 
 @pytest.fixture(name="step_rule")

@@ -54,7 +54,7 @@ jobs:
       - name: Test Run Action
         run: echo "test"
 """
-    return WorkflowBuilder.build(yaml=yaml.load(workflow), from_file=False)
+    return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
 
 
 @pytest.fixture
@@ -74,7 +74,7 @@ jobs:
       - name: Out of date action
         uses: actions/download-artifact@7a1cd3216ca9260cd8022db641d960b1db4d1be4 # v4.0.0
 """
-    return WorkflowBuilder.build(yaml=yaml.load(workflow), from_file=False)
+    return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
 
 
 @pytest.fixture

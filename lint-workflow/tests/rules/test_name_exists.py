@@ -1,5 +1,4 @@
 import pytest
-
 from ..conftest import FIXTURE_DIR
 from ..context import src
 

@@ -12,4 +12,4 @@ enabled_rules = [
 
 
 with open("actions.json", "r", encoding="utf8") as action_file:
-    approved_actions = json.loads(action_file.read())
+    approved_actions = json.load(action_file)

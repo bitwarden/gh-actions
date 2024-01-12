@@ -37,11 +37,7 @@ class LintLevels(LintLevel, Enum):
 class LintFinding:
     """Represents a problem detected by linting."""
 
-    def __init__(
-        self,
-        description: str,
-        level: LintLevels
-    ) -> None:
+    def __init__(self, description: str, level: LintLevels) -> None:
         self.description = description
         self.level = level
 

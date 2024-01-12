@@ -30,7 +30,9 @@ class LinterCmd:
         self.rules = Rules(settings=settings)
 
     @staticmethod
-    def extend_parser(subparsers: argparse._SubParsersAction) -> argparse._SubParsersAction:
+    def extend_parser(
+        subparsers: argparse._SubParsersAction,
+    ) -> argparse._SubParsersAction:
         """Extends the CLI subparser with the options for LintCmd.
 
         Add 'lint' as a sub command along with its options and arguments

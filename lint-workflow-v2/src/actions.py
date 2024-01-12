@@ -35,7 +35,9 @@ class ActionsCmd:
         self.settings = settings
 
     @staticmethod
-    def extend_parser(subparsers: argparse._SubParsersAction) -> argparse._SubParsersAction:
+    def extend_parser(
+        subparsers: argparse._SubParsersAction,
+    ) -> argparse._SubParsersAction:
         """Extends the CLI subparser with the options for ActionCmd.
 
         Add 'actions add' and 'actions update' to the CLI as sub-commands

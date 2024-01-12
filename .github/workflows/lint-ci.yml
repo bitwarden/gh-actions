@@ -55,3 +55,11 @@ jobs:
       - name: Test lint
         working-directory: lint-workflow-v2
         run: pipenv run pytest tests --cov=src
+
+      - name: Check type hinting
+        working-directory: lint-workflow-v2
+        run: pipenv run pytype src
+
+      - name: Simple end-to-end testing
+        working-directory: lint-workflow-v2
+        run: pipenv run python cli.py -v lint --files tests/fixtures/test.yml

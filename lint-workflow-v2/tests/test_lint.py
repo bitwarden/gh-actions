@@ -16,8 +16,8 @@ def test_get_max_error_level(settings):
     assert (
         linter.get_max_error_level(
             [
-                LintFinding(level=LintLevels.WARNING),
-                LintFinding(level=LintLevels.WARNING),
+                LintFinding(description="", level=LintLevels.WARNING),
+                LintFinding(description="", level=LintLevels.WARNING),
             ]
         )
         == 1
@@ -25,7 +25,10 @@ def test_get_max_error_level(settings):
 
     assert (
         linter.get_max_error_level(
-            [LintFinding(level=LintLevels.ERROR), LintFinding(level=LintLevels.ERROR)]
+            [
+                LintFinding(description="", level=LintLevels.ERROR),
+                LintFinding(description="", level=LintLevels.ERROR),
+            ]
         )
         == 2
     )
@@ -33,10 +36,10 @@ def test_get_max_error_level(settings):
     assert (
         linter.get_max_error_level(
             [
-                LintFinding(level=LintLevels.ERROR),
-                LintFinding(level=LintLevels.ERROR),
-                LintFinding(level=LintLevels.WARNING),
-                LintFinding(level=LintLevels.WARNING),
+                LintFinding(description="", level=LintLevels.ERROR),
+                LintFinding(description="", level=LintLevels.ERROR),
+                LintFinding(description="", level=LintLevels.WARNING),
+                LintFinding(description="", level=LintLevels.WARNING),
             ]
         )
         == 2

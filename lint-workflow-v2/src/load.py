@@ -75,7 +75,7 @@ class WorkflowBuilder:
         cls,
         filename: Optional[str] = None,
         workflow: Optional[CommentedMap] = None,
-        from_file: bool = True
+        from_file: bool = True,
     ) -> Workflow:
         """Build a Workflow from either code or a file.
 

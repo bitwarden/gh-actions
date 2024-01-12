@@ -27,8 +27,8 @@ def test_lint_level():
 
 
 def test_lint_finding():
-    warning = LintFinding(level=LintLevels.WARNING)
+    warning = LintFinding(description="<no description>", level=LintLevels.WARNING)
     assert str(warning) == "\x1b[33mwarning\x1b[0m <no description>"
 
-    error = LintFinding(level=LintLevels.ERROR)
+    error = LintFinding(description="<no description>", level=LintLevels.ERROR)
     assert str(error) == "\x1b[31merror\x1b[0m <no description>"

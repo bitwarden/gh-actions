@@ -36,9 +36,9 @@ pipenv shell
 
 ### Testing
 
-All built-in `src/rules` should have 100% code coverage and we should shoot for an overall coverage of 80%+. 
-We are lax on the 
-[imperative shell](https://www.destroyallsoftware.com/screencasts/catalog/functional-core-imperative-shell) 
+All built-in `src/rules` should have 100% code coverage and we should shoot for an overall coverage of 80%+.
+We are lax on the
+[imperative shell](https://www.destroyallsoftware.com/screencasts/catalog/functional-core-imperative-shell)
 (code interacting with other systems; ie. disk, network, etc), but we strive to maintain a high coverage over the
 funcationl core (objects and models).
 
@@ -59,7 +59,7 @@ black .
 
 ### Linting
 
-We loosely use [Google's Python style guide](https://google.github.io/styleguide/pyguide.html), but yield to 
+We loosely use [Google's Python style guide](https://google.github.io/styleguide/pyguide.html), but yield to
 `black` when there is a conflict
 
 ```
@@ -72,7 +72,7 @@ pylint --rcfile pylintrc src/ tests/
 A new Rule is created by extending the Rule base class and overriding the `fn(obj: Union[Workflow, Job, Step])` method.
 Available attributes of `Workflows`, `Jobs` and `Steps` can be found in their definitons under `src/models`.
 
-For a simple example, we'll take a look at enforcing the existence of the `name` key in a Job. This is already done by 
+For a simple example, we'll take a look at enforcing the existence of the `name` key in a Job. This is already done by
 default with the src.rules.name_exists.RuleNameExists, but provides a simple enough example to walk through.
 
 ```python

@@ -7,7 +7,6 @@ from ruamel.yaml import YAML
 from src.models.step import Step
 
 
-
 @pytest.fixture(name="default_step")
 def fixture_default_step():
     step_str = """\

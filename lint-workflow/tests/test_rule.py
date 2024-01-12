@@ -5,8 +5,10 @@ from typing import Union
 from ruamel.yaml import YAML
 
 from src.load import WorkflowBuilder
+from src.models.job import Job
+from src.models.step import Step
+from src.models.workflow import Workflow
 from src.rule import Rule, RuleExecutionException
-from src.models import Workflow, Job, Step
 
 
 yaml = YAML()

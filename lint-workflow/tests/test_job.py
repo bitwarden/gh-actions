@@ -1,11 +1,8 @@
 """Test src/models/job.py."""
 import pytest
 
-from .context import src
-
 from src.models.job import Job
 from src.models.step import Step
-from src.models.workflow import Workflow
 
 
 @pytest.fixture(name="default_job_data")

@@ -1,15 +1,12 @@
-import json
+"""Test src/lint.py."""
 import pytest
-
-from .conftest import FIXTURE_DIR
-from .context import src
 
 from src.lint import LinterCmd
 from src.utils import Settings, LintFinding, LintLevels
 
 
-@pytest.fixture
-def settings():
+@pytest.fixture(name="settings")
+def fixture_settings():
     return Settings()
 
 

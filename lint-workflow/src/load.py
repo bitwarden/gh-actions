@@ -111,12 +111,13 @@ class Rules:
     workflow. It also assists in making sure the Rules that apply to multiple
     types are not skipped.
     """
+
     workflow: List[Rule] = []
     job: List[Rule] = []
     step: List[Rule] = []
 
     def __init__(self, settings: Settings) -> None:
-        """Initializes the Rules 
+        """Initializes the Rules
 
         Args:
           settings:

@@ -54,9 +54,7 @@ class ActionsCmd:
         subparsers_actions = parser_actions.add_subparsers(
             required=True, dest="actions_command"
         )
-        subparsers_actions.add_parser(
-            "update", help="update action versions"
-        )
+        subparsers_actions.add_parser("update", help="update action versions")
         parser_actions_add = subparsers_actions.add_parser(
             "add", help="add action to approved list"
         )
@@ -80,7 +78,7 @@ class ActionsCmd:
         if response.status == 403 and response.reason == "rate limit exceeded":
             logging.error(
                 "Failed to call GitHub API for action: %s due to rate limit exceeded.",
-                action_name
+                action_name,
             )
             return None
 
@@ -88,7 +86,7 @@ class ActionsCmd:
             logging.error(
                 "Failed to call GitHub API for action: %s: %s.",
                 action_name,
-                response.data
+                response.data,
             )
             return None
 

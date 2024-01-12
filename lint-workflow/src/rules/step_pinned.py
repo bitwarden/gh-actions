@@ -23,6 +23,7 @@ class RuleStepUsesPinned(Rule):
     spamming a bunch of PRs across all of our repos when `bitwarden/gh-actions` is
     updated.
     """
+
     def __init__(self, settings: Settings = None) -> None:
         """Constructor for RuleStepUsesPinned to override base Rule.
 

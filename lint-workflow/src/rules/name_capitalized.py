@@ -13,6 +13,7 @@ class RuleNameCapitalized(Rule):
 
     A simple standard to help keep uniformity in naming.
     """
+
     def __init__(self, settings: Settings = None) -> None:
         """Contructor for RuleNameCapitalized to override the Rule class.
 

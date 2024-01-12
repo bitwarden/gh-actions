@@ -17,6 +17,7 @@ class RuleNameExists(Rule):
 
     It also helps with uniformity of runs.
     """
+
     def __init__(self, settings: Settings = None) -> None:
         """Contructor for RuleNameCapitalized to override Rule class.
 

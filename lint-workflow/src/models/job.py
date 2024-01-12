@@ -17,6 +17,7 @@ class Job:
     Rules against. If a new Rule requies a key that is missing, the attribute should
     be added to this class to make it available for use in linting.
     """
+
     runs_on: str = field(metadata=config(field_name="runs-on"))
     key: Optional[str] = None
     name: Optional[str] = None

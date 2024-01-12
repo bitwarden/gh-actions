@@ -16,7 +16,8 @@ class LinterCmd:
     Supporting logic is supplied to:
       - build out the list of Rules desired
       - select and validate the workflow files to lint
-      """
+    """
+
     def __init__(self, settings: Settings = None) -> None:
         """Initailized the LinterCmd class.
 

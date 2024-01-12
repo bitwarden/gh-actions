@@ -22,6 +22,7 @@ class RuleJobEnvironmentPrefix(Rule):
     variables are normally at the top of the file and Step level ones are pretty
     visible when debugging a shell Step.
     """
+
     def __init__(self, settings: Settings = None) -> None:
         """RuleJobEnvironmentPrefix constructor to override the Rule class.
 

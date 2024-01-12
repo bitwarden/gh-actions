@@ -20,6 +20,7 @@ class Workflow:
     See src/models/job.py for an example if the key in the workflow data does not map
     one-to-one in the model (ex. 'with' => 'uses_with')
     """
+
     key: str = ""
     name: Optional[str] = None
     on: Optional[CommentedMap] = None

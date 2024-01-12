@@ -15,6 +15,7 @@ class RuleStepUsesApproved(Rule):
     are required to pass a security review and be added to the pre-approved list to
     check against.
     """
+
     def __init__(self, settings: Settings = None) -> None:
         """Constructor for RuleStepUsesApproved to override Rule class.
 

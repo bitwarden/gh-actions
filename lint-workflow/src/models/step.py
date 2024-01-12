@@ -15,6 +15,7 @@ class Step:
     Rules against. If a new Rule requies a key that is missing, the attribute should
     be added to this class to make it available for use in linting.
     """
+
     key: Optional[int] = None
     job: Optional[str] = None
     name: Optional[str] = None

@@ -100,6 +100,7 @@ class SettingsError(Exception):
 
 class Settings:
     """Class that contains configuration-as-code for any portion of the app."""
+
     enabled_rules: list[str]
     approved_actions: dict[str, Action]
 

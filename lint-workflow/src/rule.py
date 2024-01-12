@@ -9,6 +9,7 @@ from .utils import LintFinding, LintLevels, Settings
 
 class RuleExecutionException(Exception):
     """Exeception for the Base Rule class."""
+
     pass
 
 

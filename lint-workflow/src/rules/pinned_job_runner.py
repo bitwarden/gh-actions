@@ -15,6 +15,7 @@ class RuleJobRunnerVersionPinned(Rule):
     in the past. To avoid this and prevent a single event from breaking the majority of
     our pipelines, we pin the versions.
     """
+
     def __init__(self, settings: Settings = None) -> None:
         """Constructor for RuleJobRunnerVersionPinned to override Rule class.
 

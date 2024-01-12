@@ -1,4 +1,5 @@
-from typing import Union, Tuple
+"""A Rule to enforce Actions are pinned correctly."""
+from typing import List, Tuple, Union
 
 from ..models.job import Job
 from ..models.workflow import Workflow
@@ -8,8 +9,28 @@ from ..utils import LintLevels, Settings
 
 
 class RuleStepUsesPinned(Rule):
+    """Rule to contain the enforcement logic for pinning Actions versions.
+
+    Definition of Internal Action:
+      An Action that exists in the `bitwarden/gh-actions` GitHub Repository.
+
+    For any external Action (any Action that does not fit the above definition of
+    an Internal Action), to mitigate the risks of supply chain attacks in our CI
+    pipelines, we pin any use of an Action to a specific hash that has been verified
+    and pre-approved after a security audit of the version of the Action.
+
+    All Internl Actions, should be pinned to 'main'. This prevents Renovate from
+    spamming a bunch of PRs across all of our repos when `bitwarden/gh-actions` is
+    updated.
+    """
     def __init__(self, settings: Settings = None) -> None:
-        self.message = f"error"
+        """Constructor for RuleStepUsesPinned to override base Rule.
+
+        Args:
+          settings:
+            A Settings object that contains any default, overriden, or custom settings
+            required anywhere in the application.
+        """
         self.on_fail: LintLevels = LintLevels.ERROR
         self.compatibility: List[Union[Workflow, Job, Step]] = [Step]
         self.settings: Settings = settings
@@ -68,10 +89,10 @@ class RuleStepUsesPinned(Rule):
 
         try:
             int(ref, 16)
-        except:
+        except ValueError:
             return False, "Please pin the action to a commit sha"
 
         if len(ref) != 40:
-            return False, f"Please use the full commit sha to pin the action"
+            return False, "Please use the full commit sha to pin the action"
 
         return True, ""

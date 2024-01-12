@@ -15,8 +15,7 @@ class RuleExecutionException(Exception):
 class Rule:
     """Base class of a Rule to extend to create a linting Rule."""
 
-    message: str = "error"
-    on_fail: str = "error"
+    on_fail: LintLevels = LintLevels.ERROR
     compatibility: List[Union[Workflow, Job, Step]] = [Workflow, Job, Step]
     settings: Settings = None
 
@@ -30,7 +29,7 @@ class Rule:
         Returns:
           The success/failure of the result of the Rule ran on the input.
         """
-        return False, f"{obj.name}: {self.message}"
+        return False, f"{obj.name}: <default fail message>"
 
     def build_lint_message(self, message: str, obj: Union[Workflow, Job, Step]) -> str:
         """Build the lint failure message.

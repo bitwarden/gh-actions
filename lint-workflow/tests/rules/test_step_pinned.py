@@ -1,9 +1,7 @@
+"""Test src/rules/step_pinned.py."""
 import pytest
 
 from ruamel.yaml import YAML
-
-from ..conftest import FIXTURE_DIR
-from ..context import src
 
 from src.load import WorkflowBuilder
 from src.rules.step_pinned import RuleStepUsesPinned
@@ -11,8 +9,8 @@ from src.rules.step_pinned import RuleStepUsesPinned
 yaml = YAML()
 
 
-@pytest.fixture
-def correct_workflow():
+@pytest.fixture(name="correct_workflow")
+def fixture_correct_workflow():
     workflow = """\
 ---
 on:
@@ -37,8 +35,8 @@ jobs:
     return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
 
 
-@pytest.fixture
-def incorrect_workflow():
+@pytest.fixture(name="incorrect_workflow")
+def fixture_incorrect_workflow():
     workflow = """\
 ---
 on:
@@ -60,40 +58,40 @@ jobs:
     return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
 
 
-@pytest.fixture
-def rule():
+@pytest.fixture(name="rule")
+def fixture_rule():
     return RuleStepUsesPinned()
 
 
 def test_rule_on_correct_workflow(rule, correct_workflow):
-    result, message = rule.fn(correct_workflow.jobs["job-key"].steps[0])
-    assert result == True
+    result, _ = rule.fn(correct_workflow.jobs["job-key"].steps[0])
+    assert result is True
 
-    result, message = rule.fn(correct_workflow.jobs["job-key"].steps[1])
-    assert result == True
+    result, _ = rule.fn(correct_workflow.jobs["job-key"].steps[1])
+    assert result is True
 
-    result, message = rule.fn(correct_workflow.jobs["job-key"].steps[2])
-    assert result == True
+    result, _ = rule.fn(correct_workflow.jobs["job-key"].steps[2])
+    assert result is True
 
-    result, message = rule.fn(correct_workflow.jobs["job-key"].steps[3])
-    assert result == True
+    result, _ = rule.fn(correct_workflow.jobs["job-key"].steps[3])
+    assert result is True
 
 
 def test_rule_on_incorrect_workflow_external_branch(rule, incorrect_workflow):
     result, message = rule.fn(incorrect_workflow.jobs["job-key"].steps[0])
-    assert result == False
+    assert result is False
     assert "Please pin the action" in message
 
 
 def test_rule_on_incorrect_workflow_hex(rule, incorrect_workflow):
     result, message = rule.fn(incorrect_workflow.jobs["job-key"].steps[1])
-    assert result == False
+    assert result is False
     assert "Please use the full commit sha" in message
 
 
 def test_rule_on_incorrect_workflow_internal_commit(rule, incorrect_workflow):
     result, message = rule.fn(incorrect_workflow.jobs["job-key"].steps[2])
-    assert result == False
+    assert result is False
     assert "Please pin to main" in message
 
 

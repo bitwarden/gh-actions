@@ -30,7 +30,7 @@ class RuleJobEnvironmentPrefix(Rule):
             A Settings object that contains any default, overriden, or custom settings
             required anywhere in the application.
         """
-        self.message: str = "Job Environment vars should start with and underscore:"
+        self.message: str = "Job environment vars should start with and underscore:"
         self.on_fail: LintLevels = LintLevels.ERROR
         self.compatibility: List[Union[Workflow, Job, Step]] = [Job]
         self.settings: Settings = settings

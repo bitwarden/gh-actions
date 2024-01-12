@@ -16,7 +16,13 @@ class RuleStepUsesApproved(Rule):
     check against.
     """
     def __init__(self, settings: Settings = None) -> None:
-        self.message = "error"
+        """Constructor for RuleStepUsesApproved to override Rule class.
+
+        Args:
+          settings:
+            A Settings object that contains any default, overriden, or custom settings
+            required anywhere in the application.
+        """
         self.on_fail: LintLevels = LintLevels.WARNING
         self.compatibility: List[Union[Workflow, Job, Step]] = [Step]
         self.settings: Settings = settings

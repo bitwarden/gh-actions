@@ -1,33 +1,37 @@
-import json
+"""Test src/models/job.py."""
 import pytest
 
 from .context import src
 
+from src.models.job import Job
+from src.models.step import Step
+from src.models.workflow import Workflow
 
-@pytest.fixture
-def default_job_data():
+
+@pytest.fixture(name="default_job_data")
+def fixture_default_job_data():
     return {
         "name": "Test",
         "runs-on": "ubuntu-latest",
-        "steps": [src.models.Step(run="echo stub")],
+        "steps": [Step(run="echo stub")],
     }
 
 
-@pytest.fixture
-def default_job(default_job_data):
-    return src.models.Job.init("default-job", default_job_data)
+@pytest.fixture(name="default_job")
+def fixture_default_job(default_job_data):
+    return Job.init("default-job", default_job_data)
 
 
 def test_job_default(default_job):
     assert default_job.key == "default-job"
     assert default_job.name == "Test"
     assert default_job.runs_on == "ubuntu-latest"
-    assert default_job.env == None
+    assert default_job.env is None
     assert len(default_job.steps) == 1
 
 
 def test_job_extra_kwargs(default_job_data):
-    job = src.models.Job.init("test-job", {"extra": "test", **default_job_data})
+    job = Job.init("test-job", {"extra": "test", **default_job_data})
 
-    with pytest.raises(Exception) as e_info:
+    with pytest.raises(Exception):
         assert job.extra == "test"

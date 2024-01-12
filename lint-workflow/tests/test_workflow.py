@@ -1,37 +1,38 @@
-import json
+"""Test src/models/workflow.py."""
 import pytest
 
-from .conftest import FIXTURE_DIR
-from .context import src
+from src.models.job import Job
+from src.models.step import Step
+from src.models.workflow import Workflow
 
 
-@pytest.fixture
-def workflow_default_data():
+@pytest.fixture(name="default_workflow_data")
+def fixture_default_workflow_data():
     return {
         "name": "Test Workflow",
         "on": {},
         "jobs": {
-            "job-key": src.models.Job.from_dict(
+            "job-key": Job.from_dict(
                 {
                     "name": "Test",
                     "runs-on": "ubuntu-latest",
-                    "steps": [src.models.Step.from_dict({"run": "echo stub"})],
+                    "steps": [Step.from_dict({"run": "echo stub"})],
                 }
             )
         },
     }
 
 
-def test_workflow_default(workflow_default_data):
-    workflow = src.models.Workflow(**workflow_default_data)
+def test_workflow_default(default_workflow_data):
+    workflow = Workflow(**default_workflow_data)
 
     assert workflow.name == "Test Workflow"
     assert len(workflow.on.keys()) == 0
     assert len(workflow.jobs.keys()) == 1
 
 
-def test_workflow_extra_kwargs(workflow_default_data):
-    workflow = src.models.Workflow.from_dict({"extra": "test", **workflow_default_data})
+def test_workflow_extra_kwargs(default_workflow_data):
+    workflow = Workflow.from_dict({"extra": "test", **default_workflow_data})
 
-    with pytest.raises(Exception) as e_info:
+    with pytest.raises(Exception):
         assert workflow.extra == "test"

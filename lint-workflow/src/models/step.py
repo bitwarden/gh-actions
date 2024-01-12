@@ -1,3 +1,4 @@
+"""Representation for a job step in a GitHub Action workflow."""
 from dataclasses import dataclass, field
 from typing import Optional, Self
 
@@ -8,6 +9,12 @@ from ruamel.yaml.comments import CommentedMap
 @dataclass_json(undefined=Undefined.EXCLUDE)
 @dataclass
 class Step:
+    """Represents a step in a GitHub Action workflow job.
+
+    This object contains all of the data that is required to run the current linting
+    Rules against. If a new Rule requies a key that is missing, the attribute should
+    be added to this class to make it available for use in linting.
+    """
     key: Optional[int] = None
     job: Optional[str] = None
     name: Optional[str] = None
@@ -24,6 +31,7 @@ class Step:
 
     @classmethod
     def init(cls, idx: int, job: str, data: CommentedMap) -> Self:
+        """Custom dataclass constructor to map a job step data to a Step."""
         new_step = cls.from_dict(data)
 
         new_step.key = idx

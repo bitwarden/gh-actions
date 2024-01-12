@@ -1,24 +1,26 @@
+"""Test src/models/step.py."""
 import json
 import pytest
 
 from ruamel.yaml import YAML
 
-from .context import src
+from src.models.step import Step
 
 
-@pytest.fixture
-def default_step():
+
+@pytest.fixture(name="default_step")
+def fixture_default_step():
     step_str = """\
 name: Default Step
 run: echo "test"
 """
     yaml = YAML()
     step_yaml = yaml.load(step_str)
-    return src.models.Step.init(0, "default", step_yaml)
+    return Step.init(0, "default", step_yaml)
 
 
-@pytest.fixture
-def uses_step():
+@pytest.fixture(name="uses_step")
+def fixture_uses_step():
     step_str = """\
 name: Download Artifacts
 uses: bitwarden/download-artifacts@main # v1.0.0
@@ -31,26 +33,26 @@ with:
 """
     yaml = YAML()
     step_yaml = yaml.load(step_str)
-    return src.models.Step.init(0, "default", step_yaml)
+    return Step.init(0, "default", step_yaml)
 
 
 def test_step_default(default_step):
     assert default_step.key == 0
     assert default_step.job == "default"
     assert default_step.name == "Default Step"
-    assert default_step.env == None
-    assert default_step.uses == None
-    assert default_step.uses_with == None
+    assert default_step.env is None
+    assert default_step.uses is None
+    assert default_step.uses_with is None
     assert default_step.run == 'echo "test"'
 
 
 def test_step_no_keyword_field(default_step):
-    assert default_step.uses_with == None
+    assert default_step.uses_with is None
     assert "uses_with" not in default_step.to_json()
 
 
 def test_step_extra_kwargs(default_step):
-    with pytest.raises(Exception) as e_info:
+    with pytest.raises(Exception):
         assert default_step.extra == "test"
 
 

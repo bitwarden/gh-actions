@@ -6,10 +6,17 @@ name = "pypi"
 [packages]
 pyyaml = "*"
 urllib3 = "*"
+pydantic = "*"
+"ruamel.yaml" = "*"
+dataclasses-json = "*"
 
 [dev-packages]
 black = "*"
 pytest = "*"
+coverage = "*"
+pytest-cov = "*"
+pylint = "*"
+pytype = "*"
 
 [requires]
-python_version = "3.9"
+python_version = "3.11"

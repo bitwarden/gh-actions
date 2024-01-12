@@ -1,0 +1,32 @@
+name: 'Lint Workflow'
+description: 'Lints GitHub Actions Workflow'
+inputs:
+  workflows:
+    description: "Path to workflow file(s)"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Install dependencies
+      run: pip install --user yamllint
+      shell: bash
+
+    - name: Setup
+      id: setup 
+      run: |
+        FORMAT_PATH=$(echo ${{ inputs.workflows }} | sed 's/ *$//')
+        echo "path=$FORMAT_PATH" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Python lint
+      run: python ${{ github.action_path }}/lint.py "${{ steps.setup.outputs.path }}"
+      shell: bash
+
+    - name: YAML lint
+      run: |
+        WORKFLOWS=($(echo "${{ steps.setup.outputs.path }}" | tr ' ' '\n'))
+        for WORKFLOW in "${WORKFLOWS[@]}"; do
+          yamllint -f colored -c ${{ github.action_path }}/.yamllint.yml $WORKFLOW
+        done
+      shell: bash
+      working-directory: ${{ github.workspace }}

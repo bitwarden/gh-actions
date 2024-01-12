@@ -6,8 +6,6 @@ on:
     inputs: {}
 
 jobs:
-  call-workflow:
-    uses: bitwarden/server/.github/workflows/workflow-linter.yml@main
 
   test-normal-action:
     name: Download Latest

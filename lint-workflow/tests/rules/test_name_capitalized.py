@@ -64,7 +64,7 @@ jobs:
     return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
 
 
-@pytest.fixture(rule="rule")
+@pytest.fixture(name="rule")
 def fixture_rule():
     return RuleNameCapitalized()
 

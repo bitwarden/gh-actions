@@ -11,10 +11,19 @@ from ..utils import LintLevels, Settings
 class RuleJobEnvironmentPrefix(Rule):
     """Rule to enforce specific prefixes for environemnt variables.
 
-    Maintaining l
+    Automated testing is not easily written for GitHub Action Workflows. CI can also
+    get complicated really quickly and take up hundreds of lines. All of this can
+    make it very difficult to debug and troubleshoot, especially when environment
+    variables can be set in four different places: Workflow level, Job level, Step
+    level, and inside a shell Step.
+
+    To alleviate some of the pain, we have decided that all Job level environment
+    variables should be prefixed with an underscore. All Workflow environment
+    variables are normally at the top of the file and Step level ones are pretty
+    visible when debugging a shell Step.
     """
     def __init__(self, settings: Settings = None) -> None:
-        """RuleJobEnvironmentPrefix constructor.
+        """RuleJobEnvironmentPrefix constructor to override the Rule class.
 
         Args:
           settings:

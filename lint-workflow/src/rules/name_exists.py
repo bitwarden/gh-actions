@@ -1,3 +1,4 @@
+"""A Rule to enforce that a 'name' exists."""
 from typing import Union, Tuple
 
 from ..rule import Rule
@@ -8,7 +9,22 @@ from ..utils import LintLevels, Settings
 
 
 class RuleNameExists(Rule):
+    """Rule to enforce a 'name' exists for every object in GitHub Actions.
+
+    For pipeline run troubleshooting and debugging, it is helpful to have a
+    name to immediately identify a Workflow, Job, or Step while moving between
+    run and the code.
+
+    It also helps with uniformity of runs.
+    """
     def __init__(self, settings: Settings = None) -> None:
+        """Contructor for RuleNameCapitalized to override Rule class.
+
+        Args:
+          settings:
+            A Settings object that contains any default, overriden, or custom settings
+            required anywhere in the application.
+        """
         self.message = "name must exist"
         self.on_fail: LintLevels = LintLevels.ERROR
         self.settings: Settings = settings

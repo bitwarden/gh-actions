@@ -1,3 +1,4 @@
+"""Enforce all 'name' values start with a capital letter."""
 from typing import Union, Tuple
 
 from ..rule import Rule
@@ -8,7 +9,15 @@ from ..utils import LintLevels, Settings
 
 
 class RuleNameCapitalized(Rule):
+    """Rule to enforce all 'name' values start with a capital letter."""
     def __init__(self, settings: Settings = None) -> None:
+        """Contructor for RuleNameCapitalized.
+
+        Args:
+          settings:
+            A Settings object that contains any default, overriden, or custom settings
+            required anywhere in the application.
+        """
         self.message = "name must capitalized"
         self.on_fail: LintLevels = LintLevels.ERROR
         self.settings: Settings = settings

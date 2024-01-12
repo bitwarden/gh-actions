@@ -1,9 +1,7 @@
+"""Test src/rules/name_capitalized.py."""
 import pytest
 
 from ruamel.yaml import YAML
-
-from ..conftest import FIXTURE_DIR
-from ..context import src
 
 from src.load import WorkflowBuilder
 from src.rules.name_capitalized import RuleNameCapitalized
@@ -11,8 +9,8 @@ from src.rules.name_capitalized import RuleNameCapitalized
 yaml = YAML()
 
 
-@pytest.fixture
-def correct_workflow():
+@pytest.fixture(name="correct_workflow")
+def fixture_correct_workflow():
     workflow = """\
 ---
 name: Test Workflow
@@ -31,8 +29,8 @@ jobs:
     return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
 
 
-@pytest.fixture
-def incorrect_workflow():
+@pytest.fixture(name="incorrect_workflow")
+def fixture_incorrect_workflow():
     workflow = """\
 ---
 name: test
@@ -50,8 +48,8 @@ jobs:
     return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
 
 
-@pytest.fixture
-def missing_name_workflow():
+@pytest.fixture(name="missing_name_workflow")
+def fixture_missing_name_workflow():
     workflow = """\
 ---
 on:
@@ -66,43 +64,43 @@ jobs:
     return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
 
 
-@pytest.fixture
-def rule():
+@pytest.fixture(rule="rule")
+def fixture_rule():
     return RuleNameCapitalized()
 
 
 def test_rule_on_correct_workflow(rule, correct_workflow):
-    result, message = rule.fn(correct_workflow)
-    assert result == True
+    result, _ = rule.fn(correct_workflow)
+    assert result is True
 
-    result, message = rule.fn(correct_workflow.jobs["job-key"])
-    assert result == True
+    result, _ = rule.fn(correct_workflow.jobs["job-key"])
+    assert result is True
 
-    result, message = rule.fn(correct_workflow.jobs["job-key"].steps[0])
-    assert result == True
+    result, _ = rule.fn(correct_workflow.jobs["job-key"].steps[0])
+    assert result is True
 
 
 def test_rule_on_incorrect_workflow_name(rule, incorrect_workflow):
-    result, message = rule.fn(incorrect_workflow)
-    assert result == False
+    result, _ = rule.fn(incorrect_workflow)
+    assert result is False
 
 
 def test_rule_on_incorrect_job_name(rule, incorrect_workflow):
-    result, message = rule.fn(incorrect_workflow.jobs["job-key"])
-    assert result == False
+    result, _ = rule.fn(incorrect_workflow.jobs["job-key"])
+    assert result is False
 
 
 def test_rule_on_incorrect_step_name(rule, incorrect_workflow):
-    result, message = rule.fn(incorrect_workflow.jobs["job-key"].steps[0])
-    assert result == False
+    result, _ = rule.fn(incorrect_workflow.jobs["job-key"].steps[0])
+    assert result is False
 
 
 def test_rule_on_missing_names(rule, missing_name_workflow):
-    result, message = rule.fn(missing_name_workflow)
-    assert result == True
+    result, _ = rule.fn(missing_name_workflow)
+    assert result is True
 
-    result, message = rule.fn(missing_name_workflow.jobs["job-key"])
-    assert result == True
+    result, _ = rule.fn(missing_name_workflow.jobs["job-key"])
+    assert result is True
 
-    result, message = rule.fn(missing_name_workflow.jobs["job-key"].steps[0])
-    assert result == True
+    result, _ = rule.fn(missing_name_workflow.jobs["job-key"].steps[0])
+    assert result is True

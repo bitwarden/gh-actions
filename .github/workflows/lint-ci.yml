@@ -11,7 +11,7 @@ on:
 
 jobs:
   ci-lint:
-    name: CI
+    name: CI workflow-linter (v1)
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -35,7 +35,7 @@ jobs:
 
 
   ci-lint-v2:
-    name: CI
+    name: CI workflow-linter (v2)
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout

@@ -1,15 +1,22 @@
-from typing import Union, Tuple
+"""A Rule to enforce the use of a list of pre-approved Actions."""
+from typing import List, Tuple, Union
 
-from ..rule import Rule
 from ..models.job import Job
 from ..models.workflow import Workflow
 from ..models.step import Step
+from ..rule import Rule
 from ..utils import LintLevels, Settings
 
 
 class RuleStepUsesApproved(Rule):
+    """Rule to enforce that all Actions have been pre-approved.
+
+    To limit the surface area of a supply chain attack in our pipelines, all Actions
+    are required to pass a security review and be added to the pre-approved list to
+    check against.
+    """
     def __init__(self, settings: Settings = None) -> None:
-        self.message = f"error"
+        self.message = "error"
         self.on_fail: LintLevels = LintLevels.WARNING
         self.compatibility: List[Union[Workflow, Job, Step]] = [Step]
         self.settings: Settings = settings
@@ -69,19 +76,14 @@ class RuleStepUsesApproved(Rule):
         if self.skip(obj):
             return True, ""
 
-        path, hash = obj.uses.split("@")
-
         # Actions in bitwarden/gh-actions are auto-approved
-        if not path in self.settings.approved_actions:
-            return (
-                False,
-                (
-                    f"New Action detected: {path}\n"
-                    "For security purposes, actions must be reviewed and on the pre-approved list"
-                ),
+        if obj.uses and not obj.uses_path in self.settings.approved_actions:
+            return False, (
+                f"New Action detected: {obj.uses_path}\nFor security purposes, "
+                "actions must be reviewed and on the pre-approved list"
             )
 
-        action = self.settings.approved_actions[path]
+        action = self.settings.approved_actions[obj.uses_path]
 
         if obj.uses_version != action.version or obj.uses_ref != action.sha:
             return False, (

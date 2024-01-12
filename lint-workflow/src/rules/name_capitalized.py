@@ -1,10 +1,10 @@
 """A Rule to enforce all 'name' values start with a capital letter."""
-from typing import Union, Tuple
+from typing import Tuple, Union
 
-from ..rule import Rule
 from ..models.workflow import Workflow
 from ..models.job import Job
 from ..models.step import Step
+from ..rule import Rule
 from ..utils import LintLevels, Settings
 
 

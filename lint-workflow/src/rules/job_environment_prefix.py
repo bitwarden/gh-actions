@@ -1,10 +1,10 @@
 """A Rule to enforce prefixes environment variables."""
 from typing import Union, Tuple, List
 
-from ..rule import Rule
 from ..models.job import Job
 from ..models.workflow import Workflow
 from ..models.step import Step
+from ..rule import Rule
 from ..utils import LintLevels, Settings
 
 

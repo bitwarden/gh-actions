@@ -1,9 +1,7 @@
+"""Test src/rules/step_approved.py."""
 import pytest
 
 from ruamel.yaml import YAML
-
-from ..conftest import FIXTURE_DIR
-from ..context import src
 
 from src.load import WorkflowBuilder
 from src.rules.step_approved import RuleStepUsesApproved
@@ -13,8 +11,8 @@ from src.utils import Settings
 yaml = YAML()
 
 
-@pytest.fixture
-def settings():
+@pytest.fixture(name="settings")
+def fixture_settings():
     return Settings(
         approved_actions={
             "actions/checkout": {
@@ -31,8 +29,8 @@ def settings():
     )
 
 
-@pytest.fixture
-def correct_workflow():
+@pytest.fixture(name="correct_workflow")
+def fixture_correct_workflow():
     workflow = """\
 ---
 on:
@@ -57,8 +55,8 @@ jobs:
     return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
 
 
-@pytest.fixture
-def incorrect_workflow():
+@pytest.fixture(name="incorrect_workflow")
+def fixture_incorrect_workflow():
     workflow = """\
 ---
 on:
@@ -77,32 +75,32 @@ jobs:
     return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
 
 
-@pytest.fixture
-def rule(settings):
+@pytest.fixture(name="rule")
+def fixture_rule(settings):
     return RuleStepUsesApproved(settings=settings)
 
 
 def test_rule_on_correct_workflow(rule, correct_workflow):
-    result, message = rule.fn(correct_workflow.jobs["job-key"].steps[0])
-    assert result == True
+    result, _ = rule.fn(correct_workflow.jobs["job-key"].steps[0])
+    assert result is True
 
-    result, message = rule.fn(correct_workflow.jobs["job-key"].steps[1])
-    assert result == True
+    result, _ = rule.fn(correct_workflow.jobs["job-key"].steps[1])
+    assert result is True
 
-    result, message = rule.fn(correct_workflow.jobs["job-key"].steps[2])
-    assert result == True
+    result, _ = rule.fn(correct_workflow.jobs["job-key"].steps[2])
+    assert result is True
 
-    result, message = rule.fn(correct_workflow.jobs["job-key"].steps[3])
-    assert result == True
+    result, _ = rule.fn(correct_workflow.jobs["job-key"].steps[3])
+    assert result is True
 
 
 def test_rule_on_incorrect_workflow(rule, incorrect_workflow):
     result, message = rule.fn(incorrect_workflow.jobs["job-key"].steps[0])
-    assert result == False
+    assert result is False
     assert "New Action detected" in message
 
     result, message = rule.fn(incorrect_workflow.jobs["job-key"].steps[1])
-    assert result == False
+    assert result is False
     assert "Action is out of date" in message
 
 

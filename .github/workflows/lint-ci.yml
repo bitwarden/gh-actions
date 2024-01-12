@@ -6,6 +6,7 @@ on:
   push:
     paths:
       - "lint-workflow/**"
+      - "lint-workflow-v2/**"
   workflow_dispatch: {}
 
 jobs:

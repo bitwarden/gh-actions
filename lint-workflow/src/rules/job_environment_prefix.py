@@ -1,5 +1,5 @@
 """A Rule to enforce prefixes environment variables."""
-from typing import Union, Tuple, List
+from typing import Union, Optional, Tuple, List
 
 from ..models.job import Job
 from ..models.workflow import Workflow
@@ -23,7 +23,7 @@ class RuleJobEnvironmentPrefix(Rule):
     visible when debugging a shell Step.
     """
 
-    def __init__(self, settings: Settings = None) -> None:
+    def __init__(self, settings: Optional[Settings] = None) -> None:
         """RuleJobEnvironmentPrefix constructor to override the Rule class.
 
         Args:
@@ -31,10 +31,10 @@ class RuleJobEnvironmentPrefix(Rule):
             A Settings object that contains any default, overriden, or custom settings
             required anywhere in the application.
         """
-        self.message: str = "Job environment vars should start with and underscore:"
-        self.on_fail: LintLevels = LintLevels.ERROR
-        self.compatibility: List[Union[Workflow, Job, Step]] = [Job]
-        self.settings: Settings = settings
+        self.message = "Job environment vars should start with and underscore:"
+        self.on_fail = LintLevels.ERROR
+        self.compatibility = [Job]
+        self.settings = settings
 
     def fn(self, obj: Job) -> Tuple[bool, str]:
         """Enforces the underscore prefix standard on job envs.

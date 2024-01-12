@@ -31,7 +31,7 @@ class Step:
     run: Optional[str] = None
 
     @classmethod
-    def init(cls, idx: int, job: str, data: CommentedMap) -> Self:
+    def init(cls: Self, idx: int, job: str, data: CommentedMap) -> Self:
         """Custom dataclass constructor to map a job step data to a Step."""
         new_step = cls.from_dict(data)
 

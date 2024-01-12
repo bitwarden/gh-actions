@@ -1,5 +1,5 @@
 """A Rule to enforce the use of a list of pre-approved Actions."""
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 from ..models.job import Job
 from ..models.workflow import Workflow
@@ -16,7 +16,7 @@ class RuleStepUsesApproved(Rule):
     check against.
     """
 
-    def __init__(self, settings: Settings = None) -> None:
+    def __init__(self, settings: Optional[Settings] = None) -> None:
         """Constructor for RuleStepUsesApproved to override Rule class.
 
         Args:
@@ -24,9 +24,9 @@ class RuleStepUsesApproved(Rule):
             A Settings object that contains any default, overriden, or custom settings
             required anywhere in the application.
         """
-        self.on_fail: LintLevels = LintLevels.WARNING
-        self.compatibility: List[Union[Workflow, Job, Step]] = [Step]
-        self.settings: Settings = settings
+        self.on_fail = LintLevels.WARNING
+        self.compatibility = [Step]
+        self.settings = settings
 
     def skip(self, obj: Step) -> bool:
         """Skip this Rule on some Steps.
@@ -36,7 +36,7 @@ class RuleStepUsesApproved(Rule):
         """
         ## Force pass for any shell steps
         if not obj.uses:
-            return True, ""
+            return True
 
         ## Force pass for any local actions
         if "@" not in obj.uses:

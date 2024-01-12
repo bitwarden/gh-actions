@@ -1,5 +1,5 @@
 """A Rule to enforce that a 'name' exists."""
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 from ..models.workflow import Workflow
 from ..models.job import Job
@@ -18,7 +18,7 @@ class RuleNameExists(Rule):
     It also helps with uniformity of runs.
     """
 
-    def __init__(self, settings: Settings = None) -> None:
+    def __init__(self, settings: Optional[Settings] = None) -> None:
         """Contructor for RuleNameCapitalized to override Rule class.
 
         Args:
@@ -27,8 +27,8 @@ class RuleNameExists(Rule):
             required anywhere in the application.
         """
         self.message = "name must exist"
-        self.on_fail: LintLevels = LintLevels.ERROR
-        self.settings: Settings = settings
+        self.on_fail = LintLevels.ERROR
+        self.settings = settings
 
     def fn(self, obj: Union[Workflow, Job, Step]) -> Tuple[bool, str]:
         """Enforces the existence of names.

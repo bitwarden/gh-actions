@@ -1,5 +1,5 @@
 """Base Rule class to build rules by extending."""
-from typing import Union, List
+from typing import List, Optional, Tuple, Union
 
 from .models.workflow import Workflow
 from .models.job import Job
@@ -18,9 +18,9 @@ class Rule:
 
     on_fail: LintLevels = LintLevels.ERROR
     compatibility: List[Union[Workflow, Job, Step]] = [Workflow, Job, Step]
-    settings: Settings = None
+    settings: Optional[Settings] = None
 
-    def fn(self, obj: Union[Workflow, Job, Step]) -> bool:
+    def fn(self, obj: Union[Workflow, Job, Step]) -> Tuple[bool, str]:
         """Execute the Rule (this should be overriden in the extending class.
 
         Args:

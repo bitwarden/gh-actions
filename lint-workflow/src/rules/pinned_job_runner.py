@@ -1,5 +1,5 @@
 """A Rule to enforce pinning runners to a specific OS version."""
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 from ..models.job import Job
 from ..models.workflow import Workflow
@@ -16,7 +16,7 @@ class RuleJobRunnerVersionPinned(Rule):
     our pipelines, we pin the versions.
     """
 
-    def __init__(self, settings: Settings = None) -> None:
+    def __init__(self, settings: Optional[Settings] = None) -> None:
         """Constructor for RuleJobRunnerVersionPinned to override Rule class.
 
         Args:
@@ -25,9 +25,9 @@ class RuleJobRunnerVersionPinned(Rule):
             required anywhere in the application.
         """
         self.message = "Workflow runner must be pinned"
-        self.on_fail: LintLevels = LintLevels.ERROR
-        self.compatibility: List[Union[Workflow, Job, Step]] = [Job]
-        self.settings: Settings = settings
+        self.on_fail = LintLevels.ERROR
+        self.compatibility = [Job]
+        self.settings = settings
 
     def fn(self, obj: Job) -> Tuple[bool, str]:
         """Enforces runners are pinned to a version

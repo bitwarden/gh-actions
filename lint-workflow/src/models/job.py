@@ -22,10 +22,10 @@ class Job:
     key: Optional[str] = None
     name: Optional[str] = None
     env: Optional[CommentedMap] = None
-    steps: List[Step] = None
+    steps: Optional[List[Step]] = None
 
     @classmethod
-    def init(cls, key: str, data: CommentedMap) -> Self:
+    def init(cls: Self, key: str, data: CommentedMap) -> Self:
         """Custom dataclass constructor to map job data to a Job."""
         new_job = cls.from_dict(data)
         new_job.key = key

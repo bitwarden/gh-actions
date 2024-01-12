@@ -4,6 +4,7 @@ import argparse
 import os
 
 from functools import reduce
+from typing import Optional
 
 from src.load import WorkflowBuilder, Rules
 from src.utils import LintFinding, Settings
@@ -18,7 +19,7 @@ class LinterCmd:
       - select and validate the workflow files to lint
     """
 
-    def __init__(self, settings: Settings = None) -> None:
+    def __init__(self, settings: Optional[Settings] = None) -> None:
         """Initailized the LinterCmd class.
 
         Args:
@@ -29,7 +30,7 @@ class LinterCmd:
         self.rules = Rules(settings=settings)
 
     @staticmethod
-    def extend_parser(subparsers: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    def extend_parser(subparsers: argparse._SubParsersAction) -> argparse._SubParsersAction:
         """Extends the CLI subparser with the options for LintCmd.
 
         Add 'lint' as a sub command along with its options and arguments

@@ -1,6 +1,6 @@
 """Module to load for Worflows and Rules."""
 import importlib
-from typing import List
+from typing import List, Optional
 
 from ruamel.yaml import YAML
 from ruamel.yaml.comments import CommentedMap
@@ -72,7 +72,10 @@ class WorkflowBuilder:
 
     @classmethod
     def build(
-        cls, filename: str = None, workflow: CommentedMap = None, from_file: bool = True
+        cls,
+        filename: Optional[str] = None,
+        workflow: Optional[CommentedMap] = None,
+        from_file: bool = True
     ) -> Workflow:
         """Build a Workflow from either code or a file.
 

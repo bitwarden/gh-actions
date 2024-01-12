@@ -1,7 +1,7 @@
 """Module of a collection of random utilities."""
 from dataclasses import dataclass
 from enum import Enum
-from typing import Self
+from typing import Optional, Self
 
 
 @dataclass
@@ -38,7 +38,9 @@ class LintFinding:
     """Represents a problem detected by linting."""
 
     def __init__(
-        self, description: str = "<no description>", level: LintLevel = None
+        self,
+        description: str,
+        level: LintLevels
     ) -> None:
         self.description = description
         self.level = level
@@ -106,8 +108,8 @@ class Settings:
 
     def __init__(
         self,
-        enabled_rules: list[str] = None,
-        approved_actions: dict[str, dict[str, str]] = None,
+        enabled_rules: Optional[list[str]] = None,
+        approved_actions: Optional[dict[str, dict[str, str]]] = None,
     ):
         """Settings object that can be overriden in settings.py.
 

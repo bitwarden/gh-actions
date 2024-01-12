@@ -6,7 +6,7 @@ import os
 import urllib3 as urllib
 
 from dataclasses import asdict
-from typing import Union, Tuple
+from typing import Optional, Tuple, Union
 
 from src.utils import Colors, Settings, Action
 
@@ -24,7 +24,7 @@ class ActionsCmd:
 
     """
 
-    def __init__(self, settings: Settings = None) -> None:
+    def __init__(self, settings: Optional[Settings] = None) -> None:
         """Initialize the the ActionsCmd class.
 
         Args:
@@ -35,7 +35,7 @@ class ActionsCmd:
         self.settings = settings
 
     @staticmethod
-    def extend_parser(subparsers: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    def extend_parser(subparsers: argparse._SubParsersAction) -> argparse._SubParsersAction:
         """Extends the CLI subparser with the options for ActionCmd.
 
         Add 'actions add' and 'actions update' to the CLI as sub-commands
@@ -109,7 +109,7 @@ class ActionsCmd:
 
         return True
 
-    def get_latest_version(self, action: Action) -> Tuple[str, str]:
+    def get_latest_version(self, action: Action) -> Action | None:
         """Gets the latest version of the Action to compare against."""
 
         # Get tag from latest release
@@ -168,7 +168,8 @@ class ActionsCmd:
 
         if self.exists(proposed_action):
             latest = self.get_latest_version(proposed_action)
-            updated_actions[latest.name] = latest
+            if latest:
+                updated_actions[latest.name] = latest
 
         self.save_actions(updated_actions, filename)
 

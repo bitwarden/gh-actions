@@ -1,5 +1,5 @@
 """A Rule to enforce all 'name' values start with a capital letter."""
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 from ..models.workflow import Workflow
 from ..models.job import Job
@@ -14,7 +14,7 @@ class RuleNameCapitalized(Rule):
     A simple standard to help keep uniformity in naming.
     """
 
-    def __init__(self, settings: Settings = None) -> None:
+    def __init__(self, settings: Optional[Settings] = None) -> None:
         """Contructor for RuleNameCapitalized to override the Rule class.
 
         Args:
@@ -23,8 +23,8 @@ class RuleNameCapitalized(Rule):
             required anywhere in the application.
         """
         self.message = "name must capitalized"
-        self.on_fail: LintLevels = LintLevels.ERROR
-        self.settings: Settings = settings
+        self.on_fail = LintLevels.ERROR
+        self.settings = settings
 
     def fn(self, obj: Union[Workflow, Job, Step]) -> Tuple[bool, str]:
         """Enforces capitalization of the first letter of any name key.

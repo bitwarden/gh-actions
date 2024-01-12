@@ -17,14 +17,14 @@ tasks:
     silent: true
     cmds:
       - pipenv run pytype src
-  
-  test:unit:
-    cmds:
-      - pipenv run pytest tests
 
   test:unit:
     cmds:
       - pipenv run pytest tests
+
+  test:unit:single:
+    cmds:
+      - pipenv run pytest {{.CLI_ARGS}}
 
   test:cov:
     cmds:
@@ -44,4 +44,4 @@ tasks:
 
   test:e2e:actions:update:
     cmds:
-      - pipenv run python cli.py -v actions update --output test.json 
+      - pipenv run python cli.py -v actions update --output test.json

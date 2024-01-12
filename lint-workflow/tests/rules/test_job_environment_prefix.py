@@ -1,9 +1,7 @@
+"""Test src/rules/job_environment_prefix."""
 import pytest
 
 from ruamel.yaml import YAML
-
-from ..conftest import FIXTURE_DIR
-from ..context import src
 
 from src.load import WorkflowBuilder
 from src.rules.job_environment_prefix import RuleJobEnvironmentPrefix
@@ -11,8 +9,8 @@ from src.rules.job_environment_prefix import RuleJobEnvironmentPrefix
 yaml = YAML()
 
 
-@pytest.fixture
-def correct_workflow():
+@pytest.fixture(name="correct_workflow")
+def fixture_correct_workflow():
     workflow = """\
 ---
 on:
@@ -29,8 +27,8 @@ jobs:
     return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
 
 
-@pytest.fixture
-def incorrect_workflow():
+@pytest.fixture(name="incorrect_workflow")
+def fixture_incorrect_workflow():
     workflow = """\
 ---
 on:
@@ -47,8 +45,8 @@ jobs:
     return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
 
 
-@pytest.fixture
-def rule():
+@pytest.fixture(name="rule")
+def fixture_rule():
     return RuleJobEnvironmentPrefix()
 
 
@@ -56,7 +54,7 @@ def test_rule_on_correct_workflow(rule, correct_workflow):
     obj = correct_workflow.jobs["job-key"]
 
     result, message = rule.fn(correct_workflow.jobs["job-key"])
-    assert result == True
+    assert result is True
     assert message == ""
 
     finding = rule.execute(obj)
@@ -67,7 +65,7 @@ def test_rule_on_incorrect_workflow(rule, incorrect_workflow):
     obj = incorrect_workflow.jobs["job-key"]
 
     result, message = rule.fn(obj)
-    assert result == False
+    assert result is False
     assert "TEST_ENV" in message
 
     finding = rule.execute(obj)

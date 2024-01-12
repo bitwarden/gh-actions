@@ -1,4 +1,5 @@
-from typing import Union, Tuple
+"""A Rule to enforce prefixes environment variables."""
+from typing import Union, Tuple, List
 
 from ..rule import Rule
 from ..models.job import Job
@@ -8,8 +9,19 @@ from ..utils import LintLevels, Settings
 
 
 class RuleJobEnvironmentPrefix(Rule):
+    """Rule to enforce specific prefixes for environemnt variables.
+
+    Maintaining l
+    """
     def __init__(self, settings: Settings = None) -> None:
-        self.message: str = f"Job Environment vars should start with and underscore:"
+        """RuleJobEnvironmentPrefix constructor.
+
+        Args:
+          settings:
+            A Settings object that contains any default, overriden, or custom settings
+            required anywhere in the application.
+        """
+        self.message: str = "Job Environment vars should start with and underscore:"
         self.on_fail: LintLevels = LintLevels.ERROR
         self.compatibility: List[Union[Workflow, Job, Step]] = [Job]
         self.settings: Settings = settings
@@ -39,7 +51,7 @@ class RuleJobEnvironmentPrefix(Rule):
         correct = True
 
         offending_keys = []
-        for key, value in obj.env.items():
+        for key in obj.env.keys():
             if key[0] != "_":
                 offending_keys.append(key)
                 correct = False

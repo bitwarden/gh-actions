@@ -27,8 +27,24 @@ jobs:
     return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
 
 
-@pytest.fixture(name="incorrect_workflow")
-def fixture_incorrect_workflow():
+@pytest.fixture(name="no_env_workflow")
+def fixture_no_env_workflow():
+    workflow = """\
+---
+on:
+  workflow_dispatch:
+
+jobs:
+  job-key:
+    runs-on: ubuntu-22.04
+    steps:
+      - run: echo test
+"""
+    return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
+
+
+@pytest.fixture(name="missing_prefix_workflow")
+def fixture_missing_prefix_workflow():
     workflow = """\
 ---
 on:
@@ -61,8 +77,19 @@ def test_rule_on_correct_workflow(rule, correct_workflow):
     assert finding is None
 
 
-def test_rule_on_incorrect_workflow(rule, incorrect_workflow):
-    obj = incorrect_workflow.jobs["job-key"]
+def test_rule_on_no_env_workflow(rule, no_env_workflow):
+    obj = no_env_workflow.jobs["job-key"]
+
+    result, message = rule.fn(no_env_workflow.jobs["job-key"])
+    assert result is True
+    assert message == ""
+
+    finding = rule.execute(obj)
+    assert finding is None
+
+
+def test_rule_on_missing_prefix_workflow(rule, missing_prefix_workflow):
+    obj = missing_prefix_workflow.jobs["job-key"]
 
     result, message = rule.fn(obj)
     assert result is False

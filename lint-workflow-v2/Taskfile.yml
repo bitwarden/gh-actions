@@ -36,6 +36,10 @@ tasks:
 
   test:e2e:lint:
     cmds:
+      - pipenv run python cli.py -v lint --files tests/fixtures
+
+  test:e2e:lint:single:
+    cmds:
       - pipenv run python cli.py -v lint --files tests/fixtures/test.yml
 
   test:e2e:actions:add:

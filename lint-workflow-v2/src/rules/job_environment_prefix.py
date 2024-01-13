@@ -60,11 +60,12 @@ class RuleJobEnvironmentPrefix(Rule):
         """
         correct = True
 
-        offending_keys = []
-        for key in obj.env.keys():
-            if key[0] != "_":
-                offending_keys.append(key)
-                correct = False
+        if obj.env:
+            offending_keys = []
+            for key in obj.env.keys():
+                if key[0] != "_":
+                    offending_keys.append(key)
+                    correct = False
 
         if correct:
             return True, ""

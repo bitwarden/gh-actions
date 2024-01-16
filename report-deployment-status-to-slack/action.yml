@@ -7,6 +7,9 @@ inputs:
   tag:
     description: "The name of the branch or tag."
     required: true
+  commit-sha:
+    description: "The SHA of the branch or tag."
+    required: true
   environment:
     description: "The name of the environment."
     required: true
@@ -56,23 +59,27 @@ runs:
         case "${{ inputs.event }}" in
           start)
             SLACK_MESSAGE=":loading: Updating ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
-            ${{ inputs.url }}"
+            ${{ inputs.url }}
+            SHA: ${{ inputs.commit-sha }}"
             ;;
 
           success)
             SLACK_MESSAGE=":white_check_mark: Updated ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
-            ${{ inputs.url }}"
+            ${{ inputs.url }}
+            SHA: ${{ inputs.commit-sha }}"
             ;;
 
           failure)
             SLACK_MESSAGE=":x: Failed to update ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
             ${{ inputs.url }}
+            SHA: ${{ inputs.commit-sha }}
             Please retry or contact @devops team."
             ;;
 
           cancelled)
             SLACK_MESSAGE=":hand: Cancelled update of ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
-            ${{ inputs.url }}"
+            ${{ inputs.url }}
+            SHA: ${{ inputs.commit-sha }}"
             ;;
         esac
 

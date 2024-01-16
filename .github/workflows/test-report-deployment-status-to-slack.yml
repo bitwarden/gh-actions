@@ -20,6 +20,7 @@ jobs:
           tag: test-workflow-start
           slack-channel: devops-alerts-test
           event: 'start'
+          commit-sha: ${{ github.sha }}
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
@@ -36,6 +37,7 @@ jobs:
           tag: test-workflow-success
           slack-channel: devops-alerts-test
           event: 'success'
+          commit-sha: ${{ github.sha }}
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
@@ -52,6 +54,7 @@ jobs:
           tag: test-workflow-failure
           slack-channel: devops-alerts-test
           event: 'failure'
+          commit-sha: ${{ github.sha }}
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 

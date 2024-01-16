@@ -3,7 +3,7 @@ name: Test report-deployment-status-to-slack
 on:
   pull_request:
       paths:
-      - "./report-deployment-status-to-slack"
+      - "./report-deployment-status-to-slack/**"
       - ".github/workflows/test-report-deployment-status-to-slack.yml"
 
 jobs:
@@ -20,6 +20,7 @@ jobs:
           tag: test-workflow-start
           slack-channel: devops-alerts-test
           event: 'start'
+          commit-sha: ${{ github.sha }}
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
@@ -36,6 +37,7 @@ jobs:
           tag: test-workflow-success
           slack-channel: devops-alerts-test
           event: 'success'
+          commit-sha: ${{ github.sha }}
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
@@ -52,6 +54,7 @@ jobs:
           tag: test-workflow-failure
           slack-channel: devops-alerts-test
           event: 'failure'
+          commit-sha: ${{ github.sha }}
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 

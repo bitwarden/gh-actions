@@ -60,26 +60,26 @@ runs:
           start)
             SLACK_MESSAGE=":loading: Updating ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
             ${{ inputs.url }}
-            SHA: ${{ inputs.commit-sha }}"
+            SHA: \`${{ inputs.commit-sha }}\`"
             ;;
 
           success)
             SLACK_MESSAGE=":white_check_mark: Updated ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
             ${{ inputs.url }}
-            SHA: ${{ inputs.commit-sha }}"
+            SHA: \`${{ inputs.commit-sha }}\`"
             ;;
 
           failure)
             SLACK_MESSAGE=":x: Failed to update ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
             ${{ inputs.url }}
-            SHA: ${{ inputs.commit-sha }}
+            SHA: \`${{ inputs.commit-sha }}\`
             Please retry or contact @devops team."
             ;;
 
           cancelled)
             SLACK_MESSAGE=":hand: Cancelled update of ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
             ${{ inputs.url }}
-            SHA: ${{ inputs.commit-sha }}"
+            SHA: \`${{ inputs.commit-sha }}\`"
             ;;
         esac
 

@@ -19,35 +19,19 @@ jobs:
           repository: bitwarden/gh-actions
           fetch-depth: 0
 
-      - name: Get changed workflows
-        id: changed-workflows
-        run: |
-          MODIFIED_WORKFLOWS=$(git diff --name-only origin/${{ github.base_ref	}} | grep -E '.github/workflows/.*.(yml|yaml)' | tr '\n' ' ')
-          MODIFIED_EXISTING_WORKFLOWS=""
-          COUNT=0
-          for workflow in $MODIFIED_WORKFLOWS; do
-              if [ -f $workflow ]; then
-                  MODIFIED_EXISTING_WORKFLOWS+=" ${workflow}"
-                  COUNT=$((COUNT+1))
-              fi
-          done
-          echo "count=$COUNT" >> $GITHUB_OUTPUT
-          echo "modified-workflows=$MODIFIED_EXISTING_WORKFLOWS" >> $GITHUB_OUTPUT
-
-      - name: Workflow Lint
-        if: steps.changed-workflows.outputs.count != 0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        uses: bitwarden/gh-actions/lint-workflow@main
-        with:
-          workflows: ${{ steps.changed-workflows.outputs.modified-workflows }}
-
       - name: Get changed files
-        if: steps.changed-workflows.outputs.count != 0
         id: changed-files
         uses: tj-actions/changed-files@716b1e13042866565e00e85fd4ec490e186c4a2f # v41.0.1
         with:
           files: .github/workflows/**
+
+      - name: Workflow Lint
+        if: steps.changed-files.outputs.any_changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: bitwarden/gh-actions/lint-workflow@main
+        with:
+          workflows: ${{ steps.changed-files.outputs.all_changed_files }}
 
       - name: Check for pinned versions
         if: steps.changed-files.outputs.any_changed == 'true'

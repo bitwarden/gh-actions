@@ -31,7 +31,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         uses: bitwarden/gh-actions/lint-workflow@main
         with:
-          workflows: ${{ steps.changed-workflows.outputs.modified-workflows }}
+          workflows: ${{ steps.changed-files.outputs.all_changed_files }}
 
       - name: Check for pinned versions
         if: steps.changed-files.outputs.any_changed == 'true'

@@ -14,9 +14,9 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Get Repository
-      env:
-        REPO: ${{ github.repository }}
-      run: echo $REPO
+        env:
+          REPO: ${{ github.repository }}
+        run: echo $REPO
 
       - name: Checkout Branch
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1

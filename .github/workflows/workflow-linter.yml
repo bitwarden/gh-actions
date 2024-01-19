@@ -17,7 +17,9 @@ jobs:
         id: repo
         env:
           REPO: ${{ github.repository }}
-        run: echo "repo=$REPO" >> $GITHUB_OUTPUT
+        run: |
+          echo $REPO
+          echo "repo=$REPO" >> $GITHUB_OUTPUT
 
       - name: Checkout Branch
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1

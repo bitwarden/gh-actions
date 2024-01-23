@@ -22,7 +22,7 @@ runs:
         fi
 
     - name: Login to Azure
-      uses: Azure/login@de95379fe4dadc2defb305917eaa7e5dde727294 # v1.5.1
+      uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0
       with:
         creds: ${{ inputs.azure-creds }}
 

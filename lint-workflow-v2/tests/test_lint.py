@@ -1,4 +1,5 @@
 """Test src/lint.py."""
+
 import pytest
 
 from src.lint import LinterCmd

@@ -1,4 +1,5 @@
 """Base Rule class to build rules by extending."""
+
 from typing import List, Optional, Tuple, Union
 
 from .models.workflow import Workflow

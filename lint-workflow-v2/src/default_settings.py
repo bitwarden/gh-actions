@@ -15,4 +15,6 @@ enabled_rules = [
 # with open("actions.json", "r", encoding="utf8") as action_file:
 #    approved_actions = json.load(action_file)
 
-# approved_actions_path = ""
+# approved_actions = []
+
+approved_actions_path = "default_actions.json"

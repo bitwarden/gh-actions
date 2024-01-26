@@ -1,5 +1,6 @@
 """Module providing Lint subcommand to run custom linting rules against GitHub Action
 Workflows."""
+
 import argparse
 import os
 

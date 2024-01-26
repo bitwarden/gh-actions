@@ -1,4 +1,5 @@
 """Test src/rules/step_approved.py."""
+
 import pytest
 
 from ruamel.yaml import YAML

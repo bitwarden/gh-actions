@@ -1,4 +1,5 @@
 """Module providing Actions subcommand to manage list of pre-approved Actions."""
+
 import argparse
 import json
 import logging

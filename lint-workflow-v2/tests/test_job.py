@@ -1,4 +1,5 @@
 """Test src/models/job.py."""
+
 import pytest
 
 from src.models.job import Job

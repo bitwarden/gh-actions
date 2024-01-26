@@ -1,4 +1,5 @@
 """A Rule to enforce all 'name' values start with a capital letter."""
+
 from typing import Optional, Tuple, Union
 
 from ..models.workflow import Workflow

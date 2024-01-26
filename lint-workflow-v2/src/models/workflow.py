@@ -1,4 +1,5 @@
 """Representation for an entire GitHub Action workflow."""
+
 from dataclasses import dataclass
 from typing import Dict, Optional
 

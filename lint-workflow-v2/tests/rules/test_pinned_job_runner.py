@@ -1,4 +1,5 @@
 """Test src/rules/pinned_job_runner.py."""
+
 import pytest
 
 from ruamel.yaml import YAML

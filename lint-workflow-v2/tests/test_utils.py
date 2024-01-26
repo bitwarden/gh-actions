@@ -1,4 +1,5 @@
 """Tests src/utils.py."""
+
 from src.utils import Action, Colors, LintFinding, LintLevels
 
 

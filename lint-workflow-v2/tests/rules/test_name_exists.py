@@ -1,4 +1,5 @@
 """Test src/rules/name_exists.py."""
+
 import pytest
 
 from ruamel.yaml import YAML

@@ -1,4 +1,5 @@
 """A Rule to enforce pinning runners to a specific OS version."""
+
 from typing import List, Optional, Tuple, Union
 
 from ..models.job import Job

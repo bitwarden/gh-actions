@@ -1,4 +1,5 @@
 """A Rule to enforce that a 'name' exists."""
+
 from typing import Optional, Tuple, Union
 
 from ..models.workflow import Workflow

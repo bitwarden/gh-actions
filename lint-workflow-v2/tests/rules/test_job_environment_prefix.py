@@ -1,4 +1,5 @@
 """Test src/rules/job_environment_prefix."""
+
 import pytest
 
 from ruamel.yaml import YAML

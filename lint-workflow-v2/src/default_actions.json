@@ -1,0 +1,262 @@
+{
+  "Asana/create-app-attachment-github-action": {
+    "name": "Asana/create-app-attachment-github-action",
+    "sha": "affc72d57bac733d864d4189ed69a9cbd61a9e4f",
+    "version": "v1.3"
+  },
+  "Azure/functions-action": {
+    "name": "Azure/functions-action",
+    "sha": "238dc3c45bb1b04e5d16ff9e75cddd1d86753bd6",
+    "version": "v1.5.1"
+  },
+  "Azure/get-keyvault-secrets": {
+    "name": "Azure/get-keyvault-secrets",
+    "sha": "b5c723b9ac7870c022b8c35befe620b7009b336f",
+    "version": "v1"
+  },
+  "Azure/login": {
+    "name": "Azure/login",
+    "sha": "de95379fe4dadc2defb305917eaa7e5dde727294",
+    "version": "v1.5.1"
+  },
+  "Swatinem/rust-cache": {
+    "name": "Swatinem/rust-cache",
+    "sha": "a95ba195448af2da9b00fb742d14ffaaf3c21f43",
+    "version": "v2.7.0"
+  },
+  "SwiftDocOrg/github-wiki-publish-action": {
+    "name": "SwiftDocOrg/github-wiki-publish-action",
+    "sha": "a87db85ed06e4431be29cfdcb22b9653881305d0",
+    "version": "1.0.0"
+  },
+  "SwiftDocOrg/swift-doc": {
+    "name": "SwiftDocOrg/swift-doc",
+    "sha": "f935ebfe524a0ff27bda07dadc3662e3e45b5125",
+    "version": "1.0.0-rc.1"
+  },
+  "act10ns/slack": {
+    "name": "act10ns/slack",
+    "sha": "ed1309ab9862e57e9e583e51c7889486b9a00b0f",
+    "version": "v2.0.0"
+  },
+  "actions/cache": {
+    "name": "actions/cache",
+    "sha": "704facf57e6136b1bc63b828d79edcd491f0ee84",
+    "version": "v3.3.2"
+  },
+  "actions/checkout": {
+    "name": "actions/checkout",
+    "sha": "b4ffde65f46336ab88eb53be808477a3936bae11",
+    "version": "v4.1.1"
+  },
+  "actions/delete-package-versions": {
+    "name": "actions/delete-package-versions",
+    "sha": "0d39a63126868f5eefaa47169615edd3c0f61e20",
+    "version": "v4.1.1"
+  },
+  "actions/download-artifact": {
+    "name": "actions/download-artifact",
+    "sha": "f44cd7b40bfd40b6aa1cc1b9b5b7bf03d3c67110",
+    "version": "v4.1.0"
+  },
+  "actions/github-script": {
+    "name": "actions/github-script",
+    "sha": "60a0d83039c74a4aee543508d2ffcb1c3799cdea",
+    "version": "v7.0.1"
+  },
+  "actions/labeler": {
+    "name": "actions/labeler",
+    "sha": "8558fd74291d67161a8a78ce36a881fa63b766a9",
+    "version": "v5.0.0"
+  },
+  "actions/setup-dotnet": {
+    "name": "actions/setup-dotnet",
+    "sha": "4d6c8fcf3c8f7a60068d26b594648e99df24cee3",
+    "version": "v4.0.0"
+  },
+  "actions/setup-java": {
+    "name": "actions/setup-java",
+    "sha": "387ac29b308b003ca37ba93a6cab5eb57c8f5f93",
+    "version": "v4.0.0"
+  },
+  "actions/setup-node": {
+    "name": "actions/setup-node",
+    "sha": "b39b52d1213e96004bfcb1c61a8a6fa8ab84f3e8",
+    "version": "v4.0.1"
+  },
+  "actions/setup-python": {
+    "name": "actions/setup-python",
+    "sha": "0a5c61591373683505ea898e09a3ea4f39ef2b9c",
+    "version": "v5.0.0"
+  },
+  "actions/stale": {
+    "name": "actions/stale",
+    "sha": "28ca1036281a5e5922ead5184a1bbf96e5fc984e",
+    "version": "v9.0.0"
+  },
+  "actions/upload-artifact": {
+    "name": "actions/upload-artifact",
+    "sha": "c7d193f32edcb7bfad88892161225aeda64e9392",
+    "version": "v4.0.0"
+  },
+  "android-actions/setup-android": {
+    "name": "android-actions/setup-android",
+    "sha": "07976c6290703d34c16d382cb36445f98bb43b1f",
+    "version": "v3.2.0"
+  },
+  "azure/webapps-deploy": {
+    "name": "azure/webapps-deploy",
+    "sha": "145a0687697df1d8a28909569f6e5d86213041f9",
+    "version": "v3.0.0"
+  },
+  "bitwarden/sm-action": {
+    "name": "bitwarden/sm-action",
+    "sha": "92d1d6a4f26a89a8191c83ab531a53544578f182",
+    "version": "v2.0.0"
+  },
+  "checkmarx/ast-github-action": {
+    "name": "checkmarx/ast-github-action",
+    "sha": "72d549beebd0bc5bbafa559f198161b6ce7c03df",
+    "version": "2.0.21"
+  },
+  "chrnorm/deployment-action": {
+    "name": "chrnorm/deployment-action",
+    "sha": "d42cde7132fcec920de534fffc3be83794335c00",
+    "version": "v2.0.5"
+  },
+  "chrnorm/deployment-status": {
+    "name": "chrnorm/deployment-status",
+    "sha": "2afb7d27101260f4a764219439564d954d10b5b0",
+    "version": "v2.0.1"
+  },
+  "chromaui/action": {
+    "name": "chromaui/action",
+    "sha": "80bf5911f28005ed208f15b7268843b79ca0e23a",
+    "version": "v1"
+  },
+  "cloudflare/pages-action": {
+    "name": "cloudflare/pages-action",
+    "sha": "f0a1cd58cd66095dee69bfa18fa5efd1dde93bca",
+    "version": "v1.5.0"
+  },
+  "convictional/trigger-workflow-and-wait": {
+    "name": "convictional/trigger-workflow-and-wait",
+    "sha": "f69fa9eedd3c62a599220f4d5745230e237904be",
+    "version": "v1.6.5"
+  },
+  "crazy-max/ghaction-import-gpg": {
+    "name": "crazy-max/ghaction-import-gpg",
+    "sha": "01dd5d3ca463c7f10f7f4f7b4f177225ac661ee4",
+    "version": "v6.1.0"
+  },
+  "crowdin/github-action": {
+    "name": "crowdin/github-action",
+    "sha": "fdc55cdc519e86e32c22a07528d649277f1127f2",
+    "version": "v1.16.0"
+  },
+  "dawidd6/action-download-artifact": {
+    "name": "dawidd6/action-download-artifact",
+    "sha": "e7466d1a7587ed14867642c2ca74b5bcc1e19a2d",
+    "version": "v3.0.0"
+  },
+  "dawidd6/action-homebrew-bump-formula": {
+    "name": "dawidd6/action-homebrew-bump-formula",
+    "sha": "75ed025ff3ad1d617862838b342b06d613a0ddf3",
+    "version": "v3.10.1"
+  },
+  "digitalocean/action-doctl": {
+    "name": "digitalocean/action-doctl",
+    "sha": "e5cb5b0cde9789f79c5115c2c4d902f38a708804",
+    "version": "v2.5.0"
+  },
+  "docker/build-push-action": {
+    "name": "docker/build-push-action",
+    "sha": "4a13e500e55cf31b7a5d59a38ab2040ab0f42f56",
+    "version": "v5.1.0"
+  },
+  "docker/setup-buildx-action": {
+    "name": "docker/setup-buildx-action",
+    "sha": "f95db51fddba0c2d1ec667646a06c2ce06100226",
+    "version": "v3.0.0"
+  },
+  "docker/setup-qemu-action": {
+    "name": "docker/setup-qemu-action",
+    "sha": "68827325e0b33c7199eb31dd4e31fbe9023e06e3",
+    "version": "v3.0.0"
+  },
+  "dorny/test-reporter": {
+    "name": "dorny/test-reporter",
+    "sha": "afe6793191b75b608954023a46831a3fe10048d4",
+    "version": "v1.7.0"
+  },
+  "dtolnay/rust-toolchain": {
+    "name": "dtolnay/rust-toolchain",
+    "sha": "1482605bfc5719782e1267fd0c0cc350fe7646b8",
+    "version": "v1"
+  },
+  "futureware-tech/simulator-action": {
+    "name": "futureware-tech/simulator-action",
+    "sha": "bfa03d93ec9de6dacb0c5553bbf8da8afc6c2ee9",
+    "version": "v3"
+  },
+  "hashicorp/setup-packer": {
+    "name": "hashicorp/setup-packer",
+    "sha": "ecc5516821087666a672c0d280a0084ea6d9aafd",
+    "version": "v2.0.1"
+  },
+  "macauley/action-homebrew-bump-cask": {
+    "name": "macauley/action-homebrew-bump-cask",
+    "sha": "445c42390d790569d938f9068d01af39ca030feb",
+    "version": "v1.0.0"
+  },
+  "microsoft/setup-msbuild": {
+    "name": "microsoft/setup-msbuild",
+    "sha": "1ff57057b5cfdc39105cd07a01d78e9b0ea0c14c",
+    "version": "v1.3.1"
+  },
+  "ncipollo/release-action": {
+    "name": "ncipollo/release-action",
+    "sha": "6c75be85e571768fa31b40abf38de58ba0397db5",
+    "version": "v1.13.0"
+  },
+  "peter-evans/close-issue": {
+    "name": "peter-evans/close-issue",
+    "sha": "276d7966e389d888f011539a86c8920025ea0626",
+    "version": "v3.0.1"
+  },
+  "ruby/setup-ruby": {
+    "name": "ruby/setup-ruby",
+    "sha": "360dc864d5da99d54fcb8e9148c14a84b90d3e88",
+    "version": "v1.165.1"
+  },
+  "samuelmeuli/action-snapcraft": {
+    "name": "samuelmeuli/action-snapcraft",
+    "sha": "d33c176a9b784876d966f80fb1b461808edc0641",
+    "version": "v2.1.1"
+  },
+  "snapcore/action-build": {
+    "name": "snapcore/action-build",
+    "sha": "2096990827aa966f773676c8a53793c723b6b40f",
+    "version": "v1.2.0"
+  },
+  "sonarsource/sonarcloud-github-action": {
+    "name": "sonarsource/sonarcloud-github-action",
+    "sha": "49e6cd3b187936a73b8280d59ffd9da69df63ec9",
+    "version": "v2.1.1"
+  },
+  "stackrox/kube-linter-action": {
+    "name": "stackrox/kube-linter-action",
+    "sha": "ca0d55b925470deb5b04b556e6c4276ea94d03c3",
+    "version": "v1.0.4"
+  },
+  "tj-actions/changed-files": {
+    "name": "tj-actions/changed-files",
+    "sha": "716b1e13042866565e00e85fd4ec490e186c4a2f",
+    "version": "v41.0.1"
+  },
+  "yogevbd/enforce-label-action": {
+    "name": "yogevbd/enforce-label-action",
+    "sha": "a3c219da6b8fa73f6ba62b68ff09c469b3a1c024",
+    "version": "2.2.2"
+  }
+}

@@ -1,4 +1,5 @@
 """A Rule to enforce prefixes environment variables."""
+
 from typing import Union, Optional, Tuple, List
 
 from ..models.job import Job

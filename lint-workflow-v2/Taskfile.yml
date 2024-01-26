@@ -18,6 +18,11 @@ tasks:
     cmds:
       - pipenv run pytype src
 
+  install:
+    silent: true
+    cmds:
+      - pipenv run python -m pip install -e .
+
   test:unit:
     cmds:
       - pipenv run pytest tests
@@ -49,3 +54,8 @@ tasks:
   test:e2e:actions:update:
     cmds:
       - pipenv run python cli.py -v actions update --output test.json
+
+  dist:
+    silent: true
+    cmds:
+      - pipenv run python -m build

@@ -1,4 +1,5 @@
 """Representation for a job in a GitHub Action workflow."""
+
 from dataclasses import dataclass, field
 from typing import List, Optional, Self
 

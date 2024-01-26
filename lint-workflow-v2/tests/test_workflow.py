@@ -1,4 +1,5 @@
 """Test src/models/workflow.py."""
+
 import pytest
 
 from src.models.job import Job

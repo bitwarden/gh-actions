@@ -1,15 +1,45 @@
-# lint-workflow
+# Bitwarden Workflow Linter
+
+## Installation
+
+## PyPi
+```
+Not yet implemented
+```
+
+### Locally
+```
+git clone git@github.com:bitwarden/gh-actions.git
+cd gh-actions/lint-workflow-v2
+
+pip install -e .
+```
 
 ## Usage
+### Setup settings.py
 
-There is currently NO packaging or distribution of this CLI tool. Until such time, the `cli.py` file needs to be run
-with python 3.11+.
+After installation, copy the below and create a `settings.py` in the directory that `bwwl` will be running from.
+```python
+# settings.py.example
+import json
 
-`python cli.py --help`
+
+enabled_rules = [
+    "src.rules.name_exists.RuleNameExists",
+    "src.rules.name_capitalized.RuleNameCapitalized",
+    "src.rules.pinned_job_runner.RuleJobRunnerVersionPinned",
+    "src.rules.job_environment_prefix.RuleJobEnvironmentPrefix",
+    "src.rules.step_pinned.RuleStepUsesPinned",
+]
+
+
+with open("actions.json", "r", encoding="utf8") as action_file:
+    approved_actions = json.load(action_file)
+```
 
 
 ```
-usage: workflow-linter [-h] [-v] {lint,actions} ...
+usage: bwwl [-h] [-v] {lint,actions} ...
 
 positional arguments:
   {lint,actions}

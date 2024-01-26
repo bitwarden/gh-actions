@@ -1,4 +1,5 @@
 """A Rule to enforce the use of a list of pre-approved Actions."""
+
 from typing import List, Optional, Tuple, Union
 
 from ..models.job import Job

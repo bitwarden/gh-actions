@@ -1,4 +1,5 @@
 """Test src/models/step.py."""
+
 import json
 import pytest
 

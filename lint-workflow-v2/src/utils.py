@@ -1,7 +1,15 @@
 """Module of a collection of random utilities."""
+
+import importlib.resources
+import json
+import os
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Self
+
+from .default_settings import enabled_rules as default_enabled_rules
+from .default_settings import approved_actions_path as default_approved_actions_path
 
 
 @dataclass
@@ -127,3 +135,30 @@ class Settings:
         self.approved_actions = {
             name: Action(**action) for name, action in approved_actions.items()
         }
+
+    @staticmethod
+    def factory() -> Self:
+        enabled_rules = default_enabled_rules
+        approved_actions_file = default_approved_actions_path
+
+        try:
+            if os.path.exists("settings.py"):
+                import settings
+
+            if hasattr(settings, "enabled_rules"):
+                enabled_rules = settings.enabled_rules
+
+            if hasattr(settings, "approved_actions_path"):
+                if os.path.exists(settings.approved_actions_path):
+                    with open(
+                        settings.approved_actions_path, "r", encoding="utf8"
+                    ) as action_file:
+                        approved_actions = json.load(action_file)
+
+            else:
+                approved_actions = {}
+
+        except Exception as exc:
+            raise SettingsError("Error importing settings") from exc
+
+        return Settings(enabled_rules=enabled_rules, approved_actions=approved_actions)

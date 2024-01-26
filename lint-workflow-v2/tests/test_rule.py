@@ -1,4 +1,5 @@
 """Tests src/rule.py."""
+
 import pytest
 from typing import Union
 

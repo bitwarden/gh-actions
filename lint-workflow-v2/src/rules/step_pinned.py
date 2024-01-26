@@ -1,4 +1,5 @@
 """A Rule to enforce Actions are pinned correctly."""
+
 from typing import List, Optional, Tuple, Union
 
 from ..models.job import Job

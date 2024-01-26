@@ -1,4 +1,5 @@
 """Tests src/load.py."""
+
 import pytest
 
 from ruamel.yaml import YAML

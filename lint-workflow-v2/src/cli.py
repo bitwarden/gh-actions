@@ -1,24 +1,14 @@
 """This is the entrypoint module for the workflow-linter CLI."""
+
 import argparse
 import sys
 
-import settings
-from src.actions import ActionsCmd
-from src.utils import Settings, SettingsError
-from src.lint import LinterCmd
+from .actions import ActionsCmd
+from .utils import Settings
+from .lint import LinterCmd
 
 
-try:
-    local_settings = Settings(
-        enabled_rules=settings.enabled_rules, approved_actions=settings.approved_actions
-    )
-except Exception as exc:
-    raise SettingsError(
-        (
-            "Required settings: enabled_rules, approved_actions\n"
-            "Please see documentation for more information"
-        )
-    ) from exc
+local_settings = Settings.factory()
 
 
 def main(input_args: list[str] = None) -> int:
@@ -32,7 +22,7 @@ def main(input_args: list[str] = None) -> int:
     actions_cmd = ActionsCmd(settings=local_settings)
 
     # Read arguments from command line.
-    parser = argparse.ArgumentParser(prog="workflow-linter")
+    parser = argparse.ArgumentParser(prog="bwwl")
     parser.add_argument("-v", "--verbose", action="store_true", default=False)
     subparsers = parser.add_subparsers(required=True, dest="command")
 

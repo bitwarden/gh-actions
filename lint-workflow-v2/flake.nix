@@ -2,8 +2,8 @@
   description = "GitHub Action Linter";
   inputs = { nixpkgs.url = "github:nixos/nixpkgs/22.11"; };
 
-  outputs = { self, nixpkgs, flake-utils}: 
-    flake-utils.lib.eachDefaultSystem (system: 
+  outputs = { self, nixpkgs, flake-utils}:
+    flake-utils.lib.eachDefaultSystem (system:
       let
         #pkgs = nixpkgs.legacyPackages.x86_64-linux.pkgs;
         pkgs = nixpkgs.legacyPackages.${system};

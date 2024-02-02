@@ -5,11 +5,11 @@ from typing import Union
 
 from ruamel.yaml import YAML
 
-from src.load import WorkflowBuilder
-from src.models.job import Job
-from src.models.step import Step
-from src.models.workflow import Workflow
-from src.rule import Rule, RuleExecutionException
+from src.bitwarden_workflow_linter.load import WorkflowBuilder
+from src.bitwarden_workflow_linter.models.job import Job
+from src.bitwarden_workflow_linter.models.step import Step
+from src.bitwarden_workflow_linter.models.workflow import Workflow
+from src.bitwarden_workflow_linter.rule import Rule, RuleExecutionException
 
 
 yaml = YAML()

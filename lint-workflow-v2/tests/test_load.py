@@ -7,8 +7,8 @@ from ruamel.yaml.comments import CommentedMap
 
 from .conftest import FIXTURE_DIR
 
-from src.load import WorkflowBuilder
-from src.models.workflow import Workflow
+from src.bitwarden_workflow_linter.load import WorkflowBuilder
+from src.bitwarden_workflow_linter.models.workflow import Workflow
 
 
 yaml = YAML()

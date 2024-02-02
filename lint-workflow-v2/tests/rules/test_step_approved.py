@@ -4,9 +4,9 @@ import pytest
 
 from ruamel.yaml import YAML
 
-from src.load import WorkflowBuilder
-from src.rules.step_approved import RuleStepUsesApproved
-from src.utils import Settings
+from src.bitwarden_workflow_linter.load import WorkflowBuilder
+from src.bitwarden_workflow_linter.rules.step_approved import RuleStepUsesApproved
+from src.bitwarden_workflow_linter.utils import Settings
 
 
 yaml = YAML()

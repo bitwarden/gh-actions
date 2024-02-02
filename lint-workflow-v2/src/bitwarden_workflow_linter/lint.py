@@ -7,8 +7,8 @@ import os
 from functools import reduce
 from typing import Optional
 
-from src.load import WorkflowBuilder, Rules
-from src.utils import LintFinding, Settings
+from .load import WorkflowBuilder, Rules
+from .utils import LintFinding, Settings
 
 
 class LinterCmd:

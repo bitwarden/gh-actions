@@ -2,8 +2,8 @@
 
 import pytest
 
-from src.lint import LinterCmd
-from src.utils import Settings, LintFinding, LintLevels
+from src.bitwarden_workflow_linter.lint import LinterCmd
+from src.bitwarden_workflow_linter.utils import Settings, LintFinding, LintLevels
 
 
 @pytest.fixture(name="settings")

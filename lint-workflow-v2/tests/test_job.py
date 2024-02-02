@@ -2,8 +2,8 @@
 
 import pytest
 
-from src.models.job import Job
-from src.models.step import Step
+from src.bitwarden_workflow_linter.models.job import Job
+from src.bitwarden_workflow_linter.models.step import Step
 
 
 @pytest.fixture(name="default_job_data")

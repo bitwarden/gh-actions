@@ -6,7 +6,7 @@ from typing import Dict, Optional
 from dataclasses_json import dataclass_json, Undefined
 from ruamel.yaml.comments import CommentedMap
 
-from src.models.job import Job
+from .job import Job
 
 
 @dataclass_json(undefined=Undefined.EXCLUDE)

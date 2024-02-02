@@ -5,7 +5,7 @@ import pytest
 
 from ruamel.yaml import YAML
 
-from src.models.step import Step
+from src.bitwarden_workflow_linter.models.step import Step
 
 
 @pytest.fixture(name="default_step")

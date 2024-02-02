@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "bff95bd7882b10ad96449f9b3bdb3e9cfae609496730fa578d9de49ec0c61735"
+            "sha256": "7e51933f1987a5e1d1182f4cec2a1c6f84194a17ac6653bb3674da0fe26dfb7f"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -23,10 +23,6 @@
             ],
             "markers": "python_version >= '3.8'",
             "version": "==0.6.0"
-        },
-        "bitwarden-workflow-linter": {
-            "editable": true,
-            "path": "."
         },
         "dataclasses-json": {
             "hashes": [

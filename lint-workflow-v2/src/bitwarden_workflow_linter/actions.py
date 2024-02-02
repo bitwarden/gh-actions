@@ -9,7 +9,7 @@ import urllib3 as urllib
 from dataclasses import asdict
 from typing import Optional, Tuple, Union
 
-from src.utils import Colors, Settings, Action
+from src.bitwarden_workflow_linter.utils import Colors, Settings, Action
 
 
 class ActionsCmd:

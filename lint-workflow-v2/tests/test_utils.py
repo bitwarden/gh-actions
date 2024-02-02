@@ -1,6 +1,6 @@
 """Tests src/utils.py."""
 
-from src.utils import Action, Colors, LintFinding, LintLevels
+from src.bitwarden_workflow_linter.utils import Action, Colors, LintFinding, LintLevels
 
 
 def test_action_eq():

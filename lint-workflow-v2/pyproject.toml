@@ -1,9 +1,11 @@
 [build-system]
+#requires = ["setuptools>=61.0"]
+#build-backend = "setuptools.build_meta"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "bitwarden-workflow-linter"
+name = "bitwarden_workflow_linter"
 dynamic = ["version"]
 authors = []
 description = "Custom GitHub Action Workflow Linter"
@@ -21,6 +23,13 @@ Issues = "https://github.com/bitwarden/gh-actions/issues"
 
 [project.scripts]
 bwwl = "src.cli:main"
+
+#[tool.setuptools]
+#packages = ["src"]
+#
+#[tool.setuptools.package-data]
+#"*" = ["*.json"]
+
 
 [tool.hatch.build.targets.wheel]
 packages = ["src"]

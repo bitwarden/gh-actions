@@ -1,6 +1,6 @@
 {
   description = "GitHub Action Linter";
-  inputs = { nixpkgs.url = "github:nixos/nixpkgs/22.11"; };
+  inputs = { nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable"; };
 
   outputs = { self, nixpkgs, flake-utils}:
     flake-utils.lib.eachDefaultSystem (system:

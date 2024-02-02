@@ -9,6 +9,7 @@ urllib3 = "*"
 pydantic = "*"
 "ruamel.yaml" = "*"
 dataclasses-json = "*"
+bitwarden-workflow-linter = {editable = true, path = "."}
 
 [dev-packages]
 black = "*"

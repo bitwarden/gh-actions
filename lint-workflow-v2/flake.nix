@@ -12,6 +12,7 @@
         devShells.default = pkgs.mkShell {
           name = "${packageName}";
           buildInputs = [
+            pkgs.envsubst
             pkgs.pipenv
             pkgs.python311
           ];

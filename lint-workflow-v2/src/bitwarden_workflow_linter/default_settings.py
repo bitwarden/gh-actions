@@ -4,11 +4,11 @@ import json
 
 
 enabled_rules = [
-    "src.rules.name_exists.RuleNameExists",
-    "src.rules.name_capitalized.RuleNameCapitalized",
-    "src.rules.pinned_job_runner.RuleJobRunnerVersionPinned",
-    "src.rules.job_environment_prefix.RuleJobEnvironmentPrefix",
-    "src.rules.step_pinned.RuleStepUsesPinned",
+    "bitwarden_workflow_linter.rules.name_exists.RuleNameExists",
+    "bitwarden_workflow_linter.rules.name_capitalized.RuleNameCapitalized",
+    "bitwarden_workflow_linter.rules.pinned_job_runner.RuleJobRunnerVersionPinned",
+    "bitwarden_workflow_linter.rules.job_environment_prefix.RuleJobEnvironmentPrefix",
+    "bitwarden_workflow_linter.rules.step_pinned.RuleStepUsesPinned",
 ]
 
 

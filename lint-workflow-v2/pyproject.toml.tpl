@@ -16,19 +16,7 @@ classifiers = [
 ]
 
 dependencies = [
-	"annotated-types==0.6.0",
-	"dataclasses-json==0.6.4",
-	"marshmallow==3.20.2",
-	"mypy-extensions==1.0.0",
-	"packaging==23.2",
-	"pydantic==2.6.0",
-	"pydantic-core==2.16.1",
-	"pyyaml==6.0.1",
-	"ruamel.yaml==0.18.5",
-	"ruamel.yaml.clib==0.2.8",
-	"typing-extensions==4.9.0",
-	"typing-inspect==0.9.0",
-	"urllib3==2.2.0",
+$DEPS
 ]
 
 [project.urls]

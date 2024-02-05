@@ -97,8 +97,9 @@ def action_repo_exists(action_id):
 
     path, *hash = action_id.split("@")
 
-    if "bitwarden/gh-actions" in path:
-        path_list = path.split("/", 2)
+    forward_slash_count = path.count("/")
+    if forward_slash_count > 1:
+        path_list = path.split("/", forward_slash_count)
         url = f"https://api.github.com/repos/{path_list[0]}/{path_list[1]}"
         response = get_github_api_response(url, action_id)
 
@@ -152,9 +153,17 @@ def get_action_update(action_id):
     if path in memoized_action_update_urls:
         return memoized_action_update_urls[path]
     else:
-        if "bitwarden/gh-actions" in path:
-            path_list = path.split("/", 2)
-            url = f"https://api.github.com/repos/{path_list[0]}/{path_list[1]}/commits?path={path_list[2]}"
+        forward_slash_count = path.count("/")
+        path_list = path.split("/", forward_slash_count)
+        repo = f"{path_list[0]}/{path_list[1]}"
+        # Get latest release information.
+        response = get_github_api_response(
+            f"https://api.github.com/repos/{repo}/releases/latest", action_id
+        )
+        # No releases exist in repository.
+        if response.status == 404:
+            commit_path = '/'.join(path_list[2:])
+            url = f"https://api.github.com/repos/{repo}/commits?path={commit_path}"
             response = get_github_api_response(url, action_id)
             if not response:
                 return None
@@ -162,23 +171,20 @@ def get_action_update(action_id):
             sha = json.loads(response.data)[0]["sha"]
             if sha not in hash:
                 update_url = (
-                    f"https://github.com/{path_list[0]}/{path_list[1]}/commit/{sha}"
+                    f"https://github.com/{repo}/commit/{sha}"
                 )
                 memoized_action_update_urls[path] = update_url
                 return update_url
+        # Response errored out.
+        elif not response:
+            return None
+        # Get tag name from latest release.
         else:
-            # Get tag from latest release
-            response = get_github_api_response(
-                f"https://api.github.com/repos/{path}/releases/latest", action_id
-            )
-            if not response:
-                return None
-
             tag_name = json.loads(response.data)["tag_name"]
 
             # Get the URL to the commit for the tag
             response = get_github_api_response(
-                f"https://api.github.com/repos/{path}/git/ref/tags/{tag_name}",
+                f"https://api.github.com/repos/{repo}/git/ref/tags/{tag_name}",
                 action_id,
             )
             if not response:
@@ -196,7 +202,7 @@ def get_action_update(action_id):
                 sha = json.loads(response.data)["object"]["sha"]
 
             if sha not in hash:
-                update_url = f"https://github.com/{path}/commit/{sha}"
+                update_url = f"https://github.com/{repo}/commit/{sha}"
                 memoized_action_update_urls[path] = update_url
                 return update_url
 

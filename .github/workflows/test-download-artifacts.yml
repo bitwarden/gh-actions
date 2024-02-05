@@ -1,28 +1,182 @@
 ---
-name: Test Lint Workflow Action
+name: Test Download Artifacts Action
 
 on:
-  pull_request:
-    paths:
-      - "lint-workflow"
-  push:
-    branches:
-      - "main"
   workflow_dispatch:
+    inputs: {}
+  workflow_run:
+    workflows:
+      - Upload Test Artifacts
+    types:
+      - completed
 
 jobs:
-  test-lint-workflow:
-    runs-on: ubuntu-latest
+  download-latest:
+    name: Download Latest
+    runs-on: ubuntu-22.04
     steps:
-      - name: Checkout Branch
+      - name: Checkout
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
-      - name: Get workflow list
-        id: workflow-list
-        run: |
-          WORKFLOW_LIST=$(ls .github/workflows | xargs -I {} echo -n ".github/workflows/{} ")
-          echo "workflow-list=$WORKFLOW_LIST" >> $GITHUB_OUTPUT
-
-      - uses: ./lint-workflow
+      - name: Download
+        uses: ./download-artifacts
         with:
-          workflows: ${{ steps.workflow-list.outputs.workflow-list }}
+          workflow: upload-test-artifacts.yml
+          artifacts: artifact
+          path: artifact
+
+      - name: Test
+        run: |
+          cat artifact/sha
+          echo $GITHUB_SHA
+
+
+  download-main:
+    name: Download main
+    runs-on: ubuntu-22.04
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Download
+        uses: ./download-artifacts
+        with:
+          workflow: upload-test-artifacts.yml
+          artifacts: artifact
+          path: artifact
+          branch: main
+
+      - name: Test
+        run: |
+          cat artifact/sha
+          echo $GITHUB_SHA
+
+  download-branch:
+    name: Download current branch
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Extract branch name
+        id: extract_branch
+        run: |
+         branch=${GITHUB_REF#refs/heads/}
+         echo "branch=$branch" >> $GITHUB_OUTPUT
+
+      - name: Download
+        uses: ./download-artifacts
+        with:
+          workflow: upload-test-artifacts.yml
+          artifacts: artifact
+          path: artifact
+          branch: ${{ steps.extract_branch.outputs.branch }}
+
+      - name: Test
+        run: |
+          cat artifact/sha
+          echo $GITHUB_SHA
+
+  download-pr:
+    name: Download Pull Request
+    runs-on: ubuntu-22.04
+    if: github.ref != 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Download
+        uses: ./download-artifacts
+        with:
+          workflow: upload-test-artifacts.yml
+          artifacts: artifact
+          path: artifact
+          pr: ${{github.event.pull_request.number}}
+
+      - name: Test
+        run: |
+          cat artifact/sha
+          echo $GITHUB_SHA
+
+
+  download-all:
+    name: Download All
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Download
+        uses: ./download-artifacts
+        with:
+          workflow: upload-test-artifacts.yml
+
+      - name: Test
+        run: |
+          ls -atlh
+          cat sha
+          cat sha1
+          cat sha2
+
+
+  download-multiple:
+    name: Download Multiple
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Download
+        uses: ./download-artifacts
+        with:
+          workflow: upload-test-artifacts.yml
+          artifacts: 'artifact1,
+                      artifact2'
+
+      - name: Test
+        run: |
+          ls -atlh
+          cat sha1
+          cat sha2
+
+
+  download-wildcard:
+    name: Download Wildcard
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Download
+        uses: ./download-artifacts
+        with:
+          workflow: upload-test-artifacts.yml
+          artifacts: '*.txt'
+
+      - name: Test
+        run: |
+          ls -atlh
+          cat sha1
+          cat sha2
+
+
+  download-conclusion:
+    name: Download Conclusion
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Download
+        uses: ./download-artifacts
+        with:
+          workflow: upload-test-artifacts.yml
+          artifacts: artifact
+          path: artifact
+          workflow_conclusion: ''
+
+      - name: Test
+        run: |
+          cat artifact/sha
+          echo $GITHUB_SHA

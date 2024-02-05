@@ -1,0 +1,28 @@
+---
+name: Test Lint Workflow Action
+
+on:
+  pull_request:
+    paths:
+      - "lint-workflow"
+  push:
+    branches:
+      - "main"
+  workflow_dispatch:
+
+jobs:
+  test-lint-workflow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Branch
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Get workflow list
+        id: workflow-list
+        run: |
+          WORKFLOW_LIST=$(ls .github/workflows | xargs -I {} echo -n ".github/workflows/{} ")
+          echo "workflow-list=$WORKFLOW_LIST" >> $GITHUB_OUTPUT
+
+      - uses: ./lint-workflow
+        with:
+          workflows: ${{ steps.workflow-list.outputs.workflow-list }}

@@ -31,3 +31,6 @@ jobs:
       - name: Test lint
         working-directory: lint-workflow
         run: pipenv run pytest tests
+
+      - uses: gradle/actions/setup-gradle@ec92e829475ac0c2315ea8f9eced72db85bb337a # v3.0.0
+      - uses: bitwarden/gh-actions/crowdin@ca4bf694de171425dd5ace89611e18f738b822b8

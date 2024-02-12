@@ -3,7 +3,7 @@ name: Test report-deployment-status-to-slack
 on:
   pull_request:
       paths:
-      - "./report-deployment-status-to-slack/**"
+      - "report-deployment-status-to-slack/**"
       - ".github/workflows/test-report-deployment-status-to-slack.yml"
 
 jobs:

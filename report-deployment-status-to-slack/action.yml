@@ -60,7 +60,10 @@ runs:
       id: setup
       shell: bash
       run: |
-        if [[ -n "${{ inputs.db_migration_detected }}" && ${{ inputs.db_migration_detected }} == true ]]; then
+        if [[ -z "${{ inputs.db_migration_detected }}" ]]; then
+          ${{ inputs.db_migration_detected }}=false
+        fi
+        if [[ ${{ inputs.db_migration_detected }} == true ]]; then
           case "${{ inputs.event }}" in
             start)
               SLACK_MESSAGE=":loading: Updating ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.

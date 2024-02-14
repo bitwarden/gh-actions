@@ -60,71 +60,48 @@ runs:
       id: setup
       shell: bash
       run: |
-        if [[ -z "${{ inputs.db_migration_detected }}" ]]; then
-          ${{ inputs.db_migration_detected }}=false
-        fi
-        if [[ ${{ inputs.db_migration_detected }} == true ]]; then
-          case "${{ inputs.event }}" in
+        function slack_message_fn () {
+          case $1 in
             start)
-              SLACK_MESSAGE=":loading: Updating ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
-              ${{ inputs.url }}
-              SHA: \`${{ inputs.commit-sha }}\`
-              :red_siren: This branch has database migration changes."
+              SLACK_MESSAGE=":loading: Updating $2 to \`$3\` on $4.
+              $5
+              SHA: \`$6\`"
               ;;
 
             success)
-              SLACK_MESSAGE=":white_check_mark: Updated ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
-              ${{ inputs.url }}
-              SHA: \`${{ inputs.commit-sha }}\`
-              :red_siren: This branch has database migration changes."
+              SLACK_MESSAGE=":loading: Updating $2 to \`$3\` on $4.
+              $5
+              SHA: \`$6\`"
               ;;
 
             failure)
-              SLACK_MESSAGE=":x: Failed to update ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
-              ${{ inputs.url }}
-              SHA: \`${{ inputs.commit-sha }}\`
-              Please retry or contact @devops team.
-              :red_siren: This branch has database migration changes."
-              ;;
-
-            cancelled)
-              SLACK_MESSAGE=":hand: Cancelled update of ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
-              ${{ inputs.url }}
-              SHA: \`${{ inputs.commit-sha }}\`
-              :red_siren: This branch has database migration changes."
-              ;;
-          esac
-        else
-          case "${{ inputs.event }}" in
-            start)
-              SLACK_MESSAGE=":loading: Updating ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
-              ${{ inputs.url }}
-              SHA: \`${{ inputs.commit-sha }}\`"
-              ;;
-
-            success)
-              SLACK_MESSAGE=":white_check_mark: Updated ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
-              ${{ inputs.url }}
-              SHA: \`${{ inputs.commit-sha }}\`"
-              ;;
-
-            failure)
-              SLACK_MESSAGE=":x: Failed to update ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
-              ${{ inputs.url }}
-              SHA: \`${{ inputs.commit-sha }}\`
+              SLACK_MESSAGE=":loading: Updating $2 to \`$3\` on $4.
+              $5
+              SHA: \`$6\`
               Please retry or contact @devops team."
               ;;
 
             cancelled)
-              SLACK_MESSAGE=":hand: Cancelled update of ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
-              ${{ inputs.url }}
-              SHA: \`${{ inputs.commit-sha }}\`"
+              SLACK_MESSAGE=":loading: Updating $2 to \`$3\` on $4.
+              $5
+              SHA: \`$6\`"
               ;;
           esac
+        }
+
+        if [[ -z "${{ inputs.db_migration_detected }}" ]]; then
+          slack_message_fn "${{ inputs.event }}" "${{ inputs.environment }}" "${{ inputs.tag }}" "${{ inputs.project }}" "${{ inputs.url }}" "${{ inputs.commit-sha }}"
+        else
+          if [[ ${{ inputs.db_migration_detected }} == false ]]; then
+            slack_message_fn "${{ inputs.event }}" "${{ inputs.environment }}" "${{ inputs.tag }}" "${{ inputs.project }}" "${{ inputs.url }}" "${{ inputs.commit-sha }}"
+          else
+            slack_message_fn "${{ inputs.event }}" "${{ inputs.environment }}" "${{ inputs.tag }}" "${{ inputs.project }}" "${{ inputs.url }}" "${{ inputs.commit-sha }}"
+            SLACK_MESSAGE="$SLACK_MESSAGE \n:red_siren: This branch has new database migration changes."
+          fi
         fi
 
         echo 'slack_message<<EOF' >> $GITHUB_OUTPUT
-        echo "$SLACK_MESSAGE" >> $GITHUB_OUTPUT
+        echo "$SLACK_MESSAGE " >> $GITHUB_OUTPUT
         echo 'EOF' >> $GITHUB_OUTPUT
 
     - name: Post/Edit message to a Slack channel

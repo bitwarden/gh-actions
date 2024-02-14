@@ -3,12 +3,12 @@ name: Test report-deployment-status-to-slack
 on:
   pull_request:
       paths:
-      - "./report-deployment-status-to-slack/**"
+      - "report-deployment-status-to-slack/**"
       - ".github/workflows/test-report-deployment-status-to-slack.yml"
 
 jobs:
   test-report-start:
-    name: Test Slack report failure
+    name: Test Slack report start
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -58,3 +58,60 @@ jobs:
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
+  test-report-db-migration:
+    name: Test Slack report with different DB migration scenerios
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Slack report with DB migration true on main
+        uses: ./report-deployment-status-to-slack
+        with:
+          project: Server
+          environment: US QA Cloud
+          tag: main
+          slack-channel: devops-alerts-test
+          event: 'success'
+          commit-sha: ${{ github.sha }}
+          db_migration_detected: true
+          url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
+          AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+
+      - name: Slack report with DB migration false on main
+        uses: ./report-deployment-status-to-slack
+        with:
+          project: Server
+          environment: US QA Cloud
+          tag: main
+          slack-channel: devops-alerts-test
+          event: 'failure'
+          commit-sha: ${{ github.sha }}
+          db_migration_detected: false
+          url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
+          AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+
+      - name: Slack report with DB migration true on test branch
+        uses: ./report-deployment-status-to-slack
+        with:
+          project: Server
+          environment: US QA Cloud
+          tag: test-branch
+          slack-channel: devops-alerts-test
+          event: 'failure'
+          commit-sha: ${{ github.sha }}
+          db_migration_detected: true
+          url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
+          AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+
+      - name: Slack report with DB migration false on test branch
+        uses: ./report-deployment-status-to-slack
+        with:
+          project: Server
+          environment: US QA Cloud
+          tag: test-branch
+          slack-channel: devops-alerts-test
+          event: 'success'
+          commit-sha: ${{ github.sha }}
+          db_migration_detected: false
+          url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
+          AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}

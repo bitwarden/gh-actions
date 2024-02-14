@@ -69,20 +69,20 @@ runs:
               ;;
 
             success)
-              SLACK_MESSAGE=":loading: Updating $2 to \`$3\` on $4.
+              SLACK_MESSAGE=":white_check_mark: Updated $2 to \`$3\` on $4.
               $5
               SHA: \`$6\`"
               ;;
 
             failure)
-              SLACK_MESSAGE=":loading: Updating $2 to \`$3\` on $4.
+              SLACK_MESSAGE=":x: Failed to update $2 to \`$3\` on $4.
               $5
               SHA: \`$6\`
               Please retry or contact @devops team."
               ;;
 
             cancelled)
-              SLACK_MESSAGE=":loading: Updating $2 to \`$3\` on $4.
+              SLACK_MESSAGE=":hand: Cancelled update of $2 to \`$3\` on $4.
               $5
               SHA: \`$6\`"
               ;;
@@ -90,9 +90,11 @@ runs:
         }
 
         if [[ -z "${{ inputs.db_migration_detected }}" ]]; then
+          echo ">>"
           slack_message_fn "${{ inputs.event }}" "${{ inputs.environment }}" "${{ inputs.tag }}" "${{ inputs.project }}" "${{ inputs.url }}" "${{ inputs.commit-sha }}"
         else
           if [[ ${{ inputs.db_migration_detected }} == false ]]; then
+            echo ">>>>"
             slack_message_fn "${{ inputs.event }}" "${{ inputs.environment }}" "${{ inputs.tag }}" "${{ inputs.project }}" "${{ inputs.url }}" "${{ inputs.commit-sha }}"
           else
             slack_message_fn "${{ inputs.event }}" "${{ inputs.environment }}" "${{ inputs.tag }}" "${{ inputs.project }}" "${{ inputs.url }}" "${{ inputs.commit-sha }}"

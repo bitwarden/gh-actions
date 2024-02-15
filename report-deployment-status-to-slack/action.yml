@@ -61,30 +61,37 @@ runs:
       shell: bash
       run: |
         function slack_message_fn () {
-          case $1 in
+          local event=$1
+          local environment=$2
+          local tag=$3
+          local project=$4
+          local url=$5
+          local commit_sha=$6
+
+          case $event in
             start)
-              SLACK_MESSAGE=":loading: Updating $2 to \`$3\` on $4.
-              $5
-              SHA: \`$6\`"
+              SLACK_MESSAGE=":loading: Updating $environment to \`$tag\` on $project.
+              $url
+              SHA: \`$commit_sha\`"
               ;;
 
             success)
-              SLACK_MESSAGE=":white_check_mark: Updated $2 to \`$3\` on $4.
-              $5
-              SHA: \`$6\`"
+              SLACK_MESSAGE=":white_check_mark: Updated $environment to \`$3\` on $project.
+              $url
+              SHA: \`$commit_sha\`"
               ;;
 
             failure)
-              SLACK_MESSAGE=":x: Failed to update $2 to \`$3\` on $4.
-              $5
-              SHA: \`$6\`
+              SLACK_MESSAGE=":x: Failed to update $environment to \`$3\` on $project.
+              $url
+              SHA: \`$commit_sha\`
               Please retry or contact @devops team."
               ;;
 
             cancelled)
-              SLACK_MESSAGE=":hand: Cancelled update of $2 to \`$3\` on $4.
-              $5
-              SHA: \`$6\`"
+              SLACK_MESSAGE=":hand: Cancelled update of $environment to \`$3\` on $project.
+              $url
+              SHA: \`$commit_sha\`"
               ;;
           esac
         }

@@ -90,7 +90,7 @@ jobs:
           slack-channel: devops-alerts-test
           event: 'failure'
           commit-sha: ${{ github.sha }}
-          db_migration_detected: true
+          db_migration_detected: false
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
@@ -103,6 +103,6 @@ jobs:
           slack-channel: devops-alerts-test
           event: 'success'
           commit-sha: ${{ github.sha }}
-          db_migration_detected: false
+          db_migration_detected: true
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}

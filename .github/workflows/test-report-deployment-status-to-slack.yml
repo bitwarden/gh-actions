@@ -115,29 +115,3 @@ jobs:
           db_migration_detected: false
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
-
-      - name: Slack report with DB migration value "" on main
-        uses: ./report-deployment-status-to-slack
-        with:
-          project: Server
-          environment: US QA Cloud
-          tag: main
-          slack-channel: devops-alerts-test
-          event: 'start'
-          commit-sha: ${{ github.sha }}
-          db_migration_detected: ""
-          url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-          AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
-
-      - name: Slack report with DB migration value "" on test tag
-        uses: ./report-deployment-status-to-slack
-        with:
-          project: Server
-          environment: US QA Cloud
-          tag: test-tag
-          slack-channel: devops-alerts-test
-          event: 'success'
-          commit-sha: ${{ github.sha }}
-          db_migration_detected: ""
-          url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-          AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}

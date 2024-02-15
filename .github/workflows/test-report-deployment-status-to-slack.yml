@@ -25,7 +25,6 @@ jobs:
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
-
       - name: Success
         uses: ./report-deployment-status-to-slack
         with:

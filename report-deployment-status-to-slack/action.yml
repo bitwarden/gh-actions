@@ -96,7 +96,7 @@ runs:
           esac
         }
 
-        if [[ ${{ inputs.db_migration_detected }} == true && ${{ inputs.tag }} != 'main|rc|hotfix-rc' ]]; then
+        if [[ ${{ inputs.db_migration_detected }} == true && $( ${{ inputs.tag }} != main && ${{ inputs.tag }} != rc && ${{ inputs.tag }} != hotfix-rc) ]]; then
           slack_message_fn "${{ inputs.event }}" "${{ inputs.environment }}" "${{ inputs.tag }}" "${{ inputs.project }}" "${{ inputs.url }}" "${{ inputs.commit-sha }}"
           SLACK_MESSAGE="$SLACK_MESSAGE
           :red_siren: This branch has new database migration changes."

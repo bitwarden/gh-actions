@@ -384,7 +384,7 @@ def lint(filename):
                             findings.append(
                                 LintFinding(
                                     f"Run in step {str(i)} of job key '{job_key}' should be a single line.",
-                                    "error",
+                                    "warning",
                                 )
                             )
 

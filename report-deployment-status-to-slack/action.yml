@@ -102,7 +102,7 @@ runs:
         fi
 
         echo 'slack_message<<EOF' >> $GITHUB_OUTPUT
-        echo "$SLACK_MESSAGE " >> $GITHUB_OUTPUT
+        echo "$SLACK_MESSAGE" >> $GITHUB_OUTPUT
         echo 'EOF' >> $GITHUB_OUTPUT
 
     - name: Post/Edit message to a Slack channel

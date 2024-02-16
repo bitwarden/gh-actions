@@ -8,12 +8,13 @@ on:
 
 jobs:
   test-report-start:
-    name: Test Slack report start
+    name: Test Slack report
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
-      - uses: ./report-deployment-status-to-slack
+      - name: Start
+        uses: ./report-deployment-status-to-slack
         with:
           project: Server
           environment: US QA Cloud
@@ -24,13 +25,8 @@ jobs:
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
-  test-report:
-    name: Test Slack report
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-
-      - uses: ./report-deployment-status-to-slack
+      - name: Success
+        uses: ./report-deployment-status-to-slack
         with:
           project: Server
           environment: US QA Cloud
@@ -41,13 +37,8 @@ jobs:
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
-  test-report-failure:
-    name: Test Slack report failure
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-
-      - uses: ./report-deployment-status-to-slack
+      - name: Failure
+        uses: ./report-deployment-status-to-slack
         with:
           project: Server
           environment: US QA Cloud
@@ -64,7 +55,7 @@ jobs:
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
-      - name: Slack report with DB migration true on main
+      - name: With DB migration true on main
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
@@ -77,7 +68,7 @@ jobs:
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
-      - name: Slack report with DB migration false on main
+      - name: With DB migration false on main
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
@@ -90,28 +81,28 @@ jobs:
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
-      - name: Slack report with DB migration true on test branch
+      - name: With DB migration true on test branch
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
           environment: US QA Cloud
-          tag: test-branch
+          tag: test-branch-failure
           slack-channel: devops-alerts-test
           event: 'failure'
           commit-sha: ${{ github.sha }}
-          db_migration_detected: true
+          db_migration_detected: false
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
-      - name: Slack report with DB migration false on test branch
+      - name: With DB migration false on test branch
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
           environment: US QA Cloud
-          tag: test-branch
+          tag: test-branch-success
           slack-channel: devops-alerts-test
           event: 'success'
           commit-sha: ${{ github.sha }}
-          db_migration_detected: false
+          db_migration_detected: true
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}

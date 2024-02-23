@@ -13,20 +13,30 @@ if &shortmess =~ 'A'
 else
   set shortmess=aoO
 endif
-badd +33 tests/test_lint.py
-badd +33 tests/test_utils.py
-badd +38 Taskfile.yml
-badd +0 src/rules/job_environment_prefix.py
-badd +0 tests/rules/test_job_environment_prefix.py
-badd +0 tests/fixtures/test_a.yaml
-badd +4 src/load.py
+badd +0 README.md
+badd +0 Taskfile.yml
+badd +150 src/bitwarden_workflow_linter/utils.py
+badd +0 src/bitwarden_workflow_linter/default_actions.json
+badd +10 src/bitwarden_workflow_linter/default_settings.py
+badd +11 settings.py
+badd +5 tests/test_utils.py
+badd +2 settings.yaml
+badd +0 src/bitwarden_workflow_linter/default_settings.yaml
+badd +0 src/bitwarden_workflow_linter/load.py
+badd +8 tests/fixtures/test-alt.yml
+badd +4 tests/fixtures/test-min.yaml
+badd +3 tests/fixtures/test_a.yaml
+badd +0 tests/test_load.py
+badd +0 src/bitwarden_workflow_linter/models/job.py
+badd +0 tests/test_job.py
 argglobal
 %argdel
-$argadd tests/test_lint.py
+$argadd README.md
 set stal=2
 tabnew +setlocal\ bufhidden=wipe
+tabnew +setlocal\ bufhidden=wipe
 tabrewind
-edit src/rules/job_environment_prefix.py
+edit README.md
 let s:save_splitbelow = &splitbelow
 let s:save_splitright = &splitright
 set splitbelow splitright
@@ -46,7 +56,7 @@ set winwidth=1
 exe 'vert 1resize ' . ((&columns * 163 + 163) / 327)
 exe 'vert 2resize ' . ((&columns * 163 + 163) / 327)
 argglobal
-balt tests/rules/test_job_environment_prefix.py
+balt Taskfile.yml
 setlocal fdm=manual
 setlocal fde=0
 setlocal fmr={{{,}}}
@@ -57,19 +67,19 @@ setlocal fdn=20
 setlocal fen
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 70 - ((58 * winheight(0) + 31) / 62)
+let s:l = 143 - ((61 * winheight(0) + 33) / 67)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
-keepjumps 70
-normal! 018|
+keepjumps 143
+normal! 0
 wincmd w
 argglobal
-if bufexists(fnamemodify("tests/rules/test_job_environment_prefix.py", ":p")) | buffer tests/rules/test_job_environment_prefix.py | else | edit tests/rules/test_job_environment_prefix.py | endif
+if bufexists(fnamemodify("Taskfile.yml", ":p")) | buffer Taskfile.yml | else | edit Taskfile.yml | endif
 if &buftype ==# 'terminal'
-  silent file tests/rules/test_job_environment_prefix.py
+  silent file Taskfile.yml
 endif
-balt src/rules/job_environment_prefix.py
+balt README.md
 setlocal fdm=manual
 setlocal fde=0
 setlocal fmr={{{,}}}
@@ -80,17 +90,17 @@ setlocal fdn=20
 setlocal fen
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 40 - ((32 * winheight(0) + 31) / 62)
+let s:l = 57 - ((56 * winheight(0) + 33) / 67)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
-keepjumps 40
-normal! 0
+keepjumps 57
+normal! 058|
 wincmd w
 exe 'vert 1resize ' . ((&columns * 163 + 163) / 327)
 exe 'vert 2resize ' . ((&columns * 163 + 163) / 327)
 tabnext
-edit src/load.py
+edit src/bitwarden_workflow_linter/load.py
 let s:save_splitbelow = &splitbelow
 let s:save_splitright = &splitright
 set splitbelow splitright
@@ -110,10 +120,33 @@ set winminheight=0
 set winheight=1
 set winminwidth=0
 set winwidth=1
-exe 'vert 1resize ' . ((&columns * 109 + 163) / 327)
+exe 'vert 1resize ' . ((&columns * 108 + 163) / 327)
 exe 'vert 2resize ' . ((&columns * 108 + 163) / 327)
-exe 'vert 3resize ' . ((&columns * 108 + 163) / 327)
+exe 'vert 3resize ' . ((&columns * 109 + 163) / 327)
 argglobal
+balt tests/test_load.py
+setlocal fdm=manual
+setlocal fde=0
+setlocal fmr={{{,}}}
+setlocal fdi=#
+setlocal fdl=0
+setlocal fml=1
+setlocal fdn=20
+setlocal fen
+silent! normal! zE
+let &fdl = &fdl
+let s:l = 57 - ((32 * winheight(0) + 33) / 67)
+if s:l < 1 | let s:l = 1 | endif
+keepjumps exe s:l
+normal! zt
+keepjumps 57
+normal! 09|
+wincmd w
+argglobal
+if bufexists(fnamemodify("tests/test_load.py", ":p")) | buffer tests/test_load.py | else | edit tests/test_load.py | endif
+if &buftype ==# 'terminal'
+  silent file tests/test_load.py
+endif
 balt tests/fixtures/test_a.yaml
 setlocal fdm=manual
 setlocal fde=0
@@ -125,11 +158,11 @@ setlocal fdn=20
 setlocal fen
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 60 - ((26 * winheight(0) + 30) / 61)
+let s:l = 4 - ((3 * winheight(0) + 33) / 67)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
-keepjumps 60
+keepjumps 4
 normal! 0
 wincmd w
 argglobal
@@ -137,7 +170,7 @@ if bufexists(fnamemodify("tests/fixtures/test_a.yaml", ":p")) | buffer tests/fix
 if &buftype ==# 'terminal'
   silent file tests/fixtures/test_a.yaml
 endif
-balt src/load.py
+balt tests/test_load.py
 setlocal fdm=manual
 setlocal fde=0
 setlocal fmr={{{,}}}
@@ -148,19 +181,61 @@ setlocal fdn=20
 setlocal fen
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 8 - ((7 * winheight(0) + 30) / 61)
+let s:l = 3 - ((2 * winheight(0) + 33) / 67)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
-keepjumps 8
+keepjumps 3
+normal! 0
+wincmd w
+exe 'vert 1resize ' . ((&columns * 108 + 163) / 327)
+exe 'vert 2resize ' . ((&columns * 108 + 163) / 327)
+exe 'vert 3resize ' . ((&columns * 109 + 163) / 327)
+tabnext
+edit src/bitwarden_workflow_linter/models/job.py
+let s:save_splitbelow = &splitbelow
+let s:save_splitright = &splitright
+set splitbelow splitright
+wincmd _ | wincmd |
+vsplit
+1wincmd h
+wincmd w
+let &splitbelow = s:save_splitbelow
+let &splitright = s:save_splitright
+wincmd t
+let s:save_winminheight = &winminheight
+let s:save_winminwidth = &winminwidth
+set winminheight=0
+set winheight=1
+set winminwidth=0
+set winwidth=1
+exe 'vert 1resize ' . ((&columns * 163 + 163) / 327)
+exe 'vert 2resize ' . ((&columns * 163 + 163) / 327)
+argglobal
+balt tests/test_job.py
+setlocal fdm=manual
+setlocal fde=0
+setlocal fmr={{{,}}}
+setlocal fdi=#
+setlocal fdl=0
+setlocal fml=1
+setlocal fdn=20
+setlocal fen
+silent! normal! zE
+let &fdl = &fdl
+let s:l = 1 - ((0 * winheight(0) + 33) / 67)
+if s:l < 1 | let s:l = 1 | endif
+keepjumps exe s:l
+normal! zt
+keepjumps 1
 normal! 0
 wincmd w
 argglobal
-if bufexists(fnamemodify("Taskfile.yml", ":p")) | buffer Taskfile.yml | else | edit Taskfile.yml | endif
+if bufexists(fnamemodify("tests/test_job.py", ":p")) | buffer tests/test_job.py | else | edit tests/test_job.py | endif
 if &buftype ==# 'terminal'
-  silent file Taskfile.yml
+  silent file tests/test_job.py
 endif
-balt tests/fixtures/test_a.yaml
+balt src/bitwarden_workflow_linter/models/job.py
 setlocal fdm=manual
 setlocal fde=0
 setlocal fmr={{{,}}}
@@ -171,17 +246,17 @@ setlocal fdn=20
 setlocal fen
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 39 - ((38 * winheight(0) + 30) / 61)
+let s:l = 11 - ((10 * winheight(0) + 33) / 67)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
-keepjumps 39
-normal! 063|
+keepjumps 11
+normal! 0
 wincmd w
-exe 'vert 1resize ' . ((&columns * 109 + 163) / 327)
-exe 'vert 2resize ' . ((&columns * 108 + 163) / 327)
-exe 'vert 3resize ' . ((&columns * 108 + 163) / 327)
-tabnext 2
+2wincmd w
+exe 'vert 1resize ' . ((&columns * 163 + 163) / 327)
+exe 'vert 2resize ' . ((&columns * 163 + 163) / 327)
+tabnext 3
 set stal=1
 if exists('s:wipebuf') && len(win_findbuf(s:wipebuf)) == 0 && getbufvar(s:wipebuf, '&buftype') isnot# 'terminal'
   silent exe 'bwipe ' . s:wipebuf

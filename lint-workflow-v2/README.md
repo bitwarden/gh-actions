@@ -16,25 +16,20 @@ pip install -e .
 ```
 
 ## Usage
-### Setup settings.py
+### Setup settings.yaml
 
-After installation, copy the below and create a `settings.py` in the directory that `bwwl` will be running from.
-```python
-# settings.py.example
-import json
+If a non-default configuration is desired (different than `src/bitwarden_workflow_linter/default_settings.yaml`), copy
+the below and create a `settings.yaml` in the directory that `bwwl` will be running from.
 
+```yaml
+enabled_rules:
+  - bitwarden_workflow_linter.rules.name_exists.RuleNameExists
+  - bitwarden_workflow_linter.rules.name_capitalized.RuleNameCapitalized
+  - bitwarden_workflow_linter.rules.pinned_job_runner.RuleJobRunnerVersionPinned
+  - bitwarden_workflow_linter.rules.job_environment_prefix.RuleJobEnvironmentPrefix
+  - bitwarden_workflow_linter.rules.step_pinned.RuleStepUsesPinned
 
-enabled_rules = [
-    "src.rules.name_exists.RuleNameExists",
-    "src.rules.name_capitalized.RuleNameCapitalized",
-    "src.rules.pinned_job_runner.RuleJobRunnerVersionPinned",
-    "src.rules.job_environment_prefix.RuleJobEnvironmentPrefix",
-    "src.rules.step_pinned.RuleStepUsesPinned",
-]
-
-
-with open("actions.json", "r", encoding="utf8") as action_file:
-    approved_actions = json.load(action_file)
+approved_actions_path: default_actions.json
 ```
 
 

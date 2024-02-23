@@ -50,19 +50,19 @@ tasks:
 
   test:e2e:lint:
     cmds:
-      - pipenv run python cli.py -v lint --files tests/fixtures
+      - pipenv run bwwl lint --files tests/fixtures
 
   test:e2e:lint:single:
     cmds:
-      - pipenv run python cli.py -v lint --files tests/fixtures/test.yml
+      - pipenv run bwwl lint --files tests/fixtures/test_a.yml
 
   test:e2e:actions:add:
     cmds:
-      - pipenv run python cli.py -v actions --output test.json add bitwarden/sm-action
+      - pipenv run bwwl actions --output test.json add bitwarden/sm-action
 
   test:e2e:actions:update:
     cmds:
-      - pipenv run python cli.py -v actions update --output test.json
+      - pipenv run bwwl actions update --output test.json
 
   dist:
     silent: true

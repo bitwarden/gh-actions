@@ -53,6 +53,9 @@ class WorkflowBuilder:
         Returns
           A Workflow to run linting Rules against
         """
+        def _build_job():
+            pass
+
         return Workflow.from_dict(
             {
                 **loaded_yaml,

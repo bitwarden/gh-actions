@@ -6,7 +6,6 @@ on:
     inputs: {}
 
 jobs:
-
   test-normal-action:
     name: Download Latest
     runs-on: ubuntu-20.04

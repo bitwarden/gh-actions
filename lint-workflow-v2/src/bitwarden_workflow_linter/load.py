@@ -1,6 +1,7 @@
 """Module to load for Worflows and Rules."""
 
 import importlib
+
 from typing import List, Optional
 
 from ruamel.yaml import YAML

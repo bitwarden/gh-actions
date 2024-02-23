@@ -5,7 +5,9 @@ import pytest
 from ruamel.yaml import YAML
 
 from src.bitwarden_workflow_linter.load import WorkflowBuilder
-from src.bitwarden_workflow_linter.rules.job_environment_prefix import RuleJobEnvironmentPrefix
+from src.bitwarden_workflow_linter.rules.job_environment_prefix import (
+    RuleJobEnvironmentPrefix,
+)
 
 yaml = YAML()
 

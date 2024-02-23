@@ -5,7 +5,9 @@ import pytest
 from ruamel.yaml import YAML
 
 from src.bitwarden_workflow_linter.load import WorkflowBuilder
-from src.bitwarden_workflow_linter.rules.pinned_job_runner import RuleJobRunnerVersionPinned
+from src.bitwarden_workflow_linter.rules.pinned_job_runner import (
+    RuleJobRunnerVersionPinned,
+)
 
 yaml = YAML()
 

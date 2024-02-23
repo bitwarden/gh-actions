@@ -3,13 +3,16 @@
 import importlib.resources
 import json
 import os
+import sys
 
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Self
 
-from .default_settings import enabled_rules as default_enabled_rules
-from .default_settings import approved_actions_path as default_approved_actions_path
+from ruamel.yaml import YAML
+
+
+yaml = YAML()
 
 
 @dataclass
@@ -138,27 +141,37 @@ class Settings:
 
     @staticmethod
     def factory() -> Self:
-        enabled_rules = default_enabled_rules
-        approved_actions_file = default_approved_actions_path
+        with (
+            importlib.resources.files("bitwarden_workflow_linter")
+            .joinpath("default_settings.yaml")
+            .open("r", encoding="utf-8") as file
+        ):
+            settings = yaml.load(file)
 
-        try:
-            if os.path.exists("settings.py"):
-                import settings
+        settings_filename = "settings.yaml"
+        local_settings = None
 
-            if hasattr(settings, "enabled_rules"):
-                enabled_rules = settings.enabled_rules
+        if os.path.exists(settings_filename):
+            with open(settings_filename, encoding="utf8") as settings_file:
+                local_settings = yaml.load(settings_file)
 
-            if hasattr(settings, "approved_actions_path"):
-                if os.path.exists(settings.approved_actions_path):
-                    with open(
-                        settings.approved_actions_path, "r", encoding="utf8"
-                    ) as action_file:
-                        approved_actions = json.load(action_file)
+        if local_settings:
+            settings.update(local_settings)
 
-            else:
-                approved_actions = {}
+        if settings["approved_actions_path"] == "default_actions.json":
+            with (
+                importlib.resources.files("bitwarden_workflow_linter")
+                .joinpath("default_actions.json")
+                .open("r", encoding="utf-8") as file
+            ):
+                settings["approved_actions"] = json.load(file)
+        else:
+            with open(
+                settings["approved_actions_path"], "r", encoding="utf8"
+            ) as action_file:
+                settings["approved_actions"] = json.load(action_file)
 
-        except Exception as exc:
-            raise SettingsError("Error importing settings") from exc
-
-        return Settings(enabled_rules=enabled_rules, approved_actions=approved_actions)
+        return Settings(
+            enabled_rules=settings["enabled_rules"],
+            approved_actions=settings["approved_actions"],
+        )

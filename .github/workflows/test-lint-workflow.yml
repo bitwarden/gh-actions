@@ -26,3 +26,11 @@ jobs:
       - uses: ./lint-workflow
         with:
           workflows: ${{ steps.workflow-list.outputs.workflow-list }}
+
+      - name: Run Tests
+        run: |
+          echo "This will fail"
+
+      - name: Test 2
+        run: >
+          echo "This will not fail too"

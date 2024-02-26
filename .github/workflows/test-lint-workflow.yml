@@ -27,10 +27,10 @@ jobs:
         with:
           workflows: ${{ steps.workflow-list.outputs.workflow-list }}
 
-      - name: Intentional fail test to test one line pipe block run
+      - name: Intentional fail test for one line pipe block run
         run: |
           echo "This will fail"
 
-      - name: One liner pipe run
+      - name: Success one line angle block indicator run
         run: >
           echo "This will not fail"

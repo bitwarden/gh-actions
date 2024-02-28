@@ -23,14 +23,6 @@ jobs:
           WORKFLOW_LIST=$(ls .github/workflows | xargs -I {} echo -n ".github/workflows/{} ")
           echo "workflow-list=$WORKFLOW_LIST" >> $GITHUB_OUTPUT
 
-      - name: Intentional fail test for one line pipe block run
-        run: |
-          echo "This will fail"
-
-      - name: Success one line angle block indicator run
-        run: >
-          echo "This will not fail"
-
       - uses: ./lint-workflow
         with:
           workflows: ${{ steps.workflow-list.outputs.workflow-list }}

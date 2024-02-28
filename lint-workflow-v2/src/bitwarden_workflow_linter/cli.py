@@ -42,6 +42,7 @@ def main(input_args: Optional[List[str]] = None) -> int:
         return linter_cmd.run(args.files, args.strict)
 
     if args.command == "actions":
+        print(f"{'-'*50}\n!!bwwl actions is in BETA!!\n{'-'*50}")
         if args.actions_command == "add":
             return actions_cmd.add(args.name, args.output)
         if args.actions_command == "update":

@@ -49,7 +49,7 @@ class ActionsCmd:
             The main argument parser to add sub commands and arguments to
         """
         parser_actions = subparsers.add_parser(
-            "actions", help="Add or Update Actions in the pre-approved list."
+            "actions", help="!!BETA!!\nAdd or Update Actions in the pre-approved list."
         )
         parser_actions.add_argument(
             "-o", "--output", action="store", default="actions.json"

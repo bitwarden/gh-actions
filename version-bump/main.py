@@ -66,7 +66,7 @@ def update_xml(file_path, version=None):
         with open(file_path, "r") as f:
             data = f.read()
             data_new = re.sub(
-                'android:versionName="[0-9]+\.[0-9]+\.[0-9]+"',
+                r'android:versionName="[0-9]+\.[0-9]+\.[0-9]+"',
                 f'android:versionName="{new_version}"',
                 data,
                 flags=re.M,

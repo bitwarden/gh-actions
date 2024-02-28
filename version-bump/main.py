@@ -32,10 +32,6 @@ def get_file_name(file_path):
 def update_json(file_path, version=None):
     with open(file_path) as json_file:
         data = json.load(json_file)
-        if version is None:
-            print("Version is None")
-        else:
-            print(f"Version is not None: {version}")
         data["version"] = version if version is not None else get_next_version(data["version"])
         try:
             data["packages"][""]["version"] = version if version is not None else get_next_version(data["packages"][""]["version"])
@@ -45,7 +41,6 @@ def update_json(file_path, version=None):
     with open(file_path, "a") as f:
         f.write("\n")  # Make sure we add the new line back in at EOF.
 
-    print(f"update_json: {data["version"]}")
     return data["version"]
 
 
@@ -59,7 +54,6 @@ def update_plist(file_path, version=None):
     with open(file_path, "wb") as update_plist:
         plistlib.dump(data, update_plist, sort_keys=False)
 
-    print(f"update_plist: {pl["CFBundleShortVersionString"]}")
     return pl["CFBundleShortVersionString"]
 
 
@@ -81,7 +75,6 @@ def update_xml(file_path, version=None):
         with open(file_path, "w") as f:
             f.write(data_new)
 
-        print(f"update_xml - Android: {new_version}")
         return new_version
 
     # Microsoft .NET project files
@@ -90,7 +83,6 @@ def update_xml(file_path, version=None):
         version_property.text = version if version is not None else get_next_version(version_property.text)
         mytree.write(file_path)
 
-        print(f"update_xml - .NET: {version_property.text}")
         return version_property.text
     # MSBuild Props
     else:
@@ -98,7 +90,6 @@ def update_xml(file_path, version=None):
         version_property.text = version if version is not None else get_next_version(version_property.text)
         mytree.write(file_path, encoding="utf-8")
 
-        print(f"update_xml - Props: {version_property.text}")
         return version_property.text
 
 
@@ -112,13 +103,14 @@ def update_yaml(file_path, version=None):
     with open(file_path, "w") as f:
         yaml.dump(doc, f)
 
-    print(f"update_yaml: {doc["version"]}")
     return doc["version"]
 
 
 if __name__ == "__main__":
     version = os.getenv("INPUT_VERSION")
     file_path = os.getenv("INPUT_FILE_PATH")
+
+    # This fixes GitHub passing in an empty string instead of not setting the environment variable.
     if version == "":
         version = None
 
@@ -143,7 +135,6 @@ if __name__ == "__main__":
     else:
         raise Exception("No file was recognized as a supported format.")
 
-    print(f"New Version: {new_version}")
     if "GITHUB_OUTPUT" in os.environ:
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:
             print("{0}={1}".format("status", f"Updated {file_path}"), file=f)

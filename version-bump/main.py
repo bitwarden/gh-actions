@@ -39,6 +39,8 @@ def update_json(file_path, version=None):
     with open(file_path, "a") as f:
         f.write("\n")  # Make sure we add the new line back in at EOF.
 
+    return data["version"]
+
 
 def update_plist(file_path, version=None):
     with open(file_path, "rb") as plist:
@@ -49,6 +51,8 @@ def update_plist(file_path, version=None):
         data = pl
     with open(file_path, "wb") as update_plist:
         plistlib.dump(data, update_plist, sort_keys=False)
+
+    return pl["CFBundleShortVersionString"]
 
 
 def update_xml(file_path, version=None):
@@ -69,16 +73,22 @@ def update_xml(file_path, version=None):
         with open(file_path, "w") as f:
             f.write(data_new)
 
+        return new_version
+
     # Microsoft .NET project files
     elif myroot.attrib.has_key("Sdk") and "Microsoft.NET.Sdk" in myroot.attrib["Sdk"]:
         version_property = [x for x in myroot[0] if x.tag == "Version"][-1]
         version_property.text = version if version is not None else get_next_version(version_property.text)
         mytree.write(file_path)
+
+        return version_property.text
     # MSBuild Props
     else:
         version_property = [x for x in myroot[0] if x.tag == "Version"][-1]
         version_property.text = version if version is not None else get_next_version(version_property.text)
         mytree.write(file_path, encoding="utf-8")
+
+        return version_property.text
 
 
 # For updating Helm Charts - Chart.yaml version
@@ -90,6 +100,8 @@ def update_yaml(file_path, version=None):
 
     with open(file_path, "w") as f:
         yaml.dump(doc, f)
+
+    return doc["version"]
 
 
 if __name__ == "__main__":
@@ -107,17 +119,18 @@ if __name__ == "__main__":
 
     # Handle the file based on the extension.
     if file_type in {".xml", ".props", ".csproj"}:
-        update_xml(file_path, version)
+        new_version = update_xml(file_path, version)
     elif file_type == ".json":
-        update_json(file_path, version)
+        new_version = update_json(file_path, version)
     elif file_type == ".plist":
-        update_plist(file_path, version)
+        new_version = update_plist(file_path, version)
     elif file_name == "Chart.yaml" or file_name == "Chart.yml":
-        update_yaml(file_path, version)
+        new_version = update_yaml(file_path, version)
     else:
         raise Exception("No file was recognized as a supported format.")
 
     if "GITHUB_OUTPUT" in os.environ:
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:
             print("{0}={1}".format("status", f"Updated {file_path}"), file=f)
+            print("{0}={1}".format("version", f"New Version: {new_version}"), file=f)
 

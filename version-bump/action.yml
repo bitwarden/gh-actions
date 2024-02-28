@@ -16,6 +16,8 @@ inputs:
 outputs:
   status:
     description: "Status"
+  version:
+    description: "New Version"
 runs:
   using: "docker"
   image: "Dockerfile"

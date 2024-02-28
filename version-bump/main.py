@@ -119,6 +119,8 @@ def update_yaml(file_path, version=None):
 if __name__ == "__main__":
     version = os.getenv("INPUT_VERSION")
     file_path = os.getenv("INPUT_FILE_PATH")
+    if version == "":
+        print("Versioin is empty string!")
 
     # Throw an exception if there is no file path defined.
     try:

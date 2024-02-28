@@ -34,6 +34,8 @@ def update_json(file_path, version=None):
         data = json.load(json_file)
         if version is None:
             print("Version is None")
+        else:
+            print(f"Version is not None: {version}")
         data["version"] = version if version is not None else get_next_version(data["version"])
         try:
             data["packages"][""]["version"] = version if version is not None else get_next_version(data["packages"][""]["version"])

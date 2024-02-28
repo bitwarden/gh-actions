@@ -53,27 +53,26 @@ class WorkflowBuilder:
         Returns
           A Workflow to run linting Rules against
         """
-        def _build_job():
-            pass
+        return Workflow.init("", loaded_yaml)
 
-        return Workflow.from_dict(
-            {
-                **loaded_yaml,
-                "jobs": {
-                    str(job_key): Job.init(
-                        job_key,
-                        {
-                            **job,
-                            "steps": [
-                                Step.init(idx, job_key, step_data)
-                                for idx, step_data in enumerate(job["steps"])
-                            ],
-                        },
-                    )
-                    for job_key, job in loaded_yaml["jobs"].items()
-                },
-            }
-        )
+        #return Workflow.from_dict(
+        #    {
+        #        **loaded_yaml,
+        #        "jobs": {
+        #            str(job_key): Job.init(
+        #                job_key,
+        #                {
+        #                    **job,
+        #                    "steps": [
+        #                        Step.init(idx, job_key, step_data)
+        #                        for idx, step_data in enumerate(job["steps"])
+        #                    ],
+        #                },
+        #            )
+        #            for job_key, job in loaded_yaml["jobs"].items()
+        #        },
+        #    }
+        #)
 
     @classmethod
     def build(

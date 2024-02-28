@@ -1,7 +1,7 @@
 """Representation for an entire GitHub Action workflow."""
 
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Dict, Optional, Self
 
 from dataclasses_json import dataclass_json, Undefined
 from ruamel.yaml.comments import CommentedMap
@@ -26,3 +26,20 @@ class Workflow:
     name: Optional[str] = None
     on: Optional[CommentedMap] = None
     jobs: Optional[Dict[str, Job]] = None
+
+    @classmethod
+    def init(cls: Self, key: str, data: CommentedMap) -> Self:
+        init_data = {
+            "key": key,
+            "name": data["name"] if "name" in data else None,
+            "on": data["on"] if "on" in data else None
+        }
+
+        new_workflow = cls.from_dict(init_data)
+
+        new_workflow.jobs = {
+            str(job_key): Job.init(job_key, job)
+            for job_key, job in data["jobs"].items()
+        }
+
+        return new_workflow

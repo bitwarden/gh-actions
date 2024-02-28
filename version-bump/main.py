@@ -9,6 +9,8 @@ import yaml
 
 def get_next_version(version):
     version_split = version.split('.')
+    if len(version_split) < 3:
+        raise Exception("Version does not have year, month, and patch.")
     year = int(version_split[0])
     month = int(version_split[1])
     patch = int(version_split[2])
@@ -86,6 +88,7 @@ def update_xml(file_path, version=None):
     # MSBuild Props
     else:
         version_property = [x for x in myroot[0] if x.tag == "Version"][-1]
+        print(version_property.text)
         version_property.text = version if version is not None else get_next_version(version_property.text)
         mytree.write(file_path, encoding="utf-8")
 
@@ -106,6 +109,7 @@ def update_yaml(file_path, version=None):
 
 
 if __name__ == "__main__":
+    print("HELLO WORLD")
     version = os.getenv("INPUT_VERSION")
     file_path = os.getenv("INPUT_FILE_PATH")
 

@@ -1,7 +1,5 @@
 FROM python:3-slim
 
-ENV PYTHONUNBUFFERED=1
-
 ADD . /app
 
 WORKDIR /app

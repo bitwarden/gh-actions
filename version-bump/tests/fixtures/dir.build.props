@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<TargetFramework>net5.0</TargetFramework>
-		<Version>5.8</Version>
+		<Version>2023.12.1</Version>
 		<RootNamespace>Acme.$(MSBuildProjectName)</RootNamespace>
 	</PropertyGroup>
 

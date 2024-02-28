@@ -7,6 +7,13 @@ inputs:
   tag:
     description: "The name of the branch or tag."
     required: true
+  commit-sha:
+    description: "The SHA of the branch or tag."
+    required: true
+  db_migration_detected:
+    description: "Whether a database migration was detected."
+    required: false
+    default: false
   environment:
     description: "The name of the environment."
     required: true
@@ -38,7 +45,7 @@ runs:
   using: "composite"
   steps:
     - name: Login to Azure - Prod Subscription
-      uses: Azure/login@de95379fe4dadc2defb305917eaa7e5dde727294 # v1.5.1
+      uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0
       with:
         creds: ${{ inputs.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
@@ -53,23 +60,49 @@ runs:
       id: setup
       shell: bash
       run: |
-        case "${{ inputs.event }}" in
-          start)
-            SLACK_MESSAGE=":loading: Updating ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
-            ${{ inputs.url }}"
-            ;;
+        function slack_message_fn () {
+          local event="${{ inputs.event }}"
+          local environment="${{ inputs.environment }}"
+          local tag="${{ inputs.tag }}"
+          local project="${{ inputs.project }}"
+          local url="${{ inputs.url }}"
+          local commit_sha="${{ inputs.commit-sha }}"
 
-          success)
-            SLACK_MESSAGE=":white_check_mark: Updated ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
-            ${{ inputs.url }}"
-            ;;
-        
-          failure)
-            SLACK_MESSAGE=":x: Failed to update ${{ inputs.environment }} to \`${{ inputs.tag }}\` on ${{ inputs.project }}.
-            ${{ inputs.url }}
-            Please retry or contact @devops team."
-            ;;
-        esac
+          case $event in
+            start)
+              SLACK_MESSAGE=":loading: Updating $environment to \`$tag\` on $project.
+              $url
+              SHA: \`$commit_sha\`"
+              ;;
+
+            success)
+              SLACK_MESSAGE=":white_check_mark: Updated $environment to \`$tag\` on $project.
+              $url
+              SHA: \`$commit_sha\`"
+              ;;
+
+            failure)
+              SLACK_MESSAGE=":x: Failed to update $environment to \`$tag\` on $project.
+              $url
+              SHA: \`$commit_sha\`
+              Please retry or contact @devops team."
+              ;;
+
+            cancelled)
+              SLACK_MESSAGE=":hand: Cancelled update of $environment to \`$tag\` on $project.
+              $url
+              SHA: \`$commit_sha\`"
+              ;;
+          esac
+        }
+
+        if [[ ${{ inputs.db_migration_detected }} == true && ${{ inputs.tag }} != main && ${{ inputs.tag }} != rc && ${{ inputs.tag }} != hotfix-rc ]]; then
+          slack_message_fn
+          SLACK_MESSAGE="$SLACK_MESSAGE
+          :red_siren: This branch has new database migration changes."
+        else
+          slack_message_fn
+        fi
 
         echo 'slack_message<<EOF' >> $GITHUB_OUTPUT
         echo "$SLACK_MESSAGE" >> $GITHUB_OUTPUT
@@ -77,7 +110,7 @@ runs:
 
     - name: Post/Edit message to a Slack channel
       id: slack-message
-      uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
+      uses: slackapi/slack-github-action@6c661ce58804a1a20f6dc5fbee7f0381b469e001 # v1.25.0
       with:
         channel-id: ${{ inputs.slack-channel }}
         slack-message: ${{ steps.setup.outputs.slack_message }}

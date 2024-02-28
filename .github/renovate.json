@@ -1,16 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:base",
-    ":combinePatchMinorReleases",
-    ":dependencyDashboard",
-    ":maintainLockFilesWeekly",
-    ":pinAllExceptPeerDependencies",
-    ":prConcurrentLimit10",
-    ":rebaseStalePrs",
-    "schedule:weekends",
-    ":separateMajorReleases"
-  ],
+  "extends": ["github>bitwarden/renovate-config"],
   "enabledManagers": ["dockerfile", "github-actions", "npm", "nuget", "pipenv"],
   "packageRules": [
     {

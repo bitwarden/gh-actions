@@ -13,9 +13,18 @@ jobs:
     name: "Workflow Linter"
     runs-on: ubuntu-22.04
     steps:
+      - name: Get Repository
+        id: repo
+        env:
+          REPO: ${{ github.repository }}
+        run: |
+          echo $REPO
+          echo "repo=$REPO" >> $GITHUB_OUTPUT
+
       - name: Checkout Branch
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
+          repository: ${{ steps.repo.outputs.repo }}
           fetch-depth: 0
 
       - name: Get changed workflows
@@ -23,14 +32,18 @@ jobs:
         run: |
           MODIFIED_WORKFLOWS=$(git diff --name-only origin/${{ github.base_ref	}} | grep -E '.github/workflows/.*.(yml|yaml)' | tr '\n' ' ')
           MODIFIED_EXISTING_WORKFLOWS=""
+          COUNT=0
           for workflow in $MODIFIED_WORKFLOWS; do
               if [ -f $workflow ]; then
                   MODIFIED_EXISTING_WORKFLOWS+=" ${workflow}"
+                  COUNT=$((COUNT+1))
               fi
           done
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
           echo "modified-workflows=$MODIFIED_EXISTING_WORKFLOWS" >> $GITHUB_OUTPUT
 
       - name: Workflow Lint
+        if: steps.changed-workflows.outputs.count != 0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         uses: bitwarden/gh-actions/lint-workflow@main
@@ -38,8 +51,9 @@ jobs:
           workflows: ${{ steps.changed-workflows.outputs.modified-workflows }}
 
       - name: Get changed files
+        if: steps.changed-workflows.outputs.count != 0
         id: changed-files
-        uses: tj-actions/changed-files@94549999469dbfa032becf298d95c87a14c34394 # v40.2.2
+        uses: tj-actions/changed-files@3f54ebb830831fc121d3263c1857cfbdc310cdb9 # v42.0.4
         with:
           files: .github/workflows/**
 

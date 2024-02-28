@@ -97,8 +97,9 @@ def action_repo_exists(action_id):
 
     path, *hash = action_id.split("@")
 
-    if "bitwarden/gh-actions" in path:
-        path_list = path.split("/", 2)
+    forward_slash_count = path.count("/")
+    if forward_slash_count > 1:
+        path_list = path.split("/", forward_slash_count)
         url = f"https://api.github.com/repos/{path_list[0]}/{path_list[1]}"
         response = get_github_api_response(url, action_id)
 
@@ -152,9 +153,17 @@ def get_action_update(action_id):
     if path in memoized_action_update_urls:
         return memoized_action_update_urls[path]
     else:
-        if "bitwarden/gh-actions" in path:
-            path_list = path.split("/", 2)
-            url = f"https://api.github.com/repos/{path_list[0]}/{path_list[1]}/commits?path={path_list[2]}"
+        forward_slash_count = path.count("/")
+        path_list = path.split("/", forward_slash_count)
+        repo = f"{path_list[0]}/{path_list[1]}"
+        # Get latest release information.
+        response = get_github_api_response(
+            f"https://api.github.com/repos/{repo}/releases/latest", action_id
+        )
+        # No releases exist in repository.
+        if response.status == 404:
+            commit_path = '/'.join(path_list[2:])
+            url = f"https://api.github.com/repos/{repo}/commits?path={commit_path}"
             response = get_github_api_response(url, action_id)
             if not response:
                 return None
@@ -162,23 +171,20 @@ def get_action_update(action_id):
             sha = json.loads(response.data)[0]["sha"]
             if sha not in hash:
                 update_url = (
-                    f"https://github.com/{path_list[0]}/{path_list[1]}/commit/{sha}"
+                    f"https://github.com/{repo}/commit/{sha}"
                 )
                 memoized_action_update_urls[path] = update_url
                 return update_url
+        # Response errored out.
+        elif not response:
+            return None
+        # Get tag name from latest release.
         else:
-            # Get tag from latest release
-            response = get_github_api_response(
-                f"https://api.github.com/repos/{path}/releases/latest", action_id
-            )
-            if not response:
-                return None
-
             tag_name = json.loads(response.data)["tag_name"]
 
             # Get the URL to the commit for the tag
             response = get_github_api_response(
-                f"https://api.github.com/repos/{path}/git/ref/tags/{tag_name}",
+                f"https://api.github.com/repos/{repo}/git/ref/tags/{tag_name}",
                 action_id,
             )
             if not response:
@@ -196,7 +202,7 @@ def get_action_update(action_id):
                 sha = json.loads(response.data)["object"]["sha"]
 
             if sha not in hash:
-                update_url = f"https://github.com/{path}/commit/{sha}"
+                update_url = f"https://github.com/{repo}/commit/{sha}"
                 memoized_action_update_urls[path] = update_url
                 return update_url
 
@@ -204,8 +210,6 @@ def get_action_update(action_id):
 def lint(filename):
 
     supported_actions = {"act10ns/slack", "actions/cache", "actions/checkout", "actions/delete-package-versions", "actions/download-artifact", "actions/github-script", "actions/labeler", "actions/setup-dotnet", "actions/setup-java", "actions/setup-node", "actions/setup-python", "actions/stale", "actions/upload-artifact", "android-actions/setup-android", "Asana/create-app-attachment-github-action", "Azure/functions-action", "Azure/get-keyvault-secrets", "Azure/login", "azure/webapps-deploy", "bitwarden/sm-action", "checkmarx/ast-github-action", "chrnorm/deployment-action", "chrnorm/deployment-status", "chromaui/action", "cloudflare/pages-action", "convictional/trigger-workflow-and-wait", "crazy-max/ghaction-import-gpg", "crowdin/github-action", "dawidd6/action-download-artifact", "dawidd6/action-homebrew-bump-formula", "digitalocean/action-doctl", "docker/build-push-action", "docker/setup-buildx-action", "docker/setup-qemu-action", "dorny/test-reporter", "dtolnay/rust-toolchain", "futureware-tech/simulator-action", "hashicorp/setup-packer", "macauley/action-homebrew-bump-cask", "microsoft/setup-msbuild", "ncipollo/release-action", "peter-evans/close-issue", "ruby/setup-ruby", "samuelmeuli/action-snapcraft", "snapcore/action-build", "sonarsource/sonarcloud-github-action", "stackrox/kube-linter-action", "Swatinem/rust-cache", "SwiftDocOrg/github-wiki-publish-action", "SwiftDocOrg/swift-doc", "tj-actions/changed-files", "yogevbd/enforce-label-action"}
-
-
 
     findings = []
     max_error_level = 0
@@ -371,16 +375,6 @@ def lint(filename):
                                         "warning",
                                     )
                                 )
-
-                    # If the step has a 'run' key and only has one command, check if it's a single line.
-                    if "run" in step:
-                        if step["run"].count("\n") == 1:
-                            findings.append(
-                                LintFinding(
-                                    f"Run in step {str(i)} of job key '{job_key}' should be a single line.",
-                                    "error",
-                                )
-                            )
 
     if len(findings) > 0:
         print("#", filename)

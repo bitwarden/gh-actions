@@ -14,6 +14,7 @@ def get_next_version(version):
     patch = int(version_split[2])
     current_date = date(date.today().year, date.today().month, 1)
     patch = 0 if year != current_date.year or month != current_date.month else patch + 1
+    print(f"{current_date.year}.{current_date.month}.{patch}")
     return f"{current_date.year}.{current_date.month}.{patch}"
 
 

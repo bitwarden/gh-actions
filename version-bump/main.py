@@ -16,7 +16,6 @@ def get_next_version(version):
     patch = int(version_split[2])
     current_date = date(date.today().year, date.today().month, 1)
     patch = 0 if year != current_date.year or month != current_date.month else patch + 1
-    print(f"{current_date.year}.{current_date.month}.{patch}")
     return f"{current_date.year}.{current_date.month}.{patch}"
 
 
@@ -88,7 +87,6 @@ def update_xml(file_path, version=None):
     # MSBuild Props
     else:
         version_property = [x for x in myroot[0] if x.tag == "Version"][-1]
-        print(version_property.text)
         version_property.text = version if version is not None else get_next_version(version_property.text)
         mytree.write(file_path, encoding="utf-8")
 

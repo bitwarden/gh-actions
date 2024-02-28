@@ -17,35 +17,35 @@ jobs:
 
       - name: Bump JSON Test
         id: test_json
-        uses: ./version-bump@devops-1840_add-version-bump-calc
+        uses: ./version-bump
         with:
           version: ${{ inputs.version_number }}
           file_path: "./version-bump/tests/fixtures/package-lock.json"
 
       - name: Bump PLIST Test
         id: test_plist
-        uses: ./version-bump@devops-1840_add-version-bump-calc
+        uses: ./version-bump
         with:
           version: ${{ inputs.version_number }}
           file_path: "./version-bump/tests/fixtures/Info.plist"
 
       - name: Bump XML Test
         id: test_xml
-        uses: ./version-bump@devops-1840_add-version-bump-calc
+        uses: ./version-bump
         with:
           version: ${{ inputs.version_number }}
           file_path: "./version-bump/tests/fixtures/AndroidManifest.xml"
 
       - name: Bump Props Test
         id: test_props
-        uses: ./version-bump@devops-1840_add-version-bump-calc
+        uses: ./version-bump
         with:
           version: ${{ inputs.version_number }}
           file_path: "./version-bump/tests/fixtures/dir.build.props"
 
       - name: Bump CSProj Test
         id: test_csproj
-        uses: ./version-bump@devops-1840_add-version-bump-calc
+        uses: ./version-bump
         with:
           version: ${{ inputs.version_number }}
           file_path: "./version-bump/tests/fixtures/test.csproj"

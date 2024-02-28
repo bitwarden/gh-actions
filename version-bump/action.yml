@@ -11,7 +11,6 @@ inputs:
     required: false
   file_path:
     description: "Path to the file to apply the new version."
-    default: "./"
     required: true
 outputs:
   status:

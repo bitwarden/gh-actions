@@ -104,9 +104,10 @@ class LinterCmd:
             for rule in self.rules.job:
                 findings.append(rule.execute(job))
 
-            for step in job.steps:
-                for rule in self.rules.step:
-                    findings.append(rule.execute(step))
+            if job.steps is not None:
+                for step in job.steps:
+                    for rule in self.rules.step:
+                        findings.append(rule.execute(step))
 
         findings = list(filter(lambda a: a is not None, findings))
 

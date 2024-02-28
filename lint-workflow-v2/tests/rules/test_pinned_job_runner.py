@@ -59,6 +59,7 @@ def test_rule_on_correct_runner(rule, correct_runner):
     result, _ = rule.fn(correct_runner.jobs["call-workflow"])
     assert result is True
 
+
 def test_rule_on_incorrect_runner(rule, incorrect_runner):
     result, _ = rule.fn(incorrect_runner.jobs["job-key"])
     assert result is False

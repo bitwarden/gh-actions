@@ -44,8 +44,11 @@ class RuleJobRunnerVersionPinned(Rule):
             steps:
               - run: echo test
 
+        call-workflow:
+          uses: bitwarden/server/.github/workflows/workflow-linter.yml@master
+
         'runs-on' is pinned to '22.04' instead of 'latest'
         """
-        if "latest" not in obj.runs_on:
-            return True, ""
-        return False, self.message
+        if obj.runs_on is not None and "latest" in obj.runs_on:
+            return False, self.message
+        return True, ""

@@ -24,6 +24,9 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - run: echo test
+
+  call-workflow:
+    uses: bitwarden/server/.github/workflows/workflow-linter.yml@master
 """
     return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
 
@@ -53,6 +56,8 @@ def test_rule_on_correct_runner(rule, correct_runner):
     result, _ = rule.fn(correct_runner.jobs["job-key"])
     assert result is True
 
+    result, _ = rule.fn(correct_runner.jobs["call-workflow"])
+    assert result is True
 
 def test_rule_on_incorrect_runner(rule, incorrect_runner):
     result, _ = rule.fn(incorrect_runner.jobs["job-key"])

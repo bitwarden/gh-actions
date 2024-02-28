@@ -376,16 +376,6 @@ def lint(filename):
                                     )
                                 )
 
-                    # If the step has a 'run' key and only has one command, check if it's a single line.
-                    if "run" in step:
-                        if (step["run"].startswith(' |') and steps["run"].count('\n') == 1):
-                            findings.append(
-                                LintFinding(
-                                    f"Run in step {str(i)} of job key '{job_key}' should be a single line.",
-                                    "error",
-                                )
-                            )
-
     if len(findings) > 0:
         print("#", filename)
         for finding in findings:

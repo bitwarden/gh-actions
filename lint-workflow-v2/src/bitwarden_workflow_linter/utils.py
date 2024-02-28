@@ -7,7 +7,7 @@ import sys
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Self
+from typing import Optional, Self, TypeVar
 
 from ruamel.yaml import YAML
 
@@ -107,6 +107,9 @@ class SettingsError(Exception):
     pass
 
 
+SettingsFromFactory = TypeVar("SettingsFromFactory", bound="Settings")
+
+
 class Settings:
     """Class that contains configuration-as-code for any portion of the app."""
 
@@ -117,7 +120,7 @@ class Settings:
         self,
         enabled_rules: Optional[list[str]] = None,
         approved_actions: Optional[dict[str, dict[str, str]]] = None,
-    ):
+    ) -> None:
         """Settings object that can be overriden in settings.py.
 
         Args:
@@ -140,7 +143,7 @@ class Settings:
         }
 
     @staticmethod
-    def factory() -> Self:
+    def factory() -> SettingsFromFactory:
         with (
             importlib.resources.files("bitwarden_workflow_linter")
             .joinpath("default_settings.yaml")

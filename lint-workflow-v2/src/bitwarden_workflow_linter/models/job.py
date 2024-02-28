@@ -38,7 +38,7 @@ class Job:
             "key": key,
             "name": data["name"] if "name" in data else None,
             "runs-on": data["runs-on"] if "runs-on" in data else None,
-            "env": data["env"] if "env" in data else None
+            "env": data["env"] if "env" in data else None,
         }
 
         new_job = cls.from_dict(init_data)
@@ -52,6 +52,5 @@ class Job:
             new_job.uses = data["uses"].replace("\n", "")
             if "@" in new_job.uses:
                 new_job.uses_path, new_job.uses_ref = new_job.uses.split("@")
-
 
         return new_job

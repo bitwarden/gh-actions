@@ -158,7 +158,7 @@ class ActionsCmd:
                 json.dumps(converted_updated_actions, indent=2, sort_keys=True)
             )
 
-    def add(self, new_action_name: str, filename: str) -> None:
+    def add(self, new_action_name: str, filename: str) -> int:
         """Sub-command to add a new Action to the list of approved Actions.
 
         'actions add' will add an Action and all of its metadata and dump all
@@ -175,8 +175,9 @@ class ActionsCmd:
                 updated_actions[latest.name] = latest
 
         self.save_actions(updated_actions, filename)
+        return 0
 
-    def update(self, filename: str) -> None:
+    def update(self, filename: str) -> int:
         """Sub-command to update all of the versions of the approved actions.
 
         'actions update' will update all of the approved to the newest version
@@ -201,3 +202,4 @@ class ActionsCmd:
                 updated_actions[action.name] = latest_release
 
         self.save_actions(updated_actions, filename)
+        return 0

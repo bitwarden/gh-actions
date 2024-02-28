@@ -55,7 +55,7 @@ class WorkflowBuilder:
         """
         return Workflow.init("", loaded_yaml)
 
-        #return Workflow.from_dict(
+        # return Workflow.from_dict(
         #    {
         #        **loaded_yaml,
         #        "jobs": {
@@ -72,7 +72,7 @@ class WorkflowBuilder:
         #            for job_key, job in loaded_yaml["jobs"].items()
         #        },
         #    }
-        #)
+        # )
 
     @classmethod
     def build(

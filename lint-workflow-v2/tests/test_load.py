@@ -38,6 +38,7 @@ jobs:
 """
     )
 
+
 @pytest.fixture(name="complex_workflow_yaml")
 def fixture_complex_workflow_yaml():
     return yaml.load(

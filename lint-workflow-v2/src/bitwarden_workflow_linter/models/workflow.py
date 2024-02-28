@@ -32,7 +32,7 @@ class Workflow:
         init_data = {
             "key": key,
             "name": data["name"] if "name" in data else None,
-            "on": data["on"] if "on" in data else None
+            "on": data["on"] if "on" in data else None,
         }
 
         new_workflow = cls.from_dict(init_data)

@@ -15,6 +15,8 @@ jobs:
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
+      - run: cat version-bump/Dockerfile
+
       - name: Bump JSON Test
         id: test_json
         uses: ./version-bump

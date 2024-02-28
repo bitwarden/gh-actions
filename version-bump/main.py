@@ -109,7 +109,6 @@ def update_yaml(file_path, version=None):
 
 
 if __name__ == "__main__":
-    print("HELLO WORLD")
     version = os.getenv("INPUT_VERSION")
     file_path = os.getenv("INPUT_FILE_PATH")
 

@@ -6,8 +6,8 @@ branding:
   color: blue
 inputs:
   version:
-    description: "Newest version to use."
-    default: "1.0"
+    description: "New version to use."
+    default: "2023.12.1"
     required: false
   file_path:
     description: "Path to the file to apply the new version."

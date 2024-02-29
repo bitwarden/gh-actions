@@ -12,6 +12,12 @@ from typing import Optional, Tuple, Union
 from .utils import Colors, Settings, Action
 
 
+class GitHubApiSchemaError(Exception):
+    """A generic Exception to catch redefinitions of GitHub Api Schema changes."""
+
+    pass
+
+
 class ActionsCmd:
     """Command to manage the pre-approved list of Actions
 
@@ -115,33 +121,39 @@ class ActionsCmd:
     def get_latest_version(self, action: Action) -> Action | None:
         """Gets the latest version of the Action to compare against."""
 
-        # Get tag from latest release
-        response = self.get_github_api_response(
-            f"https://api.github.com/repos/{action.name}/releases/latest", action.name
-        )
-        if not response:
-            return None
-
-        tag_name = json.loads(response.data)["tag_name"]
-
-        # Get the URL to the commit for the tag
-        response = self.get_github_api_response(
-            f"https://api.github.com/repos/{action.name}/git/ref/tags/{tag_name}",
-            action.name,
-        )
-        if not response:
-            return None
-
-        if json.loads(response.data)["object"]["type"] == "commit":
-            sha = json.loads(response.data)["object"]["sha"]
-        else:
-            url = json.loads(response.data)["object"]["url"]
-            # Follow the URL and get the commit sha for tags
-            response = self.get_github_api_response(url, action.name)
+        try:
+            # Get tag from latest release
+            response = self.get_github_api_response(
+                f"https://api.github.com/repos/{action.name}/releases/latest",
+                action.name,
+            )
             if not response:
                 return None
 
-            sha = json.loads(response.data)["object"]["sha"]
+            tag_name = json.loads(response.data)["tag_name"]
+
+            # Get the URL to the commit for the tag
+            response = self.get_github_api_response(
+                f"https://api.github.com/repos/{action.name}/git/ref/tags/{tag_name}",
+                action.name,
+            )
+            if not response:
+                return None
+
+            if json.loads(response.data)["object"]["type"] == "commit":
+                sha = json.loads(response.data)["object"]["sha"]
+            else:
+                url = json.loads(response.data)["object"]["url"]
+                # Follow the URL and get the commit sha for tags
+                response = self.get_github_api_response(url, action.name)
+                if not response:
+                    return None
+
+                sha = json.loads(response.data)["object"]["sha"]
+        except KeyError as err:
+            raise GitHubApiSchemaError(
+                f"Error with the GitHub API Response Schema for either /releases or /tags: {err}"
+            )
 
         return Action(name=action.name, version=tag_name, sha=sha)
 

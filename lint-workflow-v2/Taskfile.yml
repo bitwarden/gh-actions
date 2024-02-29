@@ -62,7 +62,7 @@ tasks:
 
   test:e2e:actions:update:
     cmds:
-      - pipenv run bwwl actions update --output test.json
+      - pipenv run bwwl actions --output test.json update
 
   dist:
     silent: true

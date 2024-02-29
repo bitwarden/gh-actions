@@ -112,6 +112,7 @@ class Rules:
             A Settings object that contains any default, overridden, or custom settings
             required anywhere in the application.
         """
+        # [TODO]: data resiliency
         for rule in settings.enabled_rules:
             module_name = rule.split(".")
             module_name = ".".join(module_name[:-1])

@@ -26,11 +26,11 @@ class ActionsCmd:
     """
 
     def __init__(self, settings: Optional[Settings] = None) -> None:
-        """Initialize the the ActionsCmd class.
+        """Initialize the ActionsCmd class.
 
         Args:
           settings:
-            A Settings object that contains any default, overriden, or custom settings
+            A Settings object that contains any default, overridden, or custom settings
             required anywhere in the application.
         """
         self.settings = settings
@@ -41,12 +41,12 @@ class ActionsCmd:
     ) -> argparse._SubParsersAction:
         """Extends the CLI subparser with the options for ActionCmd.
 
-        Add 'actions add' and 'actions update' to the CLI as sub-commands
+        Add 'actions add' and 'actions update' to the CLI as subcommands
         along with the options and arguments for each.
 
         Args:
           subparsers:
-            The main argument parser to add sub commands and arguments to
+            The main argument parser to add subcommands and arguments to
         """
         parser_actions = subparsers.add_parser(
             "actions", help="!!BETA!!\nAdd or Update Actions in the pre-approved list."
@@ -61,7 +61,7 @@ class ActionsCmd:
         parser_actions_add = subparsers_actions.add_parser(
             "add", help="add action to approved list"
         )
-        parser_actions_add.add_argument("name", help="action name [git owener/repo]")
+        parser_actions_add.add_argument("name", help="action name [git owner/repo]")
 
         return subparsers
 
@@ -96,13 +96,13 @@ class ActionsCmd:
         return response
 
     def exists(self, action: Action) -> bool:
-        """Takes and action id and checks if the action repo exists."""
+        """Takes an action id and checks if the action repository exists."""
 
         url = f"https://api.github.com/repos/{action.name}"
         response = self.get_github_api_response(url, action.name)
 
         if response is None:
-            # Handle github api limit exceed by returning that the action exists
+            # Handle exceeding GitHub API limit by returning that the action exists
             # without actually checking to prevent false errors on linter output. Only
             # show it as an linter error.
             return True
@@ -159,7 +159,7 @@ class ActionsCmd:
             )
 
     def add(self, new_action_name: str, filename: str) -> int:
-        """Sub-command to add a new Action to the list of approved Actions.
+        """Subcommand to add a new Action to the list of approved Actions.
 
         'actions add' will add an Action and all of its metadata and dump all
         approved actions (including the new one) to either the default JSON file
@@ -178,11 +178,11 @@ class ActionsCmd:
         return 0
 
     def update(self, filename: str) -> int:
-        """Sub-command to update all of the versions of the approved actions.
+        """Subcommand to update all of the versions of the approved actions.
 
-        'actions update' will update all of the approved to the newest version
-        and dump all of the new data to either the default JSON file or the
-        one provided by '--output'
+        'actions update' will update all of the approved actions to the newest
+        version and dump all of the new data to either the default JSON file or
+        the one provided by '--output'
         """
         print("Actions: update")
         updated_actions = {}

@@ -1,4 +1,4 @@
-"""Test src/models/workflow.py."""
+"""Test src/bitwarden_workflow_linter/models/workflow.py."""
 
 import pytest
 

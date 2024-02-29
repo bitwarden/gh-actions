@@ -9,7 +9,7 @@ from .utils import LintFinding, LintLevels, Settings
 
 
 class RuleExecutionException(Exception):
-    """Exeception for the Base Rule class."""
+    """Exception for the Base Rule class."""
 
     pass
 
@@ -22,7 +22,7 @@ class Rule:
     settings: Optional[Settings] = None
 
     def fn(self, obj: Union[Workflow, Job, Step]) -> Tuple[bool, str]:
-        """Execute the Rule (this should be overriden in the extending class.
+        """Execute the Rule (this should be overridden in the extending class.
 
         Args:
           obj:
@@ -58,7 +58,7 @@ class Rule:
             return f"{obj_type.__name__} => {message}"
 
     def execute(self, obj: Union[Workflow, Job, Step]) -> Union[LintFinding, None]:
-        """Wrapper function to execute the overriden self.fn().
+        """Wrapper function to execute the overridden self.fn().
 
         Run the Rule against the object and return the results. The result
         could be an Exception message where the Rule cannot be run against

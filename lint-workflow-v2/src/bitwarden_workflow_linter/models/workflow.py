@@ -15,7 +15,7 @@ class Workflow:
     """Represents an entire workflow in a GitHub Action workflow.
 
     This object contains all of the data that is required to run the current linting
-    Rules against. If a new Rule requies a key that is missing, the attribute should
+    Rules against. If a new Rule requires a key that is missing, the attribute should
     be added to this class to make it available for use in linting.
 
     See src/models/job.py for an example if the key in the workflow data does not map

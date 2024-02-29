@@ -6,8 +6,8 @@ import sys
 from typing import List, Optional
 
 from .actions import ActionsCmd
-from .utils import Settings
 from .lint import LinterCmd
+from .utils import Settings
 
 
 local_settings = Settings.factory()
@@ -17,7 +17,7 @@ def main(input_args: Optional[List[str]] = None) -> int:
     """CLI utility to lint GitHub Action Workflows.
 
     A CLI utility to enforce coding standards on GitHub Action workflows. The
-    utility also provides other sub-commands to assist with other workflow
+    utility also provides other subcommands to assist with other workflow
     maintenance tasks; such as maintaining the list of approved GitHub Actions.
     """
     linter_cmd = LinterCmd(settings=local_settings)

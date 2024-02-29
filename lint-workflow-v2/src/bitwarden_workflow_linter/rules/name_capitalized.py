@@ -2,9 +2,9 @@
 
 from typing import Optional, Tuple, Union
 
-from ..models.workflow import Workflow
 from ..models.job import Job
 from ..models.step import Step
+from ..models.workflow import Workflow
 from ..rule import Rule
 from ..utils import LintLevels, Settings
 
@@ -20,7 +20,7 @@ class RuleNameCapitalized(Rule):
 
         Args:
           settings:
-            A Settings object that contains any default, overriden, or custom settings
+            A Settings object that contains any default, overridden, or custom settings
             required anywhere in the application.
         """
         self.message = "name must capitalized"

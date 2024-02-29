@@ -1,4 +1,4 @@
-"""Test src/rules/name_exists.py."""
+"""Test src/bitwarden_workflow_linter/rules/name_exists.py."""
 
 import pytest
 

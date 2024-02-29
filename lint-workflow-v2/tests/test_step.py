@@ -1,4 +1,4 @@
-"""Test src/models/step.py."""
+"""Test src/bitwarden_workflow_linter/models/step.py."""
 
 import json
 import pytest

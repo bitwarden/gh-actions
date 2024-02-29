@@ -20,7 +20,7 @@ class RuleStepUsesPinned(Rule):
     pipelines, we pin any use of an Action to a specific hash that has been verified
     and pre-approved after a security audit of the version of the Action.
 
-    All Internl Actions, should be pinned to 'main'. This prevents Renovate from
+    All Internal Actions, should be pinned to 'main'. This prevents Renovate from
     spamming a bunch of PRs across all of our repos when `bitwarden/gh-actions` is
     updated.
     """
@@ -30,7 +30,7 @@ class RuleStepUsesPinned(Rule):
 
         Args:
           settings:
-            A Settings object that contains any default, overriden, or custom settings
+            A Settings object that contains any default, overridden, or custom settings
             required anywhere in the application.
         """
         self.on_fail = LintLevels.ERROR

@@ -61,7 +61,7 @@ pipenv shell
 
 ### Testing
 
-All built-in `src/rules` should have 100% code coverage and we should shoot for an overall coverage of 80%+.
+All built-in `src/bitwarden_workflow_linter/rules` should have 100% code coverage and we should shoot for an overall coverage of 80%+.
 We are lax on the
 [imperative shell](https://www.destroyallsoftware.com/screencasts/catalog/functional-core-imperative-shell)
 (code interacting with other systems; ie. disk, network, etc), but we strive to maintain a high coverage over the
@@ -123,8 +123,6 @@ class RuleJobNameExists(Rule):
             return True, ""
         return False, self.message
 ```
-
-[TODO: Is this enough documentation on how to use?]
 
 By default, a new Rule needs five things:
 

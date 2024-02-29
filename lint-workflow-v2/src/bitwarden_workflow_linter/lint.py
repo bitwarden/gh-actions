@@ -21,11 +21,11 @@ class LinterCmd:
     """
 
     def __init__(self, settings: Optional[Settings] = None) -> None:
-        """Initailized the LinterCmd class.
+        """Initailize the LinterCmd class.
 
         Args:
           settings:
-            A Settings object that contains any default, overriden, or custom settings
+            A Settings object that contains any default, overridden, or custom settings
             required anywhere in the application.
         """
         self.rules = Rules(settings=settings)
@@ -36,11 +36,11 @@ class LinterCmd:
     ) -> argparse._SubParsersAction:
         """Extends the CLI subparser with the options for LintCmd.
 
-        Add 'lint' as a sub command along with its options and arguments
+        Add 'lint' as a subcommand along with its options and arguments
 
         Args:
           subparsers:
-            The main argument parser to add sub commands and arguments to
+            The main argument parser to add subcommands and arguments to
         """
         parser_lint = subparsers.add_parser(
             "lint",
@@ -69,7 +69,7 @@ class LinterCmd:
 
         Args:
           findings:
-            All of the findings that the linter found while linting a workflows.
+            All of the findings that the linter found while linting a workflow.
 
         Return:
           The numeric value of the maximum lint finding
@@ -127,7 +127,7 @@ class LinterCmd:
 
         Args:
           files:
-            list of file names or director names.
+            list of file names or directory names.
 
         Returns:
           A sorted set of all workflow files in the path(s) specified.
@@ -150,7 +150,7 @@ class LinterCmd:
 
         Args:
           input_files:
-            list of file names or director names.
+            list of file names or directory names.
           strict:
             fail on WARNING instead of succeed
 

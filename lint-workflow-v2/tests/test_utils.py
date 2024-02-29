@@ -1,4 +1,4 @@
-"""Tests src/utils.py."""
+"""Tests src/bitwarden_workflow_linter/utils.py."""
 
 from src.bitwarden_workflow_linter.utils import Action, Colors, LintFinding, LintLevels
 

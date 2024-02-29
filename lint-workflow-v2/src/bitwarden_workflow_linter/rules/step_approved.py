@@ -3,8 +3,8 @@
 from typing import List, Optional, Tuple, Union
 
 from ..models.job import Job
-from ..models.workflow import Workflow
 from ..models.step import Step
+from ..models.workflow import Workflow
 from ..rule import Rule
 from ..utils import LintLevels, Settings
 
@@ -22,7 +22,7 @@ class RuleStepUsesApproved(Rule):
 
         Args:
           settings:
-            A Settings object that contains any default, overriden, or custom settings
+            A Settings object that contains any default, overridden, or custom settings
             required anywhere in the application.
         """
         self.on_fail = LintLevels.WARNING
@@ -88,7 +88,7 @@ class RuleStepUsesApproved(Rule):
         if obj.uses and not obj.uses_path in self.settings.approved_actions:
             return False, (
                 f"New Action detected: {obj.uses_path}\nFor security purposes, "
-                "actions must be reviewed and on the pre-approved list"
+                "actions must be reviewed and be on the pre-approved list"
             )
 
         action = self.settings.approved_actions[obj.uses_path]

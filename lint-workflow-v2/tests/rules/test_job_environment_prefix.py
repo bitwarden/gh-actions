@@ -1,4 +1,4 @@
-"""Test src/rules/job_environment_prefix."""
+"""Test src/bitwarden_workflow_linter/rules/job_environment_prefix."""
 
 import pytest
 

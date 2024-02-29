@@ -3,14 +3,14 @@
 from typing import Union, Optional, Tuple, List
 
 from ..models.job import Job
-from ..models.workflow import Workflow
 from ..models.step import Step
+from ..models.workflow import Workflow
 from ..rule import Rule
 from ..utils import LintLevels, Settings
 
 
 class RuleJobEnvironmentPrefix(Rule):
-    """Rule to enforce specific prefixes for environemnt variables.
+    """Rule to enforce specific prefixes for environment variables.
 
     Automated testing is not easily written for GitHub Action Workflows. CI can also
     get complicated really quickly and take up hundreds of lines. All of this can
@@ -29,10 +29,10 @@ class RuleJobEnvironmentPrefix(Rule):
 
         Args:
           settings:
-            A Settings object that contains any default, overriden, or custom settings
+            A Settings object that contains any default, overridden, or custom settings
             required anywhere in the application.
         """
-        self.message = "Job environment vars should start with and underscore:"
+        self.message = "Job environment vars should start with an underscore:"
         self.on_fail = LintLevels.ERROR
         self.compatibility = [Job]
         self.settings = settings
@@ -57,7 +57,7 @@ class RuleJobEnvironmentPrefix(Rule):
         as in _TEST_ENV.
 
         See tests/rules/test_job_environment_prefix.py for examples of
-        incorrectly names environment variables.
+        incorrectly named environment variables.
         """
         correct = True
 

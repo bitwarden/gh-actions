@@ -80,7 +80,7 @@ class Action:
             Another Action type object to compare
 
         Return
-          The state of eqaulity
+          The state of equality
         """
         return (
             self.name == other.name
@@ -96,7 +96,7 @@ class Action:
             Another Action type object to compare
 
         Return
-          The negation of the state of eqaulity
+          The negation of the state of equality
         """
         return not self.__eq__(other)
 
@@ -121,7 +121,7 @@ class Settings:
         enabled_rules: Optional[list[str]] = None,
         approved_actions: Optional[dict[str, dict[str, str]]] = None,
     ) -> None:
-        """Settings object that can be overriden in settings.py.
+        """Settings object that can be overridden in settings.py.
 
         Args:
           enabled_rules:

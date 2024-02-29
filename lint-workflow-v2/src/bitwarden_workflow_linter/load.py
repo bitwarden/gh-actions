@@ -1,4 +1,4 @@
-"""Module to load for Worflows and Rules."""
+"""Module to load for Workflows and Rules."""
 
 import importlib
 
@@ -36,7 +36,7 @@ class WorkflowBuilder:
 
         Returns:
           A CommentedMap that contains the dict() representation of the
-          yaml file. It includes the comments as a part of their respective
+          YAML file. It includes the comments as a part of their respective
           objects (depending on their location in the file).
         """
         with open(filename, encoding="utf8") as file:
@@ -54,25 +54,6 @@ class WorkflowBuilder:
           A Workflow to run linting Rules against
         """
         return Workflow.init("", loaded_yaml)
-
-        # return Workflow.from_dict(
-        #    {
-        #        **loaded_yaml,
-        #        "jobs": {
-        #            str(job_key): Job.init(
-        #                job_key,
-        #                {
-        #                    **job,
-        #                    "steps": [
-        #                        Step.init(idx, job_key, step_data)
-        #                        for idx, step_data in enumerate(job["steps"])
-        #                    ],
-        #                },
-        #            )
-        #            for job_key, job in loaded_yaml["jobs"].items()
-        #        },
-        #    }
-        # )
 
     @classmethod
     def build(
@@ -128,7 +109,7 @@ class Rules:
 
         Args:
           settings:
-            A Settings object that contains any default, overriden, or custom settings
+            A Settings object that contains any default, overridden, or custom settings
             required anywhere in the application.
         """
         for rule in settings.enabled_rules:

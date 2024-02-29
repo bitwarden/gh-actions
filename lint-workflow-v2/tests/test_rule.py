@@ -1,4 +1,4 @@
-"""Tests src/rule.py."""
+"""Tests src/bitwarden_workflow_linter/rule.py."""
 
 import pytest
 from typing import Union

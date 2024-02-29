@@ -3,8 +3,8 @@
 from typing import List, Optional, Tuple, Union
 
 from ..models.job import Job
-from ..models.workflow import Workflow
 from ..models.step import Step
+from ..models.workflow import Workflow
 from ..rule import Rule
 from ..utils import LintLevels, Settings
 
@@ -12,7 +12,7 @@ from ..utils import LintLevels, Settings
 class RuleJobRunnerVersionPinned(Rule):
     """Rule to enforce pinned Runner OS versions.
 
-    `*-latest` versions updating without knowing has broken all of our worklfows
+    Using `*-latest` versions will update automatically and broken all of our workflows
     in the past. To avoid this and prevent a single event from breaking the majority of
     our pipelines, we pin the versions.
     """
@@ -22,7 +22,7 @@ class RuleJobRunnerVersionPinned(Rule):
 
         Args:
           settings:
-            A Settings object that contains any default, overriden, or custom settings
+            A Settings object that contains any default, overridden, or custom settings
             required anywhere in the application.
         """
         self.message = "Workflow runner must be pinned"

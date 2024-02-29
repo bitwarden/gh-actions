@@ -1,4 +1,4 @@
-"""Test src/rules/step_pinned.py."""
+"""Test src/bitwarden_workflow_linter/rules/step_pinned.py."""
 
 import pytest
 

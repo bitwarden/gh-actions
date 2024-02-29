@@ -1,4 +1,4 @@
-"""Test src/rules/pinned_job_runner.py."""
+"""Test src/bitwarden_workflow_linter/rules/pinned_job_runner.py."""
 
 import pytest
 

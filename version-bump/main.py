@@ -138,5 +138,5 @@ if __name__ == "__main__":
     if "GITHUB_OUTPUT" in os.environ:
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:
             print("{0}={1}".format("status", f"Updated {file_path}"), file=f)
-            print("{0}={1}".format("version", f"New Version: {new_version}"), file=f)
+            print("{0}={1}".format("version", f"{new_version}"), file=f)
 

@@ -6,16 +6,17 @@ branding:
   color: blue
 inputs:
   version:
-    description: "Newest version to use."
-    default: "1.0"
-    required: true
+    description: "New version to use."
+    default: "2023.12.1"
+    required: false
   file_path:
     description: "Path to the file to apply the new version."
-    default: "./"
     required: true
 outputs:
   status:
     description: "Status"
+  version:
+    description: "New Version"
 runs:
   using: "docker"
   image: "Dockerfile"

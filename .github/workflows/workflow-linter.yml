@@ -1,19 +1,19 @@
 ---
-name: Workflow Linter
+name: Lint workflow
 
 on:
   pull_request:
     paths:
       - .github/workflows/**
-  workflow_call: {}
-  workflow_dispatch: {}
+  workflow_call:
+  workflow_dispatch:
 
 jobs:
   lint:
-    name: "Workflow Linter"
+    name: Lint
     runs-on: ubuntu-22.04
     steps:
-      - name: Get Repository
+      - name: Get repository
         id: repo
         env:
           REPO: ${{ github.repository }}
@@ -21,7 +21,7 @@ jobs:
           echo $REPO
           echo "repo=$REPO" >> $GITHUB_OUTPUT
 
-      - name: Checkout Branch
+      - name: Check out branch
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           repository: ${{ steps.repo.outputs.repo }}
@@ -42,7 +42,7 @@ jobs:
           echo "count=$COUNT" >> $GITHUB_OUTPUT
           echo "modified-workflows=$MODIFIED_EXISTING_WORKFLOWS" >> $GITHUB_OUTPUT
 
-      - name: Workflow Lint
+      - name: Lint
         if: steps.changed-workflows.outputs.count != 0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

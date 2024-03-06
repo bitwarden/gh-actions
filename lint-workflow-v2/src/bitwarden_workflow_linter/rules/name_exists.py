@@ -20,7 +20,7 @@ class RuleNameExists(Rule):
     """
 
     def __init__(self, settings: Optional[Settings] = None) -> None:
-        """Contructor for RuleNameCapitalized to override Rule class.
+        """Constructor for RuleNameCapitalized to override Rule class.
 
         Args:
           settings:

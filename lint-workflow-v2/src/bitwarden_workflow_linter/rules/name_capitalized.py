@@ -16,7 +16,7 @@ class RuleNameCapitalized(Rule):
     """
 
     def __init__(self, settings: Optional[Settings] = None) -> None:
-        """Contructor for RuleNameCapitalized to override the Rule class.
+        """Constructor for RuleNameCapitalized to override the Rule class.
 
         Args:
           settings:

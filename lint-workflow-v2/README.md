@@ -65,7 +65,7 @@ All built-in `src/bitwarden_workflow_linter/rules` should have 100% code coverag
 We are lax on the
 [imperative shell](https://www.destroyallsoftware.com/screencasts/catalog/functional-core-imperative-shell)
 (code interacting with other systems; ie. disk, network, etc), but we strive to maintain a high coverage over the
-funcationl core (objects and models).
+functional core (objects and models).
 
 ```
 pipenv shell
@@ -133,7 +133,7 @@ By default, a new Rule needs five things:
 - `self.compatibility`: The list of objects this rule is compatible with. This is used to create separate instances of
   the Rule for each object in the Rules collection.
 - `self.settings`: In general, this should default to what is shown here, but allows for overrides
-- `self.fn`: The function doing the actual work to check the object and enforce the standardenforcing.
+- `self.fn`: The function doing the actual work to check the object and enforce the standard.
 
 `fn` can be as simple or as complex as it needs to be to run a check on a _single_ object. This linter currently does
 not support Rules that check against multiple objects at a time OR file level formatting (one empty between each step or

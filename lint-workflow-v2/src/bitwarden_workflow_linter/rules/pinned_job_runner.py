@@ -12,9 +12,9 @@ from ..utils import LintLevels, Settings
 class RuleJobRunnerVersionPinned(Rule):
     """Rule to enforce pinned Runner OS versions.
 
-    Using `*-latest` versions will update automatically and broken all of our workflows
-    in the past. To avoid this and prevent a single event from breaking the majority of
-    our pipelines, we pin the versions.
+    Using `*-latest` versions will update automatically and has broken all of
+    our workflows in the past. To avoid this and prevent a single event from
+    breaking the majority of our pipelines, we pin the versions.
     """
 
     def __init__(self, settings: Optional[Settings] = None) -> None:

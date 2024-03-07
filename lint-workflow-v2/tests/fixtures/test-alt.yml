@@ -1,0 +1,24 @@
+---
+name: Lint Test File, DO NOT USE
+
+on:
+  workflow_dispatch:
+    inputs: {}
+
+jobs:
+  test-normal-action:
+    name: Download Latest
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+
+      - run: |
+          echo test
+
+  test-local-action:
+    name: Testing a local action call
+    runs-on: ubuntu-20.04
+    steps:
+      - name: local-action
+        uses: ./version-bump

@@ -1,0 +1,13 @@
+---
+name: Test Workflow
+
+on:
+  workflow_dispatch:
+
+jobs:
+  job-key:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test
+        run: echo test

@@ -1,0 +1,9 @@
+---
+on:
+  workflow_dispatch:
+
+jobs:
+  job-key:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo test

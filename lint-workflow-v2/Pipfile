@@ -1,0 +1,24 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+pyyaml = "*"
+urllib3 = "*"
+pydantic = "*"
+"ruamel.yaml" = "*"
+dataclasses-json = "*"
+
+[dev-packages]
+black = "*"
+pytest = "*"
+coverage = "*"
+pytest-cov = "*"
+pylint = "*"
+pytype = "*"
+hatchling = "*"
+build = "*"
+
+[requires]
+python_version = "3.11"

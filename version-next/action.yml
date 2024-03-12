@@ -1,0 +1,45 @@
+name: "Version Next"
+description: "Calculates the next release version based on input."
+author: "Bitwarden"
+branding:
+  icon: download
+  color: blue
+inputs:
+  version:
+    description: "Version to use for calculation."
+    required: true
+outputs:
+  version:
+    description: "Next release version"
+    value: ${{ steps.calculate-version.outputs.version }}
+runs:
+  using: "composite"
+  steps:
+    - name: Calculate next version
+      id: calculate-version
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+      run: |
+        # Check input string matches regex
+        if ! [[ $VERSION =~ ^20[0-9]{2}\.([1-9]|1[0-2])\.[0-9]+$ ]]; then
+          echo "Version string not formatted correctly" >&2
+          exit 2
+        fi
+
+        # Split version string into parts
+        IFS='.' read -ra VERSION_SPLIT <<< "$VERSION"
+        YEAR=${VERSION_SPLIT[0]}
+        MONTH=${VERSION_SPLIT[1]}
+        PATCH=${VERSION_SPLIT[2]}
+
+        CURRENT_YEAR=$(TZ=America/New_York date +%Y)
+        CURRENT_MONTH=$(TZ=America/New_York date +%-m)
+
+        if [[ $YEAR != $CURRENT_YEAR ]] || [[ $MONTH != $CURRENT_MONTH ]]; then
+          PATCH=0
+        else
+          PATCH=$(($PATCH + 1))
+        fi
+
+        echo "version=${CURRENT_YEAR}.${CURRENT_MONTH}.${PATCH}" >> $GITHUB_OUTPUT

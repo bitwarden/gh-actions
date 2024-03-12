@@ -9,6 +9,6 @@ Specifically created for interacting with AndroidManifest, iOS development plist
 - name: Bump Android Version
 uses: ./version-bump
 with:
-    version: ${{ github.event.inputs.version_number }}
+    version: ${{ inputs.version_number }}
     file_path: "./AndroidManifest.xml"
 ```

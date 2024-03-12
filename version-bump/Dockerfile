@@ -9,4 +9,5 @@ RUN pip3 install pyyaml --target=/app
 
 ENV PYTHONPATH /app
 
-ENTRYPOINT [ "python", "/app/main.py" ]
+CMD ["/app/main.py"]
+ENTRYPOINT [ "python", "-u" ]

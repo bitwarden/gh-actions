@@ -22,8 +22,7 @@ runs:
         VERSION: ${{ inputs.version }}
       run: |
         # Check input string matches regex
-        REGEX_STR='^20[0-9]{2}\.([1-9]|1[0-2])\.[0-9]+$'
-        if ! [[ $VERSION =~ $REGEX_STR ]]; then
+        if ! [[ $VERSION =~ ^20[0-9]{2}\.([1-9]|1[0-2])\.[0-9]+$ ]]; then
           echo "Version string not formatted correctly" >&2
           exit 2
         fi

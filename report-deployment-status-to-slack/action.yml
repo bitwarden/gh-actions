@@ -70,26 +70,26 @@ runs:
 
           case $event in
             start)
-              SLACK_MESSAGE=":loading: Updating $environment to \`$tag\` on $project.
+              SLACK_MESSAGE=":loading: Deploying \`$tag\` to $environment on $project.
               $url
               SHA: \`$commit_sha\`"
               ;;
 
             success)
-              SLACK_MESSAGE=":white_check_mark: Updated $environment to \`$tag\` on $project.
+              SLACK_MESSAGE=":white_check_mark: Deployed \`$tag\` to $environment on $project.
               $url
               SHA: \`$commit_sha\`"
               ;;
 
             failure)
-              SLACK_MESSAGE=":x: Failed to update $environment to \`$tag\` on $project.
+              SLACK_MESSAGE=":x: Failed to deploy \`$tag\` to $environment on $project.
               $url
               SHA: \`$commit_sha\`
               Please retry or contact @devops team."
               ;;
 
             cancelled)
-              SLACK_MESSAGE=":hand: Cancelled update of $environment to \`$tag\` on $project.
+              SLACK_MESSAGE=":hand: Cancelled deploy of \`$tag\` to $environment on $project.
               $url
               SHA: \`$commit_sha\`"
               ;;

@@ -11,4 +11,4 @@ jobs:
     steps:
       - name: Test
         run: |
-          echo "${{ contains(github.event.*.labels.*.name) }}"
+          echo "${{ contains(github.event.*.labels.*.name, 'hold') }}"

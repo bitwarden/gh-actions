@@ -2,13 +2,67 @@
 name: Lint workflow
 
 on:
+  pull_request:
+    paths:
+      - .github/workflows/**
+  workflow_call:
   workflow_dispatch:
-    
+
 jobs:
-  test:
-    name: Test
+  lint:
+    name: Lint
     runs-on: ubuntu-22.04
     steps:
-      - name: Test
+      - name: Get repository
+        id: repo
+        env:
+          REPO: ${{ github.repository }}
         run: |
-          echo "${{ contains(github.event.*.labels.*.name, 'hold') }}"
+          echo $REPO
+          echo "repo=$REPO" >> $GITHUB_OUTPUT
+
+      - name: Check out branch
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          repository: ${{ steps.repo.outputs.repo }}
+          fetch-depth: 0
+
+      - name: Get changed workflows
+        id: changed-workflows
+        run: |
+          MODIFIED_WORKFLOWS=$(git diff --name-only origin/${{ github.base_ref	}} | grep -E '.github/workflows/.*.(yml|yaml)' | tr '\n' ' ')
+          MODIFIED_EXISTING_WORKFLOWS=""
+          COUNT=0
+          for workflow in $MODIFIED_WORKFLOWS; do
+              if [ -f $workflow ]; then
+                  MODIFIED_EXISTING_WORKFLOWS+=" ${workflow}"
+                  COUNT=$((COUNT+1))
+              fi
+          done
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+          echo "modified-workflows=$MODIFIED_EXISTING_WORKFLOWS" >> $GITHUB_OUTPUT
+
+      - name: Lint
+        if: steps.changed-workflows.outputs.count != 0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: bitwarden/gh-actions/lint-workflow@main
+        with:
+          workflows: ${{ steps.changed-workflows.outputs.modified-workflows }}
+
+      - name: Get changed files
+        if: steps.changed-workflows.outputs.count != 0
+        id: changed-files
+        uses: tj-actions/changed-files@77af4bed286740ef1a6387dc4e4e4dec39f96054 # v43.0.0
+        with:
+          files: .github/workflows/**
+
+      - name: Check for pinned versions
+        if: steps.changed-files.outputs.any_changed == 'true'
+        shell: bash
+        env:
+          FILE: ${{ steps.changed-files.outputs.all_changed_files }}
+        run: |
+          FILES=$(echo "${{ env.FILE }}")
+          curl -o $PWD/version-lint.sh https://raw.githubusercontent.com/bitwarden/gh-actions/main/.github/version-lint.sh
+          chmod +x $PWD/version-lint.sh && $PWD/version-lint.sh $FILES

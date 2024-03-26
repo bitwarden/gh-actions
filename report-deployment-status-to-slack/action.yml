@@ -93,6 +93,12 @@ runs:
               $url
               SHA: \`$commit_sha\`"
               ;;
+
+            no-changes)
+              SLACK_MESSAGE=":heavy_minus_sign: No changes were made for \`$tag\` deployment to $environment on $project.
+              $url
+              SHA: \`$commit_sha\`"
+              ;;
           esac
         }
 

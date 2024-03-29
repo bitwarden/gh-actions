@@ -49,6 +49,18 @@ jobs:
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
+      - name: No Changes
+        uses: ./report-deployment-status-to-slack
+        with:
+          project: Server
+          environment: US QA Cloud
+          tag: test-workflow-failure
+          slack-channel: devops-alerts-test
+          event: 'no-changes'
+          commit-sha: ${{ github.sha }}
+          url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
+          AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+
   test-report-db-migration:
     name: Test Slack report with different DB migration scenerios
     runs-on: ubuntu-22.04

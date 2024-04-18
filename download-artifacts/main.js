@@ -191,6 +191,9 @@ async function main() {
 
         core.setOutput("artifacts", artifacts)
 
+        const artifactBuildCommit = artifacts[0].workflow_run.head_sha;
+        core.setOutput("artifact-build-commit", artifactBuildCommit)
+
         if (dryRun) {
             if (artifacts.length == 0) {
                 core.setOutput("dry_run", false)

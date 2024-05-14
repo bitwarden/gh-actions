@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
         file_hash = get_file_sha256_hash(package_path)
 
-        hashes += f"{file_hash} {path} {os.linesep}"
+        hashes += f"{file_hash}  {path}{os.linesep}"
 
     hashes = hashes[:-1]
 

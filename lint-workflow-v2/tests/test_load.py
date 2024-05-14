@@ -11,7 +11,7 @@ from src.bitwarden_workflow_linter.load import WorkflowBuilder
 from src.bitwarden_workflow_linter.models.workflow import Workflow
 
 
-yaml = YAML()
+#yaml = YAML()
 
 
 @pytest.fixture(name="workflow_filename")
@@ -21,8 +21,7 @@ def fixture_workflow_filename():
 
 @pytest.fixture(name="simple_workflow_yaml")
 def fixture_simple_workflow_yaml():
-    return yaml.load(
-        """\
+    return """\
 ---
 name: test
 on:
@@ -36,13 +35,11 @@ jobs:
       - name: Test
         run: echo test
 """
-    )
 
 
 @pytest.fixture(name="complex_workflow_yaml")
 def fixture_complex_workflow_yaml():
-    return yaml.load(
-        """\
+    return """\
 ---
 name: test
 on:
@@ -76,7 +73,6 @@ jobs:
       - name: local-action
         uses: ./version-bump
 """
-    )
 
 
 def test_load_workflow_from_file(workflow_filename: str) -> None:

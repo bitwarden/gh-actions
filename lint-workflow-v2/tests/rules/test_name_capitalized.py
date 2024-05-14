@@ -2,12 +2,8 @@
 
 import pytest
 
-from ruamel.yaml import YAML
-
 from src.bitwarden_workflow_linter.load import WorkflowBuilder
 from src.bitwarden_workflow_linter.rules.name_capitalized import RuleNameCapitalized
-
-yaml = YAML()
 
 
 @pytest.fixture(name="correct_workflow")
@@ -27,7 +23,7 @@ jobs:
       - name: Test
         run: echo test
 """
-    return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
+    return WorkflowBuilder.build(workflow=workflow, from_file=False)
 
 
 @pytest.fixture(name="incorrect_workflow")
@@ -46,7 +42,7 @@ jobs:
       - name: test
         run: echo test
 """
-    return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
+    return WorkflowBuilder.build(workflow=workflow, from_file=False)
 
 
 @pytest.fixture(name="missing_name_workflow")
@@ -62,7 +58,7 @@ jobs:
     steps:
       - run: echo test
 """
-    return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
+    return WorkflowBuilder.build(workflow=workflow, from_file=False)
 
 
 @pytest.fixture(name="rule")

@@ -43,6 +43,22 @@ class WorkflowBuilder:
             return yaml.load(file)
 
     @classmethod
+    def __load_workflow_from_string(cls, workflow_yaml: str) -> CommentedMap:
+        """Load YAML from string.
+
+        Args:
+          workflow_yaml:
+            A string that contains valid YAML.
+
+        Returns:
+          A CommentedMap that contains the dict() representation of the
+          YAML file. It includes the comments as a part of their respective
+          objects (depending on their location in the file).
+        """
+        return yaml.load(workflow_yaml)
+
+
+    @classmethod
     def __build_workflow(cls, loaded_yaml: CommentedMap) -> Workflow:
         """Parse the YAML and build out the workflow to run Rules against.
 
@@ -59,7 +75,7 @@ class WorkflowBuilder:
     def build(
         cls,
         filename: Optional[str] = None,
-        workflow: Optional[CommentedMap] = None,
+        workflow: Optional[str] = None,
         from_file: bool = True,
     ) -> Workflow:
         """Build a Workflow from either code or a file.
@@ -70,7 +86,7 @@ class WorkflowBuilder:
         Args:
           filename:
             The name of the file to load the YAML workflow from
-          yaml:
+          workflow:
             Pre-loaded YAML of a workflow
           from_file:
             Flag to determine if the YAML has already been loaded or needs to
@@ -79,7 +95,7 @@ class WorkflowBuilder:
         if from_file and filename is not None:
             return cls.__build_workflow(cls.__load_workflow_from_file(filename))
         elif not from_file and workflow is not None:
-            return cls.__build_workflow(workflow)
+            return cls.__build_workflow(cls.__load_workflow_from_string(workflow))
 
         raise WorkflowBuilderError(
             "The workflow must either be built from a file or from a CommentedMap"
@@ -100,6 +116,7 @@ class Rules:
     types are not skipped.
     """
 
+    wfile: List[Rule] = []
     workflow: List[Rule] = []
     job: List[Rule] = []
     step: List[Rule] = []

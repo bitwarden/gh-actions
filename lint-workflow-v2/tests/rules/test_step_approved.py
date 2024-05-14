@@ -2,14 +2,9 @@
 
 import pytest
 
-from ruamel.yaml import YAML
-
 from src.bitwarden_workflow_linter.load import WorkflowBuilder
 from src.bitwarden_workflow_linter.rules.step_approved import RuleStepUsesApproved
 from src.bitwarden_workflow_linter.utils import Settings
-
-
-yaml = YAML()
 
 
 @pytest.fixture(name="settings")
@@ -53,7 +48,7 @@ jobs:
       - name: Test Run Action
         run: echo "test"
 """
-    return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
+    return WorkflowBuilder.build(workflow=workflow, from_file=False)
 
 
 @pytest.fixture(name="incorrect_workflow")
@@ -73,7 +68,7 @@ jobs:
       - name: Out of date action
         uses: actions/download-artifact@7a1cd3216ca9260cd8022db641d960b1db4d1be4 # v4.0.0
 """
-    return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
+    return WorkflowBuilder.build(workflow=workflow, from_file=False)
 
 
 @pytest.fixture(name="rule")

@@ -11,7 +11,7 @@ tasks:
   lint:
     silent: true
     cmds:
-      - pipenv run pylint --rcflie pylintrc {{.CLI_ARGS}}
+      - pipenv run pylint --rcfile pylintrc {{.CLI_ARGS}}
 
   type:
     silent: true

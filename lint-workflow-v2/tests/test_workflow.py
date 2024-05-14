@@ -15,8 +15,7 @@ yaml = YAML()
 
 @pytest.fixture(name="simple_workflow_yaml")
 def fixture_simple_workflow_yaml():
-    return yaml.load(
-        """\
+    return """\
 ---
 name: test
 on:
@@ -30,13 +29,11 @@ jobs:
       - name: Test
         run: echo test
 """
-    )
 
 
 @pytest.fixture(name="complex_workflow_yaml")
 def fixture_complex_workflow_yaml():
-    return yaml.load(
-        """\
+    return """\
 ---
 name: test
 on:
@@ -71,11 +68,10 @@ jobs:
       - name: local-action
         uses: ./version-bump
 """
-    )
 
 
 def test_simple_workflow(simple_workflow_yaml):
-    workflow = Workflow.init("", simple_workflow_yaml)
+    workflow = Workflow.init("", yaml.load(simple_workflow_yaml))
 
     assert workflow.name == "test"
     assert len(workflow.on.keys()) == 1
@@ -83,7 +79,7 @@ def test_simple_workflow(simple_workflow_yaml):
 
 
 def test_complex_workflow(complex_workflow_yaml):
-    workflow = Workflow.init("", complex_workflow_yaml)
+    workflow = Workflow.init("", yaml.load(complex_workflow_yaml))
 
     assert workflow.name == "test"
     assert len(workflow.on.keys()) == 2
@@ -91,7 +87,7 @@ def test_complex_workflow(complex_workflow_yaml):
 
 
 def test_workflow_extra_kwargs(simple_workflow_yaml):
-    extra_data_workflow = simple_workflow_yaml
+    extra_data_workflow = yaml.load(simple_workflow_yaml)
     extra_data_workflow["extra"] = "This should not exist"
 
     workflow = Workflow.init("", extra_data_workflow)

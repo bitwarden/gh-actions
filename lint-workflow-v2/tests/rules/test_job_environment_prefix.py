@@ -2,14 +2,10 @@
 
 import pytest
 
-from ruamel.yaml import YAML
-
 from src.bitwarden_workflow_linter.load import WorkflowBuilder
 from src.bitwarden_workflow_linter.rules.job_environment_prefix import (
     RuleJobEnvironmentPrefix,
 )
-
-yaml = YAML()
 
 
 @pytest.fixture(name="correct_workflow")
@@ -27,7 +23,7 @@ jobs:
     steps:
       - run: echo test
 """
-    return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
+    return WorkflowBuilder.build(workflow=workflow, from_file=False)
 
 
 @pytest.fixture(name="no_env_workflow")
@@ -43,7 +39,7 @@ jobs:
     steps:
       - run: echo test
 """
-    return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
+    return WorkflowBuilder.build(workflow=workflow, from_file=False)
 
 
 @pytest.fixture(name="missing_prefix_workflow")
@@ -61,7 +57,7 @@ jobs:
     steps:
       - run: echo test
 """
-    return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
+    return WorkflowBuilder.build(workflow=workflow, from_file=False)
 
 
 @pytest.fixture(name="rule")

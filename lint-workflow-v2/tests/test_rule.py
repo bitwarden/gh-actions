@@ -3,16 +3,11 @@
 import pytest
 from typing import Union
 
-from ruamel.yaml import YAML
-
 from src.bitwarden_workflow_linter.load import WorkflowBuilder
 from src.bitwarden_workflow_linter.models.job import Job
 from src.bitwarden_workflow_linter.models.step import Step
 from src.bitwarden_workflow_linter.models.workflow import Workflow
 from src.bitwarden_workflow_linter.rule import Rule, RuleExecutionException
-
-
-yaml = YAML()
 
 
 @pytest.fixture(name="correct_workflow")
@@ -32,7 +27,7 @@ jobs:
       - name: Test
         uses: actions/checkout@main
 """
-    return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
+    return WorkflowBuilder.build(workflow=workflow, from_file=False)
 
 
 @pytest.fixture(name="incorrect_workflow")
@@ -48,7 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@main
 """
-    return WorkflowBuilder.build(workflow=yaml.load(workflow), from_file=False)
+    return WorkflowBuilder.build(workflow=workflow, from_file=False)
 
 
 class RuleStep(Rule):

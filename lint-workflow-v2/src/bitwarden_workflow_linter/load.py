@@ -2,11 +2,12 @@
 
 import importlib
 
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from ruamel.yaml import YAML
 from ruamel.yaml.comments import CommentedMap
 
+from .models.file_format import FileFormat
 from .models.job import Job
 from .models.step import Step
 from .models.workflow import Workflow
@@ -27,7 +28,7 @@ class WorkflowBuilder:
     """Collection of methods to build Workflow objects."""
 
     @classmethod
-    def __load_workflow_from_file(cls, filename: str) -> CommentedMap:
+    def __load_file(cls, filename: str) -> str:
         """Load YAML from disk.
 
         Args:
@@ -35,15 +36,13 @@ class WorkflowBuilder:
             The name of the YAML file to read.
 
         Returns:
-          A CommentedMap that contains the dict() representation of the
-          YAML file. It includes the comments as a part of their respective
-          objects (depending on their location in the file).
+          A string containing the raw workflow text.
         """
         with open(filename, encoding="utf8") as file:
-            return yaml.load(file)
+            return file.read()
 
     @classmethod
-    def __load_workflow_from_string(cls, workflow_yaml: str) -> CommentedMap:
+    def __load_workflow(cls, workflow_yaml: str) -> CommentedMap:
         """Load YAML from string.
 
         Args:
@@ -77,7 +76,7 @@ class WorkflowBuilder:
         filename: Optional[str] = None,
         workflow: Optional[str] = None,
         from_file: bool = True,
-    ) -> Workflow:
+    ) -> Tuple[Workflow, FileFormat]:
         """Build a Workflow from either code or a file.
 
         This is a method that assists in testing by abstracting the disk IO
@@ -91,15 +90,20 @@ class WorkflowBuilder:
           from_file:
             Flag to determine if the YAML has already been loaded or needs to
             be loaded from disk
+
+        Returns:
+          A tuple with the raw workflow string and the object containing the workflow map.
         """
         if from_file and filename is not None:
-            return cls.__build_workflow(cls.__load_workflow_from_file(filename))
+            workflow_data = cls.__load_file(filename)
         elif not from_file and workflow is not None:
-            return cls.__build_workflow(cls.__load_workflow_from_string(workflow))
+            workflow_data = workflow
+        else:
+            raise WorkflowBuilderError(
+                "The workflow must either be built from a file or from a CommentedMap"
+            )
 
-        raise WorkflowBuilderError(
-            "The workflow must either be built from a file or from a CommentedMap"
-        )
+        return cls.__build_workflow(cls.__load_workflow(workflow_data)), FileFormat(workflow_data)
 
 
 class LoadRulesError(Exception):
@@ -116,7 +120,7 @@ class Rules:
     types are not skipped.
     """
 
-    wfile: List[Rule] = []
+    filefmt: List[Rule] = []
     workflow: List[Rule] = []
     job: List[Rule] = []
     step: List[Rule] = []
@@ -145,6 +149,8 @@ class Rules:
                     self.job.append(rule_inst)
                 if Step in rule_inst.compatibility:
                     self.step.append(rule_inst)
+                if FileFormat in rule_inst.compatibility:
+                    self.filefmt.append(rule_inst)
             except LoadRulesError as err:
                 print(f"Error loading: {rule}\n{err}")
 

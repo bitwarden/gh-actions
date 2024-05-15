@@ -8,7 +8,7 @@ from src.bitwarden_workflow_linter.rules.name_capitalized import RuleNameCapital
 
 @pytest.fixture(name="correct_workflow")
 def fixture_correct_workflow():
-    workflow = """\
+    contents = """\
 ---
 name: Test Workflow
 
@@ -23,12 +23,13 @@ jobs:
       - name: Test
         run: echo test
 """
-    return WorkflowBuilder.build(workflow=workflow, from_file=False)
+    workflow, file = WorkflowBuilder.build(workflow=contents, from_file=False)
+    return workflow
 
 
 @pytest.fixture(name="incorrect_workflow")
 def fixture_incorrect_workflow():
-    workflow = """\
+    contents = """\
 ---
 name: test
 on:
@@ -42,12 +43,13 @@ jobs:
       - name: test
         run: echo test
 """
-    return WorkflowBuilder.build(workflow=workflow, from_file=False)
+    workflow, file = WorkflowBuilder.build(workflow=contents, from_file=False)
+    return workflow
 
 
 @pytest.fixture(name="missing_name_workflow")
 def fixture_missing_name_workflow():
-    workflow = """\
+    contents = """\
 ---
 on:
   workflow_dispatch:
@@ -58,7 +60,8 @@ jobs:
     steps:
       - run: echo test
 """
-    return WorkflowBuilder.build(workflow=workflow, from_file=False)
+    workflow, file = WorkflowBuilder.build(workflow=contents, from_file=False)
+    return workflow
 
 
 @pytest.fixture(name="rule")

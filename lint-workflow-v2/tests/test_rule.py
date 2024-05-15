@@ -12,7 +12,7 @@ from src.bitwarden_workflow_linter.rule import Rule, RuleExecutionException
 
 @pytest.fixture(name="correct_workflow")
 def fixture_correct_workflow():
-    workflow = """\
+    contents = """\
 ---
 name: Test Workflow
 
@@ -27,12 +27,13 @@ jobs:
       - name: Test
         uses: actions/checkout@main
 """
-    return WorkflowBuilder.build(workflow=workflow, from_file=False)
+    workflow, file = WorkflowBuilder.build(workflow=contents, from_file=False)
+    return workflow
 
 
 @pytest.fixture(name="incorrect_workflow")
 def fixture_incorrect_workflow():
-    workflow = """\
+    contents = """\
 ---
 on:
   workflow_dispatch:
@@ -43,7 +44,8 @@ jobs:
     steps:
       - uses: actions/checkout@main
 """
-    return WorkflowBuilder.build(workflow=workflow, from_file=False)
+    workflow, file = WorkflowBuilder.build(workflow=contents, from_file=False)
+    return workflow
 
 
 class RuleStep(Rule):

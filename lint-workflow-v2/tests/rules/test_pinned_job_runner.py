@@ -10,7 +10,7 @@ from src.bitwarden_workflow_linter.rules.pinned_job_runner import (
 
 @pytest.fixture(name="correct_runner")
 def fixture_correct_runner():
-    workflow = """\
+    contents = """\
 ---
 on:
   workflow_dispatch:
@@ -24,12 +24,13 @@ jobs:
   call-workflow:
     uses: bitwarden/server/.github/workflows/workflow-linter.yml@master
 """
-    return WorkflowBuilder.build(workflow=workflow, from_file=False)
+    workflow, file = WorkflowBuilder.build(workflow=contents, from_file=False)
+    return workflow
 
 
 @pytest.fixture(name="incorrect_runner")
 def fixture_incorrect_runner():
-    workflow = """\
+    contents = """\
 ---
 on:
   workflow_dispatch:
@@ -40,7 +41,8 @@ jobs:
     steps:
       - run: echo test
 """
-    return WorkflowBuilder.build(workflow=workflow, from_file=False)
+    workflow, file = WorkflowBuilder.build(workflow=contents, from_file=False)
+    return workflow
 
 
 @pytest.fixture(name="rule")

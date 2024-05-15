@@ -8,7 +8,7 @@ from src.bitwarden_workflow_linter.rules.step_pinned import RuleStepUsesPinned
 
 @pytest.fixture(name="correct_workflow")
 def fixture_correct_workflow():
-    workflow = """\
+    contents = """\
 ---
 on:
   workflow_dispatch:
@@ -29,12 +29,13 @@ jobs:
       - name: Test Run Action
         run: echo "test"
 """
-    return WorkflowBuilder.build(workflow=workflow, from_file=False)
+    workflow, file = WorkflowBuilder.build(workflow=contents, from_file=False)
+    return workflow
 
 
 @pytest.fixture(name="incorrect_workflow")
 def fixture_incorrect_workflow():
-    workflow = """\
+    contents = """\
 ---
 on:
   workflow_dispatch:
@@ -52,7 +53,8 @@ jobs:
       - name: Test Internal Commit
         uses: bitwarden/gh-actions/get-keyvault-secrets@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 """
-    return WorkflowBuilder.build(workflow=workflow, from_file=False)
+    workflow, file = WorkflowBuilder.build(workflow=contents, from_file=False)
+    return workflow
 
 
 @pytest.fixture(name="rule")

@@ -76,15 +76,15 @@ jobs:
 
 
 def test_load_workflow_from_file(workflow_filename: str) -> None:
-    workflow = WorkflowBuilder.build(workflow_filename)
+    workflow, file = WorkflowBuilder.build(workflow_filename)
     assert isinstance(workflow, Workflow)
 
 
 def test_load_simple_workflow_from_yaml(simple_workflow_yaml: CommentedMap) -> None:
-    workflow = WorkflowBuilder.build(workflow=simple_workflow_yaml, from_file=False)
+    workflow, file = WorkflowBuilder.build(workflow=simple_workflow_yaml, from_file=False)
     assert isinstance(workflow, Workflow)
 
 
 def test_load_complex_workflow_from_yaml(complex_workflow_yaml: CommentedMap) -> None:
-    workflow = WorkflowBuilder.build(workflow=complex_workflow_yaml, from_file=False)
+    workflow, file = WorkflowBuilder.build(workflow=complex_workflow_yaml, from_file=False)
     assert isinstance(workflow, Workflow)

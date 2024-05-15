@@ -95,7 +95,7 @@ class LinterCmd:
         max_error_level = 0
 
         print(f"Linting: {filename}")
-        workflow = WorkflowBuilder.build(filename)
+        workflow, file = WorkflowBuilder.build(filename)
 
         for rule in self.rules.workflow:
             findings.append(rule.execute(workflow))

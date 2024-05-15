@@ -10,7 +10,7 @@ from src.bitwarden_workflow_linter.rules.job_environment_prefix import (
 
 @pytest.fixture(name="correct_workflow")
 def fixture_correct_workflow():
-    workflow = """\
+    contents = """\
 ---
 on:
   workflow_dispatch:
@@ -23,12 +23,13 @@ jobs:
     steps:
       - run: echo test
 """
-    return WorkflowBuilder.build(workflow=workflow, from_file=False)
+    workflow, file = WorkflowBuilder.build(workflow=contents, from_file=False)
+    return workflow
 
 
 @pytest.fixture(name="no_env_workflow")
 def fixture_no_env_workflow():
-    workflow = """\
+    contents = """\
 ---
 on:
   workflow_dispatch:
@@ -39,12 +40,13 @@ jobs:
     steps:
       - run: echo test
 """
-    return WorkflowBuilder.build(workflow=workflow, from_file=False)
+    workflow, file = WorkflowBuilder.build(workflow=contents, from_file=False)
+    return workflow
 
 
 @pytest.fixture(name="missing_prefix_workflow")
 def fixture_missing_prefix_workflow():
-    workflow = """\
+    contents = """\
 ---
 on:
   workflow_dispatch:
@@ -57,7 +59,8 @@ jobs:
     steps:
       - run: echo test
 """
-    return WorkflowBuilder.build(workflow=workflow, from_file=False)
+    workflow, file = WorkflowBuilder.build(workflow=contents, from_file=False)
+    return workflow
 
 
 @pytest.fixture(name="rule")

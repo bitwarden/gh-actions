@@ -27,7 +27,7 @@ def fixture_settings():
 
 @pytest.fixture(name="correct_workflow")
 def fixture_correct_workflow():
-    workflow = """\
+    contents = """\
 ---
 on:
   workflow_dispatch:
@@ -48,12 +48,13 @@ jobs:
       - name: Test Run Action
         run: echo "test"
 """
-    return WorkflowBuilder.build(workflow=workflow, from_file=False)
+    workflow, file = WorkflowBuilder.build(workflow=contents, from_file=False)
+    return workflow
 
 
 @pytest.fixture(name="incorrect_workflow")
 def fixture_incorrect_workflow():
-    workflow = """\
+    contents = """\
 ---
 on:
   workflow_dispatch:
@@ -68,7 +69,8 @@ jobs:
       - name: Out of date action
         uses: actions/download-artifact@7a1cd3216ca9260cd8022db641d960b1db4d1be4 # v4.0.0
 """
-    return WorkflowBuilder.build(workflow=workflow, from_file=False)
+    workflow, file = WorkflowBuilder.build(workflow=contents, from_file=False)
+    return workflow
 
 
 @pytest.fixture(name="rule")

@@ -1,0 +1,59 @@
+name: "Report release version to Slack"
+description: "Report upcoming release version to Slack"
+inputs:
+  project:
+    description: "The name of the project."
+    required: true
+  version:
+    description: "The upcoming version to release."
+    required: true
+  slack-channel:
+    description: "The name of the Slack channel."
+    default: release
+  AZURE_KV_CI_SERVICE_PRINCIPAL:
+    description: "The service principal used to authenticate to Azure."
+    required: true
+outputs:
+  channel_id:
+    description: "Channel ID where the Slack message was posted"
+    value: ${{ steps.slack-message.outputs.channel_id }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Login to Azure - Prod Subscription
+      uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0
+      with:
+        creds: ${{ inputs.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+
+    - name: Retrieve Slack secrets
+      id: retrieve-slack-secrets
+      uses: bitwarden/gh-actions/get-keyvault-secrets@main
+      with:
+        keyvault: bitwarden-ci
+        secrets: "slack-bot-token"
+
+    - name: Slack message setup
+      id: setup
+      shell: bash
+      run: |
+        function slack_message_fn () {
+          local version="${{ inputs.version }}"
+          local project="${{ inputs.project }}"
+          SLACK_MESSAGE=":meow_attention: Upcoming release \`$version\` for $project."
+        }
+
+        slack_message_fn
+
+        echo 'slack_message<<EOF' >> $GITHUB_OUTPUT
+        echo "$SLACK_MESSAGE" >> $GITHUB_OUTPUT
+        echo 'EOF' >> $GITHUB_OUTPUT
+
+    - name: Post message to a Slack channel
+      id: slack-message
+      uses: slackapi/slack-github-action@6c661ce58804a1a20f6dc5fbee7f0381b469e001 # v1.25.0
+      with:
+        channel-id: ${{ inputs.slack-channel }}
+        slack-message: ${{ steps.setup.outputs.slack_message }}
+      env:
+        SLACK_BOT_TOKEN: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}

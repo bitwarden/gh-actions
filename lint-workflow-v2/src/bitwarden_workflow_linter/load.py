@@ -166,4 +166,7 @@ class Rules:
         print("step rules:")
         for rule in self.step:
             print(f" - {type(rule).__name__}")
+        print("file formatting rules:")
+        for rule in self.filefmt:
+            print(f" - {type(rule).__name__}")
         print("========================\n")

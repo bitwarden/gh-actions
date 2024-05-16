@@ -2,9 +2,10 @@
 
 from typing import List, Optional, Tuple, Union
 
-from .models.workflow import Workflow
+from .models.file_format import FileFormat
 from .models.job import Job
 from .models.step import Step
+from .models.workflow import Workflow
 from .utils import LintFinding, LintLevels, Settings
 
 
@@ -18,10 +19,10 @@ class Rule:
     """Base class of a Rule to extend to create a linting Rule."""
 
     on_fail: LintLevels = LintLevels.ERROR
-    compatibility: List[Union[Workflow, Job, Step]] = [Workflow, Job, Step]
+    compatibility: List[Union[Workflow, Job, Step, FileFormat]] = [Workflow, Job, Step, FileFormat]
     settings: Optional[Settings] = None
 
-    def fn(self, obj: Union[Workflow, Job, Step]) -> Tuple[bool, str]:
+    def fn(self, obj: Union[Workflow, Job, Step, FileFormat]) -> Tuple[bool, str]:
         """Execute the Rule (this should be overridden in the extending class.
 
         Args:
@@ -33,7 +34,7 @@ class Rule:
         """
         return False, f"{obj.name}: <default fail message>"
 
-    def build_lint_message(self, message: str, obj: Union[Workflow, Job, Step]) -> str:
+    def build_lint_message(self, message: str, obj: Union[Workflow, Job, Step, FileFormat]) -> str:
         """Build the lint failure message.
 
         Build the lint failure message depending on the type of object that the
@@ -57,7 +58,7 @@ class Rule:
         else:
             return f"{obj_type.__name__} => {message}"
 
-    def execute(self, obj: Union[Workflow, Job, Step]) -> Union[LintFinding, None]:
+    def execute(self, obj: Union[Workflow, Job, Step, FileFormat]) -> Union[LintFinding, None]:
         """Wrapper function to execute the overridden self.fn().
 
         Run the Rule against the object and return the results. The result

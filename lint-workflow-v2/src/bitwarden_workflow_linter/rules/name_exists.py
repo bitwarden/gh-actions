@@ -29,6 +29,7 @@ class RuleNameExists(Rule):
         """
         self.message = "name must exist"
         self.on_fail = LintLevels.ERROR
+        self.compatibility = [Workflow, Job, Step]
         self.settings = settings
 
     def fn(self, obj: Union[Workflow, Job, Step]) -> Tuple[bool, str]:

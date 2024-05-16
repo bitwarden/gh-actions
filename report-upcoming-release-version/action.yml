@@ -15,7 +15,7 @@ inputs:
     required: true
 outputs:
   channel_id:
-    description: "Channel ID where the Slack message was posted"
+    description: "Channel ID where the Slack message was posted."
     value: ${{ steps.slack-message.outputs.channel_id }}
 
 runs:

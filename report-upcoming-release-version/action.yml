@@ -40,7 +40,7 @@ runs:
         function slack_message_fn () {
           local version="${{ inputs.version }}"
           local project="${{ inputs.project }}"
-          SLACK_MESSAGE=":meow_attention: Upcoming release \`$version\` for $project."
+          SLACK_MESSAGE=":meow_attention: Upcoming release \`$version\` for \`$project\`."
         }
 
         slack_message_fn

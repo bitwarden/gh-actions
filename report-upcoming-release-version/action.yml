@@ -45,9 +45,9 @@ runs:
 
         slack_message_fn
 
-        echo 'slack_message<<EOF' >> $GITHUB_OUTPUT
+        echo "slack_message<<EOF" >> $GITHUB_OUTPUT
         echo "$SLACK_MESSAGE" >> $GITHUB_OUTPUT
-        echo 'EOF' >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
 
     - name: Post message to a Slack channel
       id: slack-message

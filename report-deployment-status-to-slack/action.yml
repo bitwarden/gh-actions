@@ -17,9 +17,6 @@ inputs:
   environment:
     description: "The name of the environment."
     required: true
-  slack-channel:
-    description: "The name of the Slack channel."
-    default: team-eng-qa-devops
   update-ts:
     description: "Message ID to update in Slack channel."
     required: false
@@ -114,11 +111,26 @@ runs:
         echo "$SLACK_MESSAGE" >> $GITHUB_OUTPUT
         echo 'EOF' >> $GITHUB_OUTPUT
 
+    - name: Determine Slack Channel ID
+      id: slack-channel
+      outputs:
+        channel_id: ${{ steps.slack-channel.outputs.channel_id }}
+      env:
+        DEPLOYMENT_ENV: ${{ inputs.environment }}
+      run |
+        if ( $DEPLOYMENT_ENV =~ '"US-QA Cloud"|"EU-QA Cloud"' ); then
+          echo "channel_id=alerts-deploy-qa" >> $GITHUB_OUTPUT
+        elif ( $DEPLOYMENT_ENV == '"US-DEV Cloud"|"EU-DEV Cloud"' ); then
+          echo "channel_id=alerts-deploy-dev" >> $GITHUB_OUTPUT
+        else
+          echo "channel_id=devops-alerts-test" >> $GITHUB_ENV
+        fi
+
     - name: Post/Edit message to a Slack channel
       id: slack-message
       uses: slackapi/slack-github-action@6c661ce58804a1a20f6dc5fbee7f0381b469e001 # v1.25.0
       with:
-        channel-id: ${{ inputs.slack-channel }}
+        channel-id: ${{ steps.slack-channel.outputs.channel_id }}
         slack-message: ${{ steps.setup.outputs.slack_message }}
         update-ts: ${{ inputs.update-ts }}
       env:

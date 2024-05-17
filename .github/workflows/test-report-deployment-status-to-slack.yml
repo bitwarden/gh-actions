@@ -17,9 +17,8 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
-          environment: US QA Cloud
+          environment: test-alert
           tag: test-workflow-start
-          slack-channel: devops-alerts-test
           event: 'start'
           commit-sha: ${{ github.sha }}
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
@@ -29,9 +28,8 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
-          environment: US QA Cloud
+          environment: test-alert
           tag: test-workflow-success
-          slack-channel: devops-alerts-test
           event: 'success'
           commit-sha: ${{ github.sha }}
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
@@ -41,9 +39,8 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
-          environment: US QA Cloud
+          environment: test-alert
           tag: test-workflow-failure
-          slack-channel: devops-alerts-test
           event: 'failure'
           commit-sha: ${{ github.sha }}
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
@@ -53,9 +50,30 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
-          environment: US QA Cloud
+          environment: test-alert
           tag: test-workflow-failure
-          slack-channel: devops-alerts-test
+          event: 'no-changes'
+          commit-sha: ${{ github.sha }}
+          url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
+          AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+
+      - name: Failure
+        uses: ./report-deployment-status-to-slack
+        with:
+          project: Server
+          environment: "US-QA Cloud"
+          tag: test-workflow-failure
+          event: 'failure'
+          commit-sha: ${{ github.sha }}
+          url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
+          AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+
+      - name: No Changes
+        uses: ./report-deployment-status-to-slack
+        with:
+          project: Server
+          environment: "US-DEV Cloud"
+          tag: test-workflow-failure
           event: 'no-changes'
           commit-sha: ${{ github.sha }}
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
@@ -71,9 +89,8 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
-          environment: US QA Cloud
+          environment: test-alert
           tag: main
-          slack-channel: devops-alerts-test
           event: 'success'
           commit-sha: ${{ github.sha }}
           db_migration_detected: true
@@ -84,9 +101,8 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
-          environment: US QA Cloud
+          environment: test-alert
           tag: main
-          slack-channel: devops-alerts-test
           event: 'failure'
           commit-sha: ${{ github.sha }}
           db_migration_detected: false
@@ -97,9 +113,8 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
-          environment: US QA Cloud
+          environment: test-alert
           tag: test-branch-failure
-          slack-channel: devops-alerts-test
           event: 'failure'
           commit-sha: ${{ github.sha }}
           db_migration_detected: false
@@ -110,9 +125,32 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
-          environment: US QA Cloud
+          environment: test-alert
           tag: test-branch-success
-          slack-channel: devops-alerts-test
+          event: 'success'
+          commit-sha: ${{ github.sha }}
+          db_migration_detected: true
+          url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
+          AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+
+       - name: With DB migration true on test branch
+        uses: ./report-deployment-status-to-slack
+        with:
+          project: Server
+          environment: US-QA Cloud
+          tag: test-branch-failure
+          event: 'failure'
+          commit-sha: ${{ github.sha }}
+          db_migration_detected: false
+          url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
+          AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+
+      - name: With DB migration false on test branch
+        uses: ./report-deployment-status-to-slack
+        with:
+          project: Server
+          environment: US-DEV Cloud
+          tag: test-branch-success
           event: 'success'
           commit-sha: ${{ github.sha }}
           db_migration_detected: true

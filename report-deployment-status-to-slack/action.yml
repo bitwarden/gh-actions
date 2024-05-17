@@ -117,13 +117,13 @@ runs:
         channel_id: ${{ steps.slack-channel.outputs.channel_id }}
       env:
         DEPLOYMENT_ENV: ${{ inputs.environment }}
-      run |
+      run: |
         if ( $DEPLOYMENT_ENV =~ '"US-QA Cloud"|"EU-QA Cloud"' ); then
           echo "channel_id=alerts-deploy-qa" >> $GITHUB_OUTPUT
         elif ( $DEPLOYMENT_ENV == '"US-DEV Cloud"|"EU-DEV Cloud"' ); then
           echo "channel_id=alerts-deploy-dev" >> $GITHUB_OUTPUT
         else
-          echo "channel_id=devops-alerts-test" >> $GITHUB_ENV
+          echo "channel_id=devops-alerts-test" >> $GITHUB_OUTPUT
         fi
 
     - name: Post/Edit message to a Slack channel

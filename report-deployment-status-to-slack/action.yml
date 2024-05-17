@@ -113,8 +113,7 @@ runs:
 
     - name: Determine Slack Channel ID
       id: slack-channel
-      outputs:
-        channel_id: ${{ steps.slack-channel.outputs.channel_id }}
+      shell: bash
       env:
         DEPLOYMENT_ENV: ${{ inputs.environment }}
       run: |

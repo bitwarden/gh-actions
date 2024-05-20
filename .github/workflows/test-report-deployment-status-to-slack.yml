@@ -63,7 +63,7 @@ jobs:
           project: Server
           environment: "US-QA Cloud"
           tag: test-workflow-failure
-          event: 'failure'
+          event: 'success'
           commit-sha: ${{ github.sha }}
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}

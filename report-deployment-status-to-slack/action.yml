@@ -128,8 +128,6 @@ runs:
             echo "channel_id=devops-alerts-test" >> $GITHUB_OUTPUT
             ;;
         esac
-        echo $DEPLOYMENT_ENV
-        echo $channel_id
 
     - name: Post/Edit message to a Slack channel
       id: slack-message

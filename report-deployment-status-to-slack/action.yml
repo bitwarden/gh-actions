@@ -117,13 +117,17 @@ runs:
       env:
         DEPLOYMENT_ENV: ${{ inputs.environment }}
       run: |
-        if ( $DEPLOYMENT_ENV =~ '"US-QA Cloud"|"EU-QA Cloud"' ); then
-          echo "channel_id=alerts-deploy-qa" >> $GITHUB_OUTPUT
-        elif ( $DEPLOYMENT_ENV == '"US-DEV Cloud"|"EU-DEV Cloud"' ); then
-          echo "channel_id=alerts-deploy-dev" >> $GITHUB_OUTPUT
-        else
-          echo "channel_id=devops-alerts-test" >> $GITHUB_OUTPUT
-        fi
+        case $DEPLOYMENT_ENV in
+          "US-QA Cloud"|"EU-QA Cloud")
+            echo "channel_id=alerts-deploy-qa" >> $GITHUB_OUTPUT
+            ;;
+          "US-DEV Cloud"|"EU-DEV Cloud")
+            echo "channel_id=alerts-deploy-dev" >> $GITHUB_OUTPUT
+            ;;
+          *)
+            echo "channel_id=devops-alerts-test" >> $GITHUB_OUTPUT
+            ;;
+        esac
         echo $DEPLOYMENT_ENV
         echo $channel_id
 

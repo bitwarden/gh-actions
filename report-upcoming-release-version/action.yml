@@ -9,7 +9,7 @@ inputs:
     required: true
   slack-channel:
     description: "The name of the Slack channel."
-    default: release
+    default: devops-alerts-test
   AZURE_KV_CI_SERVICE_PRINCIPAL:
     description: "The service principal used to authenticate to Azure."
     required: true

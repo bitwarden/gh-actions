@@ -57,28 +57,6 @@ jobs:
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
-      - name: Failure
-        uses: ./report-deployment-status-to-slack
-        with:
-          project: Server
-          environment: "US-QA Cloud"
-          tag: test-workflow-failure
-          event: 'success'
-          commit-sha: ${{ github.sha }}
-          url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-          AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
-
-      - name: No Changes
-        uses: ./report-deployment-status-to-slack
-        with:
-          project: Server
-          environment: "US-DEV Cloud"
-          tag: test-workflow-failure
-          event: 'no-changes'
-          commit-sha: ${{ github.sha }}
-          url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-          AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
-
   test-report-db-migration:
     name: Test Slack report with different DB migration scenerios
     runs-on: ubuntu-22.04
@@ -126,30 +104,6 @@ jobs:
         with:
           project: Server
           environment: test-alert
-          tag: test-branch-success
-          event: 'success'
-          commit-sha: ${{ github.sha }}
-          db_migration_detected: true
-          url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-          AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
-
-      - name: With DB migration true on test branch
-        uses: ./report-deployment-status-to-slack
-        with:
-          project: Server
-          environment: US-QA Cloud
-          tag: test-branch-failure
-          event: 'failure'
-          commit-sha: ${{ github.sha }}
-          db_migration_detected: false
-          url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-          AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
-
-      - name: With DB migration false on test branch
-        uses: ./report-deployment-status-to-slack
-        with:
-          project: Server
-          environment: US-DEV Cloud
           tag: test-branch-success
           event: 'success'
           commit-sha: ${{ github.sha }}

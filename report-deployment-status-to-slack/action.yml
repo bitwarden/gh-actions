@@ -31,9 +31,6 @@ inputs:
     description: "The service principal used to authenticate to Azure."
     required: true
 outputs:
-  channel_id:
-    description: "Channel ID where the Slack message was posted"
-    value: ${{ steps.slack-message.outputs.channel_id }}
   ts:
     description: "Message ID of the Slack message"
     value: ${{ steps.slack-message.outputs.ts }}

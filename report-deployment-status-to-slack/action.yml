@@ -124,6 +124,8 @@ runs:
         else
           echo "channel_id=devops-alerts-test" >> $GITHUB_OUTPUT
         fi
+        echo $DEPLOYMENT_ENV
+        echo $channel_id
 
     - name: Post/Edit message to a Slack channel
       id: slack-message

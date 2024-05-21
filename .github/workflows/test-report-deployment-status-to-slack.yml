@@ -17,7 +17,7 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
-          environment: test-alert
+          environment: EU-QA Cloud
           tag: test-workflow-start
           event: 'start'
           commit-sha: ${{ github.sha }}
@@ -28,7 +28,7 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
-          environment: test-alert
+          environment: US-QA Cloud
           tag: test-workflow-success
           event: 'success'
           commit-sha: ${{ github.sha }}
@@ -39,7 +39,7 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
-          environment: test-alert
+          environment: US-QA Cloud
           tag: test-workflow-failure
           event: 'failure'
           commit-sha: ${{ github.sha }}
@@ -50,7 +50,7 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
-          environment: test-alert
+          environment: EU-QA Cloud
           tag: test-workflow-failure
           event: 'no-changes'
           commit-sha: ${{ github.sha }}
@@ -67,7 +67,7 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
-          environment: test-alert
+          environment: EU-QA Cloud
           tag: main
           event: 'success'
           commit-sha: ${{ github.sha }}
@@ -79,7 +79,7 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
-          environment: test-alert
+          environment: US-QA Cloud
           tag: main
           event: 'failure'
           commit-sha: ${{ github.sha }}
@@ -91,7 +91,7 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
-          environment: test-alert
+          environment: EU-QA Cloud
           tag: test-branch-failure
           event: 'failure'
           commit-sha: ${{ github.sha }}
@@ -103,7 +103,7 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
-          environment: test-alert
+          environment: US-QA Cloud
           tag: test-branch-success
           event: 'success'
           commit-sha: ${{ github.sha }}

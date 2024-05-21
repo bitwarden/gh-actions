@@ -17,9 +17,9 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
-          environment: US QA Cloud
-          tag: test-workflow-start
+          environment: EU-QA Cloud
           slack-channel: devops-alerts-test
+          tag: test-workflow-start
           event: 'start'
           commit-sha: ${{ github.sha }}
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
@@ -29,9 +29,9 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
-          environment: US QA Cloud
-          tag: test-workflow-success
+          environment: US-QA Cloud
           slack-channel: devops-alerts-test
+          tag: test-workflow-success
           event: 'success'
           commit-sha: ${{ github.sha }}
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
@@ -41,9 +41,9 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
-          environment: US QA Cloud
-          tag: test-workflow-failure
+          environment: US-QA Cloud
           slack-channel: devops-alerts-test
+          tag: test-workflow-failure
           event: 'failure'
           commit-sha: ${{ github.sha }}
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
@@ -53,9 +53,9 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
-          environment: US QA Cloud
-          tag: test-workflow-failure
+          environment: EU-QA Cloud
           slack-channel: devops-alerts-test
+          tag: test-workflow-failure
           event: 'no-changes'
           commit-sha: ${{ github.sha }}
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
@@ -71,9 +71,9 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
-          environment: US QA Cloud
-          tag: main
+          environment: EU-QA Cloud
           slack-channel: devops-alerts-test
+          tag: main
           event: 'success'
           commit-sha: ${{ github.sha }}
           db_migration_detected: true
@@ -84,9 +84,9 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
-          environment: US QA Cloud
-          tag: main
+          environment: US-QA Cloud
           slack-channel: devops-alerts-test
+          tag: main
           event: 'failure'
           commit-sha: ${{ github.sha }}
           db_migration_detected: false
@@ -97,9 +97,9 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
-          environment: US QA Cloud
-          tag: test-branch-failure
+          environment: EU-QA Cloud
           slack-channel: devops-alerts-test
+          tag: test-branch-failure
           event: 'failure'
           commit-sha: ${{ github.sha }}
           db_migration_detected: false
@@ -110,9 +110,9 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: Server
-          environment: US QA Cloud
-          tag: test-branch-success
+          environment: US-QA Cloud
           slack-channel: devops-alerts-test
+          tag: test-branch-success
           event: 'success'
           commit-sha: ${{ github.sha }}
           db_migration_detected: true

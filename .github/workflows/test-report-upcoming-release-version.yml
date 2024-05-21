@@ -17,6 +17,6 @@ jobs:
         uses: ./report-deployment-status-to-slack
         with:
           project: bitwarden/server
-          tag: upcoming_version
+          version: upcoming_version
           slack-channel: devops-alerts-test
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}

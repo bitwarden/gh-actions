@@ -7,6 +7,8 @@ from ..rule import Rule
 from ..utils import LintLevels, Settings
 
 
+INDENTATION_LEVEL = 2
+
 class RuleFileJobNewline(Rule):
     """Rule to enforce specific prefixes for environment variables.
 
@@ -24,6 +26,31 @@ class RuleFileJobNewline(Rule):
         self.on_fail = LintLevels.ERROR
         self.compatibility = [FileFormat]
         self.settings = settings
+
+    @classmethod
+    def get_job_blocks(cls, lines: List[str]) -> List[str]:
+        jobs_key_index = lines.index("jobs:")
+        block = []
+
+        for index, line in enumerate(lines[jobs_key_index+1:]):
+            if line == "" or line[0].isspace():
+                block.append(line)
+            else:
+                break
+
+        return block
+
+    @classmethod
+    def is_indentation_correct(cls, lines: List[str]) -> bool:
+        jobs_key_index = lines.index("jobs:")
+
+        for line in lines[jobs_key_index+1:]:
+            if line == "":
+                continue
+            if line[2].isspace():
+                return False
+
+        return True
 
     def fn(self, obj: FileFormat) -> Tuple[bool, str]:
         """Enforces a newline between every job block.
@@ -44,31 +71,20 @@ class RuleFileJobNewline(Rule):
             steps:
               - run: echo test
 
-        There should be an empty newline between each job.
+        There should be an empty newline between each job. This assumes and validates a YAML
+        indentiation of INDENTATION_LEVEL.
         """
-        def get_block(lines: List[str]):
-            block = []
-
-            initial_length = len(lines[0])
-            cleaned_length = len(lines[0].lstrip())
-            initial_indent_size = initial_length - cleaned_length
-
-            for index, line in enumerate(lines[1:]):
-                if line[:initial_indent_size] != " " * initial_indent_size:
-                    block = lines[:index]
-                    break
-
-            return block
-
-
         correct = True
 
-        jobs_key_index = obj.lines.index("jobs:")
-        jobs_blocks = obj.lines[jobs_key_index:]
+        if not self.is_indentation_correct(obj.lines):
+            return False, f"Dependent YAML indentation is incorrect. Required: {INDENTATION_LEVEL}"
 
-        print(f"Blocks: {get_block(jobs_blocks)}")
+        jobs_blocks = self.get_job_blocks(obj.lines)
 
-        if correct:
-            return True, ""
+        print(f"blocks: {jobs_blocks}")
+
+
+        #if correct:
+        #    return True, ""
 
         return False, f"{self.message}"

@@ -32,7 +32,7 @@ class RuleFileJobNewline(Rule):
         jobs_key_index = lines.index("jobs:")
         block = []
 
-        for index, line in enumerate(lines[jobs_key_index+1:]):
+        for line in lines[jobs_key_index+1:]:
             if line == "" or line[0].isspace():
                 block.append(line)
             else:
@@ -41,16 +41,21 @@ class RuleFileJobNewline(Rule):
         return block
 
     @classmethod
+    def is_start_new_job_block(cls, line: str) -> bool:
+        return not line[2].isspace()
+
+    @classmethod
     def is_indentation_correct(cls, lines: List[str]) -> bool:
         jobs_key_index = lines.index("jobs:")
 
         for line in lines[jobs_key_index+1:]:
+            print(f"indentation check line: {line}")
             if line == "":
                 continue
-            if line[2].isspace():
+            if not cls.is_start_new_job_block(line):
                 return False
-
-        return True
+            else:
+                return True
 
     def fn(self, obj: FileFormat) -> Tuple[bool, str]:
         """Enforces a newline between every job block.
@@ -81,10 +86,17 @@ class RuleFileJobNewline(Rule):
 
         jobs_blocks = self.get_job_blocks(obj.lines)
 
-        print(f"blocks: {jobs_blocks}")
+        if job_block[0] == "":
+            return False, f"There should be no newline between the 'jobs' key and the first job"
 
+        for index, line in enumerate(jobs_block):
+            if index == 0: # skip the first job
+                continue
+            if self.is_start_new_job_block(line) and jobs_blocks[index-1] != "":
+                self.message += f"\nMissing newline prior to {jobs_blocks[index]}"
+                correct = False
 
-        #if correct:
-        #    return True, ""
+        if correct:
+            return True, ""
 
         return False, f"{self.message}"

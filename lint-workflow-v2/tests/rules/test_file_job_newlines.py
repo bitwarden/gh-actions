@@ -44,6 +44,22 @@ jobs:
 """
 
 
+@pytest.fixture(name="incorrect_workflow_single_job")
+def fixture_incorrect_workflow_single_job():
+    return """\
+---
+on:
+  workflow_dispatch:
+
+jobs:
+
+  first-job:
+    runs-on: ubuntu-22.04
+    steps:
+      - run: echo test1
+"""
+
+
 @pytest.fixture(name="incorrect_workflow_multi_job")
 def fixture_incorrect_workflow_multi_job():
     return """\
@@ -52,6 +68,7 @@ on:
   workflow_dispatch:
 
 jobs:
+
   first-job:
     runs-on: ubuntu-22.04
     steps:
@@ -153,6 +170,7 @@ def test_get_job_block_multi(
     ]
 
     expected_incorrect = [
+        "",
         "  first-job:",
         "    runs-on: ubuntu-22.04",
         "    steps:",
@@ -216,17 +234,26 @@ def test_is_indetion_correct(rule):
     correct_indentation_one = """\
 jobs:
   first-job:
+    runs-on: ubuntu-22.04
+    steps:
+      - run: echo test1
 """
 
     correct_indentation_two = """\
 jobs:
 
   first-job:
+    runs-on: ubuntu-22.04
+    steps:
+      - run: echo test1
 """
 
     incorrect_indentation = """\
 jobs:
     first-job:
+        runs-on: ubuntu-22.04
+        steps:
+            - run: echo test1
 """
 
     assert rule.is_indentation_correct(correct_indentation_one.split("\n")) is True
@@ -244,6 +271,7 @@ def test_rule_on_correct_workflow_single_job(rule, correct_workflow_single_job):
     obj = FileFormat(correct_workflow_single_job)
 
     result, message = rule.fn(obj)
+    print(f"message: {message}")
     assert result is True
 
 
@@ -253,3 +281,19 @@ def test_rule_on_correct_workflow_multi_job(rule, correct_workflow_multi_job):
 
     result, message = rule.fn(obj)
     assert result is True
+
+
+@pytest.mark.skip()
+def test_rule_on_incorrect_workflow_single_job(rule, incorrect_workflow_single_job):
+    obj = FileFormat(incorrect_workflow_single_job)
+
+    result, message = rule.fn(obj)
+    assert result is False
+
+
+@pytest.mark.skip()
+def test_rule_on_incorrect_workflow_multi_job(rule, incorrect_workflow_multi_job):
+    obj = FileFormat(incorrect_workflow_multi_job)
+
+    result, message = rule.fn(obj)
+    assert result is False

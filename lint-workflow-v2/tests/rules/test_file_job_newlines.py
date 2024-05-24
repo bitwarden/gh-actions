@@ -68,7 +68,6 @@ on:
   workflow_dispatch:
 
 jobs:
-
   first-job:
     runs-on: ubuntu-22.04
     steps:
@@ -170,7 +169,6 @@ def test_get_job_block_multi(
     ]
 
     expected_incorrect = [
-        "",
         "  first-job:",
         "    runs-on: ubuntu-22.04",
         "    steps:",
@@ -266,16 +264,13 @@ jobs:
     assert "Dependent YAML indentation is incorrect" in message
 
 
-@pytest.mark.skip()
 def test_rule_on_correct_workflow_single_job(rule, correct_workflow_single_job):
     obj = FileFormat(correct_workflow_single_job)
 
     result, message = rule.fn(obj)
-    print(f"message: {message}")
     assert result is True
 
 
-@pytest.mark.skip()
 def test_rule_on_correct_workflow_multi_job(rule, correct_workflow_multi_job):
     obj = FileFormat(correct_workflow_multi_job)
 
@@ -283,17 +278,17 @@ def test_rule_on_correct_workflow_multi_job(rule, correct_workflow_multi_job):
     assert result is True
 
 
-@pytest.mark.skip()
 def test_rule_on_incorrect_workflow_single_job(rule, incorrect_workflow_single_job):
     obj = FileFormat(incorrect_workflow_single_job)
 
     result, message = rule.fn(obj)
     assert result is False
+    assert "no newline between" in message
 
 
-@pytest.mark.skip()
 def test_rule_on_incorrect_workflow_multi_job(rule, incorrect_workflow_multi_job):
     obj = FileFormat(incorrect_workflow_multi_job)
 
     result, message = rule.fn(obj)
     assert result is False
+    assert "Missing newline prior" in message

@@ -42,7 +42,7 @@ class RuleFileJobNewline(Rule):
 
     @classmethod
     def is_start_new_job_block(cls, line: str) -> bool:
-        return not line[2].isspace()
+        return not line == "" and not line[2].isspace()
 
     @classmethod
     def is_indentation_correct(cls, lines: List[str]) -> bool:
@@ -86,10 +86,10 @@ class RuleFileJobNewline(Rule):
 
         jobs_blocks = self.get_job_blocks(obj.lines)
 
-        if job_block[0] == "":
+        if jobs_blocks[0] == "":
             return False, f"There should be no newline between the 'jobs' key and the first job"
 
-        for index, line in enumerate(jobs_block):
+        for index, line in enumerate(jobs_blocks):
             if index == 0: # skip the first job
                 continue
             if self.is_start_new_job_block(line) and jobs_blocks[index-1] != "":

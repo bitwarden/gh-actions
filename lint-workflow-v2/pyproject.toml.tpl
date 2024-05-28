@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "bitwarden_workflow_linter"
 dynamic = ["version"]
-authors = ["Bitwarden Inc"]
+authors = []
 description = "Custom GitHub Action Workflow Linter"
 readme = "README.md"
 requires-python = ">=3.11"

@@ -56,7 +56,6 @@ class WorkflowBuilder:
         """
         return yaml.load(workflow_yaml)
 
-
     @classmethod
     def __build_workflow(cls, loaded_yaml: CommentedMap) -> Workflow:
         """Parse the YAML and build out the workflow to run Rules against.
@@ -103,7 +102,9 @@ class WorkflowBuilder:
                 "The workflow must either be built from a file or from a CommentedMap"
             )
 
-        return cls.__build_workflow(cls.__load_workflow(workflow_data)), FileFormat(workflow_data)
+        return cls.__build_workflow(cls.__load_workflow(workflow_data)), FileFormat(
+            workflow_data
+        )
 
 
 class LoadRulesError(Exception):

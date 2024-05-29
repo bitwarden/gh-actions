@@ -150,10 +150,7 @@ def test_get_job_block_single(rule, correct_workflow_single_job):
 
 
 def test_get_job_block_multi(
-    rule,
-    correct_workflow_multi_job,
-    incorrect_workflow_multi_job,
-    correct_workflow_eof
+    rule, correct_workflow_multi_job, incorrect_workflow_multi_job, correct_workflow_eof
 ):
     expected_correct = [
         "  first-job:",
@@ -165,7 +162,7 @@ def test_get_job_block_multi(
         "    runs-on: ubuntu-22.04",
         "    steps:",
         "      - run: echo test2",
-        ""
+        "",
     ]
 
     expected_incorrect = [
@@ -177,7 +174,7 @@ def test_get_job_block_multi(
         "    runs-on: ubuntu-22.04",
         "    steps:",
         "      - run: echo test2",
-        ""
+        "",
     ]
 
     expected_eof = [
@@ -203,16 +200,14 @@ def test_get_job_block_multi(
 
 
 def test_get_block_job_not_last_block(
-    rule,
-    correct_workflow_name_end,
-    incorrect_workflow_name_end
+    rule, correct_workflow_name_end, incorrect_workflow_name_end
 ):
     expected_correct = [
         "  job-name:",
         "    runs-on: ubuntu-22.04",
         "    steps:",
         "      - run: echo test1",
-        ""
+        "",
     ]
     expected_incorrect = [
         "  job-name:",

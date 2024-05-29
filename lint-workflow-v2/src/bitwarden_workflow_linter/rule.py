@@ -19,7 +19,12 @@ class Rule:
     """Base class of a Rule to extend to create a linting Rule."""
 
     on_fail: LintLevels = LintLevels.ERROR
-    compatibility: List[Union[Workflow, Job, Step, FileFormat]] = [Workflow, Job, Step, FileFormat]
+    compatibility: List[Union[Workflow, Job, Step, FileFormat]] = [
+        Workflow,
+        Job,
+        Step,
+        FileFormat,
+    ]
     settings: Optional[Settings] = None
 
     def fn(self, obj: Union[Workflow, Job, Step, FileFormat]) -> Tuple[bool, str]:
@@ -34,7 +39,9 @@ class Rule:
         """
         return False, f"{obj.name}: <default fail message>"
 
-    def build_lint_message(self, message: str, obj: Union[Workflow, Job, Step, FileFormat]) -> str:
+    def build_lint_message(
+        self, message: str, obj: Union[Workflow, Job, Step, FileFormat]
+    ) -> str:
         """Build the lint failure message.
 
         Build the lint failure message depending on the type of object that the
@@ -58,7 +65,9 @@ class Rule:
         else:
             return f"{obj_type.__name__} => {message}"
 
-    def execute(self, obj: Union[Workflow, Job, Step, FileFormat]) -> Union[LintFinding, None]:
+    def execute(
+        self, obj: Union[Workflow, Job, Step, FileFormat]
+    ) -> Union[LintFinding, None]:
         """Wrapper function to execute the overridden self.fn().
 
         Run the Rule against the object and return the results. The result

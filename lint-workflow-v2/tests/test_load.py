@@ -11,7 +11,7 @@ from src.bitwarden_workflow_linter.load import WorkflowBuilder
 from src.bitwarden_workflow_linter.models.workflow import Workflow
 
 
-#yaml = YAML()
+# yaml = YAML()
 
 
 @pytest.fixture(name="workflow_filename")
@@ -81,10 +81,14 @@ def test_load_workflow_from_file(workflow_filename: str) -> None:
 
 
 def test_load_simple_workflow_from_yaml(simple_workflow_yaml: CommentedMap) -> None:
-    workflow, file = WorkflowBuilder.build(workflow=simple_workflow_yaml, from_file=False)
+    workflow, file = WorkflowBuilder.build(
+        workflow=simple_workflow_yaml, from_file=False
+    )
     assert isinstance(workflow, Workflow)
 
 
 def test_load_complex_workflow_from_yaml(complex_workflow_yaml: CommentedMap) -> None:
-    workflow, file = WorkflowBuilder.build(workflow=complex_workflow_yaml, from_file=False)
+    workflow, file = WorkflowBuilder.build(
+        workflow=complex_workflow_yaml, from_file=False
+    )
     assert isinstance(workflow, Workflow)

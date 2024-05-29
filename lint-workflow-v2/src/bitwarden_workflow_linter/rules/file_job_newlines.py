@@ -9,10 +9,9 @@ from ..utils import LintLevels, Settings
 
 INDENTATION_LEVEL = 2
 
-class RuleFileJobNewline(Rule):
-    """Rule to enforce specific prefixes for environment variables.
 
-    """
+class RuleFileJobNewline(Rule):
+    """Rule to enforce specific prefixes for environment variables."""
 
     def __init__(self, settings: Optional[Settings] = None) -> None:
         """RuleJobEnvironmentPrefix constructor to override the Rule class.
@@ -29,10 +28,19 @@ class RuleFileJobNewline(Rule):
 
     @classmethod
     def get_job_blocks(cls, lines: List[str]) -> List[str]:
+        """Filter job lines from file.
+
+        Args:
+          lines:
+            All lines in the workflow file.
+
+        Returns:
+          A List of all of the lines in the file that make up the jobs.
+        """
         jobs_key_index = lines.index("jobs:")
         block = []
 
-        for line in lines[jobs_key_index+1:]:
+        for line in lines[jobs_key_index + 1 :]:
             if line == "" or line[0].isspace():
                 block.append(line)
             else:
@@ -42,13 +50,31 @@ class RuleFileJobNewline(Rule):
 
     @classmethod
     def is_start_new_job_block(cls, line: str) -> bool:
-        return not line == "" and not line[2].isspace()
+        """Calculate if line is the start of new job.
+
+        Args:
+          line:
+            A line from the workflow file
+
+        Returns:
+          A boolean value of whether the line is the start of a new job.
+        """
+        return not line == "" and not line[INDENTATION_LEVEL].isspace()
 
     @classmethod
     def is_indentation_correct(cls, lines: List[str]) -> bool:
+        """Validate that the jobs block is indented correctly.
+
+        Args:
+          lines:
+            All lines of the file to check indentation.
+
+        Returns:
+          Boolean value of whether the indentation of the file is correct.
+        """
         jobs_key_index = lines.index("jobs:")
 
-        for line in lines[jobs_key_index+1:]:
+        for line in lines[jobs_key_index + 1 :]:
             print(f"indentation check line: {line}")
             if line == "":
                 continue
@@ -82,17 +108,23 @@ class RuleFileJobNewline(Rule):
         correct = True
 
         if not self.is_indentation_correct(obj.lines):
-            return False, f"Dependent YAML indentation is incorrect. Required: {INDENTATION_LEVEL}"
+            return (
+                False,
+                f"Dependent YAML indentation is incorrect. Required: {INDENTATION_LEVEL}",
+            )
 
         jobs_blocks = self.get_job_blocks(obj.lines)
 
         if jobs_blocks[0] == "":
-            return False, f"There should be no newline between the 'jobs' key and the first job"
+            return (
+                False,
+                f"There should be no newline between the 'jobs' key and the first job",
+            )
 
         for index, line in enumerate(jobs_blocks):
-            if index == 0: # skip the first job
+            if index == 0:  # skip the first job
                 continue
-            if self.is_start_new_job_block(line) and jobs_blocks[index-1] != "":
+            if self.is_start_new_job_block(line) and jobs_blocks[index - 1] != "":
                 self.message += f"\nMissing newline prior to {jobs_blocks[index]}"
                 correct = False
 

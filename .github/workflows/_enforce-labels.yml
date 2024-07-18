@@ -1,4 +1,3 @@
----
 name: Enforce PR labels
 
 on:
@@ -6,24 +5,12 @@ on:
 
 jobs:
   enforce-label:
-    if: ${{ contains(github.event.*.labels.*.name, 'hold') || contains(github.event.*.labels.*.name, 'needs-qa') }}
+    if: ${{ contains(github.event.*.labels.*.name, 'hold') }}
     name: Enforce label
     runs-on: ubuntu-22.04
     steps:
       - name: Check for label
         run: |
-          echo "PRs with the hold or needs-qa labels cannot be merged"
-          echo "### :x: PRs with the hold or needs-qa labels cannot be merged" >> $GITHUB_STEP_SUMMARY
+          echo "PRs with the hold label cannot be merged"
+          echo "### :x: PRs with the hold label cannot be merged" >> $GITHUB_STEP_SUMMARY
           exit 1
-
-  # enforce-version-label:
-  #   if: ${{ !contains(github.event.*.labels.*.name, 'version') }}
-  #   name: Enforce version label
-  #   runs-on: ubuntu-22.04
-
-  #   steps:
-  #     - name: Check for label
-  #       run: |
-  #         echo "PR without the version label cannot be merged."
-  #         echo "### :x: PR without the version label cannot be merged" >> $GITHUB_STEP_SUMMARY
-  #         exit 1

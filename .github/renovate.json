@@ -4,28 +4,16 @@
   "enabledManagers": ["dockerfile", "github-actions", "npm", "nuget", "pipenv"],
   "packageRules": [
     {
-      "groupName": "dockerfile minor",
-      "matchManagers": ["dockerfile"],
-      "matchUpdateTypes": ["minor", "patch"]
-    },
-    {
-      "groupName": "gh minor",
-      "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["minor", "patch"]
-    },
-    {
-      "groupName": "npm minor",
-      "matchManagers": ["npm"],
-      "matchUpdateTypes": ["minor", "patch"]
-    },
-    {
-      "groupName": "nuget minor",
-      "matchManagers": ["nuget"],
-      "matchUpdateTypes": ["minor", "patch"]
-    },
-    {
-      "groupName": "pip minor",
-      "matchManagers": ["pipenv"],
+      "additionalBranchPrefix": "{{parentDir}}-",
+      "commitMessagePrefix": "[deps] {{parentDir}}:",
+      "groupName": "minor",
+      "matchManagers": [
+        "dockerfile",
+        "github-actions",
+        "npm",
+        "nuget",
+        "pipenv"
+      ],
       "matchUpdateTypes": ["minor", "patch"]
     }
   ]

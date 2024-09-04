@@ -191,6 +191,12 @@ async function main() {
 
         core.setOutput("artifacts", artifacts)
 
+        const artifactBuildCommit = artifacts[0].workflow_run.head_sha;
+        core.setOutput("artifact-build-commit", artifactBuildCommit);
+
+        const artifactBuildBranch = artifacts[0].workflow_run.head_branch;
+        core.setOutput("artifact-build-branch", artifactBuildBranch);
+
         if (dryRun) {
             if (artifacts.length == 0) {
                 core.setOutput("dry_run", false)
@@ -216,7 +222,7 @@ async function main() {
         }
 
         core.setOutput("found_artifact", true)
-        
+
         for (const artifact of artifacts) {
             core.info(`==> Artifact: ${artifact.id}`)
 
@@ -271,7 +277,7 @@ async function main() {
 
     function setExitMessage(ifNoArtifactFound, message) {
         core.setOutput("found_artifact", false)
-        
+
         switch (ifNoArtifactFound) {
             case "fail":
                 core.setFailed(message)

@@ -1,0 +1,16 @@
+name: Enforce PR labels
+
+on:
+  workflow_call:
+
+jobs:
+  enforce-label:
+    if: ${{ contains(github.event.*.labels.*.name, 'hold') }}
+    name: Enforce label
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check for label
+        run: |
+          echo "PRs with the hold label cannot be merged"
+          echo "### :x: PRs with the hold label cannot be merged" >> $GITHUB_STEP_SUMMARY
+          exit 1

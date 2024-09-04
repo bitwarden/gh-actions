@@ -58,7 +58,7 @@ inputs:
   allow_forks:
     description: Allow forks
     required: false
-    default: true
+    default: false
   check_artifacts:
     description: Check workflow run whether it has an artifact
     required: false
@@ -78,7 +78,7 @@ inputs:
     required: false
     description: |
       Choose how to exit the action if no artifact is found
-      
+
       fail, warn or ignore
     default: fail
 outputs:
@@ -91,6 +91,10 @@ outputs:
     description: Boolean output which is true if the artifact was found and false otherwise
   artifacts:
     description: JSON array with details about found artifacts
+  artifact-build-commit:
+    description: The commit related to the artifact that was found
+  artifact-build-branch:
+    description: The branch related to the artifact that was found
 runs:
   using: node20
   main: main.js

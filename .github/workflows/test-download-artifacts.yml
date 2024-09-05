@@ -180,3 +180,38 @@ jobs:
         run: |
           cat artifact/sha
           echo $GITHUB_SHA
+
+  download-outputs:
+    name: Download outputs should not be empty
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Download
+        id: download
+        uses: ./download-artifacts
+        with:
+          workflow: upload-test-artifacts.yml
+
+      - name: Test artifact-build-commit
+        env:
+          _ARTIFACT_BUILD_COMMIT: ${{ steps.download.outputs.artifact-build-commit }}
+        run: |
+          ls -atlh
+          echo $_ARTIFACT_BUILD_COMMIT
+          if [[-z "$_ARTIFACT_BUILD_COMMIT"]]; then
+              echo "artifact-build-commit is empty"
+              exit 1
+          fi
+
+      - name: Test artifact-build-branch
+        env:
+          _ARTIFACT_BUILD_BRANCH: ${{ steps.download.outputs.artifact-build-branch }}
+        run: |
+          ls -atlh
+          echo $_ARTIFACT_BUILD_BRANCH
+          if [[-z "$_ARTIFACT_BUILD_BRANCH"]]; then
+              echo "artifact-build-branch is empty"
+              exit 1
+          fi

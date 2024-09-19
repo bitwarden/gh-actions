@@ -85,7 +85,7 @@ runs:
               SLACK_MESSAGE=":x: Failed to deploy \`$tag\` to $environment on $project.
               $url
               SHA: \`$commit_sha\`
-              Please retry. If the issue persists shared this message in #team-eng-bre channel for support."
+              Please retry. If the issue persists, share this message in the #team-eng-bre channel for support."
               ;;
 
             cancelled)

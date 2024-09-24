@@ -21,7 +21,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check user permission
-        if: ${{ steps.get-permission.outputs.require-result == 'false' && github.triggering_actor != 'bw-ghapp[bot]' }}
+        if: |
+          steps.get-permission.outputs.require-result == 'false'
+          && github.triggering_actor != 'bw-ghapp[bot]'
+          && github.triggering_actor != 'renovate[bot]'
         run: |
           echo "User ${{ github.triggering_actor }} does not have the necessary access for this repository."
           echo "Current permission level is ${{ steps.get-permission.outputs.user-permission }}."

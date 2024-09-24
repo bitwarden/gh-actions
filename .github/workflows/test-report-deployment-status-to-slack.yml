@@ -11,7 +11,7 @@ jobs:
     name: Test Slack report
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Start
         uses: ./report-deployment-status-to-slack
@@ -65,7 +65,7 @@ jobs:
     name: Test Slack report with different DB migration scenerios
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: With DB migration true on main
         uses: ./report-deployment-status-to-slack

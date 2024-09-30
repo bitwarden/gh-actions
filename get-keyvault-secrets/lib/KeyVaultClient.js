@@ -124,7 +124,7 @@ class KeyVaultClient extends AzureRestClient_1.ServiceClient {
     }
     getSecretValue(secretName, callback, attempt = 1) {
         const MAX_RETRY_ATTEMPTS = 3; // Define the maximum number of retry attempts
-        const RETRY_DELAY = 1000; // Define the delay between retries in milliseconds
+        const RETRY_DELAY = 3000; // Define the delay between retries in milliseconds
         if (!callback) {
             core.debug("Callback Cannot Be Null");
             throw new Error("Callback Cannot Be Null");

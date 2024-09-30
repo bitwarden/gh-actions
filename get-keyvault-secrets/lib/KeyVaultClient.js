@@ -157,10 +157,25 @@ class KeyVaultClient extends AzureRestClient_1.ServiceClient {
                         this.getSecretValue(secretName, callback, attempt + 1); // Retry the request
                     }, RETRY_DELAY);
                 } else {
-                    throw error; // If max retries reached, throw the error
+                    return new AzureRestClient_1.ApiResult(error); // Return the error if max retries reached
                 }
             }
-        })).then((apiResult) => callback(apiResult.error, apiResult.result), (error) => {
+        })).then((apiResult) => {
+            if (apiResult && apiResult.error) {
+                if (attempt < MAX_RETRY_ATTEMPTS) {
+                    core.debug(`Retrying... Attempt ${attempt + 1} after apiResult error: ${apiResult.error.message}`);
+                    setTimeout(() => {
+                        this.getSecretValue(secretName, callback, attempt + 1); // Retry on apiResult error
+                    }, RETRY_DELAY);
+                } else {
+                    callback(apiResult.error, null); // If max retries reached, pass the error to the callback
+                }
+            } else if (apiResult && typeof apiResult.result !== 'undefined') {
+                callback(null, apiResult.result); // No error, pass the result
+            } else {
+                callback(new Error("Unexpected result format"), null); // Handle unexpected format
+            }
+        }, (error) => {
             if (attempt < MAX_RETRY_ATTEMPTS) {
                 core.debug(`Retrying... Attempt ${attempt + 1} after error: ${error.message}`);
                 setTimeout(() => {

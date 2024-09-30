@@ -9,7 +9,7 @@ on:
 jobs:
   test-report-start:
     name: Test Slack report
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -63,7 +63,7 @@ jobs:
 
   test-report-db-migration:
     name: Test Slack report with different DB migration scenerios
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 

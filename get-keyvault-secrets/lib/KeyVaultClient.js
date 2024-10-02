@@ -129,6 +129,18 @@ class KeyVaultClient extends AzureRestClient_1.ServiceClient {
             core.debug("Callback Cannot Be Null");
             throw new Error("Callback Cannot Be Null");
         }
+        // Helper function to handle retries
+        const retryRequest = (reason) => {
+            if (attempt < MAX_RETRY_ATTEMPTS) {
+                core.debug(`Retrying... Attempt ${attempt + 1} due to: ${reason}`);
+                setTimeout(() => {
+                    this.getSecretValue(secretName, callback, attempt + 1); // Retry the request
+                }, RETRY_DELAY);
+            } else {
+                callback(new Error(`${reason} after max retries`), null); // If max retries reached, pass the error
+            }
+        };
+
         // Create HTTP transport objects
         var httpRequest = {
             method: 'GET',
@@ -151,39 +163,18 @@ class KeyVaultClient extends AzureRestClient_1.ServiceClient {
                     return new AzureRestClient_1.ApiResult((0, AzureRestClient_1.ToError)(response));
                 }
             } catch (error) {
-                if (attempt < MAX_RETRY_ATTEMPTS) {
-                    core.debug(`Retrying... Attempt ${attempt + 1} after error: ${error.message}`);
-                    setTimeout(() => {
-                        this.getSecretValue(secretName, callback, attempt + 1); // Retry the request
-                    }, RETRY_DELAY);
-                } else {
-                    return new AzureRestClient_1.ApiResult(error); // Return the error if max retries reached
-                }
+                retryRequest(error.message); // Retry on error
             }
         })).then((apiResult) => {
             if (apiResult && apiResult.error) {
-                if (attempt < MAX_RETRY_ATTEMPTS) {
-                    core.debug(`Retrying... Attempt ${attempt + 1} after apiResult error: ${apiResult.error.message}`);
-                    setTimeout(() => {
-                        this.getSecretValue(secretName, callback, attempt + 1); // Retry on apiResult error
-                    }, RETRY_DELAY);
-                } else {
-                    callback(apiResult.error, null); // If max retries reached, pass the error to the callback
-                }
+                retryRequest(apiResult.error.message); // Retry on apiResult error
             } else if (apiResult && typeof apiResult.result !== 'undefined') {
                 callback(null, apiResult.result); // No error, pass the result
             } else {
-                callback(new Error("Unexpected result format"), null); // Handle unexpected format
+                retryRequest("Unexpected result format"); // Retry on unexpected result format
             }
         }, (error) => {
-            if (attempt < MAX_RETRY_ATTEMPTS) {
-                core.debug(`Retrying... Attempt ${attempt + 1} after error: ${error.message}`);
-                setTimeout(() => {
-                    this.getSecretValue(secretName, callback, attempt + 1); // Retry on promise rejection
-                }, RETRY_DELAY);
-            } else {
-                callback(error); // If max retries reached, pass the error to the callback
-            }
+            retryRequest(error.message); // Retry on promise rejection
         });
     }
     convertToAzureKeyVaults(result) {

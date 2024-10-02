@@ -33,7 +33,7 @@ runs:
             echo $SECRET
             echo "::add-mask::$SECRET"
             echo $SECRET
-            cat <<< $(jq --arg secret_name "$i" --arg secret_value "$SECRET" '. += { "$secret_name": "$secret_value" }' output.json) > output.json
+            cat <<< $(jq --arg k "$i" --arg v "$SECRET" '. += {($k):$v}' output.json) > output.json
         done
 
         cat output.json

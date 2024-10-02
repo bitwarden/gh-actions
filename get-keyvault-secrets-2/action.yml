@@ -17,9 +17,23 @@ runs:
     - name: Retrieve secrets
       env:
         KEYVAULT: ${{ inputs.keyvault }}
+        SECRETS: ${{ inputs.secrets }}
       shell: bash
       run: |
-        SECRET=$(az keyvault secret show --vault-name $KEYVAULT --name test-secret-1 --query 'value')
-        echo $SECRET
-        echo "::add-mask::$SECRET"
-        echo $SECRET
+        # Create empty JSON file
+        echo "{}" > output.json
+
+        # Remove spaces from secrets list
+        SECRET_LIST=$($SECRETS | tr -d '[:space:]')
+
+        # Loop over secret names and add them to the JSON file
+        for i in ${SECRET_LIST//,/ }
+        do
+            SECRET=$(az keyvault secret show --vault-name $KEYVAULT --name test-secret-1 --query 'value')
+            echo $SECRET
+            echo "::add-mask::$SECRET"
+            echo $SECRET
+            cat <<< $(jq '. += { "$i": "$SECRET" }' output.json) > output.json
+        done
+
+        cat output.json

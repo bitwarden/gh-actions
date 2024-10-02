@@ -1,0 +1,25 @@
+name: "Azure Key Vault - Get Secrets"
+description: "Get Secrets from Azure Key Vault instance and set as output variables."
+inputs:
+  keyvault:
+    description: "Name of the Azure Key Vault"
+    required: true
+  secrets:
+    description: "Name of the secret to be fetched" #Comma separated list of secret keys can be specified
+    required: true
+# outputs:
+#   random-number:
+#     description: "Random number"
+#     value: ${{ steps.random-number-generator.outputs.random-number }}
+runs:
+  using: "composite"
+  steps:
+    - name: Retrieve secrets
+      env:
+        KEYVAULT: ${{ inputs.keyvault }}
+      shell: bash
+      run: |
+        SECRET=$(az keyvault secret show --vault-name $KEYVAULT --name test-secret-1 --query 'value')
+        echo $SECRET
+        echo "::add-mask::$SECRET"
+        echo $SECRET

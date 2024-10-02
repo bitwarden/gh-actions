@@ -24,7 +24,7 @@ runs:
         echo "{}" > output.json
 
         # Remove spaces from secrets list
-        SECRET_LIST=$($SECRETS | tr -d '[:space:]')
+        SECRET_LIST=$(echo "$SECRETS" | tr -d '[:space:]')
 
         # Loop over secret names and add them to the JSON file
         for i in ${SECRET_LIST//,/ }

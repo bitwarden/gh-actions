@@ -1,15 +1,19 @@
 name: "Azure Key Vault - Get Secrets"
 description: "Get Secrets from Azure Key Vault instance and set as output variables."
 inputs:
+  creds:
+    description: 'Paste output of `az ad sp create-for-rbac` as value of secret variable: AZURE_CREDENTIALS'
+    required: true
   keyvault:
     description: "Name of the Azure Key Vault"
     required: true
   secrets:
-    description: "Name of the secret to be fetched" #Comma separated list of secret keys can be specified
+    description: "Name of the secret to be fetched" # Comma separated list of secret keys can be specified
     required: true
 runs:
   using: "docker"
   image: "Dockerfile"
   args:
+   - ${{ inputs.creds }}
    - ${{ inputs.keyvault }}
    - ${{ inputs.secrets }}

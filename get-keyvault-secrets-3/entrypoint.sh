@@ -1,8 +1,16 @@
 #!/usr/bin/env bash 
 
 # Set environment variables
-KEYVAULT=$1
-SECRETS=$2
+CREDS=$1
+KEYVAULT=$2
+SECRETS=$3
+
+APP_ID=$(echo ${CREDS} | jq -r .appId)
+PASSWORD=$(echo ${CREDS} | jq -r .password)
+TENANT=$(echo ${CREDS} | jq -r .tenant)
+
+az login --service-principal -u $APP_ID -p $PASSWORD --tenant $TENANT
+echo $?
 
 # Create empty JSON file
 echo "{}" > output.json

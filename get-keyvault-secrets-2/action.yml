@@ -29,11 +29,12 @@ runs:
         # Loop over secret names and add them to the JSON file
         for i in ${SECRET_LIST//,/ }
         do
-            SECRET=$(az keyvault secret show --vault-name $KEYVAULT --name test-secret-1 --query 'value')
+            SECRET=$(az keyvault secret show --vault-name $KEYVAULT --name $i --query 'value')
             echo $SECRET
             echo "::add-mask::$SECRET"
             echo $SECRET
             cat <<< $(jq --arg k "$i" --arg v "$SECRET" '. += {($k):$v}' output.json) > output.json
         done
 
+        echo "----------"
         cat output.json

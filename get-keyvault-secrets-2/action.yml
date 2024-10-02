@@ -33,7 +33,7 @@ runs:
             echo $SECRET
             echo "::add-mask::$SECRET"
             echo $SECRET
-            cat <<< $(jq ". += { \"$i\": \"$SECRET\" }" output.json) > output.json
+            cat <<< $(jq '. += { "env.i": "env.SECRET" }' output.json) > output.json
         done
 
         cat output.json

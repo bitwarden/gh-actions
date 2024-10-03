@@ -301,7 +301,7 @@ def lint(filename):
                             break
 
                         # If the step has a 'uses' key, check if actions are in supported actions list and also value hash, except bitwarden actions.
-                        if "bitwarden/gh-actions" not in path:
+                        if "bitwarden/" not in path:
                             try:
                                 # Check if actions are in supported actions list.
                                 if path not in supported_actions:
@@ -342,7 +342,7 @@ def lint(filename):
                         # If the step has a 'uses' key, check path for external workflow
                         path_list = path.split("/", 2)
 
-                        if "bitwarden/gh-actions" in path and len(path_list) < 3:
+                        if "bitwarden/" in path and len(path_list) < 3:
                             findings.append(
                                 LintFinding(
                                     f"Step {str(i)} of job key '{job_key}' does not have a valid action path. (missing name of the repository or workflow)",

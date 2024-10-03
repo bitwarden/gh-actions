@@ -106,6 +106,7 @@ class KeyVaultHelper {
         return new Promise((resolve, reject) => {
             this.keyVaultClient.getSecretValue(secretName, (error, secretValue) => {
                 if (error) {
+                    console.log(util.format("Error: %s", this.getError(error)));
                     core.setFailed(util.format("Could not download the secret %s", secretName));
                 }
                 else {

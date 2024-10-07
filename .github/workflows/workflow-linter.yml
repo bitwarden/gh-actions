@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - .github/workflows/**
+  merge_group:
   workflow_call:
   workflow_dispatch:
 

@@ -13,7 +13,7 @@ on:
 jobs:
   download-latest:
     name: Download Latest
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
@@ -33,7 +33,7 @@ jobs:
 
   download-main:
     name: Download main
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout
@@ -54,7 +54,7 @@ jobs:
 
   download-branch:
     name: Download current branch
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
@@ -80,7 +80,7 @@ jobs:
 
   download-pr:
     name: Download Pull Request
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     if: github.ref != 'refs/heads/main'
     steps:
       - name: Checkout
@@ -102,7 +102,7 @@ jobs:
 
   download-all:
     name: Download All
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
@@ -122,7 +122,7 @@ jobs:
 
   download-multiple:
     name: Download Multiple
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
@@ -143,7 +143,7 @@ jobs:
 
   download-wildcard:
     name: Download Wildcard
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
@@ -163,7 +163,7 @@ jobs:
 
   download-conclusion:
     name: Download Conclusion
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
@@ -183,7 +183,7 @@ jobs:
 
   download-outputs:
     name: Download outputs should not be empty
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0

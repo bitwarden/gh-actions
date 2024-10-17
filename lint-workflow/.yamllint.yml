@@ -13,6 +13,12 @@ rules:
     level: warning
   comments:
     min-spaces-from-content: 1
+  document-start: 
+    level: error
+    present: false
+  document-end:
+    level: error
+    present: false
   empty-lines:
     level: warning
   hyphens:

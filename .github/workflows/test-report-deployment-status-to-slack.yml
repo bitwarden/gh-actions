@@ -1,4 +1,3 @@
----
 name: Test report-deployment-status-to-slack
 on:
   pull_request:

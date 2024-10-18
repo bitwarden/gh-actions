@@ -1,4 +1,3 @@
----
 name: Test report-upcoming release version to Slack
 on:
   pull_request:

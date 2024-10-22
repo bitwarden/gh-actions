@@ -4,5 +4,5 @@
 #
 # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
-# DevOps for all changes.
-* @bitwarden/dept-devops
+# BRE for all changes.
+* @bitwarden/dept-bre

@@ -68,7 +68,7 @@ runs:
           local url="${{ inputs.url }}"
           local commit_sha="${{ inputs.commit-sha }}"
 
-          local repository_url="${{ github.repositoryUrl }}"
+          local repository_url="${{ github.server_url }}/${{ github.repository }}"
 
           local commit_url="$repository_url/commit/$commit_sha"
           local tag_url="$repository_url/tree/$tag"

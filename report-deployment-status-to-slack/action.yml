@@ -4,6 +4,10 @@ inputs:
   project:
     description: "The name of the project."
     required: true
+  project_owner:
+    description: "The owner/org of the project"
+    required: false
+    default: bitwarden
   tag:
     description: "The name of the branch or tag."
     required: true
@@ -27,7 +31,7 @@ inputs:
     description: "Deployment event type. Possible values are start, success, or failure."
     required: true
   url:
-    description: "Deployment event type. Possible values are start, success, or failure."
+    description: "URL of the deployment action run"
     required: false
     default: ${{ github.event.deployment_status.target_url }}
   AZURE_KV_CI_SERVICE_PRINCIPAL:
@@ -65,39 +69,50 @@ runs:
           local environment="${{ inputs.environment }}"
           local tag="${{ inputs.tag }}"
           local project="${{ inputs.project }}"
+          local project_owner="${{ inputs.project_owner }}"
           local url="${{ inputs.url }}"
           local commit_sha="${{ inputs.commit-sha }}"
 
+          # This action can be called from other repositories with external refs/shas, so use the passed in project rather than github.repository
+          local repository_url="${{ github.server_url }}/$project_owner/$project"
+
+          local commit_url="$repository_url/commit/$commit_sha"
+          local tag_url="$repository_url/tree/$tag"
+
+          # Slack link format: https://api.slack.com/reference/surfaces/formatting
+          local commit_link="<$commit_url|$commit_sha>"
+          local tag_link="<$tag_url|$tag>"
+
           case $event in
             start)
-              SLACK_MESSAGE=":loading: Deploying \`$tag\` to $environment on $project.
+              SLACK_MESSAGE=":loading: Deploying $tag_link to $environment on $project.
               $url
-              SHA: \`$commit_sha\`"
+              SHA: $commit_link"
               ;;
 
             success)
-              SLACK_MESSAGE=":white_check_mark: Deployed \`$tag\` to $environment on $project.
+              SLACK_MESSAGE=":white_check_mark: Deployed $tag_link to $environment on $project.
               $url
-              SHA: \`$commit_sha\`"
+              SHA: $commit_link"
               ;;
 
             failure)
-              SLACK_MESSAGE=":x: Failed to deploy \`$tag\` to $environment on $project.
+              SLACK_MESSAGE=":x: Failed to deploy $tag_link to $environment on $project.
               $url
-              SHA: \`$commit_sha\`
+              SHA: $commit_link
               Please retry. If the issue persists, share this message in the #team-eng-bre channel for support."
               ;;
 
             cancelled)
-              SLACK_MESSAGE=":hand: Cancelled deploy of \`$tag\` to $environment on $project.
+              SLACK_MESSAGE=":hand: Cancelled deploy of $tag_link to $environment on $project.
               $url
-              SHA: \`$commit_sha\`"
+              SHA: $commit_link"
               ;;
 
             no-changes)
-              SLACK_MESSAGE=":heavy_minus_sign: No changes were made for \`$tag\` deployment to $environment on $project.
+              SLACK_MESSAGE=":heavy_minus_sign: No changes were made for $tag_link deployment to $environment on $project.
               $url
-              SHA: \`$commit_sha\`"
+              SHA: $commit_link"
               ;;
           esac
         }

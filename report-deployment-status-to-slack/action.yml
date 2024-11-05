@@ -27,7 +27,7 @@ inputs:
     description: "Deployment event type. Possible values are start, success, or failure."
     required: true
   url:
-    description: "Deployment event type. Possible values are start, success, or failure."
+    description: "URL of the deployment action run"
     required: false
     default: ${{ github.event.deployment_status.target_url }}
   AZURE_KV_CI_SERVICE_PRINCIPAL:
@@ -68,11 +68,10 @@ runs:
           local url="${{ inputs.url }}"
           local commit_sha="${{ inputs.commit-sha }}"
 
-          local base_url="https://github.com"
-          local github_org="bitwarden"
+          local repository_url="${{ github.repositoryUrl }}"
 
-          local commit_url="$base_url/$github_org/$project/commit/$commit_sha"
-          local tag_url="$base_url/$github_org/$project/tree/$tag"
+          local commit_url="$repository_url/commit/$commit_sha"
+          local tag_url="$repository_url/tree/$tag"
 
           # Slack link format: https://api.slack.com/reference/surfaces/formatting
           local commit_link="<$commit_url|$commit_sha>"
@@ -94,7 +93,7 @@ runs:
             failure)
               SLACK_MESSAGE=":x: Failed to deploy $tag_link to $environment on $project.
               $url
-              SHA: $commit_link"
+              SHA: $commit_link
               Please retry. If the issue persists, share this message in the #team-eng-bre channel for support."
               ;;
 

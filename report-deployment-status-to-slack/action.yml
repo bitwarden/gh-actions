@@ -4,6 +4,10 @@ inputs:
   project:
     description: "The name of the project."
     required: true
+  project_owner:
+    description: "The owner/org of the project"
+    required: false
+    default: bitwarden
   tag:
     description: "The name of the branch or tag."
     required: true
@@ -65,10 +69,12 @@ runs:
           local environment="${{ inputs.environment }}"
           local tag="${{ inputs.tag }}"
           local project="${{ inputs.project }}"
+          local project_owner="${{ inputs.project_owner }}"
           local url="${{ inputs.url }}"
           local commit_sha="${{ inputs.commit-sha }}"
 
-          local repository_url="${{ github.server_url }}/${{ github.repository }}"
+          # This action can be called from other repositories with external refs/shas, so use the passed in project rather than github.repository
+          local repository_url="${{ github.server_url }}/$project_owner/$project"
 
           local commit_url="$repository_url/commit/$commit_sha"
           local tag_url="$repository_url/tree/$tag"

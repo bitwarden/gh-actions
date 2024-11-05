@@ -19,7 +19,7 @@ jobs:
       - name: Start
         uses: ./report-deployment-status-to-slack
         with:
-          project: $TEST_REPORT_PROJECTT
+          project: $TEST_REPORT_PROJECT
           environment: EU-QA Cloud
           slack-channel: bre-alerts-test
           tag: test-workflow-start
@@ -31,7 +31,7 @@ jobs:
       - name: Success
         uses: ./report-deployment-status-to-slack
         with:
-          project: $TEST_REPORT_PROJECTT
+          project: $TEST_REPORT_PROJECT
           environment: US-QA Cloud
           slack-channel: bre-alerts-test
           tag: test-workflow-success
@@ -43,7 +43,7 @@ jobs:
       - name: Failure
         uses: ./report-deployment-status-to-slack
         with:
-          project: $TEST_REPORT_PROJECTT
+          project: $TEST_REPORT_PROJECT
           environment: US-QA Cloud
           slack-channel: bre-alerts-test
           tag: test-workflow-failure
@@ -55,7 +55,7 @@ jobs:
       - name: No Changes
         uses: ./report-deployment-status-to-slack
         with:
-          project: $TEST_REPORT_PROJECTT
+          project: $TEST_REPORT_PROJECT
           environment: EU-QA Cloud
           slack-channel: bre-alerts-test
           tag: test-workflow-failure
@@ -73,7 +73,7 @@ jobs:
       - name: With DB migration true on main
         uses: ./report-deployment-status-to-slack
         with:
-          project: $TEST_REPORT_PROJECTT
+          project: $TEST_REPORT_PROJECT
           environment: EU-QA Cloud
           slack-channel: bre-alerts-test
           tag: main
@@ -86,7 +86,7 @@ jobs:
       - name: With DB migration false on main
         uses: ./report-deployment-status-to-slack
         with:
-          project: $TEST_REPORT_PROJECTT
+          project: $TEST_REPORT_PROJECT
           environment: US-QA Cloud
           slack-channel: bre-alerts-test
           tag: main
@@ -99,7 +99,7 @@ jobs:
       - name: With DB migration true on test branch
         uses: ./report-deployment-status-to-slack
         with:
-          project: $TEST_REPORT_PROJECTT
+          project: $TEST_REPORT_PROJECT
           environment: EU-QA Cloud
           slack-channel: bre-alerts-test
           tag: test-branch-failure
@@ -112,7 +112,7 @@ jobs:
       - name: With DB migration false on test branch
         uses: ./report-deployment-status-to-slack
         with:
-          project: $TEST_REPORT_PROJECTT
+          project: $TEST_REPORT_PROJECT
           environment: US-QA Cloud
           slack-channel: bre-alerts-test
           tag: test-branch-success

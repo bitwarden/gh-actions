@@ -5,6 +5,10 @@ on:
       - "report-deployment-status-to-slack/**"
       - ".github/workflows/test-report-deployment-status-to-slack.yml"
 
+env:
+  TEST_REPORT_PROJECT: Server
+  TEST_REPORT_COMMIT_SHA: "50f7fa03dbc0f18a641206ab1a92fb11a1131572" # Use a valid commit in Server (TEST_REPORT_PROJECT) to validate the links
+
 jobs:
   test-report-start:
     name: Test Slack report
@@ -15,48 +19,48 @@ jobs:
       - name: Start
         uses: ./report-deployment-status-to-slack
         with:
-          project: Server
+          project: $TEST_REPORT_PROJECTT
           environment: EU-QA Cloud
           slack-channel: bre-alerts-test
           tag: test-workflow-start
           event: 'start'
-          commit-sha: ${{ github.sha }}
+          commit-sha: $TEST_REPORT_COMMIT_SHA
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
       - name: Success
         uses: ./report-deployment-status-to-slack
         with:
-          project: Server
+          project: $TEST_REPORT_PROJECTT
           environment: US-QA Cloud
           slack-channel: bre-alerts-test
           tag: test-workflow-success
           event: 'success'
-          commit-sha: ${{ github.sha }}
+          commit-sha: $TEST_REPORT_COMMIT_SHA
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
       - name: Failure
         uses: ./report-deployment-status-to-slack
         with:
-          project: Server
+          project: $TEST_REPORT_PROJECTT
           environment: US-QA Cloud
           slack-channel: bre-alerts-test
           tag: test-workflow-failure
           event: 'failure'
-          commit-sha: ${{ github.sha }}
+          commit-sha: $TEST_REPORT_COMMIT_SHA
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
       - name: No Changes
         uses: ./report-deployment-status-to-slack
         with:
-          project: Server
+          project: $TEST_REPORT_PROJECTT
           environment: EU-QA Cloud
           slack-channel: bre-alerts-test
           tag: test-workflow-failure
           event: 'no-changes'
-          commit-sha: ${{ github.sha }}
+          commit-sha: $TEST_REPORT_COMMIT_SHA
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
@@ -69,12 +73,12 @@ jobs:
       - name: With DB migration true on main
         uses: ./report-deployment-status-to-slack
         with:
-          project: Server
+          project: $TEST_REPORT_PROJECTT
           environment: EU-QA Cloud
           slack-channel: bre-alerts-test
           tag: main
           event: 'success'
-          commit-sha: ${{ github.sha }}
+          commit-sha: $TEST_REPORT_COMMIT_SHA
           db_migration_detected: true
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
@@ -82,12 +86,12 @@ jobs:
       - name: With DB migration false on main
         uses: ./report-deployment-status-to-slack
         with:
-          project: Server
+          project: $TEST_REPORT_PROJECTT
           environment: US-QA Cloud
           slack-channel: bre-alerts-test
           tag: main
           event: 'failure'
-          commit-sha: ${{ github.sha }}
+          commit-sha: $TEST_REPORT_COMMIT_SHA
           db_migration_detected: false
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
@@ -95,12 +99,12 @@ jobs:
       - name: With DB migration true on test branch
         uses: ./report-deployment-status-to-slack
         with:
-          project: Server
+          project: $TEST_REPORT_PROJECTT
           environment: EU-QA Cloud
           slack-channel: bre-alerts-test
           tag: test-branch-failure
           event: 'failure'
-          commit-sha: ${{ github.sha }}
+          commit-sha: $TEST_REPORT_COMMIT_SHA
           db_migration_detected: false
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
@@ -108,12 +112,12 @@ jobs:
       - name: With DB migration false on test branch
         uses: ./report-deployment-status-to-slack
         with:
-          project: Server
+          project: $TEST_REPORT_PROJECTT
           environment: US-QA Cloud
           slack-channel: bre-alerts-test
           tag: test-branch-success
           event: 'success'
-          commit-sha: ${{ github.sha }}
+          commit-sha: $TEST_REPORT_COMMIT_SHA
           db_migration_detected: true
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}

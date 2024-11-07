@@ -44,17 +44,17 @@ jobs:
           echo "modified-workflows=$MODIFIED_EXISTING_WORKFLOWS" >> $GITHUB_OUTPUT
 
       - name: Download bwwl binary
-        if: steps.changed-workflows.outputs.count != 0
+        # if: steps.changed-workflows.outputs.count != 0
         run: |
           python3 -m pip install --upgrade bitwarden_workflow_linter
 
       - name: Lint
-        if: steps.changed-workflows.outputs.count != 0
+        # if: steps.changed-workflows.outputs.count != 0
         run: |
           bwwl lint -f ${{ steps.changed-workflows.outputs.modified-workflows }}
 
       - name: Get changed files
-        if: steps.changed-workflows.outputs.count != 0
+        # if: steps.changed-workflows.outputs.count != 0
         id: changed-files
         uses: tj-actions/changed-files@c3a1bb2c992d77180ae65be6ae6c166cf40f857c # v45.0.3
         with:

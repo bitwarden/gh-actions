@@ -56,7 +56,7 @@ jobs:
 
       - name: Lint
         # if: steps.changed-workflows.outputs.count != 0
-        run: bwwl lint -f ${{ steps.changed-workflows.outputs.modified-workflows }}
+        run: bwwl lint -f ./github/workflows
 
       - name: Get changed files
         # if: steps.changed-workflows.outputs.count != 0

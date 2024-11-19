@@ -13,7 +13,8 @@ on:
 
 jobs:
   test-version-check:
-    runs-on: ubuntu-latest
+    name: Test Version Check
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -60,7 +61,8 @@ jobs:
       xamarin-calver-success-status: ${{ steps.set-status.outputs.xamarin-calver-success }}
       xamarin-calver-fail-status: ${{ steps.set-status.outputs.xamarin-calver-fail }}
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Checkout Branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Version Check - ${{ matrix.name }}
         id: run-version-check
@@ -80,7 +82,8 @@ jobs:
 
 
   run-version-check-test:
-    runs-on: ubuntu-latest
+    name: Run Version Check Test
+    runs-on: ubuntu-22.04
     needs: [test-version-check]
     if: always()
     steps:

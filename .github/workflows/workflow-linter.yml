@@ -28,42 +28,21 @@ jobs:
           repository: ${{ steps.repo.outputs.repo }}
           fetch-depth: 0
 
-      - name: Get changed workflows
-        id: changed-workflows
-        run: |
-          MODIFIED_WORKFLOWS=$(git diff --name-only origin/${{ github.base_ref	}} | grep -E '.github/workflows/.*.(yml|yaml)' | tr '\n' ' ')
-          MODIFIED_EXISTING_WORKFLOWS=""
-          COUNT=0
-          for workflow in $MODIFIED_WORKFLOWS; do
-              if [ -f $workflow ]; then
-                  MODIFIED_EXISTING_WORKFLOWS+=" ${workflow}"
-                  COUNT=$((COUNT+1))
-              fi
-          done
-          echo "count=$COUNT" >> $GITHUB_OUTPUT
-          echo "modified-workflows=$MODIFIED_EXISTING_WORKFLOWS" >> $GITHUB_OUTPUT
-
-      - name: Lint
-        if: steps.changed-workflows.outputs.count != 0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        uses: bitwarden/gh-actions/lint-workflow@main
-        with:
-          workflows: ${{ steps.changed-workflows.outputs.modified-workflows }}
-
       - name: Get changed files
-        if: steps.changed-workflows.outputs.count != 0
-        id: changed-files
+        id: changed-workflows
         uses: tj-actions/changed-files@c3a1bb2c992d77180ae65be6ae6c166cf40f857c # v45.0.3
         with:
           files: .github/workflows/**
 
-      - name: Check for pinned versions
-        if: steps.changed-files.outputs.any_changed == 'true'
-        shell: bash
-        env:
-          FILE: ${{ steps.changed-files.outputs.all_changed_files }}
-        run: |
-          FILES=$(echo "${{ env.FILE }}")
-          curl -o $PWD/version-lint.sh https://raw.githubusercontent.com/bitwarden/gh-actions/main/.github/version-lint.sh
-          chmod +x $PWD/version-lint.sh && $PWD/version-lint.sh $FILES
+      - name: Set up Python 3.11
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.11"
+
+      - name: Install bwwl binary
+        if: steps.changed-workflows.outputs.all_changed_files_count != 0
+        run: python -m pip install --upgrade bitwarden_workflow_linter
+
+      - name: Lint
+        if: steps.changed-workflows.outputs.all_changed_files_count != 0
+        run: bwwl lint -f .github/workflows

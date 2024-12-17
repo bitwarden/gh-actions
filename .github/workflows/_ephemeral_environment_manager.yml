@@ -1,0 +1,117 @@
+name: Ephemeral Environment Manager
+run-name: Ephemeral Environment - ${{ inputs.ephemeral_env_branch }}
+
+on:
+  workflow_call:
+    inputs:
+      ephemeral_env_branch:
+        required: true
+        type: string
+      project:
+        type: string
+        default: server
+      cleanup_config:
+        type: boolean
+      sync_environment:
+        type: boolean
+      pull_request_number:
+        type: number
+  workflow_dispatch:
+    inputs:
+      ephemeral_env_branch:
+        type: string
+        required: true
+      project:
+        type: string
+        default: server
+      cleanup_config:
+        type: boolean
+      sync_environment:
+        type: boolean
+      pull_request_number:
+        type: number
+
+env:
+  _KEY_VAULT: bitwarden-ci
+  _BOT_NAME: bitwarden-devops-bot
+
+jobs:
+  check-run:
+    name: Check PR run
+    uses: bitwarden/gh-actions/.github/workflows/check-run.yml@main
+
+  cleanup:
+    name: Cleanup config
+    if: ${{ inputs.cleanup_config }}
+    runs-on: ubuntu-24.04
+    needs: check-run
+    steps:
+      - name: Login to Azure - Prod Subscription
+        uses: Azure/login@a65d910e8af852a8061c627c456678983e180302 # v2.2.0
+        with:
+          creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+
+      - name: Retrieve secrets
+        id: retrieve-secrets
+        uses: bitwarden/gh-actions/get-keyvault-secrets@main
+        with:
+          keyvault: ${{ env._KEY_VAULT }}
+          secrets: "github-pat-bitwarden-devops-bot-repo-scope,github-bitwarden-devops-bot-email"
+
+      - name: Checkout ${{ inputs.project }}
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: bitwarden/${{ inputs.project }}
+          ref: ${{ inputs.ephemeral_env_branch }}
+          token: '${{ steps.retrieve-secrets.outputs.github-pat-bitwarden-devops-bot-repo-scope }}'
+
+      - name: Remove config
+        working-directory: ephemeral-environments
+        run: rm -f ${{ inputs.ephemeral_env_branch }}.yaml
+
+      - name: Commit changes to ${{ inputs.ephemeral_env_branch }}
+        working-directory: ephemeral-environments
+        run: |
+          git config --local user.email "${{ steps.retrieve-secrets.outputs.github-bitwarden-devops-bot-email }}"
+          git config --local user.name "${{ env._BOT_NAME }}"
+
+          git add ${{ inputs.ephemeral_env_branch }}.yaml
+          git commit -m "Removed ${{ inputs.ephemeral_env_branch }}.yaml config."
+          git push
+
+  sync-env:
+    name: Sync Ephemeral Environment
+    if: ${{ inputs.sync_environment }}
+    runs-on: ubuntu-24.04
+    needs: check-run
+    steps:
+      - name: Login to Azure - Prod Subscription
+        uses: Azure/login@a65d910e8af852a8061c627c456678983e180302 # v2.2.0
+        with:
+          creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+
+      - name: Retrieve secrets
+        id: retrieve-secrets
+        uses: bitwarden/gh-actions/get-keyvault-secrets@main
+        with:
+          keyvault: ${{ env._KEY_VAULT }}
+          secrets: "ephemeral-environment-argocd-cluster-url,ephemeral-environment-argocd-cluster-api-secret,ephemeral-environment-argocd-cluster-api-user"
+
+      - name: Install ArgoCD CLI
+        run: |
+          curl -sSL -o argocd-linux-amd64 \
+            "https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64"
+
+          install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
+          rm argocd-linux-amd64
+
+      - name: Log into Argo CD cluster
+        run: |
+          argocd login ${{ steps.retrieve-secrets.outputs.ephemeral-environment-argocd-cluster-url }} \
+            --username ${{ steps.retrieve-secrets.outputs.ephemeral-environment-argocd-cluster-api-user }} \
+            --password ${{ steps.retrieve-secrets.outputs.ephemeral-environment-argocd-cluster-api-secret }}
+      
+      - name: Sync ${{ inputs.ephemeral_env_branch }} application
+        run: |
+          APP_NAME=$(argocd app list -o name | grep ${{ inputs.pull_request_number }})
+          argocd app sync "$APP_NAME"

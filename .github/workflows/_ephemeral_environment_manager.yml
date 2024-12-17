@@ -38,7 +38,7 @@ env:
 jobs:
   check-run:
     name: Check PR run
-    uses: bitwarden/gh-actions/.github/workflows/check-run.yml@main
+    uses: ./.github/workflows/check-run.yml
 
   cleanup:
     name: Cleanup config

@@ -23,6 +23,9 @@ Thumbs.db
 node_modules
 npm-debug.log
 
-#Python cache
+# Python cache
 **/__pycache__/
 **/.pytest_cache/
+
+# Generated solution files
+gh-actions.sln

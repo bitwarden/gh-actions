@@ -2,6 +2,11 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["github>bitwarden/renovate-config"],
   "enabledManagers": ["dockerfile", "github-actions", "npm", "nuget", "pipenv"],
+  "ignorePaths": [
+    "release-version-check/tests/fixtures/**",
+    "version-bump/tests/fixtures/**",
+    "**/node_modules/**"
+  ],
   "packageRules": [
     {
       "additionalBranchPrefix": "{{parentDir}}-",

@@ -1,0 +1,7 @@
+- id: workflow-linter
+  name: workflow linter
+  description: workflow linter
+  entry: workflow-linter
+  language: python
+  stages: [pre-commit, pre-push, manual] 
+  minimum_pre_commit_version: 3.2.0

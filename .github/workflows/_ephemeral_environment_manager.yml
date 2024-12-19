@@ -95,7 +95,10 @@ jobs:
         uses: bitwarden/gh-actions/get-keyvault-secrets@main
         with:
           keyvault: ${{ env._KEY_VAULT }}
-          secrets: "ephemeral-environment-argocd-cluster-url,ephemeral-environment-argocd-cluster-api-secret,ephemeral-environment-argocd-cluster-api-user"
+          secrets: |
+              ephemeral-environment-argocd-cluster-url,
+              ephemeral-environment-argocd-cluster-api-secret,
+              ephemeral-environment-argocd-cluster-api-user
 
       - name: Install ArgoCD CLI
         run: |

@@ -106,6 +106,7 @@ jobs:
             "https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64"
 
           install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
+          argocd version
           rm argocd-linux-amd64
 
       - name: Log into Argo CD cluster

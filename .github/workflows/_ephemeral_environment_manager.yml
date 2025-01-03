@@ -115,7 +115,7 @@ jobs:
             --username ${{ steps.retrieve-secrets.outputs.ephemeral-environment-argocd-cluster-api-user }} \
             --password ${{ steps.retrieve-secrets.outputs.ephemeral-environment-argocd-cluster-api-secret }}
       
-      - name: Sync ${{ inputs.ephemeral_env_branch }} application
+      - name: Sync Argo CD application
         run: |
           APP_NAME=$(argocd app list -o name | grep ${{ inputs.pull_request_number }})
           argocd app sync "$APP_NAME"

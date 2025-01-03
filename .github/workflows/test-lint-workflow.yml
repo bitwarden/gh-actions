@@ -11,6 +11,7 @@ on:
 
 jobs:
   test-lint-workflow:
+    name: Test Lint Workflow
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout Branch
@@ -22,6 +23,7 @@ jobs:
           WORKFLOW_LIST=$(ls .github/workflows | xargs -I {} echo -n ".github/workflows/{} ")
           echo "workflow-list=$WORKFLOW_LIST" >> $GITHUB_OUTPUT
 
-      - uses: ./lint-workflow
+      - name: Lint Workflow
+        uses: ./lint-workflow
         with:
           workflows: ${{ steps.workflow-list.outputs.workflow-list }}

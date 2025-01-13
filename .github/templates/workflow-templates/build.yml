@@ -35,6 +35,7 @@ jobs: #This workflow contains the jobs "check-run", "lint", "build-artifacts", "
 
   lint:
     name: Lint
+    if: github.event.pull_request.draft == false # prevent part of a job from running on a draft PR
     runs-on: ubuntu-22.04
     needs:
       - check-run # This job will wait until check-run completes
@@ -57,9 +58,9 @@ jobs: #This workflow contains the jobs "check-run", "lint", "build-artifacts", "
     runs-on: ubuntu-22.04
     needs:
       - lint
-    strategy:
-      fail-fast: false
-      matrix:
+    strategy: # Create multiple job runs for each of a set of variables
+      fail-fast: false # If true, cancel entire run if any job in the matrix fails
+      matrix:  # Matrix of variables used to define multiple job runs
         include:
           - project_name: Admin
             base_path: ./src

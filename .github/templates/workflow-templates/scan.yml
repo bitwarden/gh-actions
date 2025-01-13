@@ -8,7 +8,6 @@
 name: Scan
 
 on:
-
 # Controls when the workflow will run
   workflow_dispatch: # When triggered manually
 
@@ -31,7 +30,7 @@ jobs:
   sast:
   # A more complex job that has multiple actions as steps described below
     name: SAST scan
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-22.04 # The type of runner that the job will run on
     needs: check-run # This job will wait until check-run completes
     permissions:
       contents: read # For actions/checkout to fetch code
@@ -68,7 +67,6 @@ jobs:
 
   quality: 
     name: Quality scan
-    # The type of runner that the job will run on
     runs-on: ubuntu-22.04
     needs: check-run
     permissions:

@@ -2,7 +2,7 @@
 # https://github.com/actions/starter-workflows/tree/main and customized to 
 # represent common practices used on Bitwarden repositories.
 
-# The Build Workflow Lints code, builds and signs Node project, Docker images, 
+# The Build Workflow Lints code, builds Node project, Docker images, 
 # related artifacts and uploads image to ACR, runs DB Migrator utility, deploys 
 # to Kubernetes, updates Ephemeral Environments, self-host builds,  
 # checks for failure and posts status to Slack. 
@@ -18,27 +18,29 @@ on:
       - "main"
       - "rc"
       - "hotfix-rc"
-  pull_request_target: # When a pull request event occurs. Default is opened or reopened unless otherwise specified, as below:
-    types: [opened, synchronize]
+  # pull_request_target: #We strongly discourage using this unless absolutely necessary as it requires access to certain Github secrets
+  # More info at https://github.blog/news-insights/product-news/github-actions-improvements-for-fork-and-pull-request-workflows/#improvements-for-public-repository-forks
+  pull_request: # When a pull request event occurs
+    branches: ["main"] # Branches where a pull request will trigger the workflow
+    paths-ignore: # Updates to these directories or files will not trigger a workflow run
+      - ".github/workflows/**"
+  push:
+    branches: ["main"]
+    paths-ignore:
+      - ".github/workflows/**"
 
 env: # Environment variables set for this step but not accessible by all workflows, steps or jobs.
   _AZ_REGISTRY: "bitwardenprod.azurecr.io"
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
-jobs: #This workflow contains the jobs "check-run", "lint", "build-artifacts", "build-docker", "upload", "buildmsqlmigratorutility",
+jobs: #This workflow contains the jobs "lint", "build-artifacts", "build-docker", "upload", "buildmsqlmigratorutility",
 # "self-host-build", "trigger-k8s-deploy", "trigger-ee-updates", "trigger-ephemeral-environment-sync" and "check-failures"
 
   # This job is relatively simple and just imports a previously written action to be used in this workflow
-  check-run:  # You set this value with the name of the job you're describing
-    name: Check PR run # Human readable descriptor
-    uses: bitwarden/gh-actions/.github/workflows/check-run.yml@main # location and branch of bitwarden-owned action being used
-
-  lint:
+    lint:
     name: Lint
     if: github.event.pull_request.draft == false # prevent part of a job from running on a draft PR
     runs-on: ubuntu-22.04
-    needs:
-      - check-run # This job will wait until check-run completes
     steps:
       - name: Check out repo
 
@@ -57,7 +59,7 @@ jobs: #This workflow contains the jobs "check-run", "lint", "build-artifacts", "
     name: Build artifacts
     runs-on: ubuntu-22.04
     needs:
-      - lint
+      - lint  # This job will wait until lint completes
     strategy: # Create multiple job runs for each of a set of variables
       fail-fast: false # If true, cancel entire run if any job in the matrix fails
       matrix:  # Matrix of variables used to define multiple job runs
@@ -305,23 +307,6 @@ jobs: #This workflow contains the jobs "check-run", "lint", "build-artifacts", "
           tags: ${{ steps.image-tags.outputs.tags }}
           secrets: |
             "GH_PAT=${{ steps.retrieve-secret-pat.outputs.github-pat-bitwarden-devops-bot-repo-scope }}"
-
-      - name: Install Cosign
-        if: github.event_name != 'pull_request_target' && github.ref == 'refs/heads/main'
-        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v3.7.0
-
-      - name: Sign image with Cosign
-        if: github.event_name != 'pull_request_target' && github.ref == 'refs/heads/main'
-        env:
-          DIGEST: ${{ steps.build-docker.outputs.digest }}
-          TAGS: ${{ steps.image-tags.outputs.tags }}
-        run: |
-          IFS="," read -a tags <<< "${TAGS}"
-          images=""
-          for tag in "${tags[@]}"; do
-            images+="${tag}@${DIGEST} "
-          done
-          cosign sign --yes ${images}
 
       - name: Scan Docker image
         id: container-scan

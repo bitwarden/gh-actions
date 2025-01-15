@@ -19,22 +19,26 @@ on:
       - "main"
       - "rc"
       - "hotfix-rc"
-  pull_request_target: # When a pull request event occurs. Default is opened or reopened unless otherwise specified, as below:
-    types: [opened, synchronize] # Other options include labeled, unlabeled, reopened
+  # pull_request_target: #We strongly discourage using this unless absolutely necessary as it requires access to certain Github secrets
+  # More info at https://github.blog/news-insights/product-news/github-actions-improvements-for-fork-and-pull-request-workflows/#improvements-for-public-repository-forks
+  pull_request: # When a pull request event occurs
+    branches: ["main"] # Branches where a pull request will trigger the workflow
+    paths-ignore: # Updates to these directories or files will not trigger a workflow run
+      - ".github/workflows/**"
+  push:
+    branches: ["main"]
+    paths-ignore:
+      - ".github/workflows/**"
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains the jobs "check-run", "sast", and "quality" 
+  # This workflow contains the jobs "sast", and "quality" 
   # This job is relatively simple and just imports a previously written action to be used in this workflow
-  check-run: # You set this value with the name of the job you're describing
-    name: Check PR run # Human readable descriptor
-    uses: bitwarden/gh-actions/.github/workflows/check-run.yml@main # location and branch of bitwarden-owned action being used
 
   sast:
   # A more complex job that has multiple actions as steps described below
     name: SAST scan
     runs-on: ubuntu-22.04 # The type of runner that the job will run on
-    needs: check-run # This job will wait until check-run completes
     permissions:
       contents: read # For actions/checkout to fetch code
       pull-requests: write # For github actions to uplaod feedback to PR
@@ -72,7 +76,7 @@ jobs:
   quality: 
     name: Quality scan
     runs-on: ubuntu-22.04
-    needs: check-run
+#   needs: use this if you want this step to wait for another to finish before running
     permissions:
       contents: read
       pull-requests: write

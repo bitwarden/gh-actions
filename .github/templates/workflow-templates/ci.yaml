@@ -1,0 +1,52 @@
+# Workflow templates are based on starter workflows provided by github at 
+# https://github.com/actions/starter-workflows/tree/main and customized to 
+# represent common practices used on Bitwarden repositories.
+
+name: CI
+
+on:
+  workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
+  pull_request: # When a pull request event occurs
+
+permissions: # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+  checks: write
+  contents: read
+  id-token: write
+  pull-requests: write
+
+jobs:
+  version:
+    name: Calculate version
+    uses: ./.github/workflows/_version.yml #path to a pre-written
+
+  test:
+    name: Run test
+    uses: ./.github/workflows/_test.yml
+    with:
+      project-name: Billing.Test
+      project-path: ./test/Billing.Test
+
+  build:
+    name: Run build
+    needs:
+      - test
+      - version
+    uses: ./.github/workflows/_build.yml
+    with:
+      project-name: Billing
+      project-path: ./src/Billing
+      version: ${{ needs.version.outputs.version }}
+
+  build-push-docker:
+    name: Build Docker image
+    needs:
+      - test
+      - version
+      - build
+    uses: ./.github/workflows/_docker.yml
+    with:
+      project-name: Billing
+      project-path: ./src/Billing
+      version: ${{ needs.version.outputs.version }}
+      image-name: billing-relay
+      push-docker-image: false

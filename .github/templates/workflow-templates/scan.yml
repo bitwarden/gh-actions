@@ -1,0 +1,112 @@
+# Workflow templates are based on starter workflows provided by github at 
+# https://github.com/actions/starter-workflows/tree/main and customized to 
+# represent common practices used on Bitwarden repositories.
+
+# The Scan Workflow enables you to trigger SAST and quality scans directly 
+# From the GitHub workflow.
+
+name: Scan
+
+on:
+# Controls when the workflow will run
+
+# Can use other triggers such as multiple events, activity types and fiters: 
+# https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#on
+  workflow_dispatch: # When triggered manually
+
+  push: # On push to the following branches.  Temporarily add a development branch to prompt workflow runs for troubleshooting
+    branches:
+      - "main"
+      - "rc"
+      - "hotfix-rc"
+  pull_request_target: # When a pull request event occurs. Default is opened or reopened unless otherwise specified, as below:
+    types: [opened, synchronize] # Other options include labeled, unlabeled, reopened
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains the jobs "check-run", "sast", and "quality" 
+  # This job is relatively simple and just imports a previously written action to be used in this workflow
+  check-run: # You set this value with the name of the job you're describing
+    name: Check PR run # Human readable descriptor
+    uses: bitwarden/gh-actions/.github/workflows/check-run.yml@main # location and branch of bitwarden-owned action being used
+
+  sast:
+  # A more complex job that has multiple actions as steps described below
+    name: SAST scan
+    runs-on: ubuntu-22.04 # The type of runner that the job will run on
+    needs: check-run # This job will wait until check-run completes
+    permissions: # Sets permissions of the GITHUB_TOKEN
+      contents: read # For actions/checkout to fetch code
+      pull-requests: write # For github actions to upload feedback to PR
+      security-events: write # For github/codeql-action/upload-sarif to upload SARIF results
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - name: Check out repo
+        # Always pin a public action version to a full git SHA.  Version pins are insecure and can introduce vulnerabilities into workflows.
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2  
+        with: # Parameters specific to this action that need to be defined in order for the step to be completed
+          ref: ${{  github.event.pull_request.head.sha }}
+
+      - name: Scan with Checkmarx
+        if: github.event.pull_request.draft == false # Prevent part of a job from running on a draft PR
+        uses: checkmarx/ast-github-action@f0869bd1a37fddc06499a096101e6c900e815d81 # 2.0.36
+        env: # Environment variables set for this step but not accessible by all workflows, steps or jobs
+          INCREMENTAL: "${{ contains(github.event_name, 'pull_request') && '--sast-incremental' || '' }}"
+        with:
+          project_name: ${{ github.repository }}
+          cx_tenant: ${{ secrets.CHECKMARX_TENANT }}
+          base_uri: https://ast.checkmarx.net/
+          cx_client_id: ${{ secrets.CHECKMARX_CLIENT_ID }}
+          cx_client_secret: ${{ secrets.CHECKMARX_SECRET }}
+          additional_params: |
+            --report-format sarif \
+            --filter "state=TO_VERIFY;PROPOSED_NOT_EXPLOITABLE;CONFIRMED;URGENT" \
+            --output-path . ${{ env.INCREMENTAL }}
+
+      - name: Upload Checkmarx results to GitHub
+        uses: github/codeql-action/upload-sarif@662472033e021d55d94146f66f6058822b0b39fd # v3.27.0
+        with:
+          sarif_file: cx_result.sarif
+
+  quality: 
+    name: Quality scan
+    runs-on: ubuntu-22.04
+    needs: check-run
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+        # Set up whatever resources your environment will need to run workflows on your code
+      - name: Set up JDK 17
+        uses: actions/setup-java@8df1039502a15bceb9433410b1a100fbe190c53b # v4.5.0
+        with:
+          java-version: 17
+          distribution: "zulu"
+        # This step checks out a copy of your repository
+      - name: Check out repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0 # Full git history for actions that rely on whether a change has occurred
+          ref: ${{  github.event.pull_request.head.sha }}
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@3e891b0cb619bf60e2c25674b222b8940e2c1c25 # v4.1.0
+        # Install a tool without a Github Action
+      - name: Install SonarCloud scanner
+        run: dotnet tool install dotnet-sonarscanner -g
+
+      - name: Scan with SonarCloud
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Additional scripts to run outside of a Github Action
+        run: |
+          dotnet-sonarscanner begin /k:"${{ github.repository_owner }}_${{ github.event.repository.name }}" \
+          /d:sonar.test.inclusions=test/,bitwarden_license/test/ \
+          /d:sonar.exclusions=test/,bitwarden_license/test/ \
+          /o:"${{ github.repository_owner }}" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" \
+          /d:sonar.host.url="https://sonarcloud.io"
+          dotnet build
+          dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"

@@ -6,17 +6,17 @@
 
 name: Build
 
-on: # describes when to run the workflow
+on: # Describes when to run the workflow
   # https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows
 
   workflow_dispatch: # When triggered manually
 
-  push: # On push to the following branches.  Temporarily add a development branch to prompt workflow runs for troubleshooting
+  push: # On push to the following branches. Temporarily add a development branch to prompt workflow runs for troubleshooting
     branches: ["main", "rc", "hotfix-rc"]
     paths-ignore: # Updates to these directories or files will not trigger a workflow run
       - ".github/workflows/**"
 
-  # pull_request_target: #We strongly discourage using this unless absolutely necessary as it requires access to certain Github secrets.
+  # Pull_request_target: #We strongly discourage using this unless absolutely necessary as it requires access to certain Github secrets.
     # If using this, include the .github/workflows/check-run.yml job as
     # More info at https://github.blog/news-insights/product-news/github-actions-improvements-for-fork-and-pull-request-workflows/#improvements-for-public-repository-forks
 
@@ -54,17 +54,17 @@ jobs: # A workflow run is made up of one or more jobs that can run sequentially 
         include:
           - project_name: Admin
             base_path: ./src
-            node: true # enables steps with if: ${{ matrix.node }}
+            node: true # Enables steps with if: ${{ matrix.node }}
 
     # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/controlling-permissions-for-github_token
     permissions: # Sets permissions of the GITHUB_TOKEN
       security-events: write # Allow actions to upload results to Github
       id-token: write # Required to fetch an OpenID Connect (OIDC) token
       contents: read  # For actions/checkout to fetch code
-      deployments: write # Permits an action to create a new deployment.
-      issues: write # Permits an action to create a new issue.
-      checks: write # Permits an action to create a check run.
-      actions: write # Permits an action to cancel a workflow run.
+      deployments: write # Permits an action to create a new deployment
+      issues: write # Permits an action to create a new issue
+      checks: write # Permits an action to create a check run
+      actions: write # Permits an action to cancel a workflow run
       packages: read # Permits an action to access packages on GitHub Packages
       pull-requests: write # Permits an action to add a label to a pull request
 
@@ -89,7 +89,7 @@ jobs: # A workflow run is made up of one or more jobs that can run sequentially 
           creds: ${{ secrets.SECRETS_OR_CREDENTIALS }}
       - name: Another descriptive step name
         if: ${{ matrix.node }}
-        # run a script instead of an existing github action
+        # Run a script instead of an existing github action
         run: |
           whoami
           dotnet --info
@@ -102,6 +102,6 @@ jobs: # A workflow run is made up of one or more jobs that can run sequentially 
   second-job:
     name: Second Job Name
     runs-on: ubuntu-22.04
-    uses: bitwarden/gh-actions/.github/workflows/action-name.yml@main # location and branch of bitwarden-owned action being used
+    uses: bitwarden/gh-actions/.github/workflows/action-name.yml@main # Location and branch of bitwarden-owned action being used
     needs:
       - first-job  # This job will wait until first-job completes

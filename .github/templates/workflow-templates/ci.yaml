@@ -9,15 +9,15 @@ on:
   pull_request: # When a pull request event occurs
 
 permissions: # Sets permissions of the GITHUB_TOKEN
-  checks: write # permits an action to create a check run
-  contents: read # for actions to fetch code and list commits
-  id-token: write # required to fetch an OpenID Connect (OIDC) token
-  pull-requests: write # permits an action to add a label to a pull request
+  checks: write # Permits an action to create a check run
+  contents: read # For actions to fetch code and list commits
+  id-token: write # Required to fetch an OpenID Connect (OIDC) token
+  pull-requests: write # Permits an action to add a label to a pull request
 
 jobs:
   version:
     name: Calculate version
-    uses: ./.github/workflows/_version.yml #path to an existing github action
+    uses: ./.github/workflows/_version.yml # Path to an existing github action
 
   test:
     name: Run test

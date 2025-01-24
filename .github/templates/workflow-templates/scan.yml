@@ -19,16 +19,8 @@ on:
       - "main"
       - "rc"
       - "hotfix-rc"
-  # pull_request_target: #We strongly discourage using this unless absolutely necessary as it requires access to certain Github secrets
-  # More info at https://github.blog/news-insights/product-news/github-actions-improvements-for-fork-and-pull-request-workflows/#improvements-for-public-repository-forks
-  pull_request: # When a pull request event occurs
-    branches: ["main"] # Branches where a pull request will trigger the workflow
-    paths-ignore: # Updates to these directories or files will not trigger a workflow run
-      - ".github/workflows/**"
-  push:
-    branches: ["main"]
-    paths-ignore:
-      - ".github/workflows/**"
+  pull_request_target: # When a pull request event occurs. Default is opened or reopened unless otherwise specified, as below:
+    types: [opened, synchronize] # Other options include labeled, unlabeled, reopened
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -43,9 +35,9 @@ jobs:
     name: SAST scan
     runs-on: ubuntu-22.04 # The type of runner that the job will run on
     needs: check-run # This job will wait until check-run completes
-    permissions:
+    permissions: # Sets permissions of the GITHUB_TOKEN
       contents: read # For actions/checkout to fetch code
-      pull-requests: write # For github actions to uplaod feedback to PR
+      pull-requests: write # For github actions to upload feedback to PR
       security-events: write # For github/codeql-action/upload-sarif to upload SARIF results
 
     # Steps represent a sequence of tasks that will be executed as part of the job

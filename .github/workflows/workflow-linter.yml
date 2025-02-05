@@ -48,4 +48,4 @@ jobs:
         run: bwwl lint -f .github/workflows
 
       - name: Print job output
-        run: echo 'test penguin'
+        run: echo steps.lint

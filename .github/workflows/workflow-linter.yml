@@ -44,8 +44,9 @@ jobs:
         run: python -m pip install --upgrade bitwarden_workflow_linter
 
       - name: Lint
+        id: lint
         if: steps.changed-workflows.outputs.all_changed_files_count != 0
         run: bwwl lint -f .github/workflows
 
       - name: Print job output
-        run: echo steps.lint
+        run: echo ${{ steps.lint.outputs }}

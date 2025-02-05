@@ -47,7 +47,7 @@ jobs:
         id: lint
         if: steps.changed-workflows.outputs.all_changed_files_count != 0
         run: |
-          output=$(bwwl lint -f .github/workflows/ | tee /dev/tty0)
+          output=$(bwwl lint -f .github/workflows/ | tee 2>&1)
           echo "warnings=$(cat output | grep warning)" >> $GITHUB_OUTPUT
 
       - name: Print job output

@@ -46,3 +46,6 @@ jobs:
       - name: Lint
         if: steps.changed-workflows.outputs.all_changed_files_count != 0
         run: bwwl lint -f .github/workflows
+
+      - name: Print job output
+        run: echo 'test penguin'

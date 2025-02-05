@@ -46,7 +46,9 @@ jobs:
       - name: Lint
         id: lint
         if: steps.changed-workflows.outputs.all_changed_files_count != 0
-        run: bwwl lint -f .github/workflows
+        run: output=$(bwwl lint -f .github/workflows/ | tee /dev/tty)
+          echo "::set-output name=Warnings::$("cat output | grep warning)
 
       - name: Print job output
-        run: echo [[ ${{ steps.lint.outcome }} ]]
+        if: steps.lint.outcome == 'success'
+        run: echo [[ ${{ steps.lint.outputs.Warnings }} ]]

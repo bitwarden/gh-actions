@@ -49,4 +49,4 @@ jobs:
         run: bwwl lint -f .github/workflows
 
       - name: Print job output
-        run: echo [[ ${{ steps.lint.outputs }} ]]
+        run: echo [[ ${{ steps.lint.outcome }} ]]

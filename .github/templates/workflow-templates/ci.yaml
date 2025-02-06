@@ -17,11 +17,11 @@ permissions: # Sets permissions of the GITHUB_TOKEN
 jobs:
   version:
     name: Calculate version
-    uses: ./.github/workflows/_version.yml # Path to an existing github action
+    uses: ./.github/templates/workflow-templates/example-references/_version.yml # Path to an existing github action
 
   test:
     name: Run test
-    uses: ./.github/workflows/_test.yml
+    uses: ./.github/templates/workflow-templates/example-references/_test.yml
     with: # Parameters specific to this action that need to be defined in order for the step to be completed
       project-name: Billing.Test
       project-path: ./test/Billing.Test
@@ -31,7 +31,7 @@ jobs:
     needs:  # This job will not run until test and version jobs are complete
       - test
       - version
-    uses: ./.github/workflows/_build.yml
+    uses: ./.github/templates/workflow-templates/example-references/_build.yml
     with:
       project-name: Billing
       project-path: ./src/Billing
@@ -43,7 +43,7 @@ jobs:
       - test
       - version
       - build
-    uses: ./.github/workflows/_docker.yml
+    uses: ./.github/templates/workflow-templates/example-references/_docker.yml
     with:
       project-name: Billing
       project-path: ./src/Billing

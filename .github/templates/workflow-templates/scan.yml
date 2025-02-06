@@ -14,13 +14,13 @@ on:
 # https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#on
   workflow_dispatch: # When triggered manually
 
-  # push: # On push to the following branches.  Temporarily add a development branch to prompt workflow runs for troubleshooting
-  #   branches:
-  #     - "main"
-  #     - "rc"
-  #     - "hotfix-rc"
-  # pull_request_target: # When a pull request event occurs. Default is opened or reopened unless otherwise specified, as below:
-  #   types: [opened, synchronize] # Other options include labeled, unlabeled, reopened
+  push: # On push to the following branches.  Temporarily add a development branch to prompt workflow runs for troubleshooting
+    branches:
+      - "main"
+      - "rc"
+      - "hotfix-rc"
+  pull_request_target: # When a pull request event occurs. Default is opened or reopened unless otherwise specified, as below:
+    types: [opened, synchronize] # Other options include labeled, unlabeled, reopened
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:

@@ -12,7 +12,7 @@ on: # Describes when to run the workflow
   workflow_dispatch: # When triggered manually
 
   push: # On push to the following branches. Temporarily add a development branch to prompt workflow runs for troubleshooting
-    branches: ["main", "rc", "hotfix-rc"]
+    branches: ["none"]
     paths-ignore: # Updates to these directories or files will not trigger a workflow run
       - ".github/workflows/**"
 

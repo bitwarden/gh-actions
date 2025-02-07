@@ -3,7 +3,7 @@ name: Scan
 on:
   workflow_dispatch:
   push:
-    branches:
+    branch:
       - "main"
   pull_request_target:
     types: [opened, synchronize]

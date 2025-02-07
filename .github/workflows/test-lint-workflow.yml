@@ -5,7 +5,7 @@ on:
     paths:
       - "lint-workflow"
   push:
-    branches:
+    branch:
       - "main"
   workflow_dispatch:
 

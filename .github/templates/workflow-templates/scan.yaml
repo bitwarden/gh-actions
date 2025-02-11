@@ -86,12 +86,6 @@ jobs:
           java-version: 17
           distribution: "zulu"
         # This step checks out a copy of your repository
-      - name: Check out repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          fetch-depth: 0 # Full git history for actions that rely on whether a change has occurred
-          ref: ${{  github.event.pull_request.head.sha }}
-
       - name: Set up .NET
         uses: actions/setup-dotnet@3e891b0cb619bf60e2c25674b222b8940e2c1c25 # v4.1.0
         # Install a tool without a Github Action

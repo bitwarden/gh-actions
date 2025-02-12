@@ -14,27 +14,17 @@ jobs:
     name: Lint
     runs-on: ubuntu-22.04
     steps:
+      - name: Check out branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: ${{ github.repository }}
+          fetch-depth: 0
+
       - name: Get changed files
         id: changed-workflows
         uses: tj-actions/changed-files@c3a1bb2c992d77180ae65be6ae6c166cf40f857c # v45.0.3
         with:
           files: .github/workflows/**
-
-      - name: Get repository
-        if: steps.changed-workflows.outputs.all_changed_files_count != 0
-        id: repo
-        env:
-          REPO: ${{ github.repository }}
-        run: |
-          echo $REPO
-          echo "repo=$REPO" >> $GITHUB_OUTPUT
-
-      - name: Check out branch
-        if: steps.changed-workflows.outputs.all_changed_files_count != 0
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          repository: ${{ steps.repo.outputs.repo }}
-          fetch-depth: 0
 
       - name: Set up Python 3.11
         if: steps.changed-workflows.outputs.all_changed_files_count != 0

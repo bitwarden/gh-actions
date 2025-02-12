@@ -1,0 +1,64 @@
+name: _build
+run-name: Build ${{ inputs.project-name }}
+
+on:
+  workflow_call:
+    inputs:
+      project-name:
+        type: string
+        required: true
+      project-path:
+        type: string
+        required: true
+      version:
+        type: string
+        required: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@3e891b0cb619bf60e2c25674b222b8940e2c1c25 # v4.1.0
+
+      - name: Cache NuGet packages
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Install dependencies
+        run: dotnet restore ${{ inputs.project-path }}/${{ inputs.project-name }}.csproj
+
+      - name: Build
+        run: dotnet build --verbosity minimal ${{ inputs.project-path }}/${{ inputs.project-name }}.csproj
+
+      - name: Publish
+        run: |
+          echo "Publish"
+          dotnet publish ${{ inputs.project-path }}/${{ inputs.project-name }}.csproj \
+            -c Release --no-restore \
+            -o ./tmp/publish-${{ inputs.project-name }} -p:Version=${{ inputs.version }}
+
+      - name: Create artifact
+        run: |
+          cd ./tmp/publish-${{ inputs.project-name }}
+          zip -r ${{ inputs.project-name }}.zip .
+          mv ${{ inputs.project-name }}.zip ../../
+          pwd
+          ls -atlh ../../
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: ${{ inputs.project-name }}.zip
+          path: ./${{ inputs.project-name }}.zip
+          if-no-files-found: error

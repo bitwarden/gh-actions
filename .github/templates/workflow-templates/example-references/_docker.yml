@@ -1,0 +1,83 @@
+name: _docker
+run-name: "Build ${{ inputs.project-name }} docker image and push ${{ inputs.push-docker-image }} to ACR"
+
+on:
+  workflow_call:
+    inputs:
+      project-name:
+        type: string
+        required: true
+      project-path:
+        type: string
+        required: true
+      version:
+        type: string
+        required: false
+      push-docker-image:
+        type: boolean
+        required: false
+        default: false
+      image-name:
+        type: string
+        required: true
+
+jobs:
+  docker:
+    name: Docker
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Log in to Azure
+        if: ${{ inputs.push-docker-image }}
+        uses: Azure/login@a65d910e8af852a8061c627c456678983e180302 # v1.6.1
+        with:
+          creds: ${{ secrets.AZURE_PROD_KV_CREDENTIALS }}
+
+      - name: Log in to ACR
+        if: ${{ inputs.push-docker-image }}
+        run: az acr login -n bitwardenprod
+
+      - name: Generate Docker image tag
+        id: tag
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          IMAGE_TAG=$VERSION
+          # IMAGE_TAG=$(echo "${GITHUB_REF#refs/heads/}" | sed "s#/#-#g")  # slash safe branch name
+          # if [[ "$IMAGE_TAG" == "main" ]]; then
+          #   IMAGE_TAG=$VERSION
+          # fi
+          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Generate tag list
+        id: tag-list
+        env:
+          IMAGE_TAG: ${{ steps.tag.outputs.image_tag }}
+          IMAGE_NAME: ${{ inputs.image-name }}
+        run: echo "tags=bitwardenprod.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+
+      - name: Get build artifact
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: ${{ inputs.project-name }}.zip
+
+      - name: Set up build artifact
+        run: |
+          mkdir -p ${{ inputs.project-path }}/obj/build-output/publish
+          unzip ${{ inputs.project-name }}.zip \
+            -d ${{ inputs.project-path }}/obj/build-output/publish
+
+      - name: Build Docker image
+        uses: docker/build-push-action@48aba3b46d1b1fec4febb7c5d0c644b249a11355 # v6.10.0
+        with:
+          context: ${{ inputs.project-path }}
+          file: ${{ inputs.project-path }}/Dockerfile
+          platforms: linux/amd64
+          push: ${{ inputs.push-docker-image }}
+          tags: ${{ steps.tag-list.outputs.tags }}
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false

@@ -22,13 +22,13 @@ jobs:
 
       - name: Get changed files
         id: changed-workflows
-        uses: tj-actions/changed-files@c3a1bb2c992d77180ae65be6ae6c166cf40f857c # v45.0.3
+        uses: tj-actions/changed-files@dcc7a0cba800f454d79fff4b993e8c3555bcc0a8 # v45.0.7
         with:
           files: .github/workflows/**
 
       - name: Set up Python 3.11
         if: steps.changed-workflows.outputs.all_changed_files_count != '0'
-        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
         with:
           python-version: "3.11"
 

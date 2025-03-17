@@ -12,21 +12,43 @@ on:
 jobs:
   lint:
     name: Lint
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out branch
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           repository: ${{ github.repository }}
-          fetch-depth: 0
+          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 0 }}
+
+      - name: Check changed files for workflow changes
+        id: changed-workflows
+        run: |
+            if ${{ github.event_name == 'pull_request' }}; then
+              changed_files=$(git diff --name-only -r HEAD^1 HEAD | xargs)
+            else
+              changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | xargs)
+            fi
+
+            count=$(( 0 ))
+            for file in $changed_files; do
+              if [[ "$file" == ".github/workflows/"* ]]; then
+                count=$(( $count + 1 ))
+              fi 
+            done
+
+            echo "Workflow files changed: $count"
+            echo "changed_files_count=$count" >> $GITHUB_OUTPUT
 
       - name: Set up Python 3.11
+        if: steps.changed-workflows.outputs.changed_files_count != '0'
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
         with:
           python-version: "3.11"
 
       - name: Install bwwl binary
+        if: steps.changed-workflows.outputs.changed_files_count != '0'
         run: python -m pip install --upgrade bitwarden_workflow_linter
 
       - name: Lint
+        if: steps.changed-workflows.outputs.changed_files_count != '0'
         run: bwwl lint -f .github/workflows

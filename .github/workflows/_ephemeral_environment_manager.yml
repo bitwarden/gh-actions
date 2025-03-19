@@ -116,6 +116,22 @@ jobs:
             --password ${{ steps.retrieve-secrets.outputs.ephemeral-environment-argocd-cluster-api-secret }}
       
       - name: Sync Argo CD application
+        env:
+          ARGOCD_OPTS: --grpc-web
         run: |
           APP_NAME=$(argocd app list -o name | grep ${{ inputs.pull_request_number }})
-          argocd app sync "$APP_NAME"
+          
+          # Check if there's a running sync operation
+          APP_SYNC_STATUS=$(argocd app get "$APP_NAME" --refresh -o json | jq -r '.status.operationState.phase')
+          
+          if [ "$APP_SYNC_STATUS" == "Running" ]; then
+            echo "Found running sync operation, terminating to restart sync."
+            argocd app terminate-op "$APP_NAME"
+          fi
+          
+          # Start new sync
+          argocd app sync "$APP_NAME" \
+            --retry-limit=3 \
+            --retry-backoff-duration=5s \
+            --retry-backoff-max-duration=30s \
+            --retry-backoff-factor=2

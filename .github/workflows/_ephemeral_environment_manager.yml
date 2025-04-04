@@ -14,6 +14,8 @@ on:
         type: boolean
       sync_environment:
         type: boolean
+      create_branch:
+        type: boolean
       pull_request_number:
         type: number
   workflow_dispatch:
@@ -39,6 +41,39 @@ jobs:
   check-run:
     name: Check PR run
     uses: ./.github/workflows/check-run.yml
+
+  create-branch:
+    name: Create Branch
+    if: ${{ inputs.create_branch }}
+    runs-on: ubuntu-24.04
+    needs: check-run
+    steps:
+      - name: Login to Azure - Prod Subscription
+        uses: Azure/login@a65d910e8af852a8061c627c456678983e180302 # v2.2.0
+        with:
+          creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+
+      - name: Retrieve secrets
+        id: retrieve-secrets
+        uses: bitwarden/gh-actions/get-keyvault-secrets@main
+        with:
+          keyvault: ${{ env._KEY_VAULT }}
+          secrets: "github-pat-bitwarden-devops-bot-repo-scope,github-bitwarden-devops-bot-email"
+
+      - name: Checkout Ephemeral Environment Charts
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: bitwarden/ephemeral-environments
+          token: '${{ steps.retrieve-secrets.outputs.github-pat-bitwarden-devops-bot-repo-scope }}'
+
+      - name: Create Branch
+        env:
+          BRANCH_NAME: ee-${{ inputs.project }}-${{ inputs.pull_request_number }}
+        run: |
+          if ! git rev-parse --verify origin/${{ env.BRANCH_NAME }}; then
+            git checkout -b ${{ env.BRANCH_NAME }}
+            git push  
+          fi
 
   cleanup:
     name: Cleanup config

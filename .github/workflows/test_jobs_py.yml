@@ -1,0 +1,55 @@
+---
+name: Test Jobs - Python
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/jobs-py/**
+      - .github/workflows/test_jobs_py.yml
+
+
+jobs:
+  test_jobs_py:
+    name: Test Jobs - Python
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Sparse Checkout of Jobs dir
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  #v4.1.1
+        with:
+          sparse-checkout: |
+            .github/jobs-py
+
+      - name: Setup Python
+        uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236  #v4.7.1
+        with:
+          python-version: '3.11'
+
+      - name: Install Pipenv and Setup Project
+        working-directory: .github/jobs-py
+        run: |
+          mkdir reports
+          pip install pipenv
+          pipenv install --dev
+
+      - name: Run Unit Tests
+        working-directory: .github/jobs-py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pipenv run pytest tests/unit --junit-xml=reports/unit.xml --tb=line
+
+      - name: Run E2E Tests
+        working-directory: .github/jobs-py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pipenv run pytest tests/e2e --junit-xml=reports/e2e.xml --tb=line
+
+      - name: Report test results
+        uses: dorny/test-reporter@afe6793191b75b608954023a46831a3fe10048d4 # v1.7.0
+        if: always()
+        with:
+          name: Test Results
+          path: ".github/jobs-py/reports/*.xml"
+          reporter: java-junit
+          fail-on-error: true

@@ -66,7 +66,7 @@ jobs:
 
       - name: Create Branch
         env:
-          BRANCH_NAME: ee-${{ inputs.project }}-${{ inputs.pull_request_number }}
+          BRANCH_NAME: ee-config-${{ inputs.project }}-${{ inputs.pull_request_number }}
         run: |
           if ! git rev-parse --verify origin/${{ env.BRANCH_NAME }}; then
             git checkout -b ${{ env.BRANCH_NAME }}

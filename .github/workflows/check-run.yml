@@ -24,7 +24,6 @@ jobs:
         if: |
           steps.get-permission.outputs.require-result == 'false'
           && github.triggering_actor != 'bw-ghapp[bot]'
-          && github.triggering_actor != 'github-merge-queue[bot]'
         run: |
           echo "User ${{ github.triggering_actor }} does not have the necessary access for this repository."
           echo "Current permission level is ${{ steps.get-permission.outputs.user-permission }}."

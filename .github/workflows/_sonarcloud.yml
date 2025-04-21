@@ -5,12 +5,8 @@ on:
 
     inputs:
       sonar-config:
-        type: choice
+        type: string
         description: 'Configuration for SonarCloud'
-        options:
-          - default
-          - maven
-          - dotnet
         default: 'default'
       sonar-test-inclusions:
         type: string

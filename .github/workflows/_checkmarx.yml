@@ -5,15 +5,15 @@ on:
 
     inputs:
       incremental:
-        description: "Perform incremental scan"
+        description: 'Perform incremental scan'
         type: boolean
         default: ${{ contains(github.event_name, 'pull_request') }}
       project_name:
-        description: "Project name in Checkmarx"
+        description: 'Project name in Checkmarx'
         type: string
         default: ${{ github.repository }}
       upload_sarif:
-        description: "Upload SARIF output to GitHub Security Center"
+        description: 'Upload SARIF output to GitHub Security Center'
         type: boolean
         default: true
     secrets:

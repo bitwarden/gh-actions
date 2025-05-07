@@ -20,8 +20,12 @@ on:
       - "rc"
       - "hotfix-rc"
   pull_request_target: # When a pull request event occurs. Default is opened or reopened unless otherwise specified, as below:
-    types: [opened, synchronize] # Other options include labeled, unlabeled, reopened
-    branches: 'main'
+    types: [opened, synchronize, reopened] # Other options include labeled, unlabeled, reopened
+    branches: 
+      - 'main'
+    #We strongly discourage using this unless absolutely necessary as it requires access to certain Github secrets.
+    # If using this, include the .github/workflows/check-run.yml job and target only the main branch
+    # More info at https://github.blog/news-insights/product-news/github-actions-improvements-for-fork-and-pull-request-workflows/#improvements-for-public-repository-forks
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:

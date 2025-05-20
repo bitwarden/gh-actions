@@ -48,7 +48,7 @@ jobs:
           curl \
           --create-dirs \
           --output .github/actionlint.yml \
-          https://raw.githubusercontent.com/bitwarden/workflow-linter/refs/heads/bre-552_flip-actionlint-rule-to-error/.github/actionlint.yml
+          https://raw.githubusercontent.com/bitwarden/workflow-linter/refs/heads/main/.github/actionlint.yml
 
       - name: Set up Python 3.12
         if: steps.changed-workflows.outputs.changed_files_count != '0'

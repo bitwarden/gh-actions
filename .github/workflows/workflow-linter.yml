@@ -46,6 +46,7 @@ jobs:
         if: steps.changed-workflows.outputs.changed_files_count != '0'
         run: |
           curl \
+          --fail \
           --create-dirs \
           --output .github/actionlint.yml \
           https://raw.githubusercontent.com/bitwarden/workflow-linter/refs/heads/main/.github/actionlint.yml

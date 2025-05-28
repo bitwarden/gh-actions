@@ -33,17 +33,17 @@ jobs:
             fi
 
             count=$(( 0 ))
-            changed_files=""
+            files_to_lint=""
             for file in $changed_files; do
               if [[ "$file" == ".github/workflows/"* ]]; then
                 count=$(( $count + 1 ))
-                changed_files="$changed_files $file"
+                files_to_lint="$files_to_lint $file"
               fi
             done
 
             echo "Workflow files changed: $count"
-            echo "Changed files: $changed_files"
-            echo "changed_files=$changed_files" >> $GITHUB_OUTPUT
+            echo "Files to lint: $files_to_lint"
+            echo "changed_files=$files_to_lint" >> $GITHUB_OUTPUT
             echo "changed_files_count=$count" >> $GITHUB_OUTPUT
 
       - name: Download actionlint configuration
@@ -69,4 +69,6 @@ jobs:
         env:
           files: ${{ steps.changed-workflows.outputs.changed_files }}
         if: steps.changed-workflows.outputs.changed_files_count != '0'
-        run: bwwl lint -f $files
+        run: |
+          echo $files
+          bwwl lint -f $files

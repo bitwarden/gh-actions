@@ -42,6 +42,15 @@ jobs:
             echo "Workflow files changed: $count"
             echo "changed_files_count=$count" >> $GITHUB_OUTPUT
 
+      - name: Download actionlint configuration
+        if: steps.changed-workflows.outputs.changed_files_count != '0'
+        run: |
+          curl \
+          --fail \
+          --create-dirs \
+          --output .github/actionlint.yml \
+          https://raw.githubusercontent.com/bitwarden/workflow-linter/refs/heads/main/.github/actionlint.yml
+
       - name: Set up Python 3.12
         if: steps.changed-workflows.outputs.changed_files_count != '0'
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0

@@ -1,0 +1,98 @@
+name: "Get Secrets"
+description: "A composite action to retrieve secrets"
+inputs:
+  secrets:
+    description: "Name of the secret to retrieve"
+    required: true
+  azure_subscription_id:
+    description: "Azure Subscription ID"
+    required: true
+  azure_tenant_id:
+    description: "Azure Tentant ID"
+    required: true
+  azure_client_id:
+    description: "Azure Client ID"
+    required: true
+  lookup_clientid:
+    description: "Use the OIDC values to lookup the repository's client ID"
+    required: false
+    default: "true"
+  keyvault_name:
+    description: "Name of the Azure Key Vault to use (if not provided, determined from the repository name)"
+    required: false
+    default: ""
+  keyvault_environment:
+    description: "Environment to use for the Key Vault (must be used if keyvault_name is not provided and secrets are bound to an environment)"
+    required: false
+    default: ""
+outputs:
+  secret-values:
+    description: "The values of the retrieved secrets"
+    value: ${{ steps.get-secrets.outputs }}
+runs:
+  using: "composite"
+  steps:
+    - name: Set variables
+      id: setup_vars
+      shell: bash
+      run: |
+        resource_suffix="-eastus-prod"
+
+        repository_name="${{ github.repository }}"
+        sanitized_repository_name=$(echo "$repository_name" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]+/-/g')
+
+        identity_prefix="$sanitized_repository_name"
+        echo "identity_name=$identity_prefix$resource_suffix" >> $GITHUB_OUTPUT
+
+        rg_prefix="rg-ghactions-oidc-core"
+        echo "rg_name=$rg_prefix$resource_suffix" >> $GITHUB_OUTPUT
+
+        keyvault_prefix=$sanitized_repository_name
+        if [ -z "${{ inputs.keyvault_name }}" ]; then
+          keyvault_env=""
+          if [ -n "${{ inputs.keyvault_environment }}" ]; then
+            keyvault_env="-${{ inputs.keyvault_environment }}"
+          fi
+          echo "keyvault_name=$keyvault_prefix$keyvault_env$resource_suffix" >> $GITHUB_OUTPUT
+        else
+          echo "keyvault_name=${{ inputs.keyvault_name }}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Login to Azure using OIDC
+      if: ${{ inputs.lookup_clientid == 'true' }}
+      uses: Azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
+      with:
+        subscription-id: ${{ inputs.azure_subscription_id }}
+        tenant-id: ${{ inputs.azure_tenant_id }}
+        client-id: ${{ inputs.azure_client_id }}
+
+    - name: Azure CLI script
+      if: ${{ inputs.lookup_clientid == 'true' }}
+      id: get_kv_client_id
+      shell: bash
+      run: |
+        clientId=$(az identity show -n ${{ steps.setup_vars.outputs.identity_name }} -g ${{ steps.setup_vars.outputs.rg_name }}  --subscription ${{ inputs.azure_subscription_id }} --query clientId --output tsv >> $GITHUB_OUTPUT)
+        echo "::add-mask::$clientId" # Not truly sensitive, but better to mask
+        echo "client_id=$clientId" >> $GITHUB_OUTPUT
+
+    # - name: Azure CLI script
+    #   uses: azure/cli@089eac9d8cc39f5d003e94f8b65efc51076c9cbd # v2.1.0
+    #   with:
+    #     azcliversion: latest
+    #     inlineScript: |
+    #       az identity show -n bre-internal-eastus-prod -g rg-ghactions-oidc-core-eastus-prod --subscription b52fedb5-8d77-4372-9ad5-71bf91114cfb --query clientId --output tsv
+
+    - name: Login to Azure using OIDC
+      uses: Azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
+      with:
+        subscription-id: ${{ inputs.azure_subscription_id }}
+        tenant-id: ${{ inputs.azure_tenant_id }}
+        client-id: ${{ inputs.lookup_clientid == 'true' && steps.get_kv_client_id.outputs.client_id || inputs.azure_client_id }}
+
+    - name: Get secrets
+      id: get-secrets
+      uses: bitwarden/gh-actions/get-keyvault-secrets@main
+      with:
+        keyvault: ${{ steps.setup_vars.outputs.keyvault_name }}
+        secrets: ${{ inputs.secrets }}
+

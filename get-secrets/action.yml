@@ -28,7 +28,7 @@ inputs:
 outputs:
   secret-values:
     description: "The values of the retrieved secrets"
-    value: ${{ steps.get-secrets.outputs }}
+    value: ${{ steps.get-secrets.outputs.secret }}
 runs:
   using: "composite"
   steps:

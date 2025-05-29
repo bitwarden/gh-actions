@@ -13,8 +13,8 @@ inputs:
   azure_client_id:
     description: "Azure Client ID"
     required: true
-  lookup_clientid:
-    description: "Use the OIDC values to lookup the repository's client ID"
+  lookup_repo_client_id:
+    description: "Using provided authentication IDs, lookup the repository's client ID"
     required: false
     default: "true"
   keyvault_name:
@@ -39,7 +39,7 @@ runs:
         resource_suffix="-eastus-prod"
 
         repository_name="${{ github.repository }}"
-        sanitized_repository_name=$(echo "$repository_name" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]+/-/g')
+        sanitized_repository_name=$(echo "$repository_name" | tr '[:upper:]' '[:lower:]' | sed -r 's/[^a-z0-9]+/-/g')
 
         identity_prefix="$sanitized_repository_name"
         echo "identity_name=$identity_prefix$resource_suffix" >> $GITHUB_OUTPUT
@@ -52,6 +52,7 @@ runs:
           keyvault_env=""
           if [ -n "${{ inputs.keyvault_environment }}" ]; then
             keyvault_env="-${{ inputs.keyvault_environment }}"
+            keyvault_env=$(echo "$keyvault_env" | tr '[:upper:]' '[:lower:]' | sed -r 's/[^a-z0-9]+/-/g'))
           fi
           echo "keyvault_name=$keyvault_prefix$keyvault_env$resource_suffix" >> $GITHUB_OUTPUT
         else
@@ -59,7 +60,7 @@ runs:
         fi
 
     - name: Login to Azure using OIDC
-      if: ${{ inputs.lookup_clientid == 'true' }}
+      if: ${{ inputs.lookup_repo_client_id == 'true' }}
       uses: Azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
       with:
         subscription-id: ${{ inputs.azure_subscription_id }}
@@ -67,7 +68,7 @@ runs:
         client-id: ${{ inputs.azure_client_id }}
 
     - name: Azure CLI script
-      if: ${{ inputs.lookup_clientid == 'true' }}
+      if: ${{ inputs.lookup_repo_client_id == 'true' }}
       id: get_kv_client_id
       shell: bash
       run: |
@@ -87,7 +88,7 @@ runs:
       with:
         subscription-id: ${{ inputs.azure_subscription_id }}
         tenant-id: ${{ inputs.azure_tenant_id }}
-        client-id: ${{ inputs.lookup_clientid == 'true' && steps.get_kv_client_id.outputs.client_id || inputs.azure_client_id }}
+        client-id: ${{ inputs.lookup_repo_client_id == 'true' && steps.get_kv_client_id.outputs.client_id || inputs.azure_client_id }}
 
     - name: Get secrets
       id: get-secrets

@@ -47,7 +47,7 @@ jobs:
             echo "changed_files_count=$count" >> $GITHUB_OUTPUT
 
       - name: Download actionlint configuration
-        if: steps.changed-workflows.outputs.changed_files_count != '0'
+        # if: steps.changed-workflows.outputs.changed_files_count != '0'
         run: |
           curl \
           --fail \
@@ -56,19 +56,20 @@ jobs:
           https://raw.githubusercontent.com/bitwarden/workflow-linter/refs/heads/main/.github/actionlint.yml
 
       - name: Set up Python 3.12
-        if: steps.changed-workflows.outputs.changed_files_count != '0'
+        # if: steps.changed-workflows.outputs.changed_files_count != '0'
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
         with:
           python-version: "3.12.10"
 
       - name: Install bwwl binary
-        if: steps.changed-workflows.outputs.changed_files_count != '0'
+        # if: steps.changed-workflows.outputs.changed_files_count != '0'
         run: python -m pip install --upgrade bitwarden_workflow_linter
 
       - name: Lint
         env:
-          files: ${{ steps.changed-workflows.outputs.changed_files }}
-        if: steps.changed-workflows.outputs.changed_files_count != '0'
+          # files: ${{ steps.changed-workflows.outputs.changed_files }}
+          WORKFLOW_LIST=$(ls .github/workflows | xargs -I {} echo -n ".github/workflows/{} ")
+        # if: steps.changed-workflows.outputs.changed_files_count != '0'
         run: |
-          echo $files
-          bwwl lint -f $files
+          echo $WORKFLOW_LIST
+          bwwl lint -f $WORKFLOW_LIST

@@ -6,48 +6,50 @@ Supported Secret Management Systems:
 
 ## Inputs
 
-- secrets
-    - Description: Provides the name of the secrets to retrieve.
-    - Examples:
-        ```
-            secrets: secret-1
-        ```
-        ```
-            secrets: |
-            secret-1
-            secret-2
-        ```
-- azure_subscription_id
-    - Description: Provides the Azure subscription ID.
-    - Example:
-        ```
-            azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        ```
-- azure_tenant_id
-    - Description: Provides the Azure tenant ID.
-    - Example:
-        ```
-            azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
-        ```
-- azure_client_id
-    - Description: Provides the Azure client ID.
-    - Example:
-        ```
-            azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
-        ```
-- lookup_repo_client_id
-    - Description: Specifies if the repository specific client ID should be looked up using the given client ID
-        - This allows for using an org wide client ID to determine the repository specific client IDs
-        - If specifying the client ID for the repository or getting secrets from an org wide id, set this to `"false"`.
-    - Default: true
+- Required
+    - secrets
+        - Description: Provides the name of the secrets to retrieve.
+        - Examples:
+            ```
+                secrets: secret-1
+            ```
+            ```
+                secrets: |
+                    secret-1
+                    secret-2
+            ```
+    - azure_subscription_id
+        - Description: Provides the Azure subscription ID.
+        - Example:
+            ```
+                azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+            ```
+    - azure_tenant_id
+        - Description: Provides the Azure tenant ID.
+        - Example:
+            ```
+                azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+            ```
+    - azure_client_id
+        - Description: Provides the Azure client ID.
+        - Example:
+            ```
+                azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+            ```
+- Optional
+    - lookup_repo_client_id
+        - Description: Specifies if the repository specific client ID should be looked up using the given client ID
+            - This allows for using an org wide client ID to determine the repository specific client IDs
+            - If specifying the client ID for the repository or getting secrets from an org wide id, set this to `"false"`.
+        - Default: true
 
-- keyvault_name
-    - Description: Provides the key vault name where to retrieve secrets from
-    - Default: "" (Will be determined using the calling repository's name)
+    - keyvault_name
+        - Description: Provides the key vault name where to retrieve secrets from
+        - Default: "" (Will be determined using the calling repository's name)
 
-- keyvault_environment
-    - Description: Specifies the GitHub environment to use for determining the keyvault name.  Only used if `keyvault_name` is empty
-    - Default: ""
+    - keyvault_environment
+        - Description: Specifies the GitHub environment to use for determining the keyvault name.  Only used if `keyvault_name` is empty
+        - Default: ""
 
 ### Workflow Usage Example
 #### Azure Key Vault access

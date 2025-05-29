@@ -52,7 +52,7 @@ runs:
           keyvault_env=""
           if [ -n "${{ inputs.keyvault_environment }}" ]; then
             keyvault_env="-${{ inputs.keyvault_environment }}"
-            keyvault_env=$(echo "$keyvault_env" | tr '[:upper:]' '[:lower:]' | sed -r 's/[^a-z0-9]+/-/g'))
+            keyvault_env=$(echo "$keyvault_env" | tr '[:upper:]' '[:lower:]' | sed -r 's/[^a-z0-9]+/-/g')
           fi
           echo "keyvault_name=$keyvault_prefix$keyvault_env$resource_suffix" >> $GITHUB_OUTPUT
         else

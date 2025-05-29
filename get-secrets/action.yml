@@ -72,13 +72,6 @@ runs:
         echo "::add-mask::$clientId"
         echo "client_id=$clientId" >> $GITHUB_OUTPUT
 
-    # - name: Azure CLI script
-    #   uses: azure/cli@089eac9d8cc39f5d003e94f8b65efc51076c9cbd # v2.1.0
-    #   with:
-    #     azcliversion: latest
-    #     inlineScript: |
-    #       az identity show -n bre-internal-eastus-prod -g rg-ghactions-oidc-core-eastus-prod --subscription b52fedb5-8d77-4372-9ad5-71bf91114cfb --query clientId --output tsv
-
     - name: Login to Azure using OIDC
       uses: Azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
       with:

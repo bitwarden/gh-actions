@@ -2,7 +2,7 @@ name: "Get Secrets"
 description: "A composite action to retrieve secrets"
 inputs:
   secrets:
-    description: "Name of the secret to retrieve"
+    description: "Name of the secrets to retrieve"
     required: true
   azure_subscription_id:
     description: "Azure Subscription ID"
@@ -25,15 +25,11 @@ inputs:
     description: "Environment to use for the Key Vault (must be used if keyvault_name is not provided and secrets are bound to an environment)"
     required: false
     default: ""
-outputs:
-  secret-values:
-    description: "The values of the retrieved secrets"
-    value: ${{ steps.get-secrets.outputs.secret }}
 runs:
   using: "composite"
   steps:
     - name: Set variables
-      id: setup_vars
+      id: setup-vars
       shell: bash
       run: |
         resource_suffix="-eastus-prod"
@@ -69,11 +65,11 @@ runs:
 
     - name: Azure CLI script
       if: ${{ inputs.lookup_repo_client_id == 'true' }}
-      id: get_kv_client_id
+      id:  get-kv-client-id
       shell: bash
       run: |
-        clientId=$(az identity show -n ${{ steps.setup_vars.outputs.identity_name }} -g ${{ steps.setup_vars.outputs.rg_name }}  --subscription ${{ inputs.azure_subscription_id }} --query clientId --output tsv >> $GITHUB_OUTPUT)
-        echo "::add-mask::$clientId" # Not truly sensitive, but better to mask
+        clientId=$(az identity show -n ${{ steps.setup-vars.outputs.identity_name }} -g ${{ steps.setup-vars.outputs.rg_name }}  --subscription ${{ inputs.azure_subscription_id }} --query clientId --output tsv >> $GITHUB_OUTPUT)
+        echo "::add-mask::$clientId"
         echo "client_id=$clientId" >> $GITHUB_OUTPUT
 
     # - name: Azure CLI script
@@ -88,12 +84,11 @@ runs:
       with:
         subscription-id: ${{ inputs.azure_subscription_id }}
         tenant-id: ${{ inputs.azure_tenant_id }}
-        client-id: ${{ inputs.lookup_repo_client_id == 'true' && steps.get_kv_client_id.outputs.client_id || inputs.azure_client_id }}
+        client-id: ${{ inputs.lookup_repo_client_id == 'true' && steps.get-kv-client-id.outputs.client_id || inputs.azure_client_id }}
 
     - name: Get secrets
       id: get-secrets
       uses: bitwarden/gh-actions/get-keyvault-secrets@main
       with:
-        keyvault: ${{ steps.setup_vars.outputs.keyvault_name }}
+        keyvault: ${{ steps.setup-vars.outputs.keyvault_name }}
         secrets: ${{ inputs.secrets }}
-

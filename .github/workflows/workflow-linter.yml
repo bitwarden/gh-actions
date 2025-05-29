@@ -66,10 +66,10 @@ jobs:
         run: python -m pip install --upgrade bitwarden_workflow_linter
 
       - name: Lint
-        env:
+        # env:
           # files: ${{ steps.changed-workflows.outputs.changed_files }}
-          WORKFLOW_LIST=$(ls .github/workflows | xargs -I {} echo -n ".github/workflows/{} ")
         # if: steps.changed-workflows.outputs.changed_files_count != '0'
         run: |
+          WORKFLOW_LIST=$(ls .github/workflows | xargs -I {} echo -n ".github/workflows/{} ")
           echo $WORKFLOW_LIST
           bwwl lint -f $WORKFLOW_LIST

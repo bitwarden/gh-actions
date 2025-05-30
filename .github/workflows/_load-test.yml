@@ -22,7 +22,7 @@ on:
 
 jobs:
   run-tests:
-    name: Run k6 tests
+    name: Run load tests
     runs-on: ubuntu-24.04
     services:
       # Datadog agent for collecting OTEL metrics from k6

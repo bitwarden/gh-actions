@@ -49,14 +49,14 @@ jobs:
           --pid host
     env:
       # K6 and Datadog system configuration
-      _DOCKER_CONTENT_TRUST: 1
-      _K6_OTEL_GRPC_EXPORTER_INSECURE: true
-      _K6_OTEL_METRIC_PREFIX: k6_
-      _K6_FLAGS: >-
+      DOCKER_CONTENT_TRUST: 1
+      K6_OTEL_GRPC_EXPORTER_INSECURE: true
+      K6_OTEL_METRIC_PREFIX: k6_
+      K6_FLAGS: >-
         --tag test-id=${{ inputs.test_id }}
         -o experimental-opentelemetry
         ${{ inputs.k6_flags }}
-      _K6_LOAD_TESTS_PATHS: ${{ inputs.k6_test_paths }}
+      K6_LOAD_TESTS_PATHS: ${{ inputs.k6_test_paths }}
     steps:
       - name: Check out repo
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -70,5 +70,5 @@ jobs:
         uses: grafana/run-k6-action@c6b79182b9b666aa4f630f4a6be9158ead62536e # v1.2.0
         continue-on-error: true
         with:
-          path: ${{ env._K6_LOAD_TESTS_PATHS }}
-          flags: ${{ env._K6_FLAGS }}
+          path: ${{ env.K6_LOAD_TESTS_PATHS }}
+          flags: ${{ env.K6_FLAGS }}

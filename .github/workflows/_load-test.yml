@@ -15,10 +15,6 @@ on:
         type: string
         description: 'Additional k6 flags'
         default: ''
-    secrets:
-      DD_API_KEY:
-        description: 'Datadog API key'
-        required: true
 
 permissions:
   contents: read

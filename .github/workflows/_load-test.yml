@@ -1,0 +1,87 @@
+name: Load Test
+
+on:
+  workflow_call:
+    inputs:
+      test_id:
+        type: string
+        description: 'Unique identifier for the test run'
+        default: 'load-test'
+      k6_test_paths:
+        type: string
+        description: 'Paths to k6 load test files'
+        default: 'perf/load/*.js'
+      k6_flags:
+        type: string
+        description: 'Additional k6 flags'
+        default: ''
+  workflow_dispatch:
+    inputs:
+      test_id:
+        type: string
+        description: 'Unique identifier for the test run'
+        default: 'load-test'
+        required: false
+      k6_test_paths:
+        type: string
+        description: 'Paths to k6 load test files'
+        default: 'perf/load/*.js'
+        required: false
+      k6_flags:
+        type: string
+        description: 'Additional k6 flags'
+        default: ''
+        required: false
+
+jobs:
+  run-tests:
+    name: Run k6 tests
+    runs-on: ubuntu-24.04
+    services:
+      # Datadog agent for collecting OTEL metrics from k6
+      datadog:
+        image: datadog/agent:7-full@sha256:a81b9f2e5ad5b8d11a560d8716fcc1139c105a72d5157260f7034cea7a5103eb
+        ports:
+          - 4317:4317
+          - 5555:5555
+        env:
+          DD_SITE: us3.datadoghq.com
+          DD_API_KEY: ${{ secrets.DD_API_KEY }}
+          DD_DOGSTATSD_NON_LOCAL_TRAFFIC: 1
+          DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_GRPC_ENDPOINT: 0.0.0.0:4317
+          DD_HEALTH_PORT: 5555
+          HOST_PROC: /proc
+        options: >-
+          --volume /var/run/docker.sock:/var/run/docker.sock:ro
+          --volume /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+          --health-cmd "curl -f http://localhost:5555/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+          --health-start-period 30s
+          --pid host
+    env:
+      # K6 and Datadog system configuration
+      _DOCKER_CONTENT_TRUST: 1
+      _K6_OTEL_GRPC_EXPORTER_INSECURE: true
+      _K6_OTEL_METRIC_PREFIX: k6_
+      _K6_FLAGS: >-
+        --tag test-id=${{ inputs.test_id }}
+        -o experimental-opentelemetry
+        ${{ inputs.k6_flags }}
+      _K6_LOAD_TESTS_PATHS: ${{ inputs.k6_test_paths }}
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Set up k6
+        uses: grafana/setup-k6-action@ffe7d7290dfa715e48c2ccc924d068444c94bde2 # v1.1.0
+
+      - name: Run k6 tests
+        uses: grafana/run-k6-action@c6b79182b9b666aa4f630f4a6be9158ead62536e # v1.2.0
+        continue-on-error: true
+        with:
+          path: ${{ env._K6_LOAD_TESTS_PATHS }}
+          flags: ${{ env._K6_FLAGS }}

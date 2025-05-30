@@ -15,23 +15,10 @@ on:
         type: string
         description: 'Additional k6 flags'
         default: ''
-  workflow_dispatch:
-    inputs:
-      test_id:
-        type: string
-        description: 'Unique identifier for the test run'
-        default: 'load-test'
-        required: false
-      k6_test_paths:
-        type: string
-        description: 'Paths to k6 load test files'
-        default: 'perf/load/*.js'
-        required: false
-      k6_flags:
-        type: string
-        description: 'Additional k6 flags'
-        default: ''
-        required: false
+    secrets:
+      DD_API_KEY:
+        description: 'Datadog API key'
+        required: true
 
 jobs:
   run-tests:

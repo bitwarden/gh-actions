@@ -24,9 +24,8 @@ This action provides a centralized way to login to Azure.<br/>
                 client_id: ${{ secrets.AZURE_CLIENT_ID }}
             ```
 
-### Workflow Usage Example
-#### Azure Key Vault access
-Repository without environment specific secrets
+## Workflow Usage Example
+#### Repository without environment specific secrets
 ```
 on:
   workflow_dispatch:
@@ -61,7 +60,7 @@ jobs:
            # Use ${{ steps.get-kv-secrets.output.example-secret-1}} in some way
 ```
 
-Repository with environment specific secrets
+#### Repository with environment specific secrets
 ```
 on:
   workflow_dispatch:

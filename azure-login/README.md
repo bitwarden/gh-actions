@@ -24,7 +24,18 @@ This action provides a centralized way to login to Azure.<br/>
                 client_id: ${{ secrets.AZURE_CLIENT_ID }}
             ```
 
-## Workflow Usage Example
+## Examples
+### Step Snippet
+```
+      - name: Azure Login
+        uses: bitwarden/gh-actions/azure-login@main
+        with:
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
+```
+
+### Workflow
 #### Repository without environment specific secrets
 ```
 on:
@@ -41,7 +52,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Azure Login
-        uses: bitwarden/gh-actions/get-secrets@main
+        uses: bitwarden/gh-actions/azure-login@main
         with:
           subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           tenant_id: ${{ secrets.AZURE_TENANT_ID }}
@@ -53,6 +64,9 @@ jobs:
         with:
           keyvault: gh-example-repository
           secrets: "example-secret-1,example-secret-2"
+
+      - name: Azure Logout
+        uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Use Secrets
         shell: bash
@@ -89,6 +103,9 @@ jobs:
         with:
           keyvault: gh-example-repository
           secrets: "example-secret-1,example-secret-2"
+
+      - name: Azure Logout
+        uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Use Secrets
         shell: bash

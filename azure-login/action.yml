@@ -1,5 +1,5 @@
 name: "Azure Login"
-description: "A composite action to retrieve secrets"
+description: "A composite action to login to Azure"
 inputs:
   subscription_id:
     description: "Azure Subscription ID"

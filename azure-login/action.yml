@@ -16,6 +16,6 @@ runs:
     - name: Login to Azure using OIDC
       uses: Azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
       with:
-        subscription-id: ${{ inputs.azure_subscription_id }}
-        tenant-id: ${{ inputs.azure_tenant_id }}
-        client-id: ${{ inputs.azure_client_id }}
+        subscription-id: ${{ inputs.subscription_id }}
+        tenant-id: ${{ inputs.tenant_id }}
+        client-id: ${{ inputs.client_id }}

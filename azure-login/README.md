@@ -1,6 +1,6 @@
 # Composite Action for logging into Azure
 
-This action provides a centralized way to login to Azure.<br/>
+This action provides a centralized way to login to Azure.
 
 ## Inputs
 

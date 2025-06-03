@@ -59,7 +59,7 @@ jobs:
               exit 0
           fi
 
-          latest_draft_version=$(echo "$latest_release" | jq -r '.name' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          latest_draft_version=$(echo "$latest_release" | jq -r '.name' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+ \([0-9]+\)')
           echo "latest_draft_version=$latest_draft_version" >> $GITHUB_OUTPUT
 
           latest_draft_name=$(jq -r '.name' <<< $latest_release)
@@ -190,14 +190,15 @@ jobs:
         if: steps.check_already_processed.outputs.should_skip == 'false'
         id: check_version
         env:
-          latest_draft_version: ${{ steps.get_latest_draft.outputs.latest_draft_version }}
+          LATEST_DRAFT_VERSION: ${{ steps.get_latest_draft.outputs.latest_draft_version }}
           STORE_VERSION: ${{ env.STORE_VERSION }}
+          STORE_BUILD_NUMBER: ${{ env.STORE_BUILD_NUMBER }}
         run: |
-          if [ "$latest_draft_version" == "$STORE_VERSION" ]; then
-              echo "Version $latest_draft_version is already released on Google Play Store"
+          if [ "$LATEST_DRAFT_VERSION" == "$STORE_VERSION ($STORE_BUILD_NUMBER)" ]; then
+              echo "Version $LATEST_DRAFT_VERSION is already released on Google Play Store"
               echo "version_released=true" >> $GITHUB_OUTPUT
           else
-              echo "Version $latest_draft_version is not released on Google Play Store. Latest version on Google Play Store is $STORE_VERSION"
+              echo "Version $LATEST_DRAFT_VERSION is not released on Google Play Store. Latest version on Google Play Store is $STORE_VERSION"
               echo "version_released=false" >> $GITHUB_OUTPUT
           fi
 

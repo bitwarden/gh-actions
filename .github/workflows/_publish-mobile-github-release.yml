@@ -86,13 +86,19 @@ jobs:
             echo "has_previous_run=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Compose artifact name
+        id: compose_artifact_name
+        run: |
+          artifact_name=$(echo "release-info-${{ inputs.release_name }}" | tr '[:upper:]' '[:lower:]' | sed 's/ /-/g')
+          echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
+
       - name: Download previous run state
         id: previous_state
         if: steps.get_previous_run.outputs.has_previous_run == 'true'
         continue-on-error: true
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: release-info
+          name: ${{ steps.compose_artifact_name.outputs.artifact_name }}
           run-id: ${{ steps.get_previous_run.outputs.previous_run_id }}
           github-token: ${{ github.token }}
 
@@ -252,5 +258,5 @@ jobs:
       - name: Upload workflow state artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: release-info
+          name: ${{ steps.compose_artifact_name.outputs.artifact_name }}
           path: release-info.json

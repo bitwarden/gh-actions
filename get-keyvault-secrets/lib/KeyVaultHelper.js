@@ -121,7 +121,6 @@ class KeyVaultHelper {
             return;
         }
         core.setSecret(secretValue);
-        core.exportVariable(secretName, secretValue);
         core.setOutput(secretName, secretValue);
     }
     filterDisabledAndExpiredSecrets(listOfSecrets) {

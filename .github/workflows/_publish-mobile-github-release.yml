@@ -197,14 +197,14 @@ jobs:
         id: check_version
         env:
           LATEST_DRAFT_VERSION: ${{ steps.get_latest_draft.outputs.latest_draft_version }}
-          STORE_VERSION: ${{ env.STORE_VERSION }}
-          STORE_BUILD_NUMBER: ${{ env.STORE_BUILD_NUMBER }}
+          STORE_VERSION_NAME: ${{ env.STORE_VERSION_NAME }}
+          STORE_VERSION_NUMBER: ${{ env.STORE_VERSION_NUMBER }}
         run: |
-          if [ "$LATEST_DRAFT_VERSION" == "$STORE_VERSION ($STORE_BUILD_NUMBER)" ]; then
+          if [ "$LATEST_DRAFT_VERSION" == "$STORE_VERSION_NAME ($STORE_VERSION_NUMBER)" ]; then
               echo "Version $LATEST_DRAFT_VERSION is already released on Google Play Store"
               echo "version_released=true" >> $GITHUB_OUTPUT
           else
-              echo "Version $LATEST_DRAFT_VERSION is not released on Google Play Store. Latest version on Google Play Store is $STORE_VERSION"
+              echo "Version $LATEST_DRAFT_VERSION is not released on Google Play Store. Latest version in the store is $STORE_VERSION_NAME ($STORE_VERSION_NUMBER)"
               echo "version_released=false" >> $GITHUB_OUTPUT
           fi
 

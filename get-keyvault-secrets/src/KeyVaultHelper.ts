@@ -109,7 +109,6 @@ export class KeyVaultHelper {
         }
 
         core.setSecret(secretValue);
-        core.exportVariable(secretName, secretValue);
         core.setOutput(secretName, secretValue);
     }
 

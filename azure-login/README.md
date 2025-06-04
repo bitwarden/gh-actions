@@ -57,7 +57,7 @@ jobs:
     name: Example Job
     runs-on: ubuntu-24.04
     permissions:
-        id-token: write # Necessary for getting OIDC token
+      id-token: write # Necessary for getting OIDC token
     steps:
       - name: Azure Login
         uses: bitwarden/gh-actions/azure-login@main

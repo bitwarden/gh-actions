@@ -49,5 +49,4 @@ jobs:
       - name: Use Secrets
         shell: bash
         run: |
-           # Use ${{ steps.get-kv-secrets.output.example-secret-1}} in some way
-```
+          # Use ${{ steps.get-kv-secrets.output.example-secret-1}} in some way

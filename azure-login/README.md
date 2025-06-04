@@ -24,8 +24,14 @@ This action provides a centralized way to login to Azure.
                 client_id: ${{ secrets.AZURE_CLIENT_ID }}
             ```
 
+## Required Permissions
+
+This action requires the `id-token: write` permission to be able to obtain the OIDC token.
+
+__Note that GitHub will set this to `id-token: none` for pull requests from forks, which means the login will fail.  [(GitHub Documentation)](https://docs.github.com/en/actions/security-for-github-actions/security-guides/automatic-token-authentication)__
+
 ## Examples
-### Step Snippet
+### Job Snippet
 ```
       - name: Azure Login
         uses: bitwarden/gh-actions/azure-login@main
@@ -50,6 +56,8 @@ jobs:
   example:
     name: Example Job
     runs-on: ubuntu-24.04
+    permissions:
+        id-token: write # Necessary for getting OIDC token
     steps:
       - name: Azure Login
         uses: bitwarden/gh-actions/azure-login@main
@@ -89,6 +97,8 @@ jobs:
     name: Example Job
     runs-on: ubuntu-24.04
     environment: Development # This will be used during login to authenticate
+    permissions:
+        id-token: write # Necessary for getting OIDC token
     steps:
       - name: Azure Login
         uses: bitwarden/gh-actions/get-secrets@main

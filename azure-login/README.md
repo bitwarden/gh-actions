@@ -98,7 +98,7 @@ jobs:
     runs-on: ubuntu-24.04
     environment: Development # This will be used during login to authenticate
     permissions:
-        id-token: write # Necessary for getting OIDC token
+      id-token: write # Necessary for getting OIDC token
     steps:
       - name: Azure Login
         uses: bitwarden/gh-actions/get-secrets@main

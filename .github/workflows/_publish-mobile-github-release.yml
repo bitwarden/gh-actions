@@ -22,6 +22,11 @@ on:
           Example: 'bundle exec fastlane android getLatestVersion serviceCredentialsFile:$CREDENTIALS_PATH'
         type: string
         required: true
+      project_type:
+        description: 'Type of the project (e.g. "android" or "ios")'
+        type: string
+        default: "android"
+        required: true
 
 
 
@@ -59,8 +64,11 @@ jobs:
               exit 0
           fi
 
-          latest_draft_version=$(echo "$latest_release" | jq -r '.name' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+ \([0-9]+\)')
-          echo "latest_draft_version=$latest_draft_version" >> $GITHUB_OUTPUT
+          latest_draft_version_name=$(echo "$latest_release" | jq -r '.name' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          echo "latest_draft_version_name=$latest_draft_version_name" >> $GITHUB_OUTPUT
+
+          latest_draft_version_number=$(echo "$latest_release" | jq -r '.name' | grep -oE '\([0-9]+\)' | sed 's/[()]//g')
+          echo "latest_draft_version_number=$latest_draft_version_number" >> $GITHUB_OUTPUT
 
           latest_draft_name=$(jq -r '.name' <<< $latest_release)
           echo "latest_draft_name=$latest_draft_name" >> $GITHUB_OUTPUT
@@ -127,7 +135,7 @@ jobs:
       - name: Check if release was already processed
         id: check_already_processed
         env:
-          CURRENT_RELEASE: ${{ steps.get_latest_draft.outputs.latest_draft_version }}
+          CURRENT_RELEASE: ${{ steps.get_latest_draft.outputs.latest_draft_version_name }}
           PREVIOUS_RELEASE: ${{ steps.parse_previous_state.outputs.previous_release_tag }}
           PREVIOUS_INITIAL_STATE: ${{ steps.parse_previous_state.outputs.previous_initial_state }}
           PREVIOUS_CHANGED_TO: ${{ steps.parse_previous_state.outputs.previous_changed_to }}
@@ -182,36 +190,54 @@ jobs:
           az storage blob download --account-name $ACCOUNT_NAME --container-name $CONTAINER_NAME \
             --name $CREDENTIALS_FILE_NAME --file ${{ github.workspace }}/secrets/$CREDENTIALS_FILE_NAME --output none
 
-      - name: Check released version
+      - name: Get store versions
         if: steps.check_already_processed.outputs.should_skip == 'false' && inputs.check_release_command != ''
+        id: get_store_versions
         env:
           CREDENTIALS_PATH: ${{ github.workspace }}/secrets/${{ inputs.credentials_filename }}
         run: |
           echo "Running custom release check command..."
           echo "Command: ${{ inputs.check_release_command }}"
-          eval "${{ inputs.check_release_command }}"
 
+          OUTPUT=$(eval "${{ inputs.check_release_command }}")
+
+          version_name=$(echo "$OUTPUT" | grep 'version_name: ' | cut -d' ' -f3)
+          version_number=$(echo "$OUTPUT" | grep 'version_number: ' | cut -d' ' -f3)
+
+          echo "store_version_name=$version_name" >> $GITHUB_OUTPUT
+          echo "store_version_number=$version_number" >> $GITHUB_OUTPUT
 
       - name: Check if version is already released
         if: steps.check_already_processed.outputs.should_skip == 'false'
         id: check_version
         env:
-          LATEST_DRAFT_VERSION: ${{ steps.get_latest_draft.outputs.latest_draft_version }}
-          STORE_VERSION_NAME: ${{ env.STORE_VERSION_NAME }}
-          STORE_VERSION_NUMBER: ${{ env.STORE_VERSION_NUMBER }}
+          LATEST_DRAFT_VERSION_NAME: ${{ steps.get_latest_draft.outputs.latest_draft_version_name }}
+          LATEST_DRAFT_VERSION_NUMBER: ${{ steps.get_latest_draft.outputs.latest_draft_version_number }}
+          STORE_VERSION_NAME: ${{ steps.get_store_versions.outputs.store_version_name }}
+          STORE_VERSION_NUMBER: ${{ steps.get_store_versions.outputs.store_version_number }}
         run: |
-          if [ "$LATEST_DRAFT_VERSION" == "$STORE_VERSION_NAME ($STORE_VERSION_NUMBER)" ]; then
-              echo "Version $LATEST_DRAFT_VERSION is already released on Google Play Store"
+          if [ "${{ inputs.project_type }}" == "ios" ]; then
+            if [ "$LATEST_DRAFT_VERSION_NAME" == "$STORE_VERSION_NUMBER" ] && [ "$LATEST_DRAFT_VERSION_NUMBER" == "$STORE_VERSION_NUMBER" ]; then
+              echo "iOS: Version name $LATEST_DRAFT_VERSION_NAME and version number $LATEST_DRAFT_VERSION_NUMBER is already released on store"
               echo "version_released=true" >> $GITHUB_OUTPUT
-          else
-              echo "Version $LATEST_DRAFT_VERSION is not released on Google Play Store. Latest version in the store is $STORE_VERSION_NAME ($STORE_VERSION_NUMBER)"
+            else
+              echo "iOS: Version $LATEST_DRAFT_VERSION_NAME ($LATEST_DRAFT_VERSION_NUMBER) is not released on store. Latest version in the store is $STORE_VERSION_NAME ($STORE_VERSION_NUMBER)"
               echo "version_released=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            if [ "$LATEST_DRAFT_VERSION_NUMBER" == "$STORE_VERSION_NUMBER" ]; then
+              echo "Version $LATEST_DRAFT_VERSION_NUMBER is already released on store"
+              echo "version_released=true" >> $GITHUB_OUTPUT
+            else
+              echo "Version $LATEST_DRAFT_VERSION_NUMBER is not released on store. Latest version in the store is $STORE_VERSION_NAME ($STORE_VERSION_NUMBER)"
+              echo "version_released=false" >> $GITHUB_OUTPUT
+            fi
           fi
 
       - name: Make GitHub release latest and non-pre-release
         if: steps.check_version.outputs.version_released == 'true'
         env:
-          TAG: ${{ steps.get_latest_draft.outputs.latest_draft_version }}
+          TAG: ${{ steps.get_latest_draft.outputs.latest_draft_version_name }}
           GH_TOKEN: ${{ github.token }}
         run: echo "Publish" # gh release edit $TAG --prerelease=false --latest --draft=false
 
@@ -223,7 +249,7 @@ jobs:
           fi
 
           if [ "${{ steps.get_latest_draft.outputs.is_latest_draft }}" == "true" ]; then
-            release_tag="${{ steps.get_latest_draft.outputs.latest_draft_version }}"
+            release_tag="${{ steps.get_latest_draft.outputs.latest_draft_version_name }}"
           else
             release_tag="${{ steps.parse_previous_state.outputs.previous_release_tag }}"
           fi

@@ -44,10 +44,13 @@ jobs:
     runs-on: ubuntu-24.04
     needs: check-run
     steps:
-      - name: Login to Azure - Prod Subscription
-        uses: Azure/login@a65d910e8af852a8061c627c456678983e180302 # v2.2.0
+      - name: Azure Login
+        id: azure-login
+        uses: bitwarden/gh-actions/azure-login@main
         with:
-          creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Retrieve secrets
         id: retrieve-secrets
@@ -55,6 +58,9 @@ jobs:
         with:
           keyvault: ${{ env._KEY_VAULT }}
           secrets: "github-pat-bitwarden-devops-bot-repo-scope,github-bitwarden-devops-bot-email"
+
+      - name: Azure Logout
+        uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Checkout Ephemeral Environment Charts
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -76,11 +82,17 @@ jobs:
     if: ${{ inputs.cleanup_config }}
     runs-on: ubuntu-24.04
     needs: check-run
+    permissions:
+      contents: write
+      id-token: write
     steps:
-      - name: Login to Azure - Prod Subscription
-        uses: Azure/login@a65d910e8af852a8061c627c456678983e180302 # v2.2.0
+      - name: Azure Login
+        id: azure-login
+        uses: bitwarden/gh-actions/azure-login@main
         with:
-          creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Retrieve secrets
         id: retrieve-secrets
@@ -88,6 +100,9 @@ jobs:
         with:
           keyvault: ${{ env._KEY_VAULT }}
           secrets: "github-pat-bitwarden-devops-bot-repo-scope,github-bitwarden-devops-bot-email"
+
+      - name: Azure Logout
+        uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Checkout ${{ inputs.project }}
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -114,14 +129,17 @@ jobs:
     name: Sync Ephemeral Environment
     if: ${{ inputs.sync_environment }}
     runs-on: ubuntu-24.04
-    needs: 
+    needs:
       - check-run
       - create-branch
     steps:
-      - name: Login to Azure - Prod Subscription
-        uses: Azure/login@a65d910e8af852a8061c627c456678983e180302 # v2.2.0
+      - name: Azure Login
+        id: azure-login
+        uses: bitwarden/gh-actions/azure-login@main
         with:
-          creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Retrieve secrets
         id: retrieve-secrets
@@ -132,6 +150,9 @@ jobs:
               ephemeral-environment-argocd-cluster-url,
               ephemeral-environment-argocd-cluster-api-secret,
               ephemeral-environment-argocd-cluster-api-user
+
+      - name: Azure Logout
+        uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Install ArgoCD CLI
         run: |
@@ -147,21 +168,21 @@ jobs:
           argocd login ${{ steps.retrieve-secrets.outputs.ephemeral-environment-argocd-cluster-url }} \
             --username ${{ steps.retrieve-secrets.outputs.ephemeral-environment-argocd-cluster-api-user }} \
             --password ${{ steps.retrieve-secrets.outputs.ephemeral-environment-argocd-cluster-api-secret }}
-      
+
       - name: Sync Argo CD application
         env:
           ARGOCD_OPTS: --grpc-web
         run: |
           APP_NAME=$(argocd app list -o name | grep ${{ inputs.pull_request_number }})
-          
+
           # Check if there's a running sync operation
           APP_SYNC_STATUS=$(argocd app get "$APP_NAME" --refresh -o json | jq -r '.status.operationState.phase')
-          
+
           if [ "$APP_SYNC_STATUS" == "Running" ]; then
             echo "Found running sync operation, terminating to restart sync."
             argocd app terminate-op "$APP_NAME"
           fi
-          
+
           # Start new sync
           argocd app sync "$APP_NAME" \
             --retry-limit=3 \

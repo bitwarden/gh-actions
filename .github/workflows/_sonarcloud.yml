@@ -10,10 +10,10 @@ on:
         default: "default"
       sonar-test-inclusions:
         type: string
-        default: "/test"
+        default: ""
       sonar-exclusions:
         type: string
-        default: "/test"
+        default: ""
       sonar-java-version:
         type: number
         default: 17

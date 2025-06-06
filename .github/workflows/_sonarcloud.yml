@@ -59,8 +59,8 @@ jobs:
         if: inputs.sonar-config == 'maven' || inputs.sonar-config == 'dotnet'
         uses: actions/setup-java@7a6d8a8234af8eb26422e24e3006232cccaa061b # v4.6.0
         with:
-          java-version: ${{ inputs.sonar_java_version }}
-          distribution: ${{ inputs.sonar_java_distribution }}
+          java-version: ${{ inputs.sonar-java-version }}
+          distribution: ${{ inputs.sonar-java-distribution }}
 
       - name: Set up .NET
         if: inputs.sonar-config == 'dotnet'

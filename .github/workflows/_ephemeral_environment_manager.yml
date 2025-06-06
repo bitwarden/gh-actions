@@ -41,6 +41,8 @@ jobs:
   check-run:
     name: Check PR run
     uses: ./.github/workflows/check-run.yml
+    permissions:
+      contents: read
 
   create-branch:
     name: Create Branch

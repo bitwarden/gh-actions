@@ -3,12 +3,14 @@ name: Check PR run
 on:
   workflow_call:
 
-permissions: read-all
+permissions: {}
 
 jobs:
   check:
     name: Check
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
 
     steps:
       - name: Get user permission

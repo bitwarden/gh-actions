@@ -43,7 +43,7 @@ jobs:
           ref: ${{  github.event.pull_request.head.sha }}
 
       - name: Scan with SonarCloud
-        if: inputs.sonar-config == "default"
+        if: inputs.sonar-config == 'default'
         uses: sonarsource/sonarqube-scan-action@aa494459d7c39c106cc77b166de8b4250a32bb97 # v5.1.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -56,22 +56,22 @@ jobs:
             -Dsonar.exclusions=${{ inputs.sonar-exclusions }}
 
       - name: Set up Java
-        if: inputs.sonar-config == "maven" || inputs.sonar-config == "dotnet"
+        if: inputs.sonar-config == 'maven' || inputs.sonar-config == 'dotnet'
         uses: actions/setup-java@7a6d8a8234af8eb26422e24e3006232cccaa061b # v4.6.0
         with:
           java-version: ${{ inputs.sonar_java_version }}
           distribution: ${{ inputs.sonar_java_distribution }}
 
       - name: Set up .NET
-        if: inputs.sonar-config == "dotnet"
+        if: inputs.sonar-config == 'dotnet'
         uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
 
       - name: Install SonarCloud scanner
-        if: inputs.sonar-config == "dotnet"
+        if: inputs.sonar-config == 'dotnet'
         run: dotnet tool install dotnet-sonarscanner -g
 
       - name: Scan with SonarCloud
-        if: inputs.sonar-config == "dotnet"
+        if: inputs.sonar-config == 'dotnet'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
@@ -84,7 +84,7 @@ jobs:
           dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
       - name: Scan with SonarCloud
-        if: inputs.sonar-config == "maven"
+        if: inputs.sonar-config == 'maven'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: mvn clean install -Dgpg.skip=true sonar:sonar -Dsonar.test.inclusions=${{ inputs.sonar-test-inclusions }} -Dsonar.exclusions=${{ inputs.sonar-exclusions }}  ${{ contains(github.event_name, 'pull_request') && format('-Dsonar.pullrequest.key={0}', github.event.pull_request.number) || '' }}

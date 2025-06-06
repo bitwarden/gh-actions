@@ -14,12 +14,6 @@ on:
       sonar-exclusions:
         type: string
         default: ""
-      sonar-java-version:
-        type: number
-        default: 17
-      sonar-java-distribution:
-        type: string
-        default: temurin
     secrets:
       SONAR_TOKEN:
         required: true
@@ -59,8 +53,8 @@ jobs:
         if: inputs.sonar-config == 'maven' || inputs.sonar-config == 'dotnet'
         uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
         with:
-          java-version: ${{ inputs.sonar-java-version }}
-          distribution: ${{ inputs.sonar-java-distribution }}
+          java-version: 17
+          distribution: 'zulu'
 
       - name: Set up .NET
         if: inputs.sonar-config == 'dotnet'

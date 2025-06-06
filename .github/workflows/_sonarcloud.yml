@@ -25,7 +25,7 @@ on:
         required: true
 
 permissions: {}
-  
+
 jobs:
 
   quality:
@@ -87,4 +87,4 @@ jobs:
         if: inputs.sonar-config == 'maven'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: mvn clean install -Dgpg.skip=true sonar:sonar -Dsonar.test.inclusions=${{ inputs.sonar-test-inclusions }} -Dsonar.exclusions=${{ inputs.sonar-exclusions }}  ${{ contains(github.event_name, 'pull_request') && format('-Dsonar.pullrequest.key={0}', github.event.pull_request.number) || '' }}
+        run: mvn clean install -Dgpg.skip=true sonar:sonar -Dsonar.test.inclusions=${{ inputs.sonar-test-inclusions }} -Dsonar.exclusions=${{ inputs.sonar-exclusions }} ${{ contains(github.event_name, 'pull_request') && format('-Dsonar.pullrequest.key={0}', github.event.pull_request.number) || '' }}

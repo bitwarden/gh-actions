@@ -229,7 +229,7 @@ jobs:
               echo "Version $LATEST_DRAFT_VERSION_NUMBER is already released on store"
               echo "version_released=true" >> $GITHUB_OUTPUT
             else
-              echo "Version $LATEST_DRAFT_VERSION_NUMBER is not released on store. Latest version in the store is $STORE_VERSION_NAME ($STORE_VERSION_NUMBER)"
+              echo "Version $LATEST_DRAFT_VERSION_NUMBER is not released on store. Latest version in the store is $STORE_VERSION_NUMBER, with version name: $STORE_VERSION_NAME"
               echo "version_released=false" >> $GITHUB_OUTPUT
             fi
           fi

@@ -24,6 +24,7 @@ jobs:
       contents: read
 
   sast:
+    name: Checkmarx
     uses: bitwarden/gh-actions/.github/workflows/_checkmarx.yml@main
     needs: check-run
     secrets:
@@ -36,6 +37,7 @@ jobs:
       security-events: write
 
   quality:
+    name: SonarCloud
     uses: bitwarden/gh-actions/.github/workflows/_sonarcloud.yml@main
     needs: check-run
     secrets:

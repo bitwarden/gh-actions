@@ -37,8 +37,8 @@ jobs:
       security-events: write
 
   quality:
-    name: SonarCloud
-    uses: bitwarden/gh-actions/.github/workflows/_sonarcloud.yml@main
+    name: Sonar
+    uses: bitwarden/gh-actions/.github/workflows/_sonar.yml@main
     needs: check-run
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

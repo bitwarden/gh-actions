@@ -34,6 +34,9 @@ env:
   _KEY_VAULT: bitwarden-ci
   _BOT_NAME: bitwarden-devops-bot
 
+permissions:
+  contents: read
+
 jobs:
   check-run:
     name: Check PR run

@@ -149,6 +149,8 @@ jobs:
   test-report-start-backwards-compatibility:
     name: Test Slack report (Backwards Compatibility)
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -204,6 +206,8 @@ jobs:
   test-report-db-migration-backwards-compatibility:
     name: Test Slack report with different DB migration scenerios (Backwards Compatibility)
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2

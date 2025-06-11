@@ -1,0 +1,10 @@
+name: "Azure Login"
+description: "A composite action to logout of Azure"
+runs:
+  using: "composite"
+  steps:
+    # This allows for updating logout functionality in a centralized area than all workflows
+    - name: Login to Azure using OIDC
+      shell: bash
+      run:
+        az logout || true

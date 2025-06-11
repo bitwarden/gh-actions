@@ -33,13 +33,17 @@ jobs:
             fi
 
             count=$(( 0 ))
+            files_to_lint=""
             for file in $changed_files; do
               if [[ "$file" == ".github/workflows/"* ]]; then
                 count=$(( $count + 1 ))
-              fi 
+                files_to_lint="$files_to_lint $file"
+              fi
             done
 
             echo "Workflow files changed: $count"
+            echo "Files to lint: $files_to_lint"
+            echo "changed_files=$files_to_lint" >> $GITHUB_OUTPUT
             echo "changed_files_count=$count" >> $GITHUB_OUTPUT
 
       - name: Download actionlint configuration
@@ -62,5 +66,9 @@ jobs:
         run: python -m pip install --upgrade bitwarden_workflow_linter
 
       - name: Lint
+        env:
+          files: ${{ steps.changed-workflows.outputs.changed_files }}
         if: steps.changed-workflows.outputs.changed_files_count != '0'
-        run: bwwl lint -f .github/workflows
+        run: |
+          echo $files
+          bwwl lint -f $files

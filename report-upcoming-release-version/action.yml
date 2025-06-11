@@ -46,14 +46,15 @@ runs:
       uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0
       with:
         creds: ${{ inputs.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+
     - name: Azure Login
       id: azure-login
       if: ${{ inputs.AZURE_CLIENT_ID != '' }}
       uses: bitwarden/gh-actions/azure-login@main
       with:
-        subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        tenant_id: ${{ secrets.AZURE_TENANT_ID }}
-        client_id: ${{ secrets.AZURE_CLIENT_ID }}
+        subscription_id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
+        tenant_id: ${{ inputs.AZURE_TENANT_ID }}
+        client_id: ${{ inputs.AZURE_CLIENT_ID }}
 
     - name: Retrieve Slack secrets
       id: retrieve-slack-secrets

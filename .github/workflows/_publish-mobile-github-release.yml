@@ -128,7 +128,7 @@ jobs:
 
             echo "Previous run processed: $previous_release_tag (changed from: $previous_initial_state to: $previous_changed_to)"
           else
-            echo "::error:: No valid release-info.json found in previous artifact"
+            echo "::warning::No valid release-info.json found in previous artifact"
             echo "has_previous_state=false" >> $GITHUB_OUTPUT
           fi
 

@@ -217,7 +217,7 @@ jobs:
           STORE_VERSION_NUMBER: ${{ steps.get_store_versions.outputs.store_version_number }}
         run: |
           if [ "${{ inputs.project_type }}" == "ios" ]; then
-            if [ "$LATEST_DRAFT_VERSION_NAME" == "$STORE_VERSION_NUMBER" ] && [ "$LATEST_DRAFT_VERSION_NUMBER" == "$STORE_VERSION_NUMBER" ]; then
+            if [ "$LATEST_DRAFT_VERSION_NAME" == "$STORE_VERSION_NAME" ] && [ "$LATEST_DRAFT_VERSION_NUMBER" == "$STORE_VERSION_NUMBER" ]; then
               echo "iOS: Version name $LATEST_DRAFT_VERSION_NAME and version number $LATEST_DRAFT_VERSION_NUMBER is already released on store"
               echo "version_released=true" >> $GITHUB_OUTPUT
             else

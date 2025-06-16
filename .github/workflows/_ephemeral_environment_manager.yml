@@ -34,9 +34,6 @@ env:
   _KEY_VAULT: bitwarden-ci
   _BOT_NAME: bitwarden-devops-bot
 
-permissions:
-  contents: read
-
 jobs:
   check-run:
     name: Check PR run
@@ -48,6 +45,9 @@ jobs:
     name: Create Branch
     runs-on: ubuntu-24.04
     needs: check-run
+    permissions:
+      contents: write
+      id-token: write
     steps:
       - name: Azure Login
         id: azure-login
@@ -137,6 +137,9 @@ jobs:
     needs:
       - check-run
       - create-branch
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Azure Login
         id: azure-login

@@ -25,7 +25,6 @@ on:
       project_type:
         description: 'Type of the project (e.g. "android" or "ios")'
         type: string
-        default: "android"
         required: true
 
 

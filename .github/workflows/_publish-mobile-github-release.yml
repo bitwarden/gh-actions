@@ -127,7 +127,7 @@ jobs:
 
             echo "Previous run processed: $previous_release_tag (changed from: $previous_initial_state to: $previous_changed_to)"
           else
-            echo "::error:: No valid release-info.json found in previous artifact"
+            echo "::warning::No valid release-info.json found in previous artifact"
             echo "has_previous_state=false" >> $GITHUB_OUTPUT
           fi
 
@@ -216,7 +216,7 @@ jobs:
           STORE_VERSION_NUMBER: ${{ steps.get_store_versions.outputs.store_version_number }}
         run: |
           if [ "${{ inputs.project_type }}" == "ios" ]; then
-            if [ "$LATEST_DRAFT_VERSION_NAME" == "$STORE_VERSION_NUMBER" ] && [ "$LATEST_DRAFT_VERSION_NUMBER" == "$STORE_VERSION_NUMBER" ]; then
+            if [ "$LATEST_DRAFT_VERSION_NAME" == "$STORE_VERSION_NAME" ] && [ "$LATEST_DRAFT_VERSION_NUMBER" == "$STORE_VERSION_NUMBER" ]; then
               echo "iOS: Version name $LATEST_DRAFT_VERSION_NAME and version number $LATEST_DRAFT_VERSION_NUMBER is already released on store"
               echo "version_released=true" >> $GITHUB_OUTPUT
             else

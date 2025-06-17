@@ -8,6 +8,10 @@ on:
       - Upload Test Artifacts
     types:
       - completed
+  pull_request:
+    paths:
+      - "download-artifacts/**"
+      - ".github/workflows/test-download-artifacts.yml"
 
 permissions:
   contents: read

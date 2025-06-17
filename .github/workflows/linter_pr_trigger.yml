@@ -5,6 +5,9 @@ on:
     paths:
       - .github/workflows/workflow-linter.yml
 
+permissions:
+  contents: read
+
 jobs:
   linter:
     name: Lint

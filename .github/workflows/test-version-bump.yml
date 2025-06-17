@@ -14,6 +14,9 @@ on:
 permissions:
   contents: read
 
+env:
+  version_number: ${{ github.event.inputs.version_number || '2123.4.5' }}
+
 jobs:
   test-version-bumps:
     name: Test Version Bump
@@ -26,35 +29,35 @@ jobs:
         id: test_json
         uses: ./version-bump
         with:
-          version: ${{ inputs.version_number }}
+          version: ${{ env.version_number }}
           file_path: "./version-bump/tests/fixtures/package-lock.json"
 
       - name: Bump PLIST Test
         id: test_plist
         uses: ./version-bump
         with:
-          version: ${{ inputs.version_number }}
+          version: ${{ env.version_number }}
           file_path: "./version-bump/tests/fixtures/Info.plist"
 
       - name: Bump XML Test
         id: test_xml
         uses: ./version-bump
         with:
-          version: ${{ inputs.version_number }}
+          version: ${{ env.version_number }}
           file_path: "./version-bump/tests/fixtures/AndroidManifest.xml"
 
       - name: Bump Props Test
         id: test_props
         uses: ./version-bump
         with:
-          version: ${{ inputs.version_number }}
+          version: ${{ env.version_number }}
           file_path: "./version-bump/tests/fixtures/dir.build.props"
 
       - name: Bump CSProj Test
         id: test_csproj
         uses: ./version-bump
         with:
-          version: ${{ inputs.version_number }}
+          version: ${{ env.version_number }}
           file_path: "./version-bump/tests/fixtures/test.csproj"
 
       - name: Validate Outputs

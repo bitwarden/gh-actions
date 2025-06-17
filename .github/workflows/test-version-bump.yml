@@ -6,6 +6,13 @@ on:
       version_number:
         description: "New Version"
         required: true
+  pull_request:
+    paths:
+      - "version-bump/**"
+      - ".github/workflows/test-version-bump.yml"
+
+permissions:
+  contents: read
 
 jobs:
   test-version-bumps:

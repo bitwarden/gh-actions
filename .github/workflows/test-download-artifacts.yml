@@ -61,6 +61,7 @@ jobs:
   download-branch:
     name: Download current branch
     runs-on: ubuntu-22.04
+    if: github.event_name != 'pull_request'
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2

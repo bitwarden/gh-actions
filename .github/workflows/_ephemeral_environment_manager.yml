@@ -49,7 +49,7 @@ jobs:
       contents: write
       id-token: write
     steps:
-      - name: Azure Login
+      - name: Log in to Azure
         id: azure-login
         uses: bitwarden/gh-actions/azure-login@main
         with:
@@ -64,7 +64,7 @@ jobs:
           keyvault: ${{ env._KEY_VAULT }}
           secrets: "github-pat-bitwarden-devops-bot-repo-scope,github-bitwarden-devops-bot-email"
 
-      - name: Azure Logout
+      - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Checkout Ephemeral Environment Charts
@@ -91,7 +91,7 @@ jobs:
       contents: write
       id-token: write
     steps:
-      - name: Azure Login
+      - name: Log in to Azure
         id: azure-login
         uses: bitwarden/gh-actions/azure-login@main
         with:
@@ -106,7 +106,7 @@ jobs:
           keyvault: ${{ env._KEY_VAULT }}
           secrets: "github-pat-bitwarden-devops-bot-repo-scope,github-bitwarden-devops-bot-email"
 
-      - name: Azure Logout
+      - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Checkout ${{ inputs.project }}
@@ -141,7 +141,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - name: Azure Login
+      - name: Log in to Azure
         id: azure-login
         uses: bitwarden/gh-actions/azure-login@main
         with:
@@ -159,7 +159,7 @@ jobs:
               ephemeral-environment-argocd-cluster-api-secret,
               ephemeral-environment-argocd-cluster-api-user
 
-      - name: Azure Logout
+      - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Install ArgoCD CLI

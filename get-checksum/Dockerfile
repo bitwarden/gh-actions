@@ -1,4 +1,4 @@
-FROM python:3-slim
+FROM gcr.io/distroless/python3-debian12:nonroot
 
 ADD . /app
 

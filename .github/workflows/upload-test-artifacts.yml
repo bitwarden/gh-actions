@@ -3,9 +3,13 @@ name: Upload Test Artifacts
 on:
   workflow_dispatch:
     inputs: {}
-  push:
+  pull_request:
     paths:
       - "download-artifacts/**"
+      - ".github/workflows/upload-test-artifacts.yml"
+
+permissions:
+  contents: read
 
 jobs:
   upload:

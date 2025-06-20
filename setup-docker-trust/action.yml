@@ -2,8 +2,21 @@ name: "Setup Docker Trust"
 description: "Configures Docker Trust"
 inputs:
   azure-creds:
-    description: 'Credentials for the Azure Subscription that contains the docker trust secrets'
-    required: true
+    description: 'Credentials for the Azure Subscription that contains the docker trust secrets.  (Deprecated, use AZURE ID inputs instead)'
+    required: false
+    default: ""
+  azure-subscription-id:
+    description: 'The Azure Subscription ID that contains the Key Vault with the specified secrets'
+    required: false
+    default: ""
+  azure-tenant-id:
+    description: 'The Azure Tenant ID that contains the Key Vault with the specified secrets'
+    required: false
+    default: ""
+  azure-client-id:
+    description: 'The Azure Client ID that contains the Key Vault with the specified secrets'
+    required: false
+    default: ""
   azure-keyvault-name:
     description: 'The name of the Key Vault with the specified secrets'
 outputs:
@@ -21,10 +34,20 @@ runs:
           exit 1
         fi
 
-    - name: Login to Azure
+    - name: Login to Azure - Prod Subscription
+      if: ${{ inputs.azure-creds != '' }}
       uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0
       with:
         creds: ${{ inputs.azure-creds }}
+
+    - name: Azure Login
+      id: azure-login
+      if: ${{ inputs.azure-client-id != '' }}
+      uses: bitwarden/gh-actions/azure-login@main
+      with:
+        subscription_id: ${{ secrets.azure-subscription-id }}
+        tenant_id: ${{ secrets.azure-tenant-id }}
+        client_id: ${{ secrets.azure-client-id }}
 
     - name: Retrieve secrets
       id: get-secrets
@@ -35,6 +58,10 @@ runs:
           docker-username,
           dct-delegate-repo-passphrase,
           dct-delegate-key"
+
+    - name: Azure Logout
+      if: ${{ inputs.azure-client-id != '' }}
+      uses: bitwarden/gh-actions/azure-logout@main
 
     - name: Log into Docker
       shell: bash

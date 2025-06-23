@@ -1,13 +1,10 @@
-FROM gcr.io/distroless/python3-debian12:nonroot
+FROM python:3-slim
 
-ADD . /app
+RUN pip3 install lxml pyyaml --target=/app
 
+ADD ./main.py /app
 WORKDIR /app
+ENV PYTHONPATH=/app
 
-RUN pip3 install lxml --target=/app
-RUN pip3 install pyyaml --target=/app
-
-ENV PYTHONPATH /app
-
+ENTRYPOINT ["python", "-u"]
 CMD ["/app/main.py"]
-ENTRYPOINT [ "python", "-u" ]

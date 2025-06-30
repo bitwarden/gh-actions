@@ -48,7 +48,6 @@ runs:
         creds: ${{ inputs.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
     - name: Azure Login
-      id: azure-login
       if: ${{ inputs.AZURE_CLIENT_ID != '' }}
       uses: bitwarden/gh-actions/azure-login@main
       with:

@@ -11,8 +11,21 @@ inputs:
     description: "The name of the Slack channel."
     default: release
   AZURE_KV_CI_SERVICE_PRINCIPAL:
-    description: "The service principal used to authenticate to Azure."
-    required: true
+    description: "The service principal used to authenticate to Azure. (Deprecated, use AZURE ID inputs instead)"
+    required: false
+    default: ""
+  AZURE_SUBSCRIPTION_ID:
+    description: "Azure Subscription ID for the service principal."
+    required: false
+    default: ""
+  AZURE_TENANT_ID:
+    description: "Azure Tenant ID for the service principal."
+    required: false
+    default: ""
+  AZURE_CLIENT_ID:
+    description: "Azure Client ID for the service principal."
+    required: false
+    default: ""
 outputs:
   channel_id:
     description: "Channel ID where the Slack message was posted."
@@ -21,10 +34,26 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Login to Azure
+    - name: Missing inputs check
+      if: ${{ inputs.AZURE_KV_CI_SERVICE_PRINCIPAL == '' && inputs.AZURE_CLIENT_ID == '' }}
+      shell: bash
+      run: |
+        echo "Error: Either AZURE_KV_CI_SERVICE_PRINCIPAL or AZURE_CLIENT_ID input must be provided."
+        exit 1
+
+    - name: Login to Azure - Prod Subscription
+      if: ${{ inputs.AZURE_KV_CI_SERVICE_PRINCIPAL != '' }}
       uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0
       with:
         creds: ${{ inputs.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+
+    - name: Azure Login
+      if: ${{ inputs.AZURE_CLIENT_ID != '' }}
+      uses: bitwarden/gh-actions/azure-login@main
+      with:
+        subscription_id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
+        tenant_id: ${{ inputs.AZURE_TENANT_ID }}
+        client_id: ${{ inputs.AZURE_CLIENT_ID }}
 
     - name: Retrieve Slack secrets
       id: retrieve-slack-secrets
@@ -32,6 +61,9 @@ runs:
       with:
         keyvault: bitwarden-ci
         secrets: "slack-bot-token"
+
+    - name: Azure Logout
+      uses: bitwarden/gh-actions/azure-logout@main
 
     - name: Slack message setup
       id: setup

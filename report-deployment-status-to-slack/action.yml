@@ -137,5 +137,5 @@ runs:
         token: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}
         payload: |
           channel: ${{ inputs.slack-channel }}
-          text: ${{ steps.setup.outputs.slack_message }}
+          text: "${{ steps.setup.outputs.slack_message }}"
           ts: ${{ inputs.update-ts }}

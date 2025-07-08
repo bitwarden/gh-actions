@@ -133,7 +133,7 @@ runs:
       id: slack-message
       uses: slackapi/slack-github-action@b0fa283ad8fea605de13dc3f449259339835fc52 # v2.1.0
       with:
-        method: ${{ inputs.event == 'start' && 'chat.postMessage' || 'chat.update' }}
+        method: ${{ inputs.update-ts == null && 'chat.postMessage' || 'chat.update' }}
         token: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}
         payload: |
           channel: ${{ inputs.slack-channel }}

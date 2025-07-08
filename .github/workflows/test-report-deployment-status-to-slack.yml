@@ -30,7 +30,6 @@ jobs:
           AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
       - name: Success
-        id: event-success
         uses: ./report-deployment-status-to-slack
         with:
           project: $TEST_REPORT_PROJECT

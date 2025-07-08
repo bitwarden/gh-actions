@@ -1,10 +1,13 @@
-FROM python:3-slim
+FROM python:3-slim AS builder
 
-RUN pip3 install lxml pyyaml --target=/app
-
-ADD ./main.py /app
 WORKDIR /app
+RUN pip3 install --no-cache-dir pyyaml --target=.
+ADD ./main.py .
+
+FROM gcr.io/distroless/python3-debian12:nonroot
+
+WORKDIR /app
+COPY --from=builder /app /app
 ENV PYTHONPATH=/app
 
-ENTRYPOINT ["python", "-u"]
-CMD ["/app/main.py"]
+ENTRYPOINT ["/usr/bin/python3", "-u", "/app/main.py"]

@@ -85,33 +85,33 @@ runs:
 
           case $event in
             start)
-              SLACK_MESSAGE=":loading: Deploying $tag_link to $environment on $project.
-              $url
+              SLACK_MESSAGE=":loading: Deploying $tag_link to $environment on $project.\n
+              $url\n
               SHA: $commit_link"
               ;;
 
             success)
-              SLACK_MESSAGE=":white_check_mark: Deployed $tag_link to $environment on $project.
-              $url
+              SLACK_MESSAGE=":white_check_mark: Deployed $tag_link to $environment on $project.\n
+              $url\n
               SHA: $commit_link"
               ;;
 
             failure)
-              SLACK_MESSAGE=":x: Failed to deploy $tag_link to $environment on $project.
-              $url
-              SHA: $commit_link
+              SLACK_MESSAGE=":x: Failed to deploy $tag_link to $environment on $project.\n
+              $url\n
+              SHA: $commit_link\n
               Please retry. If the issue persists, share this message in the #team-eng-bre channel for support."
               ;;
 
             cancelled)
-              SLACK_MESSAGE=":hand: Cancelled deploy of $tag_link to $environment on $project.
-              $url
+              SLACK_MESSAGE=":hand: Cancelled deploy of $tag_link to $environment on $project.\n
+              $url\n
               SHA: $commit_link"
               ;;
 
             no-changes)
-              SLACK_MESSAGE=":heavy_minus_sign: No changes were made for $tag_link deployment to $environment on $project.
-              $url
+              SLACK_MESSAGE=":heavy_minus_sign: No changes were made for $tag_link deployment to $environment on $project.\n
+              $url\n
               SHA: $commit_link"
               ;;
           esac
@@ -119,7 +119,7 @@ runs:
 
         if [[ ${{ inputs.db_migration_detected }} == true && ${{ inputs.tag }} != main && ${{ inputs.tag }} != rc && ${{ inputs.tag }} != hotfix-rc ]]; then
           slack_message_fn
-          SLACK_MESSAGE="$SLACK_MESSAGE
+          SLACK_MESSAGE="$SLACK_MESSAGE\n
           :red_siren: This branch has new database migration changes."
         else
           slack_message_fn

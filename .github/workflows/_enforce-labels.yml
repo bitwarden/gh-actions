@@ -3,6 +3,10 @@ name: Enforce PR labels
 on:
   workflow_call:
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
   enforce-label:
     if: ${{ contains(github.event.*.labels.*.name, 'hold') }}

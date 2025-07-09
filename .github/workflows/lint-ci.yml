@@ -7,6 +7,9 @@ on:
       - "lint-workflow-v2/**"
   workflow_dispatch: {}
 
+permissions:
+  contents: read
+
 jobs:
   ci-lint:
     name: CI workflow-linter (v1)

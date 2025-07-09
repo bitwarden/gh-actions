@@ -35,6 +35,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+      id-token: write
       actions: read
 
     steps:
@@ -160,12 +161,6 @@ jobs:
 
           echo "should_skip=$should_skip" >> $GITHUB_OUTPUT
 
-      - name: Log in to Azure
-        if: steps.check_already_processed.outputs.should_skip == 'false'
-        uses: Azure/login@cb79c773a3cfa27f31f25eb3f677781210c9ce3d # v1.6.1
-        with:
-          creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
-
       - name: Configure Ruby
         if: steps.check_already_processed.outputs.should_skip == 'false'
         uses: ruby/setup-ruby@ca041f971d66735f3e5ff1e21cc13e2d51e7e535 # v1.233.0
@@ -176,6 +171,14 @@ jobs:
         if: steps.check_already_processed.outputs.should_skip == 'false'
         run: |
           gem install bundler:2.2.27
+
+      - name: Log in to Azure
+        if: steps.check_already_processed.outputs.should_skip == 'false'
+        uses: bitwarden/gh-actions/azure-login@main
+        with:
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Download Store credentials
         if: steps.check_already_processed.outputs.should_skip == 'false'
@@ -188,6 +191,9 @@ jobs:
 
           az storage blob download --account-name $ACCOUNT_NAME --container-name $CONTAINER_NAME \
             --name $CREDENTIALS_FILE_NAME --file ${{ github.workspace }}/secrets/$CREDENTIALS_FILE_NAME --output none
+
+      - name: Log out from Azure
+        uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Get store versions
         if: steps.check_already_processed.outputs.should_skip == 'false' && inputs.check_release_command != ''

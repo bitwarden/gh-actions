@@ -28,9 +28,9 @@ jobs:
     uses: bitwarden/gh-actions/.github/workflows/_checkmarx.yml@main
     needs: check-run
     secrets:
-      CHECKMARX_TENANT: ${{ secrets.CHECKMARX_TENANT }}
-      CHECKMARX_CLIENT_ID: ${{ secrets.CHECKMARX_CLIENT_ID }}
-      CHECKMARX_SECRET: ${{ secrets.CHECKMARX_SECRET }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
     permissions:
       contents: read
       pull-requests: write
@@ -41,8 +41,9 @@ jobs:
     uses: bitwarden/gh-actions/.github/workflows/_sonar.yml@main
     needs: check-run
     secrets:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
     permissions:
       contents: read
       pull-requests: write
-

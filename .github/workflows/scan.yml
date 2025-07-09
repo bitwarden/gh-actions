@@ -35,6 +35,7 @@ jobs:
       contents: read
       pull-requests: write
       security-events: write
+      id-token: write
 
   quality:
     name: Sonar
@@ -47,3 +48,4 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+      id-token: write

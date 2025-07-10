@@ -117,33 +117,33 @@ runs:
 
           case $event in
             start)
-              SLACK_MESSAGE=":loading: Deploying $tag_link to $environment on $project.
-              $url
+              SLACK_MESSAGE=":loading: Deploying $tag_link to $environment on $project.\n
+              $url\n
               SHA: $commit_link"
               ;;
 
             success)
-              SLACK_MESSAGE=":white_check_mark: Deployed $tag_link to $environment on $project.
-              $url
+              SLACK_MESSAGE=":white_check_mark: Deployed $tag_link to $environment on $project.\n
+              $url\n
               SHA: $commit_link"
               ;;
 
             failure)
-              SLACK_MESSAGE=":x: Failed to deploy $tag_link to $environment on $project.
-              $url
-              SHA: $commit_link
+              SLACK_MESSAGE=":x: Failed to deploy $tag_link to $environment on $project.\n
+              $url\n
+              SHA: $commit_link\n
               Please retry. If the issue persists, share this message in the #team-eng-bre channel for support."
               ;;
 
             cancelled)
-              SLACK_MESSAGE=":hand: Cancelled deploy of $tag_link to $environment on $project.
-              $url
+              SLACK_MESSAGE=":hand: Cancelled deploy of $tag_link to $environment on $project.\n
+              $url\n
               SHA: $commit_link"
               ;;
 
             no-changes)
-              SLACK_MESSAGE=":heavy_minus_sign: No changes were made for $tag_link deployment to $environment on $project.
-              $url
+              SLACK_MESSAGE=":heavy_minus_sign: No changes were made for $tag_link deployment to $environment on $project.\n
+              $url\n
               SHA: $commit_link"
               ;;
           esac
@@ -151,7 +151,7 @@ runs:
 
         if [[ ${{ inputs.db_migration_detected }} == true && ${{ inputs.tag }} != main && ${{ inputs.tag }} != rc && ${{ inputs.tag }} != hotfix-rc ]]; then
           slack_message_fn
-          SLACK_MESSAGE="$SLACK_MESSAGE
+          SLACK_MESSAGE="$SLACK_MESSAGE\n
           :red_siren: This branch has new database migration changes."
         else
           slack_message_fn
@@ -163,10 +163,11 @@ runs:
 
     - name: Post/Edit message to a Slack channel
       id: slack-message
-      uses: slackapi/slack-github-action@fcfb566f8b0aab22203f066d80ca1d7e4b5d05b3 # v1.27.1
+      uses: slackapi/slack-github-action@b0fa283ad8fea605de13dc3f449259339835fc52 # v2.1.0
       with:
-        channel-id: ${{ inputs.slack-channel }}
-        slack-message: ${{ steps.setup.outputs.slack_message }}
-        update-ts: ${{ inputs.update-ts }}
-      env:
-        SLACK_BOT_TOKEN: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}
+        method: ${{ inputs.update-ts == null && 'chat.postMessage' || 'chat.update' }}
+        token: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}
+        payload: |
+          channel: ${{ inputs.slack-channel }}
+          text: "${{ steps.setup.outputs.slack_message }}"
+          ts: ${{ inputs.update-ts }}

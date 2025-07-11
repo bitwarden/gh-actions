@@ -2,7 +2,7 @@ import os
 import json
 import plistlib
 import re
-import lxml.etree as ET
+import xml.etree.ElementTree as ET
 import yaml
 
 
@@ -58,7 +58,7 @@ def update_xml(version, file_path):
             f.write(data_new)
 
     # Microsoft .NET project files
-    elif myroot.attrib.has_key("Sdk") and "Microsoft.NET.Sdk" in myroot.attrib["Sdk"]:
+    elif "Sdk" in myroot.attrib and "Microsoft.NET.Sdk" in myroot.attrib["Sdk"]:
         version_property = [x for x in myroot[0] if x.tag == "Version"][-1]
         version_property.text = version
         mytree.write(file_path)

@@ -44,9 +44,9 @@ runs:
       if: ${{ inputs.azure-client-id != '' }}
       uses: bitwarden/gh-actions/azure-login@main
       with:
-        subscription_id: ${{ secrets.azure-subscription-id }}
-        tenant_id: ${{ secrets.azure-tenant-id }}
-        client_id: ${{ secrets.azure-client-id }}
+        subscription_id: ${{ inputs.azure-subscription-id }}
+        tenant_id: ${{ inputs.azure-tenant-id }}
+        client_id: ${{ inputs.azure-client-id }}
 
     - name: Retrieve secrets
       id: get-secrets

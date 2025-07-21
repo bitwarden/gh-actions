@@ -23,7 +23,7 @@ inputs:
     required: false
     default: ""
   override-version:
-    description: "Override the current version (for testing purposes)" 
+    description: "Override the current version (for testing purposes)"
     required: false
     default: ""
 outputs:
@@ -99,7 +99,7 @@ runs:
       id: current-version
       run: |
         if [ "${{ inputs.override-version }}" == "" ]; then
-          # Pull the latest 
+          # Pull the latest
           case "${{ inputs.monorepo }}" in
             "true")
               previous_release_tag_version=$(

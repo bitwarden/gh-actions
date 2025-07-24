@@ -1,0 +1,28 @@
+name: Test Checkmarx
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - ".github/workflows/test-checkmarx.yml"
+      - ".github/workflows/_checkmarx.yml"
+  push:
+    branches:
+      - "main"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  sast:
+    name: Checkmarx
+    uses: ./.github/workflows/_checkmarx.yml
+    secrets:
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+    permissions:
+      contents: read
+      pull-requests: write
+      security-events: write
+      id-token: write

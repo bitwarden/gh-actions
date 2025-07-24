@@ -64,8 +64,8 @@ jobs:
             -Dsonar.organization=${{ github.repository_owner }}
             -Dsonar.projectKey=${{ github.repository_owner }}_${{ github.event.repository.name }}
             -Dsonar.pullrequest.key=${{ github.event.pull_request.number }} 
-            -Dsonar.test.inclusions=${{ inputs.sonar-test-inclusions }}
-            -Dsonar.exclusions=${{ inputs.sonar-exclusions }}
+            ${{ inputs.sonar-test-inclusions != '' && format('-Dsonar.test.inclusions={0}', inputs.sonar-test-inclusions) || '' }}
+            ${{ inputs.sonar-exclusions != '' && format('-Dsonar.exclusions={0}', inputs.sonar-exclusions) || '' }}
 
       - name: Set up Java
         if: inputs.sonar-config == 'maven' || inputs.sonar-config == 'dotnet'
@@ -88,10 +88,12 @@ jobs:
           SONAR_TOKEN: ${{ steps.get-kv-secrets.outputs.SONAR-TOKEN }}
         run: |
           dotnet-sonarscanner begin /k:"${{ github.repository_owner }}_${{ github.event.repository.name }}" \
-          /d:sonar.test.inclusions=${{ inputs.sonar-test-inclusions }} \
-          /d:sonar.exclusions=${{ inputs.sonar-exclusions }} \
-          /o:"${{ github.repository_owner }}" /d:sonar.token="${{ steps.get-kv-secrets.outputs.SONAR-TOKEN }}" \
-          /d:sonar.host.url="https://sonarcloud.io" ${{ contains(github.event_name, 'pull_request') && format('/d:sonar.pullrequest.key={0}', github.event.pull_request.number) || '' }}
+          /o:"${{ github.repository_owner }}" \
+          /d:sonar.token="${{ steps.get-kv-secrets.outputs.SONAR-TOKEN }}" \
+          /d:sonar.host.url="https://sonarcloud.io" \
+          ${{ contains(github.event_name, 'pull_request') && format('/d:sonar.pullrequest.key={0}', github.event.pull_request.number) || '' }} \
+          ${{ inputs.sonar-test-inclusions != '' && format('/d:sonar.test.inclusions={0}', inputs.sonar-test-inclusions) || '' }} \
+          ${{ inputs.sonar-exclusions != '' && format('/d:sonar.exclusions={0}', inputs.sonar-exclusions) || '' }}
           dotnet build
           dotnet-sonarscanner end /d:sonar.token="${{ steps.get-kv-secrets.outputs.SONAR-TOKEN }}"
 
@@ -99,4 +101,8 @@ jobs:
         if: inputs.sonar-config == 'maven'
         env:
           SONAR_TOKEN: ${{ steps.get-kv-secrets.outputs.SONAR-TOKEN }}
-        run: mvn clean install -Dgpg.skip=true sonar:sonar -Dsonar.test.inclusions=${{ inputs.sonar-test-inclusions }} -Dsonar.exclusions=${{ inputs.sonar-exclusions }} ${{ contains(github.event_name, 'pull_request') && format('-Dsonar.pullrequest.key={0}', github.event.pull_request.number) || '' }}
+        run: >
+          mvn clean install -Dgpg.skip=true sonar:sonar 
+          ${{ inputs.sonar-test-inclusions != '' && format('-Dsonar.test.inclusions={0}', inputs.sonar-test-inclusions) || '' }} 
+          ${{ inputs.sonar-exclusions != '' && format('-Dsonar.exclusions={0}', inputs.sonar-exclusions) || '' }} 
+          ${{ contains(github.event_name, 'pull_request') && format('-Dsonar.pullrequest.key={0}', github.event.pull_request.number) || '' }}

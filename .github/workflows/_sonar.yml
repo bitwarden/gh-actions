@@ -63,7 +63,7 @@ jobs:
           args: >
             -Dsonar.organization=${{ github.repository_owner }}
             -Dsonar.projectKey=${{ github.repository_owner }}_${{ github.event.repository.name }}
-            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }} 
+            ${{ contains(github.event_name, 'pull_request') && format('-Dsonar.pullrequest.key={0}', github.event.pull_request.number) || '' }}
             ${{ inputs.sonar-test-inclusions != '' && format('-Dsonar.test.inclusions={0}', inputs.sonar-test-inclusions) || '' }}
             ${{ inputs.sonar-exclusions != '' && format('-Dsonar.exclusions={0}', inputs.sonar-exclusions) || '' }}
 
@@ -103,6 +103,6 @@ jobs:
           SONAR_TOKEN: ${{ steps.get-kv-secrets.outputs.SONAR-TOKEN }}
         run: >
           mvn clean install -Dgpg.skip=true sonar:sonar 
-          ${{ inputs.sonar-test-inclusions != '' && format('-Dsonar.test.inclusions={0}', inputs.sonar-test-inclusions) || '' }} 
-          ${{ inputs.sonar-exclusions != '' && format('-Dsonar.exclusions={0}', inputs.sonar-exclusions) || '' }} 
           ${{ contains(github.event_name, 'pull_request') && format('-Dsonar.pullrequest.key={0}', github.event.pull_request.number) || '' }}
+          ${{ inputs.sonar-test-inclusions != '' && format('-Dsonar.test.inclusions={0}', inputs.sonar-test-inclusions) || '' }} 
+          ${{ inputs.sonar-exclusions != '' && format('-Dsonar.exclusions={0}', inputs.sonar-exclusions) || '' }}

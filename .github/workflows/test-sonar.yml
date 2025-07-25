@@ -10,6 +10,15 @@ on:
     branches:
       - "main"
   workflow_dispatch:
+    inputs:
+      sonar-config:
+        description: "Configuration for Sonar"
+        type: string
+        default: "default"
+      sonar-test-inclusions:
+        type: string
+      sonar-exclusions:
+        type: string
 
 permissions: {}
 
@@ -25,3 +34,7 @@ jobs:
       contents: read
       pull-requests: write
       id-token: write
+    with:
+      sonar-config: ${{ github.event.inputs.sonar-config }}
+      sonar-test-inclusions: ${{ github.event.inputs.sonar-test-inclusions }}
+      sonar-exclusions: ${{ github.event.inputs.sonar-exclusions }}

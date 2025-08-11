@@ -165,6 +165,32 @@ For containerized actions (e.g., `version-bump`, `get-checksum`):
 - Test fixtures in `tests/fixtures/` subdirectories
 - Tests validate action outputs and side effects
 
+## Security Best Practices
+
+All code changes and action development must follow security best practices relevant to GitHub Actions and Bitwarden's standards:
+
+**GitHub Actions Security:**
+- **No hard-coded secrets or credentials** - Use secure parameter passing
+- **Validate all action inputs** - Sanitize and validate user-provided inputs to prevent injection attacks
+- **Use pinned action versions** - All external actions must be pinned to specific commit hashes (enforced by workflow linter)
+- **Minimize permissions** - Use least privilege principle for `permissions` in workflows
+- **Secure output handling** - Avoid exposing sensitive data in action outputs or logs
+
+**Secret and Credential Management:**
+- Use Azure Key Vault integration properly via `get-keyvault-secrets` action
+- Never log or expose secret values in action outputs
+- Use GitHub's secret masking capabilities (`core.setSecret()` in TypeScript actions)
+
+**Supply Chain Security:**
+- Only use approved actions listed in the workflow linter's approved actions list
+- Pin all dependencies to specific versions in `package.json` and `requirements.txt`
+- Validate Docker base images and use official, minimal images when possible
+
+**Input Validation:**
+- Validate file paths to prevent directory traversal attacks
+- Sanitize version strings and other user inputs
+- Use proper escaping when constructing shell commands
+
 ## Agent Instructions
 
 **Trust these instructions** and only perform additional searching if the information provided is incomplete or found to be incorrect. The repository follows consistent patterns, and the validation processes are well-established.
@@ -175,9 +201,12 @@ For containerized actions (e.g., `version-bump`, `get-checksum`):
 3. Test changes using the existing test workflows when possible
 4. Ensure `action.yml` files are valid and complete
 5. Follow the established directory structure and naming conventions
+6. Apply security best practices and validate all inputs
 
 **Common pitfalls to avoid:**
 - Forgetting to compile TypeScript actions
 - Not running Prettier formatting
 - Missing required properties in `action.yml` files
 - Not testing action changes with the corresponding test workflow
+- Exposing sensitive data in logs or outputs
+- Using unpinned or unapproved external actions

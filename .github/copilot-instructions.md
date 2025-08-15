@@ -9,12 +9,11 @@ This repository contains a collection of custom GitHub Actions used by Bitwarden
 - **Size**: Medium-sized repository with ~20 custom actions
 - **Languages**: TypeScript, Python, JavaScript, Shell scripts, YAML
 - **Target Runtime**: GitHub Actions runners (primarily Ubuntu)
-- **Architecture**: Microservice-style actions, each with independent functionality
 
 ## Build and Validation Instructions
 
 ### Prerequisites
-- Node.js (version 16+ for TypeScript actions)
+- Node.js (version 22+ for TypeScript actions)
 - Python 3.13+ (for Python-based actions)
 - Docker (for containerized actions)
 
@@ -135,9 +134,9 @@ For containerized actions (e.g., `version-bump`, `get-checksum`):
 ### Dependencies and Requirements
 
 **Development Dependencies (root):**
-- `prettier@3.2.5` - Code formatting
-- `husky@9.0.11` - Git hooks
-- `lint-staged@15.2.2` - Staged file processing
+- `prettier` - Code formatting
+- `husky` - Git hooks
+- `lint-staged` - Staged file processing
 
 **Action-specific Dependencies:**
 - TypeScript actions: `@actions/core`, `@actions/exec`, type definitions

@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Bump JSON Test
         id: test_json
@@ -61,10 +63,16 @@ jobs:
           file_path: "./version-bump/tests/fixtures/test.csproj"
 
       - name: Validate Outputs
+        env:
+          JSON_STATUS: ${{ steps.test_json.outputs.status }}
+          PLIST_STATUS: ${{ steps.test_plist.outputs.status }}
+          XML_STATUS: ${{ steps.test_xml.outputs.status }}
+          PROPS_STATUS: ${{ steps.test_props.outputs.status }}
+          CSPROJ_STATUS: ${{ steps.test_csproj.outputs.status }}
         run: |
-          echo "${{ steps.test_json.outputs.status }}"
-          echo "${{ steps.test_plist.outputs.status }}"
-          echo "${{ steps.test_xml.outputs.status }}"
-          echo "${{ steps.test_props.outputs.status }}"
-          echo "${{ steps.test_csproj.outputs.status }}"
+          echo "$JSON_STATUS"
+          echo "$PLIST_STATUS"
+          echo "$XML_STATUS"
+          echo "$PROPS_STATUS"
+          echo "$CSPROJ_STATUS"
           git diff

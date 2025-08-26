@@ -1,7 +1,7 @@
 name: Test report-deployment-status-to-slack
 on:
   pull_request:
-      paths:
+    paths:
       - "report-deployment-status-to-slack/**"
       - ".github/workflows/test-report-deployment-status-to-slack.yml"
 
@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Start
         uses: ./report-deployment-status-to-slack
@@ -27,7 +29,7 @@ jobs:
           environment: EU-QA Cloud
           slack-channel: bre-alerts-test
           tag: test-workflow-start
-          event: 'start'
+          event: "start"
           commit-sha: $TEST_REPORT_COMMIT_SHA
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
@@ -41,7 +43,7 @@ jobs:
           environment: US-QA Cloud
           slack-channel: bre-alerts-test
           tag: test-workflow-success
-          event: 'success'
+          event: "success"
           commit-sha: $TEST_REPORT_COMMIT_SHA
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
@@ -55,7 +57,7 @@ jobs:
           environment: US-QA Cloud
           slack-channel: bre-alerts-test
           tag: test-workflow-failure
-          event: 'failure'
+          event: "failure"
           commit-sha: $TEST_REPORT_COMMIT_SHA
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
@@ -69,7 +71,7 @@ jobs:
           environment: EU-QA Cloud
           slack-channel: bre-alerts-test
           tag: test-workflow-failure
-          event: 'no-changes'
+          event: "no-changes"
           commit-sha: $TEST_REPORT_COMMIT_SHA
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
@@ -85,6 +87,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: With DB migration true on main
         uses: ./report-deployment-status-to-slack
@@ -93,7 +97,7 @@ jobs:
           environment: EU-QA Cloud
           slack-channel: bre-alerts-test
           tag: main
-          event: 'success'
+          event: "success"
           commit-sha: $TEST_REPORT_COMMIT_SHA
           db_migration_detected: true
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
@@ -108,7 +112,7 @@ jobs:
           environment: US-QA Cloud
           slack-channel: bre-alerts-test
           tag: main
-          event: 'failure'
+          event: "failure"
           commit-sha: $TEST_REPORT_COMMIT_SHA
           db_migration_detected: false
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
@@ -123,7 +127,7 @@ jobs:
           environment: EU-QA Cloud
           slack-channel: bre-alerts-test
           tag: test-branch-failure
-          event: 'failure'
+          event: "failure"
           commit-sha: $TEST_REPORT_COMMIT_SHA
           db_migration_detected: false
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
@@ -138,7 +142,7 @@ jobs:
           environment: US-QA Cloud
           slack-channel: bre-alerts-test
           tag: test-branch-success
-          event: 'success'
+          event: "success"
           commit-sha: $TEST_REPORT_COMMIT_SHA
           db_migration_detected: true
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}

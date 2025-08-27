@@ -38,14 +38,14 @@ jobs:
           for file in $changed_files; do
             if [[ "$file" == ".github/workflows/"* ]]; then
               count=$((count + 1 ))
-              files_to_lint="$files_to_lint" "$file"
+              files_to_lint="$files_to_lint $file"
             fi
           done
 
-          echo Workflow files changed: "$count"
-          echo Files to lint: "$files_to_lint"
-          echo changed_files="$files_to_lint" >> "$GITHUB_OUTPUT"
-          echo changed_files_count="$count" >> "$GITHUB_OUTPUT"
+          echo "Workflow files changed: $count"
+          echo "Files to lint: $files_to_lint"
+          echo "changed_files=$files_to_lint" >> "$GITHUB_OUTPUT"
+          echo "changed_files_count=$count" >> "$GITHUB_OUTPUT"
 
       - name: Download actionlint configuration
         if: steps.changed-workflows.outputs.changed_files_count != '0'

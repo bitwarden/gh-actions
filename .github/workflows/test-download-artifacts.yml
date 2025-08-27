@@ -93,6 +93,9 @@ jobs:
   download-pr:
     name: Download Pull Request
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      id-token: write
     if: github.event_name == 'pull_request'
     steps:
       - name: Checkout
@@ -102,6 +105,7 @@ jobs:
 
       - name: Download
         uses: ./download-artifacts
+
         with:
           workflow: upload-test-artifacts.yml
           artifacts: artifact

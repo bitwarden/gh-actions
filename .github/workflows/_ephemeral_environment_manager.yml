@@ -70,15 +70,16 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           repository: bitwarden/ephemeral-environment-charts
-          token: '${{ steps.retrieve-secrets.outputs.github-pat-bitwarden-devops-bot-repo-scope }}'
+          token: "${{ steps.retrieve-secrets.outputs.github-pat-bitwarden-devops-bot-repo-scope }}"
+          persist-credentials: true
 
       - name: Create Branch
         env:
           BRANCH_NAME: ee-config-${{ inputs.project }}-${{ inputs.pull_request_number }}
         run: |
-          if ! git rev-parse --verify origin/${{ env.BRANCH_NAME }}; then
-            git checkout -b ${{ env.BRANCH_NAME }}
-            git push origin ${{ env.BRANCH_NAME }}
+          if ! git rev-parse --verify "origin/${BRANCH_NAME}"; then
+            git checkout -b "${BRANCH_NAME}"
+            git push origin "${BRANCH_NAME}"
           fi
 
   cleanup:
@@ -112,20 +113,26 @@ jobs:
         with:
           repository: bitwarden/${{ inputs.project }}
           ref: ${{ inputs.ephemeral_env_branch }}
-          token: '${{ steps.retrieve-secrets.outputs.github-pat-bitwarden-devops-bot-repo-scope }}'
+          token: "${{ steps.retrieve-secrets.outputs.github-pat-bitwarden-devops-bot-repo-scope }}"
+          persist-credentials: true
 
       - name: Remove config
         working-directory: ephemeral-environments
-        run: rm -f ${{ inputs.ephemeral_env_branch }}.yaml
+        env:
+          BRANCH_NAME: ${{ inputs.ephemeral_env_branch }}
+        run: rm -f "$BRANCH_NAME.yaml"
 
       - name: Commit changes to ${{ inputs.ephemeral_env_branch }}
         working-directory: ephemeral-environments
+        env:
+          BOT_EMAIL: ${{ steps.retrieve-secrets.outputs.github-bitwarden-devops-bot-email }}
+          BRANCH_NAME: ${{ inputs.ephemeral_env_branch }}
         run: |
-          git config --local user.email "${{ steps.retrieve-secrets.outputs.github-bitwarden-devops-bot-email }}"
-          git config --local user.name "${{ env._BOT_NAME }}"
+          git config --local user.email "$BOT_EMAIL"
+          git config --local user.name "$_BOT_NAME"
 
-          git add ${{ inputs.ephemeral_env_branch }}.yaml
-          git commit -m "Removed ${{ inputs.ephemeral_env_branch }}.yaml config."
+          git add "$BRANCH_NAME.yaml"
+          git commit -m "Removed $BRANCH_NAME.yaml config."
           git push
 
   sync-env:
@@ -152,9 +159,9 @@ jobs:
         with:
           keyvault: ${{ env._KEY_VAULT }}
           secrets: |
-              ephemeral-environment-argocd-cluster-url,
-              ephemeral-environment-argocd-cluster-api-secret,
-              ephemeral-environment-argocd-cluster-api-user
+            ephemeral-environment-argocd-cluster-url,
+            ephemeral-environment-argocd-cluster-api-secret,
+            ephemeral-environment-argocd-cluster-api-user
 
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
@@ -169,10 +176,14 @@ jobs:
           rm argocd-linux-amd64
 
       - name: Log into Argo CD cluster
+        env:
+          ARGOCD_CLUSTER_URL: ${{ steps.retrieve-secrets.outputs.ephemeral-environment-argocd-cluster-url }}
+          ARGOCD_CLUSTER_API_USER: ${{ steps.retrieve-secrets.outputs.ephemeral-environment-argocd-cluster-api-user }}
+          ARGOCD_CLUSTER_API_SECRET: ${{ steps.retrieve-secrets.outputs.ephemeral-environment-argocd-cluster-api-secret }}
         run: |
-          argocd login ${{ steps.retrieve-secrets.outputs.ephemeral-environment-argocd-cluster-url }} \
-            --username ${{ steps.retrieve-secrets.outputs.ephemeral-environment-argocd-cluster-api-user }} \
-            --password ${{ steps.retrieve-secrets.outputs.ephemeral-environment-argocd-cluster-api-secret }}
+          argocd login "${ARGOCD_CLUSTER_URL}" \
+            --username "${ARGOCD_CLUSTER_API_USER}" \
+            --password "${ARGOCD_CLUSTER_API_SECRET}"
 
       - name: Sync Argo CD application
         env:

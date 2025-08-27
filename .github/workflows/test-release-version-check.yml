@@ -14,57 +14,59 @@ permissions:
   contents: read
 
 jobs:
-  test-version-check:
+  test_version_check:
     name: Test Version Check
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
         include:
-          - name: ts-semver-success
+          - name: ts_semver_success
             project-type: ts
             file: release-version-check/tests/fixtures/SemVer/package.json
             override-version: 1.1.0
-          - name: ts-semver-fail
+          - name: ts_semver_fail
             project-type: ts
             file: release-version-check/tests/fixtures/SemVer/package.json
             override-version: 1.0.1
-          - name: ts-calver-success
+          - name: ts_calver_success
             project-type: ts
             file: release-version-check/tests/fixtures/CalVer/package.json
             override-version: 2022.06.0
-          - name: ts-calver-fail
+          - name: ts_calver_fail
             project-type: ts
             file: release-version-check/tests/fixtures/CalVer/package.json
             override-version: 2022.05.0
-          - name: dotnet-calver-success
+          - name: dotnet_calver_success
             project-type: dotnet
             file: release-version-check/tests/fixtures/CalVer/Test.csproj
             override-version: 2022.06.0
-          - name: dotnet-calver-fail
+          - name: dotnet_calver_fail
             project-type: dotnet
             file: release-version-check/tests/fixtures/CalVer/Test.csproj
             override-version: 2022.05.0
-          - name: xamarin-calver-success
+          - name: xamarin_calver_success
             project-type: xamarin
             file: release-version-check/tests/fixtures/CalVer/Mobile-Android.xml
             override-version: 2022.05.1
-          - name: xamarin-calver-fail
+          - name: xamarin_calver_fail
             project-type: xamarin
             file: release-version-check/tests/fixtures/CalVer/Mobile-Android.xml
             override-version: 2022.05.0
     outputs:
-      ts-semver-success-status: ${{ steps.set-status.outputs.ts-semver-success }}
-      ts-semver-fail-status: ${{ steps.set-status.outputs.ts-semver-fail }}
-      ts-calver-success-status: ${{ steps.set-status.outputs.ts-calver-success }}
-      ts-calver-fail-status: ${{ steps.set-status.outputs.ts-calver-fail }}
-      dotnet-calver-success-status: ${{ steps.set-status.outputs.dotnet-calver-success }}
-      dotnet-calver-fail-status: ${{ steps.set-status.outputs.dotnet-calver-fail }}
-      xamarin-calver-success-status: ${{ steps.set-status.outputs.xamarin-calver-success }}
-      xamarin-calver-fail-status: ${{ steps.set-status.outputs.xamarin-calver-fail }}
+      ts_semver_success_status: ${{ steps.set-status.outputs.ts_semver_success }}
+      ts_semver_fail_status: ${{ steps.set-status.outputs.ts_semver_fail }}
+      ts_calver_success_status: ${{ steps.set-status.outputs.ts_calver_success }}
+      ts_calver_fail_status: ${{ steps.set-status.outputs.ts_calver_fail }}
+      dotnet_calver_success_status: ${{ steps.set-status.outputs.dotnet_calver_success }}
+      dotnet_calver_fail_status: ${{ steps.set-status.outputs.dotnet_calver_fail }}
+      xamarin_calver_success_status: ${{ steps.set-status.outputs.xamarin_calver_success }}
+      xamarin_calver_fail_status: ${{ steps.set-status.outputs.xamarin_calver_fail }}
     steps:
       - name: Checkout Branch
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Version Check - ${{ matrix.name }}
         id: run-version-check
@@ -78,25 +80,37 @@ jobs:
 
       - name: Set Status
         id: set-status
+        env:
+          MATRIX_NAME: ${{ matrix.name }}
+          VERSION_CHECK_STATUS: ${{ steps.run-version-check.outputs.status }}
         run: |
-          echo "Status Status - ${{ matrix.name }}: ${{ steps.run-version-check.outputs.status }}"
-          echo "${{ matrix.name }}=${{ steps.run-version-check.outputs.status }}" >> $GITHUB_OUTPUT
-
+          echo "Status Status - $MATRIX_NAME: $VERSION_CHECK_STATUS"
+          echo "$MATRIX_NAME=$VERSION_CHECK_STATUS" >> "$GITHUB_OUTPUT"
 
   run-version-check-test:
     name: Run Version Check Test
     runs-on: ubuntu-22.04
-    needs: [test-version-check]
+    needs: [test_version_check]
     if: always()
+    env:
+      _TS_SEMVER_SUCCESS_STATUS: ${{ needs.test_version_check.outputs.ts_semver_success_status }}
+      _TS_SEMVER_FAIL_STATUS: ${{ needs.test_version_check.outputs.ts_semver_fail_status }}
+      _TS_CALVER_SUCCESS_STATUS: ${{ needs.test_version_check.outputs.ts_calver_success_status }}
+      _TS_CALVER_FAIL_STATUS: ${{ needs.test_version_check.outputs.ts_calver_fail_status }}
+      _DOTNET_CALVER_SUCCESS_STATUS: ${{ needs.test_version_check.outputs.dotnet_calver_success_status }}
+      _DOTNET_CALVER_FAIL_STATUS: ${{ needs.test_version_check.outputs.dotnet_calver_fail_status }}
+      _XAMARIN_CALVER_SUCCESS_STATUS: ${{ needs.test_version_check.outputs.xamarin_calver_success_status }}
+      _XAMARIN_CALVER_FAIL_STATUS: ${{ needs.test_version_check.outputs.xamarin_calver_fail_status }}
     steps:
       - name: Validate Outputs
         run: |
           test_outputs=()
 
           function assert() {
-            value=$1
-            expected_value=$2
-            test_name=$3
+            value="$1"
+            expected_value="$2"
+            test_name="$3"
+
             if [[ "$value" == "$expected_value" ]]; then
               echo "${test_name}: pass"
               test_outputs+=("pass")
@@ -106,16 +120,17 @@ jobs:
             fi
           }
 
-          assert "${{ needs.test-version-check.outputs.ts-semver-success-status }}" "success" "Test TS SemVer Success"
-          assert "${{ needs.test-version-check.outputs.ts-semver-fail-status }}" "fail" "Test TS SemVer Fail"
-          assert "${{ needs.test-version-check.outputs.ts-calver-success-status }}" "success" "Test TS CalVer Success"
-          assert "${{ needs.test-version-check.outputs.ts-calver-fail-status }}" "fail" "Test TS CalVer Fail"
-          assert "${{ needs.test-version-check.outputs.dotnet-calver-success-status }}" "success" "Test .NET CalVer Success"
-          assert "${{ needs.test-version-check.outputs.dotnet-calver-fail-status }}" "fail" "Test .NET CalVer Fail"
-          assert "${{ needs.test-version-check.outputs.xamarin-calver-success-status }}" "success" "Test Xamarin CalVer Success"
-          assert "${{ needs.test-version-check.outputs.xamarin-calver-fail-status }}" "fail" "Test  CalVer Fail"
+          assert "$_TS_SEMVER_SUCCESS_STATUS" "success" "Test TS SemVer Success"
+          assert "$_TS_SEMVER_FAIL_STATUS" "fail" "Test TS SemVer Fail"
+          assert "$_TS_CALVER_SUCCESS_STATUS" "success" "Test TS CalVer Success"
+          assert "$_TS_CALVER_FAIL_STATUS" "fail" "Test TS CalVer Fail"
+          assert "$_DOTNET_CALVER_SUCCESS_STATUS" "success" "Test .NET CalVer Success"
+          assert "$_DOTNET_CALVER_FAIL_STATUS" "fail" "Test .NET CalVer Fail"
+          assert "$_XAMARIN_CALVER_SUCCESS_STATUS" "success" "Test Xamarin CalVer Success"
+          assert "$_XAMARIN_CALVER_FAIL_STATUS" "fail" "Test Xamarin CalVer Fail"
 
-          if [[ "${test_outputs[@]}" =~ "fail" ]]; then
+          joined_outputs="${test_outputs[*]}"
+          if [[ $joined_outputs =~ fail ]]; then
             exit 1
           else
             exit 0

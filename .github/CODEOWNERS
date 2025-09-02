@@ -6,3 +6,10 @@
 
 # BRE for all changes.
 * @bitwarden/dept-bre
+
+# AppSec for security scan related files
+/.github/workflows/scan.yml @bitwarden/team-appsec
+/.github/workflows/_checkmarx.yml @bitwarden/team-appsec
+/.github/workflows/_sonar.yml @bitwarden/team-appsec
+/.github/workflows/test-checkmarx.yml @bitwarden/team-appsec
+/.github/workflows/test-sonar.yml @bitwarden/team-appsec

@@ -124,4 +124,4 @@ jobs:
             ${{ inputs.sonar-sources != '' && format('-Dsonar.sources={0}', inputs.sonar-sources) || '' }}
             ${{ inputs.sonar-tests != '' && format('-Dsonar.tests={0}', inputs.sonar-tests) || '' }}
         run: >
-          mvn clean install -Dgpg.skip=true sonar:sonar $SONAR_ARGS
+          "mvn clean install -Dgpg.skip=true sonar:sonar $SONAR_ARGS"

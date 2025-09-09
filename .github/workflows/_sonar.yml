@@ -103,12 +103,15 @@ jobs:
             ${{ inputs.sonar-sources != '' && format('-Dsonar.sources={0}', inputs.sonar-sources) || '' }}
             ${{ inputs.sonar-tests != '' && format('-Dsonar.tests={0}', inputs.sonar-tests) || '' }}
         run: |
+          # Split SONAR_ARGS safely into an array
+          IFS=' ' read -r -a sonar_args <<< "$SONAR_ARGS"
+
           dotnet-sonarscanner begin \
           /k:"${{ github.repository_owner }}_${GITHUB_EVENT_REPOSITORY_NAME}" \
           /o:"${{ github.repository_owner }}" \
           /d:sonar.token="$SONAR_TOKEN" \
           /d:sonar.host.url="https://sonarcloud.io" \
-          $SONAR_ARGS
+          "${sonar_args[@]}"
           dotnet build
           dotnet-sonarscanner end /d:sonar.token="${SONAR_TOKEN}"
 

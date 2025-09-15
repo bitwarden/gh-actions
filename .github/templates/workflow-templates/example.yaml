@@ -84,7 +84,7 @@ jobs: # A workflow run is made up of one or more jobs that can run sequentially 
       # NOT RECOMMENDED if: always() # run even if previous steps failed or the workflow is canceled, this can cause a workflow run to hang indefinitely
         if: failure() # run when any previous step of a job fails
       # if: '!cancelled()' # run even if previous steps failed
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2 Always pin a public action version to a full git SHA, followed by the version number in a comment.  Version pins are insecure and can introduce vulnerabilities into workflows.
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0 Always pin a public action version to a full git SHA, followed by the version number in a comment.  Version pins are insecure and can introduce vulnerabilities into workflows.
         with: # Parameters specific to this action that need to be defined in order for the step to be completed
           fetch-depth: 0 # Full git history for actions that rely on whether a change has occurred
           ref: ${{ github.event.pull_request.head.sha }}

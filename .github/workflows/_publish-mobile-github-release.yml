@@ -255,7 +255,7 @@ jobs:
           TAG: ${{ steps.get_latest_draft.outputs.latest_draft_tag }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [ "${{ inputs.dry-run }}" = "true" ]; then
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
             echo "Dry run mode - skipping gh release edit command, release tag is ${{ TAG}}"
           else:
             gh release edit $TAG --prerelease=false --latest --draft=false

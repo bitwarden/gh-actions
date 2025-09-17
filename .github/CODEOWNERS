@@ -13,3 +13,8 @@
 /.github/workflows/_sonar.yml @bitwarden/team-appsec
 /.github/workflows/test-checkmarx.yml @bitwarden/team-appsec
 /.github/workflows/test-sonar.yml @bitwarden/team-appsec
+
+# Default shared ownership of Dockerfile
+**/Dockerfile @bitwarden/team-appsec @bitwarden/dept-bre
+**/*.dockerignore @bitwarden/team-appsec @bitwarden/dept-bre
+**/entrypoint.sh @bitwarden/team-appsec @bitwarden/dept-bre

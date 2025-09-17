@@ -63,7 +63,10 @@ jobs:
 
           if [ "$is_latest_draft" != "true" ]; then
               echo "No draft found"
-              gh workflow disable publish-github-release.yml
+              if ${{ inputs.dry_run}} != "true"; then
+                echo "Disabling workflow to prevent further runs"
+                gh workflow disable publish-github-release.yml
+              fi
               exit 0
           fi
 

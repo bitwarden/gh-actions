@@ -26,6 +26,13 @@ on:
         description: 'Type of the project (e.g. "android" or "ios")'
         type: string
         required: true
+      dry_run:
+        type: boolean
+        description: 'Run the workflow in dry-run mode without making any changes'
+        required: false
+
+env:
+  DRY_RUN: ${{ inputs.dry_run }}
 
 jobs:
   publish-release:
@@ -240,11 +247,15 @@ jobs:
           fi
 
       - name: Make GitHub release latest and non-pre-release
-        if: steps.check_version.outputs.version_released == 'true'
+        if: steps.check_version.outputs.version_released == 'true' && inputs.dry_run != 'true'
         env:
           TAG: ${{ steps.get_latest_draft.outputs.latest_draft_tag }}
           GH_TOKEN: ${{ github.token }}
-        run: gh release edit $TAG --prerelease=false --latest --draft=false
+        run: |
+          if [ "${{ inputs.dry-run }}" = "true" ]; then
+            echo "Dry run mode - skipping gh release edit command, release tag is ${{ TAG}}"
+          else:
+            gh release edit $TAG --prerelease=false --latest --draft=false
 
       - name: Create workflow state artifact
         id: create_workflow_state_artifact
@@ -288,12 +299,36 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "changed_to_state=$changed_to_state" >> $GITHUB_OUTPUT
 
+      - name: Update slack with workflow status
+        if: steps.create_workflow_state_artifact.outputs.changed_to_state == 'published' && inputs.dry_run != 'true'
+        uses: bitwarden/gh-actions/slack-notify@main
+        with:
+          status: custom
+          custom_message: "Published new ${{ inputs.release_name }} release: ${{ steps.get_latest_draft.outputs.latest_draft_name }} :tada:"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      
+      - name: Update slack with workflow status (dry run)
+        if: steps.create_workflow_state_artifact.outputs.changed_to_state == 'published' && inputs.dry_run == 'true'
+        uses: bitwarden/gh-actions/slack-notify@main
+        with:
+          status: custom
+          custom_message: "Dry run mode: would have published new ${{ inputs.release_name }} release: ${{ steps.get_latest_draft.outputs.latest_draft_name }} :tada:"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
       - name: Disable workflow if published
         if: steps.create_workflow_state_artifact.outputs.changed_to_state == 'published'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh workflow disable publish-github-release.yml
+          if [ "${{ inputs.dry-run }}" = "true" ]; then
+            echo "Dry run mode - skipping gh workflow disable command"
+            gh workflow list publish-github-release.yml
+          else
+            echo "Disabling workflow to prevent further runs"
+            gh workflow disable publish-github-release.yml
+          fi
 
       - name: Upload workflow state artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

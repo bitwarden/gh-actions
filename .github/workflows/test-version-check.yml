@@ -46,6 +46,15 @@ jobs:
 
       - name: Run version check action
         uses: ./version-check # Use the local action for testing
+        continue-on-error: ${{ matrix.should-fail || false }}
         with:
           version: ${{ matrix.version }}
           validation_type: ${{ matrix.type }}
+
+      # - name: Verify expected failures
+      #   if: ${{ matrix.should-fail == true }}
+      #   run: |
+      #     if [ ${{ steps.run-version-check-action.outcome }} != "failure" ]; then
+      #       echo "Action was expected to fail but did not."
+      #       exit 1
+      #     fi

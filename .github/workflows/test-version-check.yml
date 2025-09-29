@@ -83,15 +83,32 @@ jobs:
       - name: Run version check action
         id: version-check
         uses: ./version-check # Use the local action for testing
+        if: ${{ matrix.type != '' }}
         continue-on-error: ${{ matrix.should-fail || false }}
         with:
           version: ${{ matrix.version }}
-          validation_type: ${{ matrix.type == '' && null || matrix.type }}
+          validation_type: ${{ matrix.type }}
 
       - name: Verify expected failures
-        if: ${{ matrix.should-fail == true }}
+        if: ${{ matrix.type != '' && matrix.should-fail == true }}
         run: |
           if [ ${{ steps.version-check.outcome }} != "failure" ]; then
+            echo "Action was expected to fail but did not."
+            exit 1
+          fi
+
+      - name: Run version check action
+        id: version-check-default-type
+        uses: ./version-check # Use the local action for testing
+        if: ${{ matrix.type == '' }}
+        continue-on-error: ${{ matrix.should-fail || false }}
+        with:
+          version: ${{ matrix.version }}
+
+      - name: Verify expected failures - default type
+        if: ${{ matrix.type == '' && matrix.should-fail == true }}
+        run: |
+          if [ ${{ steps.version-check-default-type.outcome }} != "failure" ]; then
             echo "Action was expected to fail but did not."
             exit 1
           fi

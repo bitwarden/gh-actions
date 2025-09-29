@@ -23,6 +23,9 @@ jobs:
     strategy:
       matrix:
         include:
+          - version: "2025.1.2"
+            type: "should-fail"
+            should-fail: true
           - version: "1999.12.31"
             type: "calver"
             should-fail: true
@@ -35,6 +38,8 @@ jobs:
           - version: "2100.0.0"
             type: "calver"
             should-fail: true
+          - version: "2025.1.2"
+            # default is calver
           - version: "1.2.3"
             should-fail: true
             # default is calver

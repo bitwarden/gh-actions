@@ -23,12 +23,15 @@ jobs:
     strategy:
       matrix:
         include:
+          # Test validation types
           - version: "2025.1.2"
             type: "should-fail"
             should-fail: true
           - version: "1999.12.31"
             type: "calver"
             should-fail: true
+
+          # Test calver
           - version: "2000.1.0"
             type: "calver"
           - version: "2025.12.0"
@@ -43,6 +46,8 @@ jobs:
           - version: "1.2.3"
             should-fail: true
             # default is calver
+
+          # Test semver
           - version: "v1.0.0"
             type: "semver"
             should-fail: true
@@ -97,7 +102,7 @@ jobs:
             exit 1
           fi
 
-      - name: Run version check action
+      - name: Run version check action - default type
         id: version-check-default-type
         uses: ./version-check # Use the local action for testing
         if: ${{ matrix.type == '' }}

@@ -21,7 +21,7 @@ runs:
         validation_type_lower=$(echo "$VALIDATION_TYPE" | tr '[:upper:]' '[:lower:]')
         if [[ $validation_type_lower == "calver" ]]; then
           if [[ "$VERSION" =~ ^20[0-9]{2}\.(1[0-2]|[1-9])\.[0-9]+$ ]]; then
-            echo "CalVer Version input validation successful."
+            echo "CalVer version input validation successful."
             exit 0
           else
             echo "CalVer version input validation failed."

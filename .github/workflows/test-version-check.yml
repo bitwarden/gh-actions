@@ -23,22 +23,46 @@ jobs:
     strategy:
       matrix:
         include:
+          - version: "1999.12.31"
+            type: "calver"
+            should-fail: true
           - version: "2000.1.0"
             type: "calver"
           - version: "2025.12.0"
             type: "calver"
-          - version: "2099.12.99999"
+          - version: "2099.12.999"
             type: "calver"
-            should-fail: true
           - version: "2100.0.0"
             type: "calver"
             should-fail: true
+          - version: "1.2.3"
+            should-fail: true
+            # default is calver
+          - version: "v1.0.0"
+            type: "semver"
+            should-fail: true
           - version: "0.0.1"
             type: "semver"
-          - version: "1.2.3"
+          - version: "9.9.9"
             type: "semver"
-          - version: "10.11.12"
+          - version: "100.111.222"
             type: "semver"
+          - version: "1.2.3-alpha"
+            type: "semver"
+          - version: "1.2.3-alpha.1"
+            type: "semver"
+          - version: "1.2.3+build"
+            type: "semver"
+          - version: "1.2.3+build.123"
+            type: "semver"
+          - version: "1.2.3-alpha.1+build.123"
+            type: "semver"
+          - version: "1.2.3-ALPHA.1"
+            type: "semver"
+            should-fail: true
+          - version: "1.2.3+build.123-alpha"
+            type: "semver"
+            should-fail: true
     steps:
       - name: Check out repo
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0

@@ -29,6 +29,7 @@ jobs:
             type: "calver"
           - version: "2099.12.99999"
             type: "calver"
+            should-fail: true
           - version: "2100.0.0"
             type: "calver"
             should-fail: true
@@ -45,6 +46,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run version check action
+        id: version-check
         uses: ./version-check # Use the local action for testing
         continue-on-error: ${{ matrix.should-fail || false }}
         with:
@@ -54,7 +56,7 @@ jobs:
       - name: Verify expected failures
         if: ${{ matrix.should-fail == true }}
         run: |
-          if [ ${{ steps.run-version-check-action.outcome }} != "failure" ]; then
+          if [ ${{ steps.version-check.outcome }} != "failure" ]; then
             echo "Action was expected to fail but did not."
             exit 1
           fi

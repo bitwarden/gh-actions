@@ -51,10 +51,10 @@ jobs:
           version: ${{ matrix.version }}
           validation_type: ${{ matrix.type }}
 
-      # - name: Verify expected failures
-      #   if: ${{ matrix.should-fail == true }}
-      #   run: |
-      #     if [ ${{ steps.run-version-check-action.outcome }} != "failure" ]; then
-      #       echo "Action was expected to fail but did not."
-      #       exit 1
-      #     fi
+      - name: Verify expected failures
+        if: ${{ matrix.should-fail == true }}
+        run: |
+          if [ ${{ steps.run-version-check-action.outcome }} != "failure" ]; then
+            echo "Action was expected to fail but did not."
+            exit 1
+          fi

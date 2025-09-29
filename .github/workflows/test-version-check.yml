@@ -29,6 +29,9 @@ jobs:
             type: "calver"
           - version: "2099.12.99999"
             type: "calver"
+          - version: "2100.0.0"
+            type: "calver"
+            should-fail: true
           - version: "0.0.1"
             type: "semver"
           - version: "1.2.3"

@@ -1,0 +1,119 @@
+name: Test Version Check Action
+
+on:
+  pull_request:
+    paths:
+      - "azure-login/**"
+      - "azure-logout/**"
+      - "version-check/**"
+      - ".github/workflows/test-version-check.yml"
+
+  push:
+    branches:
+      - "main"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-action:
+    name: Test action
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        include:
+          # Test validation types
+          - version: "2025.1.2"
+            type: "should-fail"
+            should-fail: true
+          - version: "1999.12.31"
+            type: "calver"
+            should-fail: true
+
+          # Test calver
+          - version: "2000.1.0"
+            type: "calver"
+          - version: "2025.12.0"
+            type: "calver"
+          - version: "2099.12.999"
+            type: "calver"
+          - version: "2100.0.0"
+            type: "calver"
+            should-fail: true
+          - version: "2025.1.2"
+            # default is calver
+          - version: "1.2.3"
+            should-fail: true
+            # default is calver
+
+          # Test semver
+          - version: "v1.0.0"
+            type: "semver"
+            should-fail: true
+          - version: "0.0.1"
+            type: "semver"
+          - version: "9.9.9"
+            type: "semver"
+          - version: "100.111.222"
+            type: "semver"
+          - version: "1.2.3-alpha"
+            type: "semver"
+          - version: "1.2.3-alpha.1"
+            type: "semver"
+          - version: "1.2.3+build"
+            type: "semver"
+          - version: "1.2.3+build.123"
+            type: "semver"
+          - version: "1.2.3-alpha.1+build.123"
+            type: "semver"
+          - version: "1.2.3-ALPHA.1"
+            type: "semver"
+            should-fail: true
+          - version: "000.1.2"
+            type: "semver"
+            should-fail: true
+          - version: "1.000.2"
+            type: "semver"
+            should-fail: true
+          - version: "1.0.000"
+            type: "semver"
+            should-fail: true
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Run version check action
+        id: version-check
+        uses: ./version-check # Use the local action for testing
+        if: ${{ matrix.type != '' }}
+        continue-on-error: ${{ matrix.should-fail || false }}
+        with:
+          version: ${{ matrix.version }}
+          validation_type: ${{ matrix.type }}
+
+      - name: Verify expected failures
+        if: ${{ matrix.type != '' && matrix.should-fail == true }}
+        run: |
+          if [ "${{ steps.version-check.outcome }}" != "failure" ]; then
+            echo "Action was expected to fail but did not."
+            exit 1
+          fi
+
+      - name: Run version check action - default type
+        id: version-check-default-type
+        uses: ./version-check # Use the local action for testing
+        if: ${{ matrix.type == '' }}
+        continue-on-error: ${{ matrix.should-fail || false }}
+        with:
+          version: ${{ matrix.version }}
+
+      - name: Verify expected failures - default type
+        if: ${{ matrix.type == '' && matrix.should-fail == true }}
+        run: |
+          if [ "${{ steps.version-check-default-type.outcome }}" != "failure" ]; then
+            echo "Action was expected to fail but did not."
+            exit 1
+          fi

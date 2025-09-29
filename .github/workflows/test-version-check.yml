@@ -97,7 +97,7 @@ jobs:
       - name: Verify expected failures
         if: ${{ matrix.type != '' && matrix.should-fail == true }}
         run: |
-          if [ ${{ steps.version-check.outcome }} != "failure" ]; then
+          if [ "${{ steps.version-check.outcome }}" != "failure" ]; then
             echo "Action was expected to fail but did not."
             exit 1
           fi
@@ -113,7 +113,7 @@ jobs:
       - name: Verify expected failures - default type
         if: ${{ matrix.type == '' && matrix.should-fail == true }}
         run: |
-          if [ ${{ steps.version-check-default-type.outcome }} != "failure" ]; then
+          if [ "${{ steps.version-check-default-type.outcome }}" != "failure" ]; then
             echo "Action was expected to fail but did not."
             exit 1
           fi

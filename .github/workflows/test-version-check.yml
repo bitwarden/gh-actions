@@ -81,7 +81,7 @@ jobs:
         continue-on-error: ${{ matrix.should-fail || false }}
         with:
           version: ${{ matrix.version }}
-          validation_type: ${{ matrix.type }}
+          validation_type: ${{ matrix.type == '' && null || matrix.type }}
 
       - name: Verify expected failures
         if: ${{ matrix.should-fail == true }}

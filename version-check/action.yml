@@ -36,6 +36,6 @@ runs:
             exit 1
           fi
         else
-          echo "Invalid validation type specified. Use 'semver' or 'calver'."
+          echo "Invalid validation type specified: '$VALIDATION_TYPE'. Use 'semver' or 'calver'."
           exit 1
         fi

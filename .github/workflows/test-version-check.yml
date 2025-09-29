@@ -3,8 +3,6 @@ name: Test Version Check Action
 on:
   pull_request:
     paths:
-      - "azure-login/**"
-      - "azure-logout/**"
       - "version-check/**"
       - ".github/workflows/test-version-check.yml"
 

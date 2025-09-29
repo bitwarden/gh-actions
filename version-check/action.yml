@@ -28,7 +28,7 @@ runs:
             exit 1
           fi
         elif [[ $validation_type_lower == "semver" ]]; then
-          if [[ "$VERSION" =~ ^(0|[1-9]+)\.(0|[1-9]+)\.(0|[1-9]+)(-[0-9a-z.-]+)?(\+[0-9a-z.-]+)?$ ]]; then
+          if [[ "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9a-z.-]+)?(\+[0-9a-z.-]+)?$ ]]; then
             echo "SemVer version input validation successful."
             exit 0
           else

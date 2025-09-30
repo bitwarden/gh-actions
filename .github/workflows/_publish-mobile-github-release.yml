@@ -40,6 +40,8 @@ jobs:
       contents: write
       id-token: write
       actions: write
+    env:
+      DRY_RUN: ${{ inputs.dry_run }}
 
     steps:
       - name: Check out repository
@@ -64,7 +66,7 @@ jobs:
 
           if [ "$is_latest_draft" != "true" ]; then
               echo "No draft found"
-              if ${{ inputs.dry_run}} != "true"; then
+              if $DRY_RUN != "true"; then
                 echo "Disabling workflow to prevent further runs"
                 gh workflow disable publish-github-release.yml
               fi
@@ -255,7 +257,7 @@ jobs:
           TAG: ${{ steps.get_latest_draft.outputs.latest_draft_tag }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
+          if [ "$DRY_RUN" = "true" ]; then
             echo "Dry run mode - skipping gh release edit command"
           else:
             gh release edit $TAG --prerelease=false --latest --draft=false
@@ -307,7 +309,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
+          if [ "$DRY_RUN" = "true" ]; then
             echo "Dry run mode - skipping gh workflow disable command"
             gh workflow list publish-github-release.yml
           else

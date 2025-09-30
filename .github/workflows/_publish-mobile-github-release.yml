@@ -68,7 +68,7 @@ jobs:
               echo "No draft found"
               if $DRY_RUN != "true"; then
                 echo "Disabling workflow to prevent further runs"
-                gh workflow disable publish-github-release.yml
+                gh workflow disable "$WORKFLOW_NAME"
               fi
               exit 0
           fi
@@ -311,10 +311,10 @@ jobs:
         run: |
           if [ "$DRY_RUN" = "true" ]; then
             echo "Dry run mode - skipping gh workflow disable command"
-            gh workflow list publish-github-release.yml
+            gh workflow list "$WORKFLOW_NAME"
           else
             echo "Disabling workflow to prevent further runs"
-            gh workflow disable publish-github-release.yml
+            gh workflow disable "$WORKFLOW_NAME"
           fi
 
       - name: Upload workflow state artifact

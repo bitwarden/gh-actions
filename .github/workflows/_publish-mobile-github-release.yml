@@ -252,7 +252,8 @@ jobs:
           fi
 
       - name: Make GitHub release latest and non-pre-release
-        if: steps.check_version.outputs.version_released == 'true' && inputs.dry_run != 'true'
+        id: make_release_latest
+        if: steps.check_version.outputs.version_released == 'true' && inputs.dry_run != true
         env:
           TAG: ${{ steps.get_latest_draft.outputs.latest_draft_tag }}
           GH_TOKEN: ${{ github.token }}
@@ -264,6 +265,19 @@ jobs:
             gh release edit $TAG --prerelease=false --latest --draft=false
           else
             gh release edit $TAG --prerelease=false --draft=false
+          fi
+
+      - name: Disable workflow if published
+        if: ${{ steps.make_release_latest.conclusion == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$_DRY_RUN" = "true" ]; then
+            echo "Dry run mode - skipping gh workflow disable command"
+            gh workflow list "$WORKFLOW_NAME"
+          else
+            echo "Disabling workflow to prevent further runs"
+            gh workflow disable "$WORKFLOW_NAME"
           fi
 
       - name: Create workflow state artifact
@@ -307,19 +321,6 @@ jobs:
           echo "$json" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "changed_to_state=$changed_to_state" >> $GITHUB_OUTPUT
-
-      - name: Disable workflow if published
-        if: steps.create_workflow_state_artifact.outputs.changed_to_state == 'published'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if [ "$_DRY_RUN" = "true" ]; then
-            echo "Dry run mode - skipping gh workflow disable command"
-            gh workflow list "$WORKFLOW_NAME"
-          else
-            echo "Disabling workflow to prevent further runs"
-            gh workflow disable "$WORKFLOW_NAME"
-          fi
 
       - name: Upload workflow state artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

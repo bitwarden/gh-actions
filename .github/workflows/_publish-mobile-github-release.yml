@@ -252,7 +252,7 @@ jobs:
           fi
 
       - name: Make GitHub release latest and non-pre-release
-        if: steps.check_version.outputs.version_released == 'true' && inputs.dry_run != 'true'
+        if: steps.check_version.outputs.version_released == 'true' && inputs.dry_run != true
         env:
           TAG: ${{ steps.get_latest_draft.outputs.latest_draft_tag }}
           GH_TOKEN: ${{ github.token }}

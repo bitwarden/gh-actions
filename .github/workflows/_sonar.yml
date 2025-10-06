@@ -92,69 +92,69 @@ jobs:
       - name: Scan with Sonar
         if: inputs.sonar-config == 'dotnet'
         env:
-          SONAR_TOKEN: ${{ steps.get-kv-secrets.outputs.SONAR-TOKEN }}
-          REPOSITORY_NAME: ${{ github.event.repository.name }}
-          REPOSITORY_OWNER: ${{ github.repository_owner }}
-          SONAR_TEST_INCLUSIONS: ${{ inputs.sonar-test-inclusions }}
-          SONAR_EXCLUSIONS: ${{ inputs.sonar-exclusions }}
-          SONAR_SOURCES: ${{ inputs.sonar-sources }}
-          SONAR_TESTS: ${{ inputs.sonar-tests }}
-          PULL_REQUEST_KEY: ${{ github.event_name == 'pull_request' && github.event.pull_request.number || '' }}
+          _SONAR_TOKEN: ${{ steps.get-kv-secrets.outputs.SONAR-TOKEN }}
+          _REPOSITORY_NAME: ${{ github.event.repository.name }}
+          _REPOSITORY_OWNER: ${{ github.repository_owner }}
+          _SONAR_TEST_INCLUSIONS: ${{ inputs.sonar-test-inclusions }}
+          _SONAR_EXCLUSIONS: ${{ inputs.sonar-exclusions }}
+          _SONAR_SOURCES: ${{ inputs.sonar-sources }}
+          _SONAR_TESTS: ${{ inputs.sonar-tests }}
+          _PULL_REQUEST_KEY: ${{ github.event_name == 'pull_request' && github.event.pull_request.number || '' }}
         run: |
           set -euo pipefail
           ARGS=()
-          if [ -n "${PULL_REQUEST_KEY}" ]; then
-            ARGS+=("/d:sonar.pullrequest.key=${PULL_REQUEST_KEY}")
+          if [ -n "${_PULL_REQUEST_KEY}" ]; then
+            ARGS+=("/d:sonar.pullrequest.key=${_PULL_REQUEST_KEY}")
           fi
-          if [ -n "${SONAR_TEST_INCLUSIONS}" ]; then
-            ARGS+=("/d:sonar.test.inclusions=${SONAR_TEST_INCLUSIONS}")
+          if [ -n "${_SONAR_TEST_INCLUSIONS}" ]; then
+            ARGS+=("/d:sonar.test.inclusions=${_SONAR_TEST_INCLUSIONS}")
           fi
-          if [ -n "${SONAR_EXCLUSIONS}" ]; then
-            ARGS+=("/d:sonar.exclusions=${SONAR_EXCLUSIONS}")
+          if [ -n "${_SONAR_EXCLUSIONS}" ]; then
+            ARGS+=("/d:sonar.exclusions=${_SONAR_EXCLUSIONS}")
           fi
-          if [ -n "${SONAR_SOURCES}" ]; then
-            ARGS+=("-Dsonar.sources=${SONAR_SOURCES}")
+          if [ -n "${_SONAR_SOURCES}" ]; then
+            ARGS+=("-Dsonar.sources=${_SONAR_SOURCES}")
           fi
-          if [ -n "${SONAR_TESTS}" ]; then
-            ARGS+=("-Dsonar.tests=${SONAR_TESTS}")
+          if [ -n "${_SONAR_TESTS}" ]; then
+            ARGS+=("-Dsonar.tests=${_SONAR_TESTS}")
           fi
 
           dotnet-sonarscanner begin \
-            /k:"${REPOSITORY_OWNER}_${REPOSITORY_NAME}" \
-            /o:"${REPOSITORY_OWNER}" \
-            /d:sonar.token="${SONAR_TOKEN}" \
+            /k:"${_REPOSITORY_OWNER}_${_REPOSITORY_NAME}" \
+            /o:"${_REPOSITORY_OWNER}" \
+            /d:sonar.token="${_SONAR_TOKEN}" \
             /d:sonar.host.url="https://sonarcloud.io" \
             "${ARGS[@]}"
           dotnet build
-          dotnet-sonarscanner end /d:sonar.token="${SONAR_TOKEN}"
+          dotnet-sonarscanner end /d:sonar.token="${_SONAR_TOKEN}"
 
       - name: Scan with Sonar
         if: inputs.sonar-config == 'maven'
         env:
-          SONAR_TOKEN: ${{ steps.get-kv-secrets.outputs.SONAR-TOKEN }}
-          SONAR_TEST_INCLUSIONS: ${{ inputs.sonar-test-inclusions }}
-          SONAR_EXCLUSIONS: ${{ inputs.sonar-exclusions }}
-          SONAR_SOURCES: ${{ inputs.sonar-sources }}
-          SONAR_TESTS: ${{ inputs.sonar-tests }}
-          PULL_REQUEST_KEY: ${{ github.event_name == 'pull_request' && github.event.pull_request.number || '' }}
+          _SONAR_TOKEN: ${{ steps.get-kv-secrets.outputs.SONAR-TOKEN }}
+          _SONAR_TEST_INCLUSIONS: ${{ inputs.sonar-test-inclusions }}
+          _SONAR_EXCLUSIONS: ${{ inputs.sonar-exclusions }}
+          _SONAR_SOURCES: ${{ inputs.sonar-sources }}
+          _SONAR_TESTS: ${{ inputs.sonar-tests }}
+          _PULL_REQUEST_KEY: ${{ github.event_name == 'pull_request' && github.event.pull_request.number || '' }}
         run: |
           set -euo pipefail
           ARGS=()
 
-          if [ -n "${SONAR_TEST_INCLUSIONS}" ]; then
-            ARGS+=("-Dsonar.test.inclusions=${SONAR_TEST_INCLUSIONS}")
+          if [ -n "${_SONAR_TEST_INCLUSIONS}" ]; then
+            ARGS+=("-Dsonar.test.inclusions=${_SONAR_TEST_INCLUSIONS}")
           fi
-          if [ -n "${SONAR_EXCLUSIONS}" ]; then
-            ARGS+=("-Dsonar.exclusions=${SONAR_EXCLUSIONS}")
+          if [ -n "${_SONAR_EXCLUSIONS}" ]; then
+            ARGS+=("-Dsonar.exclusions=${_SONAR_EXCLUSIONS}")
           fi
-          if [ -n "${SONAR_SOURCES}" ]; then
-            ARGS+=("-Dsonar.sources=${SONAR_SOURCES}")
+          if [ -n "${_SONAR_SOURCES}" ]; then
+            ARGS+=("-Dsonar.sources=${_SONAR_SOURCES}")
           fi
-          if [ -n "${SONAR_TESTS}" ]; then
-            ARGS+=("-Dsonar.tests=${SONAR_TESTS}")
+          if [ -n "${_SONAR_TESTS}" ]; then
+            ARGS+=("-Dsonar.tests=${_SONAR_TESTS}")
           fi
-          if [ -n "${PULL_REQUEST_KEY}" ]; then
-            ARGS+=("-Dsonar.pullrequest.key=${PULL_REQUEST_KEY}")
+          if [ -n "${_PULL_REQUEST_KEY}" ]; then
+            ARGS+=("-Dsonar.pullrequest.key=${_PULL_REQUEST_KEY}")
           fi
 
           mvn clean install -Dgpg.skip=true sonar:sonar "${ARGS[@]}"

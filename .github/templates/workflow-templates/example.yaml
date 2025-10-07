@@ -1,5 +1,5 @@
-# Workflow templates are based on starter workflows provided by github at 
-# https://github.com/actions/starter-workflows/tree/main and customized to 
+# Workflow templates are based on starter workflows provided by github at
+# https://github.com/actions/starter-workflows/tree/main and customized to
 # represent common practices used on ACME repositories.
 
 # This imaginary workflow runs two steps and illustrates a number of options that we use throughout workflows in the Bitwarden repositories
@@ -7,94 +7,102 @@
 name: Build
 
 on: # Describes when to run the workflow
-  # https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows
+    # https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows
 
-  workflow_dispatch: # When triggered manually
+    workflow_dispatch: # When triggered manually
 
-  push: # On push to the following branches. Temporarily add a development branch to prompt workflow runs for troubleshooting
-    branches: ["main", "rc", "hotfix-rc"]
-    paths-ignore: # Updates to these directories or files will not trigger a workflow run
-      - ".github/workflows/**"
+    push: # On push to the following branches. Temporarily add a development branch to prompt workflow runs for troubleshooting
+        branches: ["main", "rc", "hotfix-rc"]
+        paths-ignore: # Updates to these directories or files will not trigger a workflow run
+            - ".github/workflows/**"
 
-  # Pull_request_target: #We strongly discourage using this unless absolutely necessary as it requires access to certain Github secrets.
+    # Pull_request_target: #We strongly discourage using this unless absolutely necessary as it requires access to certain Github secrets.
     # If using this, include the .github/workflows/check-run.yml job and target only the main branch
     # More info at https://github.blog/news-insights/product-news/github-actions-improvements-for-fork-and-pull-request-workflows/#improvements-for-public-repository-forks
 
-  pull_request: # When a pull request event occurs
-    types: [opened, synchronize, unlabeled, labeled, unlabeled, reopened, edited]
-    branches: ["main"] # Branches where a pull request will trigger the workflow
+    pull_request: # When a pull request event occurs
+        types:
+            [
+                opened,
+                synchronize,
+                unlabeled,
+                labeled,
+                unlabeled,
+                reopened,
+                edited,
+            ]
+        branches: ["main"] # Branches where a pull request will trigger the workflow
 
+    release: # Runs your workflow when release activity in your repository occurs
+        types: [published, created]
 
-  release: # Runs your workflow when release activity in your repository occurs
-    types: [published, created]
+    merge_group: # Runs required status checks on merge groups created by merge queue
+        types: [checks_requested]
 
-  merge_group: # Runs required status checks on merge groups created by merge queue
-    types: [checks_requested]
+    repository_dispatch: # Runs when a webook event triggers a workflow from outside of github
+        types: [contentful-publish] # Optional, limit repository dispatch events to those in a specified list
 
-  repository_dispatch: # Runs when a webook event triggers a workflow from outside of github
-    types: [contentful-publish] # Optional, limit repository dispatch events to those in a specified list
-  
-  workflow_call: # Workflow can be called by another workflow
+    workflow_call: # Workflow can be called by another workflow
 
 env: # Environment variables set for this step but not accessible by all workflows, steps or jobs.
-  _AZ_REGISTRY: "ACMEprod.azurecr.io"
-  INCREMENTAL: "${{ contains(github.event_name, 'pull_request') && '--sast-incremental' || '' }}"
+    _AZ_REGISTRY: "ACMEprod.azurecr.io"
+    INCREMENTAL: "${{ contains(github.event_name, 'pull_request') && '--sast-incremental' || '' }}"
 
 jobs: # A workflow run is made up of one or more jobs that can run sequentially or in parallel
-  first-job:
-    name: First Job Name
-    uses: ./.github/templates/workflow-templates/example-references/_version.yml # Path to an existing github action
-    if: github.event.pull_request.draft == false # prevent part of a job from running on a draft PR
-    secrets: inherit # When called by another workflow, pass all the calling workflow's secrets to the called workflow
-    # "secrets" is only available for a reusable workflow call with "uses"
-    strategy: # Create multiple job runs for each of a set of variables
-      fail-fast: false # If true, cancel entire run if any job in the matrix fails
-      matrix:  # Matrix of variables used to define multiple job runs
-        include:
-          - project_name: Admin
-            base_path: ./src
-            node: true # Enables steps with if: ${{ matrix.node }}
+    first-job:
+        name: First Job Name
+        uses: ./.github/templates/workflow-templates/example-references/_version.yml # Path to an existing github action
+        if: github.event.pull_request.draft == false # prevent part of a job from running on a draft PR
+        secrets: inherit # When called by another workflow, pass all the calling workflow's secrets to the called workflow
+        # "secrets" is only available for a reusable workflow call with "uses"
+        strategy: # Create multiple job runs for each of a set of variables
+            fail-fast: false # If true, cancel entire run if any job in the matrix fails
+            matrix: # Matrix of variables used to define multiple job runs
+                include:
+                    - project_name: Admin
+                      base_path: ./src
+                      node: true # Enables steps with if: ${{ matrix.node }}
 
-    # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/controlling-permissions-for-github_token
-    permissions: # Sets permissions of the GITHUB_TOKEN
-      security-events: write # Allow actions to upload results to Github
-      id-token: write # Required to fetch an OpenID Connect (OIDC) token
-      contents: read  # For actions/checkout to fetch code
-      deployments: write # Permits an action to create a new deployment
-      issues: write # Permits an action to create a new issue
-      checks: write # Permits an action to create a check run
-      actions: write # Permits an action to cancel a workflow run
-      packages: read # Permits an action to access packages on GitHub Packages
-      pull-requests: write # Permits an action to add a label to a pull request
+        # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/controlling-permissions-for-github_token
+        permissions: # Sets permissions of the GITHUB_TOKEN
+            security-events: write # Allow actions to upload results to Github
+            id-token: write # Required to fetch an OpenID Connect (OIDC) token
+            contents: read # For actions/checkout to fetch code
+            deployments: write # Permits an action to create a new deployment
+            issues: write # Permits an action to create a new issue
+            checks: write # Permits an action to create a check run
+            actions: write # Permits an action to cancel a workflow run
+            packages: read # Permits an action to access packages on GitHub Packages
+            pull-requests: write # Permits an action to add a label to a pull request
 
-  # steps: when a reusable workflow is called with "uses", "steps" is not available
-  second-job:
-    name: Second Job Name
-    runs-on: ubuntu-22.04 # The type of runner that the job will run on, not available if "uses" is used
-    defaults:
-      run: # Set the default shell and working directory
-        shell: bash
-        working-directory: "home/WorkingDirectory"
+    # steps: when a reusable workflow is called with "uses", "steps" is not available
+    second-job:
+        name: Second Job Name
+        runs-on: ubuntu-22.04 # The type of runner that the job will run on, not available if "uses" is used
+        defaults:
+            run: # Set the default shell and working directory
+                shell: bash
+                working-directory: "home/WorkingDirectory"
 
-    needs:
-      - first-job  # This job will wait until first-job completes
-  #     #   # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/setting-a-default-shell-and-working-directory
-    steps:
-      - name: Descriptive step name
-      # NOT RECOMMENDED if: always() # run even if previous steps failed or the workflow is canceled, this can cause a workflow run to hang indefinitely
-        if: failure() # run when any previous step of a job fails
-      # if: '!cancelled()' # run even if previous steps failed
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2 Always pin a public action version to a full git SHA, followed by the version number in a comment.  Version pins are insecure and can introduce vulnerabilities into workflows.
-        with: # Parameters specific to this action that need to be defined in order for the step to be completed
-          fetch-depth: 0 # Full git history for actions that rely on whether a change has occurred
-          ref: ${{ github.event.pull_request.head.sha }}
-          creds: ${{ secrets.SECRETS_OR_CREDENTIALS }}
-      - name: Another descriptive step name
-        # Run a script instead of an existing github action
-        run: |
-          whoami
-          dotnet --info
-          node --version
-          npm --version
-          echo "GitHub ref: $GITHUB_REF"
-          echo "GitHub event: $GITHUB_EVENT"
+        needs:
+            - first-job # This job will wait until first-job completes
+        #     #   # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/setting-a-default-shell-and-working-directory
+        steps:
+            - name: Descriptive step name
+              # NOT RECOMMENDED if: always() # run even if previous steps failed or the workflow is canceled, this can cause a workflow run to hang indefinitely
+              if: failure() # run when any previous step of a job fails
+              # if: '!cancelled()' # run even if previous steps failed
+              uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0 Always pin a public action version to a full git SHA, followed by the version number in a comment.  Version pins are insecure and can introduce vulnerabilities into workflows.
+              with: # Parameters specific to this action that need to be defined in order for the step to be completed
+                  fetch-depth: 0 # Full git history for actions that rely on whether a change has occurred
+                  ref: ${{ github.event.pull_request.head.sha }}
+                  creds: ${{ secrets.SECRETS_OR_CREDENTIALS }}
+            - name: Another descriptive step name
+              # Run a script instead of an existing github action
+              run: |
+                  whoami
+                  dotnet --info
+                  node --version
+                  npm --version
+                  echo "GitHub ref: $GITHUB_REF"
+                  echo "GitHub event: $GITHUB_EVENT"

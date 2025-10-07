@@ -16,8 +16,10 @@ on:
         type: string
         default: "default"
       sonar-test-inclusions:
+        description: "Glob pattern(s) for test files to include in Sonar analysis"
         type: string
       sonar-exclusions:
+        description: "Glob pattern(s) for files to exclude from Sonar analysis"
         type: string
 
 permissions: {}

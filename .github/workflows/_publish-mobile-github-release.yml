@@ -1,7 +1,6 @@
 name: _publish-mobile-github-release
 
 on:
-  workflow_dispatch: #temporary for testing
   workflow_call:
     inputs:
       release_name:

@@ -281,7 +281,6 @@ jobs:
           fi
 
       - name: Create workflow state artifact
-        id: create_workflow_state_artifact
         run: |
           if [ -f "release-info.json" ]; then
             echo "release-info.json already exists, removing it"

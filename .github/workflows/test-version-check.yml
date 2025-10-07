@@ -114,9 +114,9 @@ jobs:
       - name: Verify expected failures - default type
         if: ${{ matrix.type == '' && matrix.should-fail == true }}
         env:
-          _VERSION_CHECK_OUTCOME: ${{ steps.version-check.outcome }}
+          _VERSION_CHECK_DEFAULT_TYPE_OUTCOME: ${{ steps.version-check-default-type.outcome }}
         run: |
-          if [ "$_VERSION_CHECK_OUTCOME" != "failure" ]; then
+          if [ "$_VERSION_CHECK_DEFAULT_TYPE_OUTCOME" != "failure" ]; then
             echo "Action was expected to fail but did not."
             exit 1
           fi

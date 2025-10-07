@@ -8,7 +8,7 @@ on:
         type: string
         default: ""
       workflow_name:
-        description: 'Name of the workflow to check for previous runs (e.g. publish-github-release.yml)'
+        description: "Name of the workflow to check for previous runs (e.g. publish-github-release.yml)"
         type: string
         required: true
       credentials_filename:
@@ -27,8 +27,6 @@ on:
         type: string
         required: true
 
-
-
 jobs:
   publish-release:
     name: Publish GitHub Release ${{ inputs.release_name }}
@@ -40,7 +38,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0
 
@@ -63,6 +61,9 @@ jobs:
               echo "No draft found"
               exit 0
           fi
+
+          latest_draft_tag=$(jq -r '.tagName' <<< $latest_release)
+          echo "latest_draft_tag=$latest_draft_tag" >> $GITHUB_OUTPUT
 
           latest_draft_version_name=$(echo "$latest_release" | jq -r '.name' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
           echo "latest_draft_version_name=$latest_draft_version_name" >> $GITHUB_OUTPUT
@@ -104,7 +105,7 @@ jobs:
         id: previous_state
         if: steps.get_previous_run.outputs.has_previous_run == 'true'
         continue-on-error: true
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           name: ${{ steps.compose_artifact_name.outputs.artifact_name }}
           run-id: ${{ steps.get_previous_run.outputs.previous_run_id }}
@@ -163,7 +164,7 @@ jobs:
 
       - name: Configure Ruby
         if: steps.check_already_processed.outputs.should_skip == 'false'
-        uses: ruby/setup-ruby@ca041f971d66735f3e5ff1e21cc13e2d51e7e535 # v1.233.0
+        uses: ruby/setup-ruby@efbf473cab83af4468e8606cc33eca9281bb213f # v1.256.0
         with:
           bundler-cache: true
 
@@ -242,7 +243,7 @@ jobs:
       - name: Make GitHub release latest and non-pre-release
         if: steps.check_version.outputs.version_released == 'true'
         env:
-          TAG: ${{ steps.get_latest_draft.outputs.latest_draft_version_name }}
+          TAG: ${{ steps.get_latest_draft.outputs.latest_draft_tag }}
           GH_TOKEN: ${{ github.token }}
         run: gh release edit $TAG --prerelease=false --latest --draft=false
 

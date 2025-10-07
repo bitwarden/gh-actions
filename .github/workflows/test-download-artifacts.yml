@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Download
         uses: ./download-artifacts
@@ -36,14 +36,13 @@ jobs:
           cat artifact/sha
           echo $GITHUB_SHA
 
-
   download-main:
     name: Download main
     runs-on: ubuntu-22.04
     if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Download
         uses: ./download-artifacts
@@ -64,13 +63,13 @@ jobs:
     if: github.event_name != 'pull_request'
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Extract branch name
         id: extract_branch
         run: |
-         branch=${GITHUB_REF#refs/heads/}
-         echo "branch=$branch" >> $GITHUB_OUTPUT
+          branch=${GITHUB_REF#refs/heads/}
+          echo "branch=$branch" >> $GITHUB_OUTPUT
 
       - name: Download
         uses: ./download-artifacts
@@ -91,7 +90,7 @@ jobs:
     if: github.event_name == 'pull_request'
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Download
         uses: ./download-artifacts
@@ -106,13 +105,12 @@ jobs:
           cat artifact/sha
           echo $GITHUB_SHA
 
-
   download-all:
     name: Download All
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Download
         uses: ./download-artifacts
@@ -126,40 +124,38 @@ jobs:
           cat sha1
           cat sha2
 
-
   download-multiple:
     name: Download Multiple
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Download
         uses: ./download-artifacts
         with:
           workflow: upload-test-artifacts.yml
-          artifacts: 'artifact1,
-                      artifact2'
+          artifacts: "artifact1,
+            artifact2"
 
       - name: Test
         run: |
           ls -atlh
           cat sha1
           cat sha2
-
 
   download-wildcard:
     name: Download Wildcard
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Download
         uses: ./download-artifacts
         with:
           workflow: upload-test-artifacts.yml
-          artifacts: '*.txt'
+          artifacts: "*.txt"
 
       - name: Test
         run: |
@@ -167,13 +163,12 @@ jobs:
           cat sha1
           cat sha2
 
-
   download-conclusion:
     name: Download Conclusion
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Download
         uses: ./download-artifacts
@@ -181,7 +176,7 @@ jobs:
           workflow: upload-test-artifacts.yml
           artifacts: artifact
           path: artifact
-          workflow_conclusion: ''
+          workflow_conclusion: ""
 
       - name: Test
         run: |
@@ -193,7 +188,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Download
         id: download

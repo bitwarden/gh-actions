@@ -67,10 +67,10 @@ jobs:
         uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Checkout Ephemeral Environment Charts
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           repository: bitwarden/ephemeral-environment-charts
-          token: '${{ steps.retrieve-secrets.outputs.github-pat-bitwarden-devops-bot-repo-scope }}'
+          token: "${{ steps.retrieve-secrets.outputs.github-pat-bitwarden-devops-bot-repo-scope }}"
 
       - name: Create Branch
         env:
@@ -108,11 +108,11 @@ jobs:
         uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Checkout ${{ inputs.project }}
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           repository: bitwarden/${{ inputs.project }}
           ref: ${{ inputs.ephemeral_env_branch }}
-          token: '${{ steps.retrieve-secrets.outputs.github-pat-bitwarden-devops-bot-repo-scope }}'
+          token: "${{ steps.retrieve-secrets.outputs.github-pat-bitwarden-devops-bot-repo-scope }}"
 
       - name: Remove config
         working-directory: ephemeral-environments
@@ -152,9 +152,9 @@ jobs:
         with:
           keyvault: ${{ env._KEY_VAULT }}
           secrets: |
-              ephemeral-environment-argocd-cluster-url,
-              ephemeral-environment-argocd-cluster-api-secret,
-              ephemeral-environment-argocd-cluster-api-user
+            ephemeral-environment-argocd-cluster-url,
+            ephemeral-environment-argocd-cluster-api-secret,
+            ephemeral-environment-argocd-cluster-api-user
 
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main

@@ -11,10 +11,8 @@
 /.github/workflows/scan.yml @bitwarden/team-appsec
 /.github/workflows/_checkmarx.yml @bitwarden/team-appsec
 /.github/workflows/_sonar.yml @bitwarden/team-appsec
-/.github/workflows/_zizmor.yml @bitwarden/team-appsec
 /.github/workflows/test-checkmarx.yml @bitwarden/team-appsec
 /.github/workflows/test-sonar.yml @bitwarden/team-appsec
-/.github/workflows/test-zizmor.yml @bitwarden/team-appsec
 
 # Docker-related files
 **/Dockerfile @bitwarden/team-appsec @bitwarden/dept-bre

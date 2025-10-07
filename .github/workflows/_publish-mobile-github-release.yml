@@ -94,7 +94,6 @@ jobs:
         id: get_previous_run
         env:
           GH_TOKEN: ${{ github.token }}
-          _WORKFLOW_NAME: ${{ inputs.workflow_name }}
         run: |
           previous_run_id=$(gh run list --workflow=$_WORKFLOW_NAME  --status=success --limit 1 --json databaseId --jq '.[0].databaseId // empty')
 

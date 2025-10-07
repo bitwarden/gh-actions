@@ -42,6 +42,7 @@ jobs:
       actions: write
     env:
       _DRY_RUN: ${{ inputs.dry_run }}
+      _WORKFLOW_NAME: ${{ inputs.workflow_name }}
 
     steps:
       - name: Check out repository
@@ -68,7 +69,7 @@ jobs:
               echo "No draft found"
               if $_DRY_RUN != "true"; then
                 echo "Disabling workflow to prevent further runs"
-                gh workflow disable "$WORKFLOW_NAME"
+                gh workflow disable "$_WORKFLOW_NAME"
               fi
               exit 0
           fi
@@ -93,9 +94,9 @@ jobs:
         id: get_previous_run
         env:
           GH_TOKEN: ${{ github.token }}
-          WORKFLOW_NAME: ${{ inputs.workflow_name }}
+          _WORKFLOW_NAME: ${{ inputs.workflow_name }}
         run: |
-          previous_run_id=$(gh run list --workflow=$WORKFLOW_NAME  --status=success --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          previous_run_id=$(gh run list --workflow=$_WORKFLOW_NAME  --status=success --limit 1 --json databaseId --jq '.[0].databaseId // empty')
 
           if [ -n "$previous_run_id" ] && [ "$previous_run_id" != "null" ]; then
             echo "Found previous successful scheduled run: $previous_run_id"
@@ -274,10 +275,10 @@ jobs:
         run: |
           if [ "$_DRY_RUN" = "true" ]; then
             echo "Dry run mode - skipping gh workflow disable command"
-            gh workflow list "$WORKFLOW_NAME"
+            gh workflow list "$_WORKFLOW_NAME"
           else
             echo "Disabling workflow to prevent further runs"
-            gh workflow disable "$WORKFLOW_NAME"
+            gh workflow disable "$_WORKFLOW_NAME"
           fi
 
       - name: Create workflow state artifact

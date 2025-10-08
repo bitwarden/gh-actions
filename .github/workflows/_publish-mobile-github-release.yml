@@ -67,7 +67,7 @@ jobs:
 
           if [ "$is_latest_draft" != "true" ]; then
               echo "No draft found"
-              if $_DRY_RUN != "true"; then
+              if [ "$_DRY_RUN" != "true" ]; then
                 echo "Disabling workflow to prevent further runs"
                 gh workflow disable "$_WORKFLOW_NAME"
               fi
@@ -259,9 +259,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PRODUCT: ${{ inputs.release_name }}
         run: |
-          if [ "$_DRY_RUN" = "true" ]; then
-            echo "Dry run mode - skipping gh release edit command"
-          elif [ "$PRODUCT" = "Password Manager" ]; then:
+          if [ "$PRODUCT" = "Password Manager" ]; then
             gh release edit $TAG --prerelease=false --latest --draft=false
           else
             gh release edit $TAG --prerelease=false --draft=false

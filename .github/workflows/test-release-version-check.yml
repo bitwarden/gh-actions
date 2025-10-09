@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 jobs:
-  test_version_check:
+  test-version-check:
     name: Test Version Check
     runs-on: ubuntu-22.04
     strategy:
@@ -90,17 +90,17 @@ jobs:
   run-version-check-test:
     name: Run Version Check Test
     runs-on: ubuntu-22.04
-    needs: [test_version_check]
+    needs: [test-version-check]
     if: always()
     env:
-      _TS_SEMVER_SUCCESS_STATUS: ${{ needs.test_version_check.outputs.ts_semver_success_status }}
-      _TS_SEMVER_FAIL_STATUS: ${{ needs.test_version_check.outputs.ts_semver_fail_status }}
-      _TS_CALVER_SUCCESS_STATUS: ${{ needs.test_version_check.outputs.ts_calver_success_status }}
-      _TS_CALVER_FAIL_STATUS: ${{ needs.test_version_check.outputs.ts_calver_fail_status }}
-      _DOTNET_CALVER_SUCCESS_STATUS: ${{ needs.test_version_check.outputs.dotnet_calver_success_status }}
-      _DOTNET_CALVER_FAIL_STATUS: ${{ needs.test_version_check.outputs.dotnet_calver_fail_status }}
-      _XAMARIN_CALVER_SUCCESS_STATUS: ${{ needs.test_version_check.outputs.xamarin_calver_success_status }}
-      _XAMARIN_CALVER_FAIL_STATUS: ${{ needs.test_version_check.outputs.xamarin_calver_fail_status }}
+      _TS_SEMVER_SUCCESS_STATUS: ${{ needs.test-version-check.outputs.ts_semver_success_status }}
+      _TS_SEMVER_FAIL_STATUS: ${{ needs.test-version-check.outputs.ts_semver_fail_status }}
+      _TS_CALVER_SUCCESS_STATUS: ${{ needs.test-version-check.outputs.ts_calver_success_status }}
+      _TS_CALVER_FAIL_STATUS: ${{ needs.test-version-check.outputs.ts_calver_fail_status }}
+      _DOTNET_CALVER_SUCCESS_STATUS: ${{ needs.test-version-check.outputs.dotnet_calver_success_status }}
+      _DOTNET_CALVER_FAIL_STATUS: ${{ needs.test-version-check.outputs.dotnet_calver_fail_status }}
+      _XAMARIN_CALVER_SUCCESS_STATUS: ${{ needs.test-version-check.outputs.xamarin_calver_success_status }}
+      _XAMARIN_CALVER_FAIL_STATUS: ${{ needs.test-version-check.outputs.xamarin_calver_fail_status }}
     steps:
       - name: Validate Outputs
         run: |

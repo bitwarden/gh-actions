@@ -64,7 +64,7 @@ jobs:
 
           # Single Version label Enforcement (should go in CI...)
           tag_count=$(wc -w <<<"$version_tag")
-          if (( tag_count > 1 )); then
+          if [[ $tag_count -gt 1 ]]; then
             echo "[!] multiple version labels found!"
             exit 1
           fi
@@ -80,7 +80,7 @@ jobs:
           VERSION_TYPE: ${{ steps.bump-type.outputs.type }}
           PR_ID: ${{ steps.pr.outputs.id }}
         run: |
-          printf '\nCalculating next version...'
+          echo -e "\nCalculating next version..."
 
           latest_tag_version=$(git tag --sort=committerdate --list | tail -1)
           latest_version=${latest_tag_version:1}  # remove 'v' from tag version

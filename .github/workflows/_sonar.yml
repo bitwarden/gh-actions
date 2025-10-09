@@ -64,15 +64,17 @@ jobs:
         uses: sonarsource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6.0.0
         env:
           SONAR_TOKEN: ${{ steps.get-kv-secrets.outputs.SONAR-TOKEN }}
-        with:
-          args: >
-            "-Dsonar.organization=${{ github.repository_owner }}"
-            "-Dsonar.projectKey=${{ github.repository_owner }}_${{ github.event.repository.name }}"
-            ${{ contains(github.event_name, 'pull_request') && format('"-Dsonar.pullrequest.key={0}"', github.event.pull_request.number) || '' }}
+          SONAR_ARGS: >-
+            ${{ github.event_name == 'pull_request' && format('"-Dsonar.pullrequest.key={0}"', github.event.pull_request.number) || '' }}
             ${{ inputs.sonar-test-inclusions != '' && format('"-Dsonar.test.inclusions={0}"', inputs.sonar-test-inclusions) || '' }}
             ${{ inputs.sonar-exclusions != '' && format('"-Dsonar.exclusions={0}"', inputs.sonar-exclusions) || '' }}
             ${{ inputs.sonar-sources != '' && format('"-Dsonar.sources={0}"', inputs.sonar-sources) || '' }}
             ${{ inputs.sonar-tests != '' && format('"-Dsonar.tests={0}"', inputs.sonar-tests) || '' }}
+        with:
+          args: >
+            "-Dsonar.organization=${{ github.repository_owner }}"
+            "-Dsonar.projectKey=${{ github.repository_owner }}_${{ github.event.repository.name }}"
+            ${{ env.SONAR_ARGS }}
 
       - name: Set up Java
         if: inputs.sonar-config == 'maven' || inputs.sonar-config == 'dotnet'

@@ -26,8 +26,12 @@ jobs:
         if: |
           steps.get-permission.outputs.require-result == 'false'
           && github.triggering_actor != 'bw-ghapp[bot]'
+        env:
+          GITHUB_TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          USER_PERMISSIONS: ${{ steps.get-permission.outputs.user-permission }}
         run: |
-          echo "User ${{ github.triggering_actor }} does not have the necessary access for this repository."
-          echo "Current permission level is ${{ steps.get-permission.outputs.user-permission }}."
-          echo "Job originally triggered by ${{ github.actor }}."
+          echo "User ${GITHUB_TRIGGERING_ACTOR} does not have the necessary access for this repository."
+          echo "Current permission level is ${USER_PERMISSIONS}."
+          echo "Job originally triggered by ${GITHUB_ACTOR}."
           exit 1

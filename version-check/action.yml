@@ -2,7 +2,7 @@ name: "Version Check"
 description: "Checks to make sure the version matches the correct format"
 inputs:
   version:
-    description: 'Version string to check'
+    description: "Version string to check"
     required: true
   validation_type:
     description: 'Type of validation to perform: "semver" or "calver" (default)'

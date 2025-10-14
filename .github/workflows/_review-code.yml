@@ -49,6 +49,7 @@ jobs:
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           PR_COMMIT: ${{ github.event.pull_request.head.sha }}
+          CUSTOM_PROMPT_PATH: ${{ inputs.custom_prompt_path }}
         run: |
           # Start building a prompt with the GitHub context
           {
@@ -68,7 +69,7 @@ jobs:
           cat gh-actions-repo/.claude/prompts/review-code-base.md >> /tmp/review-prompt.md
 
           # Check for repo-specific additions
-          CUSTOM_PATH="${{ inputs.custom_prompt_path }}"
+          CUSTOM_PATH="$CUSTOM_PROMPT_PATH"
 
           # Validate path must be within .claude/ directory
           if [[ ! "$CUSTOM_PATH" =~ ^\.claude/ ]]; then

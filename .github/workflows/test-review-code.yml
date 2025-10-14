@@ -150,7 +150,7 @@ jobs:
               ALLOWED_TOOLS="${{ matrix.malicious-input }}"
 
               # Test character allowlist
-              if [[ ! "$ALLOWED_TOOLS" =~ ^[a-zA-Z0-9_,():\* -]+$ ]]; then
+              if [[ ! "$ALLOWED_TOOLS" =~ ^[a-zA-Z0-9_,():*[:space:]-]+$ ]]; then
                 echo "✅ PASS: Invalid characters blocked"
                 exit 0
               fi

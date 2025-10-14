@@ -1,0 +1,172 @@
+name: Code Review
+
+on:
+  workflow_call:
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: true
+    inputs:
+      allowed_tools:
+        description: 'Allowed tools for Claude (optional override)'
+        required: false
+        type: string
+        default: 'mcp__github_comment__update_claude_comment,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*)'
+      custom_prompt_path:
+        description: 'Path to repo-specific prompt additions'
+        required: false
+        type: string
+        default: '.claude/prompts/review-additions.md'
+jobs:
+  review:
+    name: Review
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+
+    steps:
+      - name: Check out caller repo
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out gh-actions for base prompt
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          repository: bitwarden/gh-actions
+          ref: main
+          path: gh-actions-repo
+          persist-credentials: false
+
+      - name: Build review prompt
+        id: build-prompt
+        env:
+          PR_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_COMMIT: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # Start building a prompt with the GitHub context
+          {
+            printf "REPO: %s\n" "$PR_REPO"
+            printf "PR NUMBER: %s\n" "$PR_NUMBER"
+            printf "TITLE: %s\n" "$PR_TITLE"
+            printf "BODY: %s\n" "$PR_BODY"
+            printf "AUTHOR: %s\n" "$PR_AUTHOR"
+            printf "COMMIT: %s\n" "$PR_COMMIT"
+            printf "\n"
+            printf "Note: The PR branch is already checked out in the current working directory.\n"
+            printf "\n"
+          } > /tmp/review-prompt.md
+
+           # Append base prompt from gh-actions repo
+          echo "Appending base review prompt..."
+          cat gh-actions-repo/.claude/prompts/review-code-base.md >> /tmp/review-prompt.md
+
+          # Check for repo-specific additions
+          CUSTOM_PATH="${{ inputs.custom_prompt_path }}"
+
+          # Validate path must be within .claude/ directory
+          if [[ ! "$CUSTOM_PATH" =~ ^\.claude/ ]]; then
+            echo "ERROR: custom_prompt_path must be within .claude/ directory"
+            echo "Expected format: .claude/prompts/your-file.md"
+            echo "Provided: $CUSTOM_PATH"
+            exit 1
+          fi
+
+          # Validate no path traversal (no '..' allowed anywhere in path)
+          if [[ "$CUSTOM_PATH" =~ \.\. ]]; then
+            echo "ERROR: Path traversal detected in custom_prompt_path (contains '..')"
+            echo "Provided: $CUSTOM_PATH"
+            exit 1
+          fi
+
+          # Check if file exists and append
+          if [ -f "$CUSTOM_PATH" ]; then
+            echo "Found repo-specific additions at $CUSTOM_PATH"
+
+            # Check file size to prevent DoS attacks (100KB limit)
+            FILE_SIZE=$(stat -c%s "$CUSTOM_PATH" 2>/dev/null || stat -f%z "$CUSTOM_PATH" 2>/dev/null)
+            if [ -z "$FILE_SIZE" ] || ! [[ "$FILE_SIZE" =~ ^[0-9]+$ ]]; then
+              echo "ERROR: Cannot determine file size for $CUSTOM_PATH"
+              exit 1
+            fi
+
+            if [ "$FILE_SIZE" -gt 102400 ]; then
+              echo "ERROR: Custom prompt file exceeds 100KB limit"
+              echo "File size: $FILE_SIZE bytes (max: 102400)"
+              echo "This prevents token exhaustion and cost abuse"
+              exit 1
+            fi
+
+            echo "File size: $FILE_SIZE bytes (within 100KB limit)"
+            echo "Appending custom prompt..."
+            printf "\n\n---\n## Repository-Specific Review Focus:\n" >> /tmp/review-prompt.md
+            cat "$CUSTOM_PATH" >> /tmp/review-prompt.md
+          else
+            echo "No repo-specific additions found at $CUSTOM_PATH, using base prompt only"
+          fi
+
+          # Output the combined prompt
+          {
+            echo 'FINAL_PROMPT<<EOF'
+            cat /tmp/review-prompt.md
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Validate allowed_tools input
+        id: validate-tools
+        env:
+          ALLOWED_TOOLS: ${{ inputs.allowed_tools }}
+        run: |
+          # Trim leading/trailing whitespace
+          ALLOWED_TOOLS=$(echo "$ALLOWED_TOOLS" | xargs)
+
+          # Validate allowed_tools contains only safe characters
+          # Allow: letters, numbers, underscore, comma, parentheses, colon, asterisk, hyphen, brackets, spaces
+          if [[ ! "$ALLOWED_TOOLS" =~ ^[a-zA-Z0-9_,\(\):\*\-\[\]\ ]+$ ]]; then
+            echo "ERROR: Invalid characters detected in allowed_tools"
+            echo "Allowed characters: a-z, A-Z, 0-9, _, , ( ) : * - [ ] and spaces"
+            echo "Provided value: $ALLOWED_TOOLS"
+            exit 1
+          fi
+
+          # Block dangerous shell metacharacters
+          if [[ "$ALLOWED_TOOLS" =~ (\;|\$|\`|\||\\) ]]; then
+            echo "ERROR: Dangerous shell metacharacters detected in allowed_tools"
+            echo "Blocked characters: ; $ \` | \\"
+            echo "Provided value: $ALLOWED_TOOLS"
+            exit 1
+          fi
+
+          # Validate Bash() commands only use 'gh' tool (GitHub CLI)
+          if echo "$ALLOWED_TOOLS" | grep -q 'Bash('; then
+            # Extract content inside Bash() and check each one starts with 'gh '
+            bash_commands=$(echo "$ALLOWED_TOOLS" | grep -oE 'Bash\([^)]+\)' | sed 's/Bash(\(.*\))/\1/')
+            while IFS= read -r cmd; do
+              if [[ -n "$cmd" ]] && [[ ! "$cmd" =~ ^gh\  ]]; then
+                echo "ERROR: Bash() commands must only use GitHub CLI (gh)"
+                echo "Invalid command: $cmd"
+                echo "Only 'gh' commands are allowed for security"
+                exit 1
+              fi
+            done <<< "$bash_commands"
+          fi
+
+          # Output validated tools for next step
+          echo "validated_tools=$ALLOWED_TOOLS" >> "$GITHUB_OUTPUT"
+          echo "✅ Validated allowed_tools: $ALLOWED_TOOLS"
+
+      - name: Review with Claude Code
+        uses: anthropics/claude-code-action@ac1a3207f3f00b4a37e2f3a6f0935733c7c64651 # v1.0.11
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          track_progress: true
+          use_sticky_comment: true
+          prompt: ${{ steps.build-prompt.outputs.FINAL_PROMPT }}
+          claude_args: |
+            --allowedTools "${{ steps.validate-tools.outputs.validated_tools }}"

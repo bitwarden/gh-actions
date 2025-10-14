@@ -128,10 +128,10 @@ jobs:
           ALLOWED_TOOLS=$(echo "$ALLOWED_TOOLS" | xargs)
 
           # Validate allowed_tools contains only safe characters
-          # Allow: letters, numbers, underscore, comma, parentheses, colon, asterisk, hyphen, brackets, spaces
-          if [[ ! "$ALLOWED_TOOLS" =~ ^[a-zA-Z0-9_,\(\):\*\-\[\]\ ]+$ ]]; then
+          # Allow: letters, numbers, underscore, comma, parentheses, colon, asterisk, hyphen, spaces
+          if [[ ! "$ALLOWED_TOOLS" =~ ^[a-zA-Z0-9_,():\* -]+$ ]]; then
             echo "ERROR: Invalid characters detected in allowed_tools"
-            echo "Allowed characters: a-z, A-Z, 0-9, _, , ( ) : * - [ ] and spaces"
+            echo "Allowed characters: a-z, A-Z, 0-9, _, , ( ) : * - and spaces"
             echo "Provided value: $ALLOWED_TOOLS"
             exit 1
           fi

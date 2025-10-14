@@ -107,16 +107,16 @@ jobs:
             test-type: "file-size"
             file-size-kb: 200
     outputs:
-      path-traversal-parent-status: ${{ steps.set-status.outputs.path-traversal-parent }}
-      path-traversal-absolute-status: ${{ steps.set-status.outputs.path-traversal-absolute }}
-      path-traversal-double-status: ${{ steps.set-status.outputs.path-traversal-double }}
-      tools-dangerous-bash-status: ${{ steps.set-status.outputs.tools-dangerous-bash }}
+      path-traversal-parent-status: ${{ steps.set-status.outputs.path-traversal-parent-directory }}
+      path-traversal-absolute-status: ${{ steps.set-status.outputs.path-traversal-absolute-path }}
+      path-traversal-double-status: ${{ steps.set-status.outputs.path-traversal-double-dot }}
+      tools-dangerous-bash-status: ${{ steps.set-status.outputs.tools-dangerous-bash-command }}
       tools-shell-semicolon-status: ${{ steps.set-status.outputs.tools-shell-semicolon }}
-      tools-command-sub-status: ${{ steps.set-status.outputs.tools-command-sub }}
-      injection-command-sub-status: ${{ steps.set-status.outputs.injection-command-sub }}
-      injection-backtick-status: ${{ steps.set-status.outputs.injection-backtick }}
-      injection-newline-status: ${{ steps.set-status.outputs.injection-newline }}
-      file-size-status: ${{ steps.set-status.outputs.file-size }}
+      tools-command-sub-status: ${{ steps.set-status.outputs.tools-command-substitution }}
+      injection-command-sub-status: ${{ steps.set-status.outputs.injection-command-substitution }}
+      injection-backtick-status: ${{ steps.set-status.outputs.injection-backtick-execution }}
+      injection-newline-status: ${{ steps.set-status.outputs.injection-newline-escape }}
+      file-size-status: ${{ steps.set-status.outputs.file-size-exceeds-limit }}
 
     steps:
       - name: Check out repo
@@ -150,7 +150,7 @@ jobs:
               ALLOWED_TOOLS="${{ matrix.malicious-input }}"
 
               # Test character allowlist
-              if [[ ! "$ALLOWED_TOOLS" =~ ^[a-zA-Z0-9_,\(\):\*\-\[\]\ ]+$ ]]; then
+              if [[ ! "$ALLOWED_TOOLS" =~ ^[a-zA-Z0-9_,():\* -]+$ ]]; then
                 echo "✅ PASS: Invalid characters blocked"
                 exit 0
               fi

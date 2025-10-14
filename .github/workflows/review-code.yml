@@ -1,0 +1,88 @@
+name: Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
+    types: [checks_requested]
+  workflow_call:
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: true
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    name: Review
+    runs-on: ubuntu-24.04
+    if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Build review prompt
+        id: build-prompt
+        env:
+          PR_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_COMMIT: ${{ github.event.pull_request.head.sha }}
+        run: |
+          PROMPT_FILE=".claude/prompts/review-code.md"
+
+          # Check if prompt file exists - if not, exit gracefully
+          if [ ! -f "$PROMPT_FILE" ]; then
+            echo "⚠️  No Claude Code review prompt found at $PROMPT_FILE"
+            echo "Skipping review - add $PROMPT_FILE to enable code reviews"
+            exit 0
+          fi
+
+          echo "✅ Found review prompt at $PROMPT_FILE"
+
+          # Build the full prompt with GitHub context + repo's prompt
+          {
+            printf "REPO: %s\n" "$PR_REPO"
+            printf "PR NUMBER: %s\n" "$PR_NUMBER"
+            printf "TITLE: %s\n" "$PR_TITLE"
+            printf "BODY: %s\n" "$PR_BODY"
+            printf "AUTHOR: %s\n" "$PR_AUTHOR"
+            printf "COMMIT: %s\n" "$PR_COMMIT"
+            printf "\n"
+            printf "Note: The PR branch is already checked out in the current working directory.\n"
+            printf "\n---\n\n"
+            cat "$PROMPT_FILE"
+          } > /tmp/review-prompt.md
+
+          # Output the prompt
+          {
+            echo 'FINAL_PROMPT<<EOF'
+            cat /tmp/review-prompt.md
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+          echo "prompt_exists=true" >> "$GITHUB_OUTPUT"
+
+      - name: Review with Claude Code
+        if: steps.build-prompt.outputs.prompt_exists == 'true'
+        uses: anthropics/claude-code-action@ac1a3207f3f00b4a37e2f3a6f0935733c7c64651 # v1.0.11
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          track_progress: true
+          use_sticky_comment: true
+          prompt: ${{ steps.build-prompt.outputs.FINAL_PROMPT }}
+          claude_args: |
+            --allowedTools "mcp__github_comment__update_claude_comment,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*)"

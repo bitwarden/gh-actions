@@ -1,0 +1,25 @@
+name: Test Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - ".github/workflows/test-review-code.yml"
+      - ".github/workflows/review-code.yml"
+  push:
+    branches:
+      - "main"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  review:
+    name: Code Review
+    uses: ./.github/workflows/review-code.yml
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write

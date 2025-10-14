@@ -129,7 +129,7 @@ jobs:
 
           # Validate allowed_tools contains only safe characters
           # Allow: letters, numbers, underscore, comma, parentheses, colon, asterisk, hyphen, spaces
-          if [[ ! "$ALLOWED_TOOLS" =~ ^[a-zA-Z0-9_,():\* -]+$ ]]; then
+          if [[ ! "$ALLOWED_TOOLS" =~ ^[a-zA-Z0-9_,():*[:space:]-]+$ ]]; then
             echo "ERROR: Invalid characters detected in allowed_tools"
             echo "Allowed characters: a-z, A-Z, 0-9, _, , ( ) : * - and spaces"
             echo "Provided value: $ALLOWED_TOOLS"

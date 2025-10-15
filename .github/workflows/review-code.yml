@@ -7,8 +7,12 @@ on:
     types: [checks_requested]
   workflow_call:
     secrets:
-      ANTHROPIC_API_KEY:
-        required: true
+      AZURE_SUBSCRIPTION_ID:
+        required: false
+      AZURE_TENANT_ID:
+        required: false
+      AZURE_CLIENT_ID:
+        required: false
   workflow_dispatch:
 
 permissions:
@@ -19,18 +23,44 @@ jobs:
   review:
     name: Review
     runs-on: ubuntu-24.04
-    if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     permissions:
       contents: read
       id-token: write
       pull-requests: write
 
     steps:
+      - name: Verify Azure credentials exist
+        run: |
+          if [ -z "${{ secrets.AZURE_CLIENT_ID }}" ]; then
+            echo "⚠️  Azure credentials not available - skipping code review"
+            echo "This is expected for external contributors or forks"
+            exit 0
+          fi
+          echo "✅ Azure credentials available - will attempt to retrieve API key from Key Vault"
+
       - name: Check out repo
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0
           persist-credentials: false
+
+      - name: Log in to Azure
+        uses: bitwarden/gh-actions/azure-login@main
+        with:
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
+
+      - name: Get Azure Key Vault secrets
+        id: get-kv-secrets
+        uses: bitwarden/gh-actions/get-keyvault-secrets@main
+        with:
+          keyvault: gh-org-bitwarden
+          secrets: "ANTHROPIC-API-KEY"
+
+      - name: Log out from Azure
+        uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Build review prompt
         id: build-prompt
@@ -80,7 +110,7 @@ jobs:
         if: steps.build-prompt.outputs.prompt_exists == 'true'
         uses: anthropics/claude-code-action@ac1a3207f3f00b4a37e2f3a6f0935733c7c64651 # v1.0.11
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-API-KEY }}
           track_progress: true
           use_sticky_comment: true
           prompt: ${{ steps.build-prompt.outputs.FINAL_PROMPT }}

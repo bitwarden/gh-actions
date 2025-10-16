@@ -3,9 +3,6 @@ name: Code Review
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-  merge_group:
-    types: [checks_requested]
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -24,10 +21,7 @@ jobs:
       - name: Check PR requirements
         id: check-pr
         run: |
-          if [ "${{ github.event_name }}" != "pull_request" ]; then
-            echo "⚠️  Validation: Not a pull_request event - skipping review"
-            echo "pr_valid=false" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event.pull_request.draft }}" == "true" ]; then
+          if [ "${{ github.event.pull_request.draft }}" == "true" ]; then
             echo "⚠️  Validation: PR is a draft - skipping review"
             echo "pr_valid=false" >> $GITHUB_OUTPUT
           else

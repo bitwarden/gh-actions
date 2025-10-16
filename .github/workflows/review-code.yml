@@ -32,11 +32,11 @@ jobs:
       - name: Check for Azure credentials
         id: check-azure-secret
         env:
-          AZURE_SUBSCRIPTION_ID: ${{ secrets._AZURE_SUBSCRIPTION_ID }}
-          AZURE_TENANT_ID: ${{ secrets._AZURE_TENANT_ID }}
-          AZURE_CLIENT_ID: ${{ secrets._AZURE_CLIENT_ID }}
+          _AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          _AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          _AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
         run: |
-          if [ -n "$AZURE_SUBSCRIPTION_ID" ] && [ -n "$AZURE_TENANT_ID" ] && [ -n "$AZURE_CLIENT_ID" ]; then
+          if [ -n "$_AZURE_SUBSCRIPTION_ID" ] && [ -n "$_AZURE_TENANT_ID" ] && [ -n "$_AZURE_CLIENT_ID" ]; then
             echo "credentials_valid=true" >> $GITHUB_OUTPUT
             echo "✅ Validation: Azure credentials available"
           else
@@ -97,9 +97,9 @@ jobs:
       - name: Log in to Azure
         uses: bitwarden/gh-actions/azure-login@main
         with:
-          subscription_id: ${{ secrets._AZURE_SUBSCRIPTION_ID }}
-          tenant_id: ${{ secrets._AZURE_TENANT_ID }}
-          client_id: ${{ secrets._AZURE_CLIENT_ID }}
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Get Azure Key Vault secrets
         id: get-kv-secrets

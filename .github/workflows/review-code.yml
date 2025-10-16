@@ -51,10 +51,31 @@ jobs:
             echo "This is expected for external contributors or forks"
           fi
 
+      - name: Check if prompt file exists
+        id: check-prompt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Use GitHub API to check file existence WITHOUT checkout
+          FILE_PATH=".claude/prompts/review-code.md"
+          REPO="${{ github.repository }}"
+          REF="${{ github.event.pull_request.head.sha }}"
+
+          # Check if file exists via API
+          if gh api "repos/$REPO/contents/$FILE_PATH?ref=$REF" --silent 2>/dev/null; then
+            echo "prompt_exists=true" >> $GITHUB_OUTPUT
+            echo "✅ Found $FILE_PATH in $REPO"
+          else
+            echo "prompt_exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️  Validation: No $FILE_PATH found - skipping Claude review"
+          fi
+
       - name: Set validation result
         id: validate
         run: |
-          if [ "${{ steps.check-pr.outputs.pr_valid }}" = "true" ] && [ "${{ steps.check-azure-secret.outputs.credentials_valid }}" = "true" ]; then
+          if [ "${{ steps.check-pr.outputs.pr_valid }}" = "true" ] && \
+             [ "${{ steps.check-azure-secret.outputs.credentials_valid }}" = "true" ] && \
+             [ "${{ steps.check-prompt.outputs.prompt_exists }}" = "true" ]; then
             echo "should_review=true" >> $GITHUB_OUTPUT
             echo "✅ Validation passed - code review will proceed"
           else
@@ -108,16 +129,6 @@ jobs:
         run: |
           PROMPT_FILE=".claude/prompts/review-code.md"
 
-          # Check if prompt file exists - if not, set output and skip
-          if [ ! -f "$PROMPT_FILE" ]; then
-            echo "⚠️  No Claude Code review prompt found at $PROMPT_FILE"
-            echo "Skipping review - add $PROMPT_FILE to enable code reviews"
-            echo "prompt_exists=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          echo "✅ Found review prompt at $PROMPT_FILE"
-
           # Build the full prompt with GitHub context + repo's prompt
           {
             printf "REPO: %s\n" "$PR_REPO"
@@ -139,10 +150,7 @@ jobs:
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 
-          echo "prompt_exists=true" >> "$GITHUB_OUTPUT"
-
       - name: Review with Claude Code
-        if: steps.build-prompt.outputs.prompt_exists == 'true'
         uses: anthropics/claude-code-action@ac1a3207f3f00b4a37e2f3a6f0935733c7c64651 # v1.0.11
         with:
           anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-API-KEY }}

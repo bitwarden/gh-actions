@@ -1,0 +1,101 @@
+name: Claude Code
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [opened, assigned]
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  validation:
+    name: Validation
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      should_comment: ${{ steps.validate.outputs.should_comment }}
+    steps:
+      - name: Check GitHub event
+        id: check-github-event
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          REVIEW_BODY: ${{ github.event.review.body }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+        run: |
+          # Check if @claude is mentioned in the event
+          MENTIONED=false
+
+          if [ "$EVENT_NAME" = "issue_comment" ] && echo "$COMMENT_BODY" | grep -qF "@claude"; then
+            MENTIONED=true
+          elif [ "$EVENT_NAME" = "pull_request_review_comment" ] && echo "$COMMENT_BODY" | grep -qF "@claude"; then
+            MENTIONED=true
+          elif [ "$EVENT_NAME" = "pull_request_review" ] && echo "$REVIEW_BODY" | grep -qF "@claude"; then
+            MENTIONED=true
+          elif [ "$EVENT_NAME" = "issues" ] && (echo "$ISSUE_BODY" | grep -qF "@claude" || echo "$ISSUE_TITLE" | grep -qF "@claude"); then
+            MENTIONED=true
+          fi
+
+          if [ "$MENTIONED" = "true" ]; then
+            echo "claude_mentioned=true" >> $GITHUB_OUTPUT
+            echo "✅ Validation: @claude mentioned in event"
+          else
+            echo "claude_mentioned=false" >> $GITHUB_OUTPUT
+            echo "⏭️  Validation: @claude not mentioned - skipping"
+          fi
+
+      - name: Check for Azure credentials
+        id: check-azure-secret
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+        run: |
+          if [ -n "$AZURE_SUBSCRIPTION_ID" ] && [ -n "$AZURE_TENANT_ID" ] && [ -n "$AZURE_CLIENT_ID" ]; then
+            echo "credentials_valid=true" >> $GITHUB_OUTPUT
+            echo "✅ Validation: Azure credentials available"
+          else
+            echo "credentials_valid=false" >> $GITHUB_OUTPUT
+            echo "⚠️  Validation: Azure credentials not available"
+            echo "This is expected for external contributors or forks"
+          fi
+      - name: Set validation result
+        id: validate
+        run: |
+          if [ "${{ steps.check-github-event.outputs.claude_mentioned }}" = "true" ] && \
+             [ "${{ steps.check-azure-secret.outputs.credentials_valid }}" = "true" ]; then
+            echo "should_comment=true" >> $GITHUB_OUTPUT
+            echo "✅ Validation passed - comment will proceed"
+          else
+            echo "should_comment=false" >> $GITHUB_OUTPUT
+            echo "⚠️  Validation failed - comment will be skipped"
+          fi
+
+  comment:
+    name: Claude Comment
+    runs-on: ubuntu-24.04
+    needs: validation
+    if: needs.validation.outputs.should_comment == 'true'
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code
+        id: claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}

@@ -12,37 +12,74 @@ permissions:
   pull-requests: write
 
 jobs:
+  validation:
+    name: Validation
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      should_review: ${{ steps.validate.outputs.should_review }}
+
+    steps:
+      - name: Check PR requirements
+        id: check-pr
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "⚠️  Validation: Not a pull_request event - skipping review"
+            echo "pr_valid=false" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.pull_request.draft }}" = "true" ]; then
+            echo "⚠️  Validation: PR is a draft - skipping review"
+            echo "pr_valid=false" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Validation: PR is ready for review"
+            echo "pr_valid=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for Azure credentials
+        id: check-azure-secret
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+        run: |
+          if [ -n "$AZURE_SUBSCRIPTION_ID" ] && [ -n "$AZURE_TENANT_ID" ] && [ -n "$AZURE_CLIENT_ID" ]; then
+            echo "credentials_valid=true" >> $GITHUB_OUTPUT
+            echo "✅ Validation: Azure credentials available"
+          else
+            echo "credentials_valid=false" >> $GITHUB_OUTPUT
+            echo "⚠️  Validation: Azure credentials not available"
+            echo "This is expected for external contributors or forks"
+          fi
+
+      - name: Set validation result
+        id: validate
+        run: |
+          if [ "${{ steps.check-pr.outputs.pr_valid }}" = "true" ] && [ "${{ steps.check-azure-secret.outputs.credentials_valid }}" = "true" ]; then
+            echo "should_review=true" >> $GITHUB_OUTPUT
+            echo "✅ Validation passed - code review will proceed"
+          else
+            echo "should_review=false" >> $GITHUB_OUTPUT
+            echo "⚠️  Validation failed - code review will be skipped"
+          fi
+
   review:
     name: Review
     runs-on: ubuntu-24.04
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    needs: validation
+    if: needs.validation.outputs.should_review == 'true'
     permissions:
       contents: read
       id-token: write
       pull-requests: write
 
     steps:
-      - name: Verify Azure credentials exist
-        id: check-azure-secret
-        run: |
-          if [ "${{ secrets.AZURE_SUBSCRIPTION_ID }}" != '' ] && [ "${{ secrets.AZURE_TENANT_ID }}" != '' ] && [ "${{ secrets.AZURE_CLIENT_ID }}" != '' ]; then
-            echo "available=true" >> $GITHUB_OUTPUT;
-            echo "✅ Azure credentials available - will attempt to retrieve API key from Key Vault"
-          else
-            echo "available=false" >> $GITHUB_OUTPUT;
-            echo "⚠️  Azure credentials not available - skipping code review"
-            echo "This is expected for external contributors or forks"
-          fi
-
       - name: Check out repo
-        if: steps.check-azure-secret.outputs.available == 'true'
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Log in to Azure
-        if: steps.check-azure-secret.outputs.available == 'true'
         uses: bitwarden/gh-actions/azure-login@main
         with:
           subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
@@ -50,7 +87,6 @@ jobs:
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Get Azure Key Vault secrets
-        if: steps.check-azure-secret.outputs.available == 'true'
         id: get-kv-secrets
         uses: bitwarden/gh-actions/get-keyvault-secrets@main
         with:
@@ -58,11 +94,9 @@ jobs:
           secrets: "ANTHROPIC-API-KEY"
 
       - name: Log out from Azure
-        if: steps.check-azure-secret.outputs.available == 'true'
         uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Build review prompt
-        if: steps.check-azure-secret.outputs.available == 'true'
         id: build-prompt
         env:
           PR_REPO: ${{ github.repository }}
@@ -108,7 +142,7 @@ jobs:
           echo "prompt_exists=true" >> "$GITHUB_OUTPUT"
 
       - name: Review with Claude Code
-        if: steps.check-azure-secret.outputs.available == 'true' && steps.build-prompt.outputs.prompt_exists == 'true'
+        if: steps.build-prompt.outputs.prompt_exists == 'true'
         uses: anthropics/claude-code-action@ac1a3207f3f00b4a37e2f3a6f0935733c7c64651 # v1.0.11
         with:
           anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-API-KEY }}

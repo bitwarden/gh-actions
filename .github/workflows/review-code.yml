@@ -40,7 +40,7 @@ jobs:
         env:
           AZURE_SUBSCRIPTION_ID: ${{ secrets._AZURE_SUBSCRIPTION_ID }}
           AZURE_TENANT_ID: ${{ secrets._AZURE_TENANT_ID }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets._AZURE_CLIENT_ID }}
         run: |
           if [ -n "$AZURE_SUBSCRIPTION_ID" ] && [ -n "$AZURE_TENANT_ID" ] && [ -n "$AZURE_CLIENT_ID" ]; then
             echo "credentials_valid=true" >> $GITHUB_OUTPUT

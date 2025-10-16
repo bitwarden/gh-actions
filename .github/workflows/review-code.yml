@@ -69,20 +69,8 @@ jobs:
         if: steps.check-azure-secret.outputs.available == 'true'
         uses: bitwarden/gh-actions/azure-logout@main
 
-      - name: Verify Anthropic API key exists
-        if: steps.check-azure-secret.outputs.available == 'true'
-        id: check-anthropic-key
-        run: |
-          if [ "${{ steps.get-kv-secrets.outputs.ANTHROPIC-API-KEY }}" != '' ]; then
-            echo "available=true" >> $GITHUB_OUTPUT;
-            echo "✅ Anthropic API key retrieved from Key Vault"
-          else
-            echo "available=false" >> $GITHUB_OUTPUT;
-            echo "⚠️  Anthropic API key not found in Key Vault"
-          fi
-
       - name: Build review prompt
-        if: steps.check-azure-secret.outputs.available == 'true' && steps.check-anthropic-key.outputs.available == 'true'
+        if: steps.check-azure-secret.outputs.available == 'true'
         id: build-prompt
         env:
           PR_REPO: ${{ github.repository }}
@@ -128,7 +116,7 @@ jobs:
           echo "prompt_exists=true" >> "$GITHUB_OUTPUT"
 
       - name: Review with Claude Code
-        if: steps.check-azure-secret.outputs.available == 'true' && steps.check-anthropic-key.outputs.available == 'true' && steps.build-prompt.outputs.prompt_exists == 'true'
+        if: steps.check-azure-secret.outputs.available == 'true' && steps.build-prompt.outputs.prompt_exists == 'true'
         uses: anthropics/claude-code-action@ac1a3207f3f00b4a37e2f3a6f0935733c7c64651 # v1.0.11
         with:
           anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-API-KEY }}

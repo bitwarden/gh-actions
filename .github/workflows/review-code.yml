@@ -5,14 +5,6 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
   merge_group:
     types: [checks_requested]
-  workflow_call:
-    secrets:
-      AZURE_SUBSCRIPTION_ID:
-        required: true
-      AZURE_TENANT_ID:
-        required: true
-      AZURE_CLIENT_ID:
-        required: true
   workflow_dispatch:
 
 permissions:

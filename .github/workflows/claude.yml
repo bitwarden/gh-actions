@@ -1,4 +1,4 @@
-name: Claude Code
+name: Claude Review
 
 on:
   issue_comment:
@@ -18,6 +18,7 @@ jobs:
       contents: read
     outputs:
       should_comment: ${{ steps.validate.outputs.should_comment }}
+
     steps:
       - name: Check GitHub event
         id: check-github-event
@@ -63,6 +64,7 @@ jobs:
             echo "⚠️  Validation: Azure credentials not available"
             echo "This is expected for external contributors or forks"
           fi
+
       - name: Set validation result
         id: validate
         run: |
@@ -76,7 +78,7 @@ jobs:
           fi
 
   comment:
-    name: Claude Comment
+    name: Claude comment
     runs-on: ubuntu-24.04
     needs: validation
     if: needs.validation.outputs.should_comment == 'true'
@@ -88,13 +90,30 @@ jobs:
       actions: read
 
     steps:
-      - name: Checkout repository
+      - name: Check out repo
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 1
+
+      - name: Log in to Azure
+        uses: bitwarden/gh-actions/azure-login@main
+        with:
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
+
+      - name: Get Azure Key Vault secrets
+        id: get-kv-secrets
+        uses: bitwarden/gh-actions/get-keyvault-secrets@main
+        with:
+          keyvault: gh-org-bitwarden
+          secrets: "ANTHROPIC-API-KEY"
+
+      - name: Log out from Azure
+        uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@e8bad572273ce919ba15fec95aef0ce974464753 # v1.0.13
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-API-KEY }}

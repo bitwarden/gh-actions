@@ -22,22 +22,21 @@ jobs:
       - name: Check GitHub event
         id: check-github-event
         env:
-          EVENT_NAME: ${{ github.event_name }}
-          COMMENT_BODY: ${{ github.event.comment.body }}
-          REVIEW_BODY: ${{ github.event.review.body }}
-          ISSUE_BODY: ${{ github.event.issue.body }}
-          ISSUE_TITLE: ${{ github.event.issue.title }}
+          _EVENT_NAME: ${{ github.event_name }}
+          _COMMENT_BODY: ${{ github.event.comment.body }}
+          _REVIEW_BODY: ${{ github.event.review.body }}
+          _ISSUE_BODY: ${{ github.event.issue.body }}
         run: |
           # Check if @claude is mentioned in the event
           MENTIONED=false
 
-          if [ "$EVENT_NAME" == "issue_comment" ] && echo "$COMMENT_BODY" | grep -qF "@claude"; then
+          if [ "$_EVENT_NAME" == "issue_comment" ] && echo "$_COMMENT_BODY" | grep -qF "@claude"; then
             MENTIONED=true
-          elif [ "$EVENT_NAME" == "pull_request_review_comment" ] && echo "$COMMENT_BODY" | grep -qF "@claude"; then
+          elif [ "$_EVENT_NAME" == "pull_request_review_comment" ] && echo "$_COMMENT_BODY" | grep -qF "@claude"; then
             MENTIONED=true
-          elif [ "$EVENT_NAME" == "pull_request_review" ] && echo "$REVIEW_BODY" | grep -qF "@claude"; then
+          elif [ "$_EVENT_NAME" == "pull_request_review" ] && echo "$_REVIEW_BODY" | grep -qF "@claude"; then
             MENTIONED=true
-          elif [ "$EVENT_NAME" == "issues" ] && (echo "$ISSUE_BODY" | grep -qF "@claude" || echo "$ISSUE_TITLE" | grep -qF "@claude"); then
+          elif [ "$_EVENT_NAME" == "issues" ] && echo "$_ISSUE_BODY" | grep -qF "@claude"; then
             MENTIONED=true
           fi
 

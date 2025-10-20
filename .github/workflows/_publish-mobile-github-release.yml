@@ -6,7 +6,7 @@ on:
       release_name:
         description: 'Name prefix of the release to publish (e.g. "Password Manager")'
         type: string
-        default: ""
+        required: true
       workflow_name:
         description: 'Name of the workflow to check for previous runs (e.g. publish-github-release.yml)'
         type: string

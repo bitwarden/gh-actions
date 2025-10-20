@@ -9,8 +9,6 @@ on:
         required: true
       AZURE_CLIENT_ID:
         required: true
-      GH_TOKEN:
-        required: true
 
 jobs:
   validation:

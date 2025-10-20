@@ -190,7 +190,7 @@ jobs:
           ARGOCD_OPTS: --grpc-web
           PR_NUMBER: ${{ inputs.pull_request_number }}
         run: |
-          APP_NAME=$(argocd app list -o name | grep ${PR_NUMBER})
+          APP_NAME=$(argocd app list -o name | grep "${PR_NUMBER}")
 
           # Check if there's a running sync operation
           APP_SYNC_STATUS=$(argocd app get "$APP_NAME" --refresh -o json | jq -r '.status.operationState.phase')

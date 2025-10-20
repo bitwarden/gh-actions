@@ -29,7 +29,7 @@ runs:
     - name: Check Runner OS
       shell: bash
       run: |
-        if ["$RUNNER_OS" != "Linux"]; then
+        if [ "$RUNNER_OS" != "Linux" ]; then
           echo "[!] This workflow only supports Linux runners"
           exit 1
         fi

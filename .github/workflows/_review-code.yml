@@ -12,10 +12,6 @@ on:
       GH_TOKEN:
         required: true
 
-permissions:
-  contents: read
-  pull-requests: write
-
 jobs:
   validation:
     name: Validation

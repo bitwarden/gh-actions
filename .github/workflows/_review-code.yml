@@ -24,8 +24,10 @@ jobs:
     steps:
       - name: Check PR requirements
         id: check-pr
+        env:
+          IS_DRAFT: ${{ github.event.pull_request.draft }}
         run: |
-          if [ "${{ github.event.pull_request.draft }}" == "true" ]; then
+          if [ "$IS_DRAFT" == "true" ]; then
             echo "⚠️  Validation: PR is a draft - skipping review"
             echo "pr_valid=false" >> $GITHUB_OUTPUT
           else
@@ -54,9 +56,12 @@ jobs:
 
       - name: Set validation result
         id: validate
+        env:
+          PR_VALID: ${{ steps.check-pr.outputs.pr_valid }}
+          PROMPT_EXISTS: ${{ steps.check-prompt.outputs.prompt_exists }}
         run: |
-          if [ "${{ steps.check-pr.outputs.pr_valid }}" == "true" ] && \
-             [ "${{ steps.check-prompt.outputs.prompt_exists }}" == "true" ]; then
+          if [ "$PR_VALID" == "true" ] && \
+             [ "$PROMPT_EXISTS" == "true" ]; then
             echo "should_review=true" >> $GITHUB_OUTPUT
             echo "✅ Validation passed - code review will proceed"
           else

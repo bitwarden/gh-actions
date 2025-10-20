@@ -33,22 +33,6 @@ jobs:
             echo "pr_valid=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Check for Azure credentials
-        id: check-azure-secret
-        env:
-          _AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          _AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          _AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-        run: |
-          if [ -n "$_AZURE_SUBSCRIPTION_ID" ] && [ -n "$_AZURE_TENANT_ID" ] && [ -n "$_AZURE_CLIENT_ID" ]; then
-            echo "credentials_valid=true" >> $GITHUB_OUTPUT
-            echo "✅ Validation: Azure credentials available"
-          else
-            echo "credentials_valid=false" >> $GITHUB_OUTPUT
-            echo "⚠️  Validation: Azure credentials not available"
-            echo "This is expected for external contributors or forks"
-          fi
-
       - name: Check if prompt file exists
         id: check-prompt
         env:
@@ -72,7 +56,6 @@ jobs:
         id: validate
         run: |
           if [ "${{ steps.check-pr.outputs.pr_valid }}" == "true" ] && \
-             [ "${{ steps.check-azure-secret.outputs.credentials_valid }}" == "true" ] && \
              [ "${{ steps.check-prompt.outputs.prompt_exists }}" == "true" ]; then
             echo "should_review=true" >> $GITHUB_OUTPUT
             echo "✅ Validation passed - code review will proceed"
@@ -150,9 +133,6 @@ jobs:
 
       - name: Review with Claude Code
         uses: anthropics/claude-code-action@e8bad572273ce919ba15fec95aef0ce974464753 # v1.0.13
-        permissions:
-          contents: read
-          pull-requests: write
         with:
           anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-API-KEY }}
           track_progress: true

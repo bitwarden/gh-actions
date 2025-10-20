@@ -30,7 +30,7 @@ on:
         type: boolean
         description: 'Run the workflow in dry-run mode without making any changes'
         required: false
-        default: true
+        default: false
 
 jobs:
   publish-release:

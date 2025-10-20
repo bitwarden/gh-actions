@@ -37,10 +37,26 @@ jobs:
             echo "pr_valid=true" >> $GITHUB_OUTPUT
           fi
 
+      - name: Check for Azure credentials
+        id: check-azure-secret
+        env:
+          _AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          _AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          _AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+        run: |
+          if [ -n "$_AZURE_SUBSCRIPTION_ID" ] && [ -n "$_AZURE_TENANT_ID" ] && [ -n "$_AZURE_CLIENT_ID" ]; then
+            echo "credentials_valid=true" >> $GITHUB_OUTPUT
+            echo "✅ Validation: Azure credentials available"
+          else
+            echo "credentials_valid=false" >> $GITHUB_OUTPUT
+            echo "⚠️  Validation: Azure credentials not available"
+            echo "This is expected for external contributors or forks"
+          fi
+
       - name: Check if prompt file exists
         id: check-prompt
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           # Use GitHub API to check file existence WITHOUT checkout
           FILE_PATH=".claude/prompts/review-code.md"
@@ -60,6 +76,7 @@ jobs:
         id: validate
         run: |
           if [ "${{ steps.check-pr.outputs.pr_valid }}" == "true" ] && \
+             [ "${{ steps.check-azure-secret.outputs.credentials_valid }}" == "true" ] && \
              [ "${{ steps.check-prompt.outputs.prompt_exists }}" == "true" ]; then
             echo "should_review=true" >> $GITHUB_OUTPUT
             echo "✅ Validation passed - code review will proceed"

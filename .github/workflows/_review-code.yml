@@ -150,6 +150,9 @@ jobs:
 
       - name: Review with Claude Code
         uses: anthropics/claude-code-action@e8bad572273ce919ba15fec95aef0ce974464753 # v1.0.13
+        permissions:
+          contents: read
+          pull-requests: write
         with:
           anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-API-KEY }}
           track_progress: true

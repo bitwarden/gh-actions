@@ -6,7 +6,7 @@ on:
 
 jobs:
   review:
-    name: Review Code
+    name: Review
     uses: bitwarden/gh-actions/.github/workflows/_review-code.yml@main
     secrets:
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}

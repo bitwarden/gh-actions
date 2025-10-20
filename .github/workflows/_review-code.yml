@@ -35,17 +35,14 @@ jobs:
             echo "pr_valid=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Check if prompt file exists
+      - name: Check if prompt file exists using GitHub CLI
         id: check-prompt
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          REF: ${{ github.event.pull_request.head.sha }}
+          FILE_PATH: ".claude/prompts/review-code.md"
         run: |
-          # Use GitHub API to check file existence WITHOUT checkout
-          FILE_PATH=".claude/prompts/review-code.md"
-          REPO="${{ github.repository }}"
-          REF="${{ github.event.pull_request.head.sha }}"
-
-          # Check if file exists via API
           if gh api "repos/$REPO/contents/$FILE_PATH?ref=$REF" --silent 2>/dev/null; then
             echo "prompt_exists=true" >> $GITHUB_OUTPUT
             echo "✅ Found $FILE_PATH in $REPO"

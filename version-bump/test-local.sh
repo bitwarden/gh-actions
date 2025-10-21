@@ -23,8 +23,9 @@ echo "Testing with version: $VERSION"
 echo ""
 
 # Build the Docker image
+DOCKER_TAG="version-bump:test"
 echo -e "${YELLOW}Building Docker image...${NC}"
-docker build -t version-bump:test .
+docker build -t "$DOCKER_TAG" .
 echo -e "${GREEN}✓ Docker image built successfully${NC}"
 echo ""
 
@@ -55,7 +56,7 @@ run_test() {
         -e INPUT_VERSION="$VERSION" \
         -e INPUT_FILE_PATH="$CONTAINER_WORKSPACE/$file_name" \
         -e GITHUB_OUTPUT="$CONTAINER_WORKSPACE/$GITHUB_OUTPUT_NAME" \
-        version-bump:test
+        "$DOCKER_TAG"
 
     # Check if the file was modified
     if grep -q "$VERSION" "$file_path"; then

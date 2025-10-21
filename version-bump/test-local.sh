@@ -94,6 +94,7 @@ run_test "AndroidManifest.xml"
 run_test "dir.build.props"
 run_test "test.csproj"
 run_test "Cargo.toml"
+run_test "Chart.yaml"
 
 # Show git diff style output
 echo -e "${YELLOW}=== File Changes Summary ===${NC}"

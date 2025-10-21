@@ -4,6 +4,7 @@ import plistlib
 import re
 import xml.etree.ElementTree as ET
 import yaml
+import tomlkit
 
 
 def get_file_type(file_path):
@@ -79,6 +80,17 @@ def update_yaml(version, file_path):
     with open(file_path, "w") as f:
         yaml.dump(doc, f)
 
+def update_toml(version, file_path):
+    with open(file_path, "r") as f:
+        doc = tomlkit.load(f)
+
+    # Update version in [package] section
+    if "package" in doc and "version" in doc["package"]:
+        doc["package"]["version"] = version
+
+    with open(file_path, "w") as f:
+        tomlkit.dump(doc, f)
+
 
 if __name__ == "__main__":
     version = os.getenv("INPUT_VERSION")
@@ -102,6 +114,8 @@ if __name__ == "__main__":
         update_plist(version, file_path)
     elif file_name == "Chart.yaml" or file_name == "Chart.yml":
         update_yaml(version, file_path)
+    elif file_type in {".toml"}:
+        update_toml(version, file_path)
     else:
         raise Exception("No file was recognized as a supported format.")
 

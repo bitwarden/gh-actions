@@ -10,6 +10,8 @@ on:
       AZURE_CLIENT_ID:
         required: true
 
+permissions: {}
+
 jobs:
   validation:
     name: Validation

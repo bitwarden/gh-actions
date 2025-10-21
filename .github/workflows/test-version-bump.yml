@@ -67,6 +67,13 @@ jobs:
           version: ${{ env.version_number }}
           file_path: "./version-bump/tests/fixtures/Cargo.toml"
 
+      - name: Bump Chart.yaml Test
+        id: test_chart
+        uses: ./version-bump
+        with:
+          version: ${{ env.version_number }}
+          file_path: "./version-bump/tests/fixtures/Chart.yaml"
+
       - name: Validate Outputs
         run: |
           echo "${{ steps.test_json.outputs.status }}"
@@ -75,4 +82,5 @@ jobs:
           echo "${{ steps.test_props.outputs.status }}"
           echo "${{ steps.test_csproj.outputs.status }}"
           echo "${{ steps.test_toml.outputs.status }}"
+          echo "${{ steps.test_chart.outputs.status }}"
           git diff

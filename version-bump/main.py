@@ -91,7 +91,6 @@ def update_toml(version, file_path):
     with open(file_path, "w") as f:
         tomlkit.dump(doc, f)
 
-
 if __name__ == "__main__":
     version = os.getenv("INPUT_VERSION")
     file_path = os.getenv("INPUT_FILE_PATH")

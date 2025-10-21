@@ -1,7 +1,7 @@
 FROM python:3-slim AS builder
 
 WORKDIR /app
-RUN pip3 install --no-cache-dir pyyaml --target=.
+RUN pip3 install --no-cache-dir pyyaml tomlkit --target=.
 ADD ./main.py .
 
 FROM gcr.io/distroless/python3-debian12

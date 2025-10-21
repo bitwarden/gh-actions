@@ -62,6 +62,20 @@ jobs:
           version: ${{ env.version_number }}
           file_path: "./version-bump/tests/fixtures/test.csproj"
 
+      - name: Bump TOML Test
+        id: test_toml
+        uses: ./version-bump
+        with:
+          version: ${{ env.version_number }}
+          file_path: "./version-bump/tests/fixtures/Cargo.toml"
+
+      - name: Bump Chart.yaml Test
+        id: test_chart
+        uses: ./version-bump
+        with:
+          version: ${{ env.version_number }}
+          file_path: "./version-bump/tests/fixtures/Chart.yaml"
+
       - name: Validate Outputs
         env:
           JSON_STATUS: ${{ steps.test_json.outputs.status }}
@@ -69,10 +83,14 @@ jobs:
           XML_STATUS: ${{ steps.test_xml.outputs.status }}
           PROPS_STATUS: ${{ steps.test_props.outputs.status }}
           CSPROJ_STATUS: ${{ steps.test_csproj.outputs.status }}
+          TOML_STATUS: ${{ steps.test_toml.outputs.status }}
+          CHART_STATUS: ${{ steps.test_chart.outputs.status }}
         run: |
           echo "$JSON_STATUS"
           echo "$PLIST_STATUS"
           echo "$XML_STATUS"
           echo "$PROPS_STATUS"
           echo "$CSPROJ_STATUS"
+          echo "$TOML_STATUS"
+          echo "$CHART_STATUS"
           git diff

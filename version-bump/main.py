@@ -114,7 +114,7 @@ if __name__ == "__main__":
         update_plist(version, file_path)
     elif file_name == "Chart.yaml" or file_name == "Chart.yml":
         update_yaml(version, file_path)
-    elif file_type in {".toml"}:
+    elif file_type == ".toml":
         update_toml(version, file_path)
     else:
         raise Exception("No file was recognized as a supported format.")

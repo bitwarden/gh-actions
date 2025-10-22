@@ -1,4 +1,5 @@
 Please review this pull request with a focus on:
+
 - Code quality and best practices
 - Potential bugs or issues
 - Security implications
@@ -7,6 +8,7 @@ Please review this pull request with a focus on:
 Note: The PR branch is already checked out in the current working directory.
 
 Provide a comprehensive review including:
+
 - Summary of changes since last review
 - Critical issues found (be thorough)
 - Suggested improvements (be thorough)
@@ -15,6 +17,7 @@ Provide a comprehensive review including:
 - Leverage collapsible <details> sections where appropriate for lengthy explanations or code snippets to enhance human readability
 
 When reviewing subsequent commits:
+
 - Track status of previously identified issues (fixed/unfixed/reopened)
 - Identify NEW problems introduced since last review
 - Note if fixes introduced new issues

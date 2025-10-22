@@ -4,6 +4,7 @@ A Github Action that will replace versions in JSON, PLIST, YAML, TOML, and XML f
 Specifically created for interacting with AndroidManifest, iOS development plists, Helm Charts, Rust Cargo manifests, and Node package JSON files.
 
 **Supported file types:**
+
 - JSON: `package.json`, `package-lock.json` (updates `version` and `packages[""].version`)
 - PLIST: iOS Info.plist files
 - XML: AndroidManifest.xml, .NET project files (.csproj, .props)
@@ -17,7 +18,7 @@ Specifically created for interacting with AndroidManifest, iOS development plist
   uses: ./version-bump
   with:
     version: ${{ inputs.version_number }}
-    file_path: "./AndroidManifest.xml"
+    file_path: './AndroidManifest.xml'
 ```
 
 ## Local Testing

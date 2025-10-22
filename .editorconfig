@@ -14,6 +14,13 @@ trim_trailing_whitespace = true
 insert_final_newline = true
 guidelines = 120
 
-# JS files
+# JSON files
 [*.{json,yml}]
 indent_size = 2
+
+# JS / TS / Markdown
+[*.{js,ts,md}]
+charset = utf-8
+indent_style = space
+indent_size = 2
+quote_type = single

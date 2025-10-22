@@ -7,8 +7,8 @@ If the validation fails, the action run will result in an exit code of 1.
 
 ## Inputs
 
--   Version - Version number string
--   Validation Type - Whether to use SemVer or CalVer (default) validation
+- Version - Version number string
+- Validation Type - Whether to use SemVer or CalVer (default) validation
 
 ## Outputs
 

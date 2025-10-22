@@ -5,11 +5,11 @@ Specifically created for interacting with AndroidManifest, iOS development plist
 
 **Supported file types:**
 
--   JSON: `package.json`, `package-lock.json` (updates `version` and `packages[""].version`)
--   PLIST: iOS Info.plist files
--   XML: AndroidManifest.xml, .NET project files (.csproj, .props)
--   YAML: Helm Chart.yaml files
--   TOML: Cargo.toml files (updates `[package].version` only)
+- JSON: `package.json`, `package-lock.json` (updates `version` and `packages[""].version`)
+- PLIST: iOS Info.plist files
+- XML: AndroidManifest.xml, .NET project files (.csproj, .props)
+- YAML: Helm Chart.yaml files
+- TOML: Cargo.toml files (updates `[package].version` only)
 
 ## Usage
 
@@ -17,8 +17,8 @@ Specifically created for interacting with AndroidManifest, iOS development plist
 - name: Bump Android Version
   uses: ./version-bump
   with:
-      version: ${{ inputs.version_number }}
-      file_path: "./AndroidManifest.xml"
+    version: ${{ inputs.version_number }}
+    file_path: './AndroidManifest.xml'
 ```
 
 ## Local Testing

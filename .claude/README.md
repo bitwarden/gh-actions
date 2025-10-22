@@ -27,11 +27,11 @@ Triggers a comprehensive PR code review in your current Claude Code session.
 
 **What it does:**
 
--   Analyzes code quality and best practices
--   Checks for security vulnerabilities
--   Validates workflow linter compliance
--   Reviews performance and efficiency
--   Provides structured feedback with action items
+- Analyzes code quality and best practices
+- Checks for security vulnerabilities
+- Validates workflow linter compliance
+- Reviews performance and efficiency
+- Provides structured feedback with action items
 
 **Example:**
 
@@ -57,6 +57,6 @@ The `review-code.yml` workflow uses the `.claude/prompts/review-code.md` to auto
 
 ## Best Practices
 
--   **Commands** (`.claude/commands/`): For interactive Claude Code sessions
--   **Prompts** (`.claude/prompts/`): For automated GitHub Actions workflows
--   **CLAUDE.md**: General project context available in all Claude interactions
+- **Commands** (`.claude/commands/`): For interactive Claude Code sessions
+- **Prompts** (`.claude/prompts/`): For automated GitHub Actions workflows
+- **CLAUDE.md**: General project context available in all Claude interactions

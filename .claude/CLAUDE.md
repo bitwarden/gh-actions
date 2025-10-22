@@ -6,18 +6,18 @@ This repository contains a collection of custom GitHub Actions used by Bitwarden
 
 **Repository Details:**
 
--   **Type**: GitHub Actions collection
--   **Size**: Medium-sized repository with ~20 custom actions
--   **Languages**: TypeScript, Python, JavaScript, Shell scripts, YAML
--   **Target Runtime**: GitHub Actions runners (primarily Ubuntu)
+- **Type**: GitHub Actions collection
+- **Size**: Medium-sized repository with ~20 custom actions
+- **Languages**: TypeScript, Python, JavaScript, Shell scripts, YAML
+- **Target Runtime**: GitHub Actions runners (primarily Ubuntu)
 
 ## Build and Validation Instructions
 
 ### Prerequisites
 
--   Node.js (version 22+ for TypeScript actions)
--   Python 3.13+ (for Python-based actions)
--   Docker (for containerized actions)
+- Node.js (version 22+ for TypeScript actions)
+- Python 3.13+ (for Python-based actions)
+- Docker (for containerized actions)
 
 ### Initial Setup
 
@@ -25,10 +25,10 @@ This repository contains a collection of custom GitHub Actions used by Bitwarden
 
 ### Code Formatting and Linting
 
--   **Code formatting**: This repository uses Prettier for all file types
--   **Pre-commit hooks**: Husky is configured to run lint-staged on commit
--   **Command**: `npx prettier --cache --write --ignore-unknown .` (formats all files)
--   **Automatic formatting**: Runs automatically on commit via pre-commit hook
+- **Code formatting**: This repository uses Prettier for all file types
+- **Pre-commit hooks**: Husky is configured to run lint-staged on commit
+- **Command**: `npx prettier --cache --write --ignore-unknown .` (formats all files)
+- **Automatic formatting**: Runs automatically on commit via pre-commit hook
 
 ### Workflow Linter Rules Compliance
 
@@ -36,16 +36,16 @@ All suggestions and reviews concerning workflow files (e.g., changes to `.github
 
 Each workflow file must comply with the following linter rules ([source directory](https://github.com/bitwarden/workflow-linter/tree/main/src/bitwarden_workflow_linter/rules)):
 
--   **check_pr_target.py**: Ensures workflows using pull_request_target only run using the default branch (usually `main`).
--   **job_environment_prefix.py**: Enforces required environment variable naming conventions for jobs.
--   **name_capitalized.py**: Validates that workflow and job names begin with a capital letter.
--   **name_exists.py**: Checks that every workflow and job has a name defined.
--   **permissions_exist.py**: Verifies that the `permissions` key is explicitly set for each workflow or each job inside the workflow.
--   **pinned_job_runner.py**: Ensures job runners are pinned to specific versions.
--   **run_actionlint.py**: Runs `actionlint` to provide additional workflow checks.
--   **step_approved.py**: Only allows steps that have been explicitly approved by Bitwarden tracked in ([approved actions directory](https://github.com/bitwarden/workflow-linter/blob/main/src/bitwarden_workflow_linter/default_actions.json)).
--   **step_pinned.py**: Verifies that every workflow step using an external GitHub action in the `uses` key is pinned to a hash with the version in a comment.
--   **underscore_outputs.py**: Enforces that all GitHub outputs with more than one word use an underscore.
+- **check_pr_target.py**: Ensures workflows using pull_request_target only run using the default branch (usually `main`).
+- **job_environment_prefix.py**: Enforces required environment variable naming conventions for jobs.
+- **name_capitalized.py**: Validates that workflow and job names begin with a capital letter.
+- **name_exists.py**: Checks that every workflow and job has a name defined.
+- **permissions_exist.py**: Verifies that the `permissions` key is explicitly set for each workflow or each job inside the workflow.
+- **pinned_job_runner.py**: Ensures job runners are pinned to specific versions.
+- **run_actionlint.py**: Runs `actionlint` to provide additional workflow checks.
+- **step_approved.py**: Only allows steps that have been explicitly approved by Bitwarden tracked in ([approved actions directory](https://github.com/bitwarden/workflow-linter/blob/main/src/bitwarden_workflow_linter/default_actions.json)).
+- **step_pinned.py**: Verifies that every workflow step using an external GitHub action in the `uses` key is pinned to a hash with the version in a comment.
+- **underscore_outputs.py**: Enforces that all GitHub outputs with more than one word use an underscore.
 
 Refer to the [rules directory](https://github.com/bitwarden/workflow-linter/tree/main/src/bitwarden_workflow_linter/rules) for further details or updates to rule logic.
 
@@ -58,11 +58,11 @@ Refer to the [rules directory](https://github.com/bitwarden/workflow-linter/tree
 
 Each action has its own test workflow in `.github/workflows/test-*.yml`:
 
--   `test-version-bump.yml` - Tests version bumping functionality
--   `test-get-secrets.yml` - Tests Azure Key Vault integration
--   `test-download-artifacts.yml` - Tests artifact downloading
--   `test-release-version-check.yml` - Tests release version validation
--   And others...
+- `test-version-bump.yml` - Tests version bumping functionality
+- `test-get-secrets.yml` - Tests Azure Key Vault integration
+- `test-download-artifacts.yml` - Tests artifact downloading
+- `test-release-version-check.yml` - Tests release version validation
+- And others...
 
 **Test execution**: Tests run automatically on PRs affecting specific action directories.
 
@@ -80,9 +80,9 @@ For TypeScript-based actions (e.g., `get-keyvault-secrets`):
 
 For containerized actions (e.g., `version-bump`, `get-checksum`):
 
--   Use `Dockerfile` in action directory
--   Python scripts use `main.py` as entry point
--   **No local build required** - Docker builds during action execution
+- Use `Dockerfile` in action directory
+- Python scripts use `main.py` as entry point
+- **No local build required** - Docker builds during action execution
 
 ## Project Layout and Architecture
 
@@ -113,20 +113,20 @@ For containerized actions (e.g., `version-bump`, `get-checksum`):
 
 **TypeScript/Node.js Actions:**
 
--   `get-keyvault-secrets/` - Azure Key Vault integration
--   `download-artifacts/` - Artifact management
+- `get-keyvault-secrets/` - Azure Key Vault integration
+- `download-artifacts/` - Artifact management
 
 **Python/Docker Actions:**
 
--   `version-bump/` - File version updating (JSON, XML, PLIST, YAML)
--   `get-checksum/` - SHA256 checksum generation
--   `crowdin/` - Translation management
+- `version-bump/` - File version updating (JSON, XML, PLIST, YAML)
+- `get-checksum/` - SHA256 checksum generation
+- `crowdin/` - Translation management
 
 **Shell/YAML Actions:**
 
--   `azure-login/`, `azure-logout/` - Azure authentication
--   `setup-docker-trust/` - Docker configuration
--   Various reporting and utility actions
+- `azure-login/`, `azure-logout/` - Azure authentication
+- `setup-docker-trust/` - Docker configuration
+- Various reporting and utility actions
 
 ### CI/CD Validation Pipeline
 
@@ -143,49 +143,49 @@ For containerized actions (e.g., `version-bump`, `get-checksum`):
 
 **Critical Validation Steps:**
 
--   **Workflow files**: Must pass `bitwarden_workflow_linter` validation
--   **TypeScript actions**: Must have compiled `lib/` output committed
--   **All files**: Must pass Prettier formatting
--   **Action definitions**: `action.yml` files must be valid GitHub Action syntax
+- **Workflow files**: Must pass `bitwarden_workflow_linter` validation
+- **TypeScript actions**: Must have compiled `lib/` output committed
+- **All files**: Must pass Prettier formatting
+- **Action definitions**: `action.yml` files must be valid GitHub Action syntax
 
 ### Dependencies and Requirements
 
 **Development Dependencies (root):**
 
--   `prettier` - Code formatting
--   `husky` - Git hooks
--   `lint-staged` - Staged file processing
+- `prettier` - Code formatting
+- `husky` - Git hooks
+- `lint-staged` - Staged file processing
 
 **Action-specific Dependencies:**
 
--   TypeScript actions: `@actions/core`, `@actions/exec`, type definitions
--   Python actions: Standard library primarily, some use external packages
+- TypeScript actions: `@actions/core`, `@actions/exec`, type definitions
+- Python actions: Standard library primarily, some use external packages
 
 ### File Patterns and Conventions
 
 **Action Definition Files:**
 
--   Every action directory MUST have an `action.yml` file
--   Branding should include `icon` and `color` properties
--   Input/output definitions follow GitHub Actions schema
+- Every action directory MUST have an `action.yml` file
+- Branding should include `icon` and `color` properties
+- Input/output definitions follow GitHub Actions schema
 
 **TypeScript Actions:**
 
--   Source in `src/`, compiled output in `lib/`
--   Use `@actions/core` for GitHub Actions integration
--   `tsconfig.json` for TypeScript configuration
+- Source in `src/`, compiled output in `lib/`
+- Use `@actions/core` for GitHub Actions integration
+- `tsconfig.json` for TypeScript configuration
 
 **Python Actions:**
 
--   Main script typically named `main.py`
--   Use environment variables for input (`os.getenv("INPUT_*")`)
--   Docker-based execution via `Dockerfile`
+- Main script typically named `main.py`
+- Use environment variables for input (`os.getenv("INPUT_*")`)
+- Docker-based execution via `Dockerfile`
 
 **Testing:**
 
--   Test workflows named `test-[action-name].yml`
--   Test fixtures in `tests/fixtures/` subdirectories
--   Tests validate action outputs and side effects
+- Test workflows named `test-[action-name].yml`
+- Test fixtures in `tests/fixtures/` subdirectories
+- Tests validate action outputs and side effects
 
 ## Security Best Practices
 
@@ -193,29 +193,29 @@ All code changes and action development must follow security best practices rele
 
 **GitHub Actions Security:**
 
--   **No hard-coded secrets or credentials** - Use secure parameter passing
--   **Validate all action inputs** - Sanitize and validate user-provided inputs to prevent injection attacks
--   **Use pinned action versions** - All external actions must be pinned to specific commit hashes (enforced by workflow linter)
--   **Minimize permissions** - Use least privilege principle for `permissions` in workflows
--   **Secure output handling** - Avoid exposing sensitive data in action outputs or logs
+- **No hard-coded secrets or credentials** - Use secure parameter passing
+- **Validate all action inputs** - Sanitize and validate user-provided inputs to prevent injection attacks
+- **Use pinned action versions** - All external actions must be pinned to specific commit hashes (enforced by workflow linter)
+- **Minimize permissions** - Use least privilege principle for `permissions` in workflows
+- **Secure output handling** - Avoid exposing sensitive data in action outputs or logs
 
 **Secret and Credential Management:**
 
--   Use Azure Key Vault integration properly via `get-keyvault-secrets` action
--   Never log or expose secret values in action outputs
--   Use GitHub's secret masking capabilities (`core.setSecret()` in TypeScript actions)
+- Use Azure Key Vault integration properly via `get-keyvault-secrets` action
+- Never log or expose secret values in action outputs
+- Use GitHub's secret masking capabilities (`core.setSecret()` in TypeScript actions)
 
 **Supply Chain Security:**
 
--   Only use approved actions listed in the workflow linter's approved actions list
--   Pin all dependencies to specific versions in `package.json` and `requirements.txt`
--   Validate Docker base images and use official, minimal images when possible
+- Only use approved actions listed in the workflow linter's approved actions list
+- Pin all dependencies to specific versions in `package.json` and `requirements.txt`
+- Validate Docker base images and use official, minimal images when possible
 
 **Input Validation:**
 
--   Validate file paths to prevent directory traversal attacks
--   Sanitize version strings and other user inputs
--   Use proper escaping when constructing shell commands
+- Validate file paths to prevent directory traversal attacks
+- Sanitize version strings and other user inputs
+- Use proper escaping when constructing shell commands
 
 ## Agent Instructions
 
@@ -232,9 +232,9 @@ All code changes and action development must follow security best practices rele
 
 **Common pitfalls to avoid:**
 
--   Forgetting to compile TypeScript actions
--   Not running Prettier formatting
--   Missing required properties in `action.yml` files
--   Not testing action changes with the corresponding test workflow
--   Exposing sensitive data in logs or outputs
--   Using unpinned or unapproved external actions
+- Forgetting to compile TypeScript actions
+- Not running Prettier formatting
+- Missing required properties in `action.yml` files
+- Not testing action changes with the corresponding test workflow
+- Exposing sensitive data in logs or outputs
+- Using unpinned or unapproved external actions

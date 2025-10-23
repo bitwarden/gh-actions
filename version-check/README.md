@@ -6,15 +6,18 @@ Given a version and the validation type, will validate that the version is valid
 If the validation fails, the action run will result in an exit code of 1.
 
 ## Inputs
+
 - Version - Version number string
 - Validation Type - Whether to use SemVer or CalVer (default) validation
 
 ## Outputs
+
 None
 
 ## Example Snippets
 
 Validating SemVer
+
 ```
     steps:
       - name: Validate version - semver
@@ -25,6 +28,7 @@ Validating SemVer
 ```
 
 Validating CalVer
+
 ```
     steps:
       - name: Validate version - calver

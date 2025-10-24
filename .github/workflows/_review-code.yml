@@ -96,7 +96,7 @@ jobs:
         uses: bitwarden/gh-actions/get-keyvault-secrets@main
         with:
           keyvault: gh-org-bitwarden
-          secrets: "ANTHROPIC-API-KEY"
+          secrets: "ANTHROPIC-CODE-REVIEW-API-KEY"
 
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
@@ -135,9 +135,9 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Review with Claude Code
-        uses: anthropics/claude-code-action@e8bad572273ce919ba15fec95aef0ce974464753 # v1.0.13
+        uses: anthropics/claude-code-action@f30f5eecfce2f34fa72e40fa5f7bcdbdcad12eb8 # v1.0.14
         with:
-          anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-API-KEY }}
+          anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-CODE-REVIEW-API-KEY }}
           track_progress: true
           use_sticky_comment: true
           prompt: ${{ steps.build-prompt.outputs.FINAL_PROMPT }}

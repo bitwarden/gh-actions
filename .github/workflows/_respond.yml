@@ -10,6 +10,10 @@ on:
       AZURE_CLIENT_ID:
         required: true
 
+concurrency:
+  group: ${{ github.repository }}-${{ github.workflow }}-${{ github.event.issue.number || github.event.pull_request.number || github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 permissions: {}
 
 jobs:

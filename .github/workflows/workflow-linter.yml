@@ -72,4 +72,4 @@ jobs:
         if: steps.changed-workflows.outputs.changed_files_count != '0'
         run: |
           echo "$files"
-          bwwl lint -f "$files"
+          bwwl lint -f "$files" 2>&1

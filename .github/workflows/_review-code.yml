@@ -135,6 +135,7 @@ jobs:
           REUSABLE_SKILL_PATH: ".claude/skills/bitwarden-reviewing-changes"
           REPO_SKILL: ".claude/skills/reviewing-changes/SKILL.md"
         run: |
+          set -e
           echo "📥 Fetching Bitwarden skill folder..."
 
           # Create temp directory & initialize sparse checkout
@@ -147,7 +148,7 @@ jobs:
           git config core.sparseCheckout true
 
           # Configure to only fetch the skill folder
-          echo "$REUSABLE_SKILL_PATH/*" >> .git/info/sparse-checkout
+          echo "$REUSABLE_SKILL_PATH" >> .git/info/sparse-checkout
 
           # Fetch and checkout (shallow clone)
           git fetch --depth=1 origin main
@@ -157,6 +158,7 @@ jobs:
           cd ..
           mkdir -p "$REUSABLE_SKILL_PATH"
           cp -r "$TEMP_DIR/$REUSABLE_SKILL_PATH"/* "$REUSABLE_SKILL_PATH/"
+          rm -rf "$TEMP_DIR"
 
           if [ -f "$REUSABLE_SKILL_PATH/SKILL.md" ]; then
             echo "✅ Successfully fetched Bitwarden skill"

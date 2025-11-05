@@ -6,7 +6,7 @@ This directory defines company-wide Claude Code _skills_ used by our reusable wo
 
 Each subfolder represents a _Claude Skill_, which defines how Claude should behave in specific contexts (e.g., reviewing code, triaging issues, writing documentation).
 
-Skills are loaded by our reusable workflow which leverages the appropriate skill to accomplish the task.
+Skills are loaded by our reusable workflows which leverage the appropriate skill to accomplish the task.
 
 ## ⚙️ Adding a New Skill
 

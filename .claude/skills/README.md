@@ -21,7 +21,7 @@ Skills are loaded by our reusable workflow leverages the appropriate skill to ac
 
 This repo supports **two-tier skill composition** for the code reviewing skill.
 
-### Centralize Skills
+### Centralized Skills
 
 - `bitwarden-reviewing-changes/`
 - Company-wide code review standards

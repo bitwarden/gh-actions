@@ -140,7 +140,7 @@ jobs:
 
           # Fetch the skill file from gh-actions repo using GitHub API
           gh api "repos/$REUSABLE_SKILL_REPO/contents/$REUSABLE_SKILL_FILE" \
-            --jq '.content' | base64 -d > "$SKILL_TEMP_FILE"
+            --jq '.content' | base64 -d > "$SKILL_TEMP_FILE" || true
 
           if [ -f "$SKILL_TEMP_FILE" ] && [ -s "$SKILL_TEMP_FILE" ]; then
             echo "✅ Successfully fetched Bitwarden skill file"

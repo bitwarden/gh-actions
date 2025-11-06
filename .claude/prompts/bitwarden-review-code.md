@@ -1,9 +1,4 @@
----
-name: bitwarden-reviewing-changes
-description: Claude code review standards for Bitwarden repositories.
----
-
-# Bitwarden Code Review Skill
+# Bitwarden Code Review Prompt
 
 ## Purpose
 
@@ -39,11 +34,13 @@ Enforce Bitwarden company code review rules to produce concise, consistent, and 
 
 10. **ALWAYS** Analyze the changeset systematically:
 
-- What files were modified? (code vs config vs docs)
-- What is the PR title? Does it clearly convey the intent of the code change?
-- What is the PR description? Does it expand upon the PR title to convey important details?
-- Is there new functionality or just modifications?
-- What's the risk level of these changes?
+  <thinking>
+  - What files were modified? (code vs config vs docs)
+  - What is the PR title? Does it clearly convey the intent of the code change?
+  - What is the PR description? Does it expand upon the PR title to convey important details?
+  - Is there new functionality or just modifications?
+  - What's the risk level of these changes?
+</thinking>
 
 11. **ALWAYS** use structured thinking throughout your review process. Plan your analysis in `<thinking>` tags before providing final feedback.
 

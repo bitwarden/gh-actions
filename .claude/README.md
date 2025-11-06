@@ -8,10 +8,39 @@ This directory contains Claude Code configuration files for the gh-actions repos
 .claude/
 ├── CLAUDE.md              # General project context and guidelines
 ├── commands/              # Custom slash commands
-│   └── review-pr.md      # /review-pr command for PR reviews
+│   └── review-pr.md
 └── prompts/               # Workflow-specific prompts
-    └── review-code.md    # Used by review-code.yml workflow
+    └── bitwarden-review-code.md
+    └── review-code.md
 ```
+
+## Automated Workflow Reviews
+
+The `review-code.yml` workflow uses TWO prompt files:
+
+1. **Bitwarden company-wide prompt** (`.claude/prompts/bitwarden-review-code.md`)
+   - Stored in `bitwarden/gh-actions` repository
+   - Contains common review criteria for all Bitwarden repos
+   - Automatically fetched during workflow execution
+
+2. **Repository-specific gate** (`.claude/prompts/review-code.md`)
+   - Must exist in each repo that wants Claude reviews
+   - Contains repo-specific review instructions
+   - Acts as an "opt-in" gate for the review process
+
+**How it works:**
+
+1. Workflow triggers on a PR
+2. PR is validated as viable for a Claude Code review
+3. Workflow pulls the `.claude/prompts/bitwarden-review-code.md` file from the `gh-actions` repo.
+4. Workflow pulls the `.claude/prompts/review-code.md` file from the caller's repo (e.g. `server`, `clients`, `sdk-internal`, etc.)
+5. Workflow combines information from Steps 3 and 4 to create a Claude Code Action PR review prompt
+6. Claude executes the GitHub Action and appends feedback in the form of a summary comment with findings and inline comments (if necessary).
+
+**To enable in our repos:**
+
+1. Create `.claude/prompts/review-code.md` with review criteria
+2. Workflow runs automatically on subsequent pull requests
 
 ## Custom Commands
 
@@ -38,22 +67,6 @@ Triggers a comprehensive PR code review in your current Claude Code session.
 ```
 @claude /review-pr
 ```
-
-## Automated Workflow Reviews
-
-The `review-code.yml` workflow uses the `.claude/prompts/review-code.md` to automatically review PRs via GitHub Actions in each Bitwarden repo. The `review-code.md` is used as a gate to execute the `review-code.yml` workflow. Repos without this file will not see Claude code reviews performed on each pull request.
-
-**How it works:**
-
-1. Workflow triggers on non-draft PRs
-2. Reads `.claude/prompts/review-code.md` from the PR's branch
-3. Posts review as a sticky comment
-4. Updates comment on new commits
-
-**To enable in our repos:**
-
-1. Create `.claude/prompts/review-code.md` with review criteria
-2. Workflow runs automatically on subsequent pull requests
 
 ## Best Practices
 

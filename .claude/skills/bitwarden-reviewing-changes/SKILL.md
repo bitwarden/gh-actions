@@ -2,14 +2,14 @@
 name: bitwarden-reviewing-changes
 version: 3.0.0
 description: >
-  Universal code review for Bitwarden repositories. Detects change type (dependency, bug fix, feature, refactor, infrastructure, security) and applies appropriate review strategy. Works across all tech stacks. Use for pull request reviews and code quality evaluation.
+  Claude code review standards for Bitwarden repositories.
 ---
 
 # Bitwarden Code Review Skill
 
 ## Purpose
 
-Enforce Bitwarden company review rules to produce concise, consistent PR review comments from Claude Code.
+Enforce Bitwarden company code review rules to produce concise, consistent, and excellent PR review comments from Claude Code. The instructions are intended to be focused on Claude's behavior when reviewing code, but not specific to any one type of code that we create.
 
 ## Rules that **must** be followed
 
@@ -29,25 +29,28 @@ Enforce Bitwarden company review rules to produce concise, consistent PR review 
 
 4. **ALWAYS** read the prior summary comment and any existing inline comment thread **before** starting on a code review.
 
-5. **ALWAYS** check for existing comment threads to avoid duplicate comments.
+5. **NEVER** list the files changed in a pull request in the summary comment. Developers can easily this information in the Files changes area of a GitHub PR.
 
-6. **ALWAYS** Analyze the changeset systematically:
+6. **ALWAYS** check for existing comment threads to avoid duplicate comments.
+
+7. **ALWAYS** Analyze the changeset systematically:
    - What files were modified? (code vs config vs docs)
-   - What is the PR/commit title indicating?
+   - What is the PR title? Does it clearly convey the intent of the code change?
+   - What is the PR description? Does it expand upon the PR title to convey important details?
    - Is there new functionality or just modifications?
    - What's the risk level of these changes?
 
-7. **ALWAYS** use structured thinking throughout your review process. Plan your analysis in `<thinking>` tags before providing final feedback.
+8. **ALWAYS** use structured thinking throughout your review process. Plan your analysis in `<thinking>` tags before providing final feedback.
 
-8. **NEVER** write multiple long paragraphs. If context is required, then you **must** use a fenced code block. You **must** use collapsible <details> sections for lengthy explanations.
+9. **NEVER** write multiple long paragraphs. If context is required, then you **must** use a fenced code block. You **must** use collapsible <details> sections for lengthy explanations.
    - Brevity respects developer time leading to short feedback loops
    - Brevity saves tokens, processing time, and money
    - Brevity reduces noise in PR conversations and focuses attention findings that **require** human discussion
 
-9. **NEVER do this for clean PRs:**
+10. **NEVER do this for clean PRs:**
    - ❌ Multiple sections (Key Strengths, Changes, Code Quality, etc.)
    - ❌ Listing everything that was done correctly
    - ❌ Checkmarks for each file or pattern followed
    - ❌ Elaborate praise or detailed positive analysis
 
-10. **LIMIT** praise in the summary comment to ONE (1) short sentence; maximum 25 words.
+11. **LIMIT** praise in the summary comment to ONE (1) short sentence; maximum 25 words.

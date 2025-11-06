@@ -131,55 +131,29 @@ jobs:
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           PR_COMMIT: ${{ github.event.pull_request.head.sha }}
           PROMPT_FILE: ".claude/prompts/review-code.md"
-          REUSABLE_SKILL_REPO: "https://github.com/bitwarden/gh-actions.git"
-          REUSABLE_SKILL_PATH: ".claude/skills/bitwarden-reviewing-changes"
-          REPO_SKILL: ".claude/skills/reviewing-changes/SKILL.md"
+          REUSABLE_SKILL_REPO: "bitwarden/gh-actions"
+          REUSABLE_SKILL_FILE: ".claude/skills/bitwarden-reviewing-changes/SKILL.md"
+          SKILL_TEMP_FILE: "/tmp/bitwarden-skill.md"
         run: |
           set -e
-          echo "📥 Fetching Bitwarden skill folder..."
+          echo "📥 Fetching Bitwarden skill file..."
 
-          # Create temp directory & initialize sparse checkout
-          TEMP_DIR=".gh-actions-temp"
-          mkdir -p "$TEMP_DIR"
-          cd "$TEMP_DIR"
+          # Fetch the skill file from gh-actions repo using GitHub API
+          gh api "repos/$REUSABLE_SKILL_REPO/contents/$REUSABLE_SKILL_FILE" \
+            --jq '.content' | base64 -d > "$SKILL_TEMP_FILE"
 
-          git init
-          git remote add origin "$REUSABLE_SKILL_REPO"
-          git config core.sparseCheckout true
-
-          # Configure to only fetch the skill folder
-          echo "$REUSABLE_SKILL_PATH" >> .git/info/sparse-checkout
-
-          # Fetch and checkout (shallow clone)
-          git fetch --depth=1 origin main
-          git checkout main
-
-          # Copy skill files to expected location
-          cd ..
-          mkdir -p "$REUSABLE_SKILL_PATH"
-          cp -r "$TEMP_DIR/$REUSABLE_SKILL_PATH"/* "$REUSABLE_SKILL_PATH/"
-          rm -rf "$TEMP_DIR"
-
-          if [ -f "$REUSABLE_SKILL_PATH/SKILL.md" ]; then
-            echo "✅ Successfully fetched Bitwarden skill"
-            echo "📂 Skill contents:"
-            ls -lh "$REUSABLE_SKILL_PATH"
+          if [ -f "$SKILL_TEMP_FILE" ] && [ -s "$SKILL_TEMP_FILE" ]; then
+            echo "✅ Successfully fetched Bitwarden skill file"
+            echo "📄 File size: $(wc -c < "$SKILL_TEMP_FILE") bytes"
           else
-            echo "❌ Failed to fetch Bitwarden skill folder"
-            exit 1
+            echo "⚠️  Warning: Failed to fetch Bitwarden skill file - continuing without it"
+            touch "$SKILL_TEMP_FILE"
           fi
 
-          # Build the full prompt with GitHub context + repo's prompt
+          # Build the full prompt with skill file at the start
           {
-            # Check if repo has custom skill
-            if [ -f "$REPO_SKILL" ]; then
-              printf "**Repo-Specific Skill Detected:**\n"
-              printf "Invoke the \`reviewing-changes\` skill for domain-specific review.\n"
-              printf "When conflicts occur, repo-specific guidance takes precedence.\n\n"
-            else
-              printf "**Default Review Mode:**\n"
-              printf "Invoke the \`bitwarden-reviewing-changes\` skill for general review.\n\n"
-            fi
+            cat "$SKILL_TEMP_FILE"
+            printf "\n\n---\n\n"
             printf "REPO: %s\n" "$PR_REPO"
             printf "PR NUMBER: %s\n" "$PR_NUMBER"
             printf "TITLE: %s\n" "$PR_TITLE"

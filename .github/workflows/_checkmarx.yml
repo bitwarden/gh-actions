@@ -20,7 +20,7 @@ on:
         required: true
 
 concurrency:
-  group: ${{ github.repository }}-${{ github.workflow }}-checkmarx-${{ github.event.pull_request.number || github.head_ref || github.ref }}
+  group: ${{ github.repository  }}-${{ github.workflow }}-checkmarx-${{ github.event.pull_request.number || github.head_ref || github.ref }}
   cancel-in-progress: ${{ contains(github.event_name, 'pull_request') }}
 
 permissions: {}

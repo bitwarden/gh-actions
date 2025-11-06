@@ -41,7 +41,7 @@ Enforce Bitwarden company review rules to produce concise, consistent PR review 
 
 8. **NEVER** write multiple long paragraphs. If context is required, then you **must** use a fenced code block. You **must** use collapsible <details> sections for lengthy explanations.
    - Brevity respects developer time leading to short feedback loops
-   - Brevity saved tokens, processing time, and money
+   - Brevity saves tokens, processing time, and money
    - Brevity reduces noise in PR conversations and focuses attention findings that **require** human discussion
 
 9. **NEVER do this for clean PRs:**

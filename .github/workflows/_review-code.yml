@@ -123,17 +123,37 @@ jobs:
       - name: Build review prompt
         id: build-prompt
         env:
+          GH_TOKEN: ${{ github.token }}
           PR_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           PR_COMMIT: ${{ github.event.pull_request.head.sha }}
+          PROMPT_FILE: ".claude/prompts/review-code.md"
+          REUSABLE_PROMPT_REPO: "bitwarden/gh-actions"
+          REUSABLE_PROMPT_FILE: ".claude/prompts/bitwarden-review-code.md"
+          REUSABLE_PROMPT_TEMP_FILE: "/tmp/bitwarden-review-code-prompt.md"
         run: |
-          PROMPT_FILE=".claude/prompts/review-code.md"
+          set -e
+          echo "📥 Fetching Bitwarden prompt file..."
 
-          # Build the full prompt with GitHub context + repo's prompt
+          # Fetch the prompt file from gh-actions repo using GitHub API
+          gh api "repos/$REUSABLE_PROMPT_REPO/contents/$REUSABLE_PROMPT_FILE" \
+            --jq '.content' | base64 -d > "$REUSABLE_PROMPT_TEMP_FILE" || true
+
+          if [ -f "$REUSABLE_PROMPT_TEMP_FILE" ] && [ -s "$REUSABLE_PROMPT_TEMP_FILE" ]; then
+            echo "✅ Successfully fetched Bitwarden prompt file"
+            echo "📄 File size: $(wc -c < "$REUSABLE_PROMPT_TEMP_FILE") bytes"
+          else
+            echo "⚠️  Warning: Failed to fetch Bitwarden prompt file - continuing without it"
+            touch "$REUSABLE_PROMPT_TEMP_FILE"
+          fi
+
+          # Build the code review prompt
           {
+            cat "$REUSABLE_PROMPT_TEMP_FILE"
+            printf "\n\n---\n\n"
             printf "REPO: %s\n" "$PR_REPO"
             printf "PR NUMBER: %s\n" "$PR_NUMBER"
             printf "TITLE: %s\n" "$PR_TITLE"

@@ -29,3 +29,9 @@ npm-debug.log
 
 # Generated solution files
 gh-actions.sln
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Temporary workflow artifacts
+.gh-actions-temp/

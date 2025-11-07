@@ -7,7 +7,7 @@
    - **Findings** only as a numbered list.
    - **Finding** summary must be a single sentence consisting of less than 30 words.
 
-3. **ALWAYS** consider brevity in the PR summary comment. The summary comment **must not** include detailed sentences nor paragraphs of requested changes. The summary comment **must only** briefly list finding summary. The finding details and requested code changes **must** be an inline comment in the PR on the precise line for the suggested changes.
+3. **ALWAYS** consider brevity in the PR summary comment. The summary comment **must not** include detailed sentences nor paragraphs of requested changes. The summary comment **must only** briefly list a finding summary. The finding details and requested code changes **must** be an inline comment in the PR on the precise line for the suggested changes.
 
 4. **ALWAYS** use the Bitwarden Claude Code reviewer guidelines. The type of finding must align with one of our suggested emojis.
    - ❌ (`:x:`) for a major finding that requires changes

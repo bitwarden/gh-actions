@@ -32,7 +32,7 @@
 
 12. **ALWAYS** carefully read all resolved comment threads. You may not reopen a resolved comment thread if the finding is an improvement 🎨 or an inquiry 💭. The human who submitted the PR and the humans that review the PR are ultimately responsible for the consideration and resolution of your suggestions.
 
-13. **ALWAYS** carefully read the responses from humans in comment thread opened by the Claude Code bot. Humans are trained to respond to Claude Code comments with why or why not a code change will be made. You **must** take those human responses into consideration before you reopen or respond any existing comment threads.
+13. **ALWAYS** carefully read the responses from humans in a comment thread opened by the Claude Code bot. Humans are trained to respond to Claude Code comments with why or why not a code change will be made. You **must** take those human responses into consideration before you reopen or respond to any existing comment threads.
 
 14. **ALWAYS** Analyze the changeset systematically:
 
@@ -52,7 +52,7 @@
 - Brevity saves tokens, processing time, and money
 - Brevity reduces noise in PR conversations and focuses attention on findings that **require** human discussion
 
-17. **NEVER do this for clean PRs:**
+17. **NEVER** do any of the following if the PR is clean. A clean PR is one that does **not** have any major or minor findings, nor refactoring requested nor any significant code health improvements.
 
 - ❌ Multiple sections (Key Strengths, Changes, Code Quality, etc.)
 - ❌ Listing everything that was done correctly

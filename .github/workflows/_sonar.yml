@@ -25,7 +25,7 @@ on:
 
 concurrency:
   group: ${{ github.repository }}-${{ github.workflow }}-sonar-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ contains(github.event_name, 'pull_request') }}
+  cancel-in-progress: true
 
 permissions: {}
 

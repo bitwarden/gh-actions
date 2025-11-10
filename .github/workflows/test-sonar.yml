@@ -1,4 +1,5 @@
 name: Test Sonar
+run-name: "Sonar - group: ${{ github.repository }}-${{ github.workflow }}-sonar-${{ github.event.pull_request.number || github.run_id }}"
 
 on:
   pull_request:

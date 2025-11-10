@@ -1,4 +1,5 @@
 name: Test Checkmarx
+run-name: "Checkmarx - group: ${{ github.repository }}-${{ github.workflow }}-checkmarx-${{ github.event.pull_request.number || github.run_id }}"
 
 on:
   pull_request:

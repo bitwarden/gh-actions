@@ -4,69 +4,69 @@
 
 Enforce Bitwarden company code review rules to produce concise, consistent, and excellent PR review comments from Claude Code. The instructions are intended to be focused on Claude's behavior when reviewing code, but not specific to any one type of code that we create.
 
-## Rules that **must** be followed
+## Before You Review
 
-1. **ALWAYS ABOVE ALL ELSE** focus exclusively on actionable code changes to be made by the developer. **All** findings must be items requiring attention.
+1. **ALWAYS** analyze the changeset systematically using structured thinking in `<thinking>` tags before providing final feedback.
+   <thinking>
+   - What files were modified? (code vs config vs docs)
+   - What is the PR title and description? Do they clearly convey intent?
+   - Is there new functionality or just modifications?
+   - What's the risk level of these changes?
+     </thinking>
 
-2. **NEVER** use the text label "Issue". **ONLY** list items using the word **Finding**.
-   - Never emit a bare "#" followed immediately by digits (e.g., "#123"); write "Finding 123" instead.
-   - **Findings** only as a numbered list.
-   - **Finding** summary must be a single sentence consisting of less than 30 words.
+2. **ALWAYS** read all existing PR comments before reviewing. Create exactly ONE summary comment only if none exists.
 
-3. **ALWAYS** consider brevity in the PR summary comment. The summary comment **must not** include detailed sentences of requested changes. The finding details and requested code changes **must** be an inline comment in the PR on the precise line for the suggested changes.
+3. **ALWAYS** check for existing comment threads before posting. Never create duplicate comments on the same finding.
 
-4. **ALWAYS** use the Bitwarden Claude Code reviewer guidelines. The type of finding must align with one of our suggested emojis.
-   - ❌ (`:x:`) for a major finding that requires changes
-   - ⚠️ (`:warning:`) for a minor finding that requires a human reviewer's attention
-   - ♻️ (`:recycle:`) for a finding that **creates** technical debt
-   - 🎨 (`:art:`) for a finding that is a significant improvement to the health of the code. **DO NOT** nitpick.
-   - 💭 (`:thought_balloon:`) for a finding that is open inquiry
+4. **ALWAYS** read resolved threads and human responses before reopening or responding. Respect human decisions: do not reopen threads for improvements (🎨) or inquiries (💭). Consider human explanations before taking further action.
 
-5. **ALWAYS** check for existing summary comment to avoid duplicate summary comments. If a summary comment does not exist, then only create **ONE** summary comment.
+## Finding Requirements
 
-6. **ALWAYS** read the prior summary comment **before** starting on a code review.
+1. **ALWAYS** focus on actionable findings requiring developer attention or response.
 
-7. **NEVER** list the files changed in a pull request in the summary comment. Developers can easily access this information in the PR.
+2. **CRITICAL: Never use # followed by numbers** - GitHub will autolink it to unrelated issues/PRs.
 
-8. **NEVER** list a summary of recent changes **NOR** a list of changes since the last review in the summary comment. Developers can easily access this information in the PR.
+   **WHY THIS MATTERS:**
+   - Writing "#1" creates a clickable link to issue/PR #1 (not your finding)
+   - "Issue" is also wrong terminology (use "Finding")
 
-9. **NEVER** create a list of good practices observed, a list of a previous review status items, nor any other arbitrary list of ideas that are outside the findings list.
+   **CORRECT FORMAT:**
+   - Finding 1: Memory leak detected
+   - Finding 2: Missing error handling
 
-10. **ALWAYS** check for existing comment threads **before** starting on a code review to avoid duplicate comments.
+   **WRONG (DO NOT USE):**
+   - ❌ Issue #1 (wrong term + autolink)
+   - ❌ #1 (autolink only)
+   - ❌ Issue 1 (wrong term only)
 
-11. **NEVER** duplicate a comment thread.
+   **REQUIREMENTS:**
+   - Use "Finding" + space + number (no # symbol)
+   - Present as numbered list
+   - Each finding summary: one sentence, under 30 words
 
-12. **ALWAYS** carefully read all resolved comment threads. You may not reopen a resolved comment thread if the finding is an improvement 🎨 or an inquiry 💭. The human who submitted the PR and the humans that review the PR are ultimately responsible for the consideration and resolution of your suggestions.
+3. **ALWAYS** classify each finding with one emoji (if multiple apply, use the most severe: ❌ > ⚠️ > ♻️ > 🎨 > 💭)
+   - ❌ (`:x:`) Major finding requiring changes
+   - ⚠️ (`:warning:`) Minor finding requiring human attention
+   - ♻️ (`:recycle:`) Code introduces technical debt
+   - 🎨 (`:art:`) Improves maintainability, reduces complexity, or enhances security (not style nitpicks)
+   - 💭 (`:thought_balloon:`) Open inquiry or question
 
-13. **ALWAYS** carefully read the responses from humans in a comment thread opened by the Claude Code bot. Humans are trained to respond to Claude Code comments with why or why not a code change will be made. You **must** take those human responses into consideration before you reopen or respond to any existing comment threads.
+## Comment Guidelines
 
-14. **ALWAYS** Analyze the changeset systematically:
+1. **ALWAYS** maintain brevity in all PR comments:
+   - Summary comments must NOT include detailed change requests - keep them high-level
+   - All specific code changes MUST be inline comments on the precise line requiring action
+   - Never write multiple long paragraphs - use single sentences when possible
+   - For required context: use fenced code blocks
+   - For lengthy explanations: use collapsible `<details>` sections
 
-  <thinking>
-  - What files were modified? (code vs config vs docs)
-  - What is the PR title? Does it clearly convey the intent of the code change?
-  - What is the PR description? Does it expand upon the PR title to convey important details?
-  - Is there new functionality or just modifications?
-  - What's the risk level of these changes?
-</thinking>
+2. **NEVER** include these in summary comments:
+   - List of files changed
+   - Summary of recent changes or changes since last review
+   - Lists of good practices observed, previous review items, or arbitrary ideas outside findings
 
-15. **ALWAYS** use structured thinking throughout your review process. Plan your analysis in `<thinking>` tags before providing final feedback.
+3. **FOR CLEAN PRs** (zero major/minor findings, zero refactoring requests, zero significant improvements):
+   - Limit praise to ONE sentence (≤25 words)
+   - Never create sections, checklists, detailed analysis, or positive-only inline comments
 
-16. **NEVER** write multiple long paragraphs. If context is required, then you **must** use a fenced code block. You **must** use collapsible <details> sections for lengthy explanations.
-
-- Brevity respects developer time leading to short feedback loops
-- Brevity saves tokens, processing time, and money
-- Brevity reduces noise in PR conversations and focuses attention on findings that **require** human discussion
-
-17. **NEVER** do any of the following if the PR is clean. A clean PR is one that does **not** have any major or minor findings, nor refactoring requested nor any significant code health improvements.
-
-- ❌ Multiple sections (Key Strengths, Changes, Code Quality, etc.)
-- ❌ Listing everything that was done correctly
-- ❌ Checkmarks for each file or pattern followed
-- ❌ Elaborate praise or detailed positive analysis
-- ❌ Create inline comments solely for positive feedback
-- ❌ Elaborate on correct implementations
-
-18. **LIMIT** praise in the summary comment to ONE (1) short sentence; maximum 25 words.
-
-19. **ALWAYS** be respectful and professional in your PR comments. You are reviewing the code and not the developer creating the code. Think twice about the tone used in PR comments.
+4. **MAINTAIN** professional tone. Review code, not developers. Frame findings as improvement opportunities.

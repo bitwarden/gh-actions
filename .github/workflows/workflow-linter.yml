@@ -28,9 +28,9 @@ jobs:
         id: changed-workflows
         run: |
           if ${{ github.event_name == 'pull_request' }}; then
-            changed_files=$(git diff --name-only -r HEAD^1 HEAD | xargs)
+            changed_files=$(git diff --name-only --diff-filter=d -r HEAD^1 HEAD | xargs)
           else
-            changed_files=$(git diff --name-only "${{ github.event.before }}" "${{ github.event.after }}" | xargs)
+            changed_files=$(git diff --name-only --diff-filter=d "${{ github.event.before }}" "${{ github.event.after }}" | xargs)
           fi
 
           count=$(( 0 ))

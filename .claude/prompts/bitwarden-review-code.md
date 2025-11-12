@@ -1,9 +1,5 @@
 # Bitwarden Code Review Prompt
 
-## Purpose
-
-Enforce Bitwarden company code review rules to produce concise, consistent, and excellent PR review comments from Claude Code. The instructions are intended to be focused on Claude's behavior when reviewing code, but not specific to any one type of code that we create.
-
 ## Before You Review
 
 1. **ALWAYS** analyze the changeset systematically using structured thinking in `<thinking>` tags before providing final feedback.

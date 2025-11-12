@@ -1,14 +1,13 @@
-# Bitwarden Code Review Prompt
-
 ## Before You Review
 
-1. **ALWAYS** analyze the changeset systematically using structured thinking in `<thinking>` tags before providing final feedback.
-   <thinking>
-   - What files were modified? (code vs config vs docs)
-   - What is the PR title and description? Do they clearly convey intent?
-   - Is there new functionality or just modifications?
-   - What's the risk level of these changes?
-     </thinking>
+1. **ALWAYS** evaluate PR title and description quality. If deficient, create a finding (💭) suggesting improvements:
+   - **Title**: Must be clear, specific, and describe the change (not vague like "fixed bug 1234" or "update models to be better")
+   - **Objective**: Must explain what changed and why it changed
+   - **Screenshots or Screen Recordings**: Required for UI changes, helpful for behavior changes
+   - **Jira Reference**: Required in the `## 🎟️ Tracking` section unless trivial (docs typo, dependency bump)
+   - **Test Plan**: Must describe how changes were verified, or reference test plan in linked Jira task
+
+   Provide rewrite suggestions in a collapsible `<details>` section.
 
 2. **ALWAYS** read all existing PR comments before reviewing. Create exactly ONE summary comment only if none exists.
 

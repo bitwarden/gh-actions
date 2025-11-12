@@ -92,6 +92,7 @@ jobs:
     if: needs.validation.outputs.should_review == 'true'
     permissions:
       contents: read
+      actions: read
       id-token: write
       pull-requests: write
 

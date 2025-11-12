@@ -21,6 +21,7 @@ The `review-code.yml` workflow uses TWO prompt files:
 1. **Bitwarden company-wide prompt** (`.claude/prompts/bitwarden-review-code.md`)
    - Stored in `bitwarden/gh-actions` repository
    - Contains common review criteria for all Bitwarden repos
+   - Intended to be focused on Claude's behavior when reviewing code
    - Automatically fetched during workflow execution
 
 2. **Repository-specific gate** (`.claude/prompts/review-code.md`)

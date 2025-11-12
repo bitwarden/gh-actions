@@ -101,7 +101,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha }}
-          persist-credentials: false
+          persist-credentials: true
 
       - name: Log in to Azure
         uses: bitwarden/gh-actions/azure-login@main

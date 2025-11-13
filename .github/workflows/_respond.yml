@@ -13,8 +13,15 @@ on:
 permissions: {}
 
 jobs:
+  check-run:
+    name: Check PR run
+    uses: ./.github/workflows/check-run.yml
+    permissions:
+      contents: read
+
   validation:
     name: Validation
+    needs: check-run
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -44,10 +51,10 @@ jobs:
           fi
 
           if [ "$MENTIONED" == "true" ]; then
-            echo "claude_mentioned=true" >> $GITHUB_OUTPUT
+            echo "claude_mentioned=true" >> "$GITHUB_OUTPUT"
             echo "✅ Validation: @claude mentioned in event"
           else
-            echo "claude_mentioned=false" >> $GITHUB_OUTPUT
+            echo "claude_mentioned=false" >> "$GITHUB_OUTPUT"
             echo "⏭️  Validation: @claude not mentioned - skipping"
           fi
 
@@ -57,10 +64,10 @@ jobs:
           CLAUDE_MENTIONED: ${{ steps.check-github-event.outputs.claude_mentioned }}
         run: |
           if [ "$CLAUDE_MENTIONED" == "true" ] ; then
-            echo "should_comment=true" >> $GITHUB_OUTPUT
+            echo "should_comment=true" >> "$GITHUB_OUTPUT"
             echo "✅ Validation passed - comment will proceed"
           else
-            echo "should_comment=false" >> $GITHUB_OUTPUT
+            echo "should_comment=false" >> "$GITHUB_OUTPUT"
             echo "⚠️  Validation failed - comment will be skipped"
           fi
 

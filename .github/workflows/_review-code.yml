@@ -19,7 +19,7 @@ permissions: {}
 jobs:
   check-run:
     name: Check PR run
-    uses: bitwarden/gh-actions/.github/workflows/check-run.yml@main
+    uses: ./.github/workflows/check-run.yml
     permissions:
       contents: read
 
@@ -40,10 +40,10 @@ jobs:
         run: |
           if [ "$IS_DRAFT" == "true" ]; then
             echo "⚠️  Validation: PR is a draft - skipping review"
-            echo "pr_valid=false" >> $GITHUB_OUTPUT
+            echo "pr_valid=false" >> "$GITHUB_OUTPUT"
           else
             echo "✅ Validation: PR is ready for review"
-            echo "pr_valid=true" >> $GITHUB_OUTPUT
+            echo "pr_valid=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Check if prompt file exists using GitHub CLI
@@ -55,10 +55,10 @@ jobs:
           FILE_PATH: ".claude/prompts/review-code.md"
         run: |
           if gh api "repos/$REPO/contents/$FILE_PATH?ref=$REF" --silent 2>/dev/null; then
-            echo "prompt_exists=true" >> $GITHUB_OUTPUT
+            echo "prompt_exists=true" >> "$GITHUB_OUTPUT"
             echo "✅ Found $FILE_PATH in $REPO"
           else
-            echo "prompt_exists=false" >> $GITHUB_OUTPUT
+            echo "prompt_exists=false" >> "$GITHUB_OUTPUT"
             echo "⚠️  Validation: No $FILE_PATH found - skipping Claude review"
           fi
 
@@ -70,10 +70,10 @@ jobs:
         run: |
           if [ "$PR_VALID" == "true" ] && \
              [ "$PROMPT_EXISTS" == "true" ]; then
-            echo "should_review=true" >> $GITHUB_OUTPUT
+            echo "should_review=true" >> "$GITHUB_OUTPUT"
             echo "✅ Validation passed - code review will proceed"
           else
-            echo "should_review=false" >> $GITHUB_OUTPUT
+            echo "should_review=false" >> "$GITHUB_OUTPUT"
             echo "⚠️  Validation failed - code review will be skipped"
           fi
 

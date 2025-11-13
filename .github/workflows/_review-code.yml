@@ -91,8 +91,8 @@ jobs:
     needs: validation
     if: needs.validation.outputs.should_review == 'true'
     permissions:
-      contents: read
       actions: read
+      contents: read
       id-token: write
       pull-requests: write
 

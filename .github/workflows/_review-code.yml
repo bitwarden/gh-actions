@@ -17,8 +17,15 @@ concurrency:
 permissions: {}
 
 jobs:
+  check-run:
+    name: Check PR run
+    uses: ./.github/workflows/check-run.yml
+    permissions:
+      contents: read
+
   validation:
     name: Validation
+    needs: check-run
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -33,23 +40,10 @@ jobs:
         run: |
           if [ "$IS_DRAFT" == "true" ]; then
             echo "⚠️  Validation: PR is a draft - skipping review"
-            echo "pr_valid=false" >> $GITHUB_OUTPUT
+            echo "pr_valid=false" >> "$GITHUB_OUTPUT"
           else
             echo "✅ Validation: PR is ready for review"
-            echo "pr_valid=true" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Check if PR is from a bot
-        id: check-user-type-bot
-        env:
-          PR_AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}
-        run: |
-          if [ "$PR_AUTHOR_TYPE" == "Bot" ]; then
-            echo "⚠️  Validation: PR opened by bot - skipping review"
-            echo "is_bot=true" >> $GITHUB_OUTPUT
-          else
-            echo "✅ Validation: PR opened by human user"
-            echo "is_bot=false" >> $GITHUB_OUTPUT
+            echo "pr_valid=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Check if prompt file exists using GitHub CLI
@@ -61,10 +55,10 @@ jobs:
           FILE_PATH: ".claude/prompts/review-code.md"
         run: |
           if gh api "repos/$REPO/contents/$FILE_PATH?ref=$REF" --silent 2>/dev/null; then
-            echo "prompt_exists=true" >> $GITHUB_OUTPUT
+            echo "prompt_exists=true" >> "$GITHUB_OUTPUT"
             echo "✅ Found $FILE_PATH in $REPO"
           else
-            echo "prompt_exists=false" >> $GITHUB_OUTPUT
+            echo "prompt_exists=false" >> "$GITHUB_OUTPUT"
             echo "⚠️  Validation: No $FILE_PATH found - skipping Claude review"
           fi
 
@@ -73,15 +67,13 @@ jobs:
         env:
           PR_VALID: ${{ steps.check-pr.outputs.pr_valid }}
           PROMPT_EXISTS: ${{ steps.check-prompt.outputs.prompt_exists }}
-          IS_BOT: ${{ steps.check-user-type-bot.outputs.is_bot }}
         run: |
           if [ "$PR_VALID" == "true" ] && \
-             [ "$PROMPT_EXISTS" == "true" ] && \
-             [ "$IS_BOT" == "false" ]; then
-            echo "should_review=true" >> $GITHUB_OUTPUT
+             [ "$PROMPT_EXISTS" == "true" ]; then
+            echo "should_review=true" >> "$GITHUB_OUTPUT"
             echo "✅ Validation passed - code review will proceed"
           else
-            echo "should_review=false" >> $GITHUB_OUTPUT
+            echo "should_review=false" >> "$GITHUB_OUTPUT"
             echo "⚠️  Validation failed - code review will be skipped"
           fi
 

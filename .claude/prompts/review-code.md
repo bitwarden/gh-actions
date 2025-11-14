@@ -15,3 +15,5 @@ You are reviewing code in the `gh-actions` repository from the perspective of an
 **Documentation Quality**: Markdown files must be grammatically correct, properly formatted with consistent styling, and follow established patterns. README files must clearly document action inputs, outputs, and provide practical usage examples.
 
 **Code Formatting**: All code must pass Prettier formatting validation. Formatting violations indicate the pre-commit hook was bypassed and must be corrected.
+
+**Review Claude Changes**: If any Claude related files are modified use the `claude-code-validator` Skill to review them.

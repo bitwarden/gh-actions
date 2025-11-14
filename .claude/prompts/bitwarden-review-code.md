@@ -41,12 +41,14 @@
    - Present as numbered list
    - Each finding summary: one sentence, under 30 words
 
-3. **ALWAYS** classify each finding with one emoji (if multiple apply, use the most severe: ❌ > ⚠️ > ♻️ > 🎨 > 💭)
-   - ❌ (`:x:`) Major finding requiring changes
-   - ⚠️ (`:warning:`) Minor finding requiring human attention
-   - ♻️ (`:recycle:`) Code introduces technical debt
-   - 🎨 (`:art:`) Improves maintainability, reduces complexity, or enhances security (not style nitpicks)
-   - 💭 (`:thought_balloon:`) Open inquiry or question
+3. **ALWAYS** classify each finding using hybrid emoji + text format (if multiple severities apply, use most severe):
+   - ❌ **CRITICAL** - Blocking issues that must be fixed before merge (security vulnerabilities, crashes, data corruption, architecture violations)
+   - ⚠️ **IMPORTANT** - Issues that should be fixed before merge (testing gaps, maintainability concerns, performance problems, improper patterns)
+   - ♻️ **DEBT** - Code introduces technical debt that will require future refactoring
+   - 🎨 **SUGGESTED** - Nice to have improvements (consider effort vs benefit, not required for merge, not style nitpicks)
+   - 💭 **QUESTION** - Open inquiry seeking clarification or discussion
+
+   **Severity precedence:** CRITICAL > IMPORTANT > DEBT > SUGGESTED > QUESTION
 
 ## Comment Guidelines
 
@@ -55,7 +57,24 @@
    - All specific code changes MUST be inline comments on the precise line requiring action
    - Never write multiple long paragraphs - use single sentences when possible
    - For required context: use fenced code blocks
-   - For lengthy explanations: use collapsible `<details>` sections
+   - **ALWAYS** use collapsible `<details>` sections for ALL inline comments (not just lengthy ones)
+
+   **Required inline comment format:**
+   ```
+   [emoji] **[SEVERITY]**: [One-line issue description]
+
+   <details>
+   <summary>Details and fix</summary>
+
+   [Code example or specific fix]
+
+   [Rationale explaining why]
+
+   Reference: [docs link if applicable]
+   </details>
+   ```
+
+   **Visibility rule:** Only severity prefix + one-line description should be visible; all code examples, rationale, and references must be collapsed inside `<details>` tags.
 
 2. **NEVER** include these in summary comments:
    - List of files changed
@@ -67,3 +86,31 @@
    - Never create sections, checklists, detailed analysis, or positive-only inline comments
 
 4. **MAINTAIN** professional tone. Review code, not developers. Frame findings as improvement opportunities.
+
+## Summary Comment Format
+
+**ALWAYS** use these templates for summary comments (maximum 5-10 lines total):
+
+**For PRs with issues:**
+```
+**Overall Assessment:** APPROVE / REQUEST CHANGES
+
+**Critical Issues** (if any):
+- [One-line summary with file:line reference]
+
+See inline comments for details.
+```
+
+**For clean PRs (no issues found):**
+```
+**Overall Assessment:** APPROVE
+
+[One sentence describing what PR does well]
+```
+
+**Rules:**
+- Summary lists ONLY critical blocking issues (❌ **CRITICAL**)
+- Do NOT duplicate inline comment details in summary
+- Do NOT include IMPORTANT, DEBT, or SUGGESTED issues in summary (those go in inline comments only)
+- Do NOT create "Strengths", "Good Practices", or "Action Items" sections
+- Maximum length: 5-10 lines regardless of PR size or complexity

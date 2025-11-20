@@ -75,6 +75,7 @@ jobs:
     name: Claude comment
     runs-on: ubuntu-24.04
     needs: validation
+    timeout-minutes: 15
     if: needs.validation.outputs.should_comment == 'true'
     permissions:
       actions: read
@@ -110,6 +111,7 @@ jobs:
 
       - name: Run Claude Code
         id: claude
+        timeout-minutes: 10
         uses: anthropics/claude-code-action@f30f5eecfce2f34fa72e40fa5f7bcdbdcad12eb8 # v1.0.14
         with:
           anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-RESPONSE-API-KEY }}

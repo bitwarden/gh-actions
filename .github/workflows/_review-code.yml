@@ -81,6 +81,7 @@ jobs:
     name: Review
     runs-on: ubuntu-24.04
     needs: validation
+    timeout-minutes: 15
     if: needs.validation.outputs.should_review == 'true'
     permissions:
       actions: read
@@ -150,6 +151,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Review with Claude Code
+        timeout-minutes: 10
         uses: anthropics/claude-code-action@8a1c4371755898f67cd97006ba7c97702d5fc4bf # v1.0.16
         with:
           anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-CODE-REVIEW-API-KEY }}

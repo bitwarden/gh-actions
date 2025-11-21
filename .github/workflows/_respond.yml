@@ -13,22 +13,44 @@ on:
 permissions: {}
 
 jobs:
-  check-run:
-    name: Check PR run
-    uses: ./.github/workflows/check-run.yml
-    permissions:
-      contents: read
-
   validation:
     name: Validation
-    needs: check-run
     runs-on: ubuntu-24.04
     permissions:
       contents: read
     outputs:
       should_comment: ${{ steps.validate.outputs.should_comment }}
-
     steps:
+      - name: Check triggering actor
+        id: check-actor
+        env:
+          ACTOR: ${{ github.actor }}
+          COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
+          REVIEW_AUTHOR: ${{ github.event.review.user.login }}
+          ISSUE_AUTHOR: ${{ github.event.issue.user.login }}
+        run: |
+          # Get the actual author of the comment/review/issue
+          AUTHOR="${COMMENT_AUTHOR:-${REVIEW_AUTHOR:-${ISSUE_AUTHOR}}}"
+
+          # List of bots that should not trigger Claude responses
+          BLOCKED_BOTS=("claude[bot]" "copilot[bot]" "github-actions[bot]" "dependabot[bot]" "codecov[bot]" "sonarqubecloud[bot]" "renovate[bot]")
+
+          IS_BOT=false
+          for BOT in "${BLOCKED_BOTS[@]}"; do
+            if [ "$ACTOR" == "$BOT" ] || [ "$AUTHOR" == "$BOT" ]; then
+              IS_BOT=true
+              echo "⏭️  Blocked bot detected: $BOT - skipping workflow"
+              break
+            fi
+          done
+
+          if [ "$IS_BOT" == "true" ]; then
+            echo "is_bot=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_bot=false" >> "$GITHUB_OUTPUT"
+            echo "✅ Human user detected: $AUTHOR"
+          fi
+
       - name: Check GitHub event
         id: check-github-event
         env:
@@ -62,19 +84,31 @@ jobs:
         id: validate
         env:
           CLAUDE_MENTIONED: ${{ steps.check-github-event.outputs.claude_mentioned }}
+          IS_BOT: ${{ steps.check-actor.outputs.is_bot }}
         run: |
-          if [ "$CLAUDE_MENTIONED" == "true" ] ; then
+          if [ "$IS_BOT" == "true" ]; then
+            echo "should_comment=false" >> "$GITHUB_OUTPUT"
+            echo "⚠️  Bot-triggered - workflow will be skipped"
+          elif [ "$CLAUDE_MENTIONED" == "true" ]; then
             echo "should_comment=true" >> "$GITHUB_OUTPUT"
-            echo "✅ Validation passed - comment will proceed"
+            echo "✅ Validation passed - workflow will proceed"
           else
             echo "should_comment=false" >> "$GITHUB_OUTPUT"
-            echo "⚠️  Validation failed - comment will be skipped"
+            echo "⚠️  @claude not mentioned - workflow will be skipped"
           fi
+
+  check-run:
+    name: Check PR run
+    needs: validation
+    if: needs.validation.outputs.should_comment == 'true'
+    uses: ./.github/workflows/check-run.yml
+    permissions:
+      contents: read
 
   comment:
     name: Claude comment
     runs-on: ubuntu-24.04
-    needs: validation
+    needs: [validation, check-run]
     timeout-minutes: 15
     if: needs.validation.outputs.should_comment == 'true'
     permissions:

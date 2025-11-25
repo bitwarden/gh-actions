@@ -1,0 +1,125 @@
+name: Test Check Permission Action
+
+on:
+  pull_request:
+    paths:
+      - "check-permission/**"
+      - ".github/workflows/test-check-permission.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-fail-mode:
+    name: Test Fail Mode
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Check permission (should pass for repo collaborators)
+        id: check-fail
+        uses: ./check-permission
+        with:
+          require: read
+          username: ${{ github.triggering_actor }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          failure_mode: fail
+
+      - name: Verify output
+        run: |
+          echo "Has permission: ${{ steps.check-fail.outputs.has_permission }}"
+          echo "User permission: ${{ steps.check-fail.outputs.user_permission }}"
+          echo "Should skip: ${{ steps.check-fail.outputs.should_skip }}"
+
+  test-skip-mode:
+    name: Test Skip Mode
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Check permission (always succeeds with skip mode)
+        id: check-skip
+        uses: ./check-permission
+        with:
+          require: admin
+          username: ${{ github.triggering_actor }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          failure_mode: skip
+
+      - name: Conditional step
+        if: steps.check-skip.outputs.should_skip != 'true'
+        run: echo "Would run privileged operation"
+
+      - name: Skip notification
+        if: steps.check-skip.outputs.should_skip == 'true'
+        run: echo "Skipped privileged operation due to permissions"
+
+  test-continue-mode:
+    name: Test Continue Mode
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Check permission with continue mode
+        id: permission
+        uses: ./check-permission
+        with:
+          require: write
+          username: ${{ github.triggering_actor }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          failure_mode: continue
+
+      - name: Admin operations
+        if: steps.permission.outputs.user_permission == 'admin'
+        run: echo "Running admin-level operations"
+
+      - name: Write operations
+        if: steps.permission.outputs.user_permission == 'write'
+        run: echo "Running write-level operations"
+
+      - name: Read operations
+        if: steps.permission.outputs.user_permission == 'read'
+        run: echo "Running read-level operations"
+
+      - name: Always runs
+        run: |
+          echo "This step always runs"
+          echo "User permission: ${{ steps.permission.outputs.user_permission }}"
+          echo "Has required permission: ${{ steps.permission.outputs.has_permission }}"
+
+  test-fallback-pattern:
+    name: Test Fallback Pattern
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Check admin permission (preferred)
+        id: check-admin
+        uses: ./check-permission
+        with:
+          require: admin
+          username: ${{ github.triggering_actor }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          failure_mode: skip
+
+      - name: Check write permission (fallback)
+        if: steps.check-admin.outputs.should_skip == 'true'
+        id: check-write
+        uses: ./check-permission
+        with:
+          require: write
+          username: ${{ github.triggering_actor }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          failure_mode: skip
+
+      - name: Report results
+        run: |
+          echo "User: ${{ github.triggering_actor }}"
+          echo "Admin permission: ${{ steps.check-admin.outputs.has_permission }}"
+          echo "Write permission: ${{ steps.check-write.outputs.has_permission }}"
+          echo "Actual permission: ${{ steps.check-admin.outputs.user_permission }}"

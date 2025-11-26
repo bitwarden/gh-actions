@@ -11,12 +11,12 @@ Check user permissions with configurable failure handling.
 
 ## Inputs
 
-| Input | Description | Required | Default |
-|-------|-------------|----------|---------|
-| `require` | Required permission level (`admin`, `write`, `read`, `none`) | Yes | - |
-| `username` | Username to check permissions for | Yes | - |
-| `token` | GitHub token for API access | Yes | - |
-| `failure_mode` | How to handle failures: `fail`, `skip`, or `continue` | No | `fail` |
+| Input          | Description                                                  | Required | Default |
+| -------------- | ------------------------------------------------------------ | -------- | ------- |
+| `require`      | Required permission level (`admin`, `write`, `read`, `none`) | Yes      | -       |
+| `username`     | Username to check permissions for                            | Yes      | -       |
+| `token`        | GitHub token for API access                                  | Yes      | -       |
+| `failure_mode` | How to handle failures: `fail`, `skip`, or `continue`        | No       | `fail`  |
 
 ### Failure Modes
 
@@ -26,11 +26,11 @@ Check user permissions with configurable failure handling.
 
 ## Outputs
 
-| Output | Description |
-|--------|-------------|
-| `has_permission` | `true` if user has required permission, `false` otherwise |
+| Output            | Description                                                            |
+| ----------------- | ---------------------------------------------------------------------- |
+| `has_permission`  | `true` if user has required permission, `false` otherwise              |
 | `user_permission` | Actual permission level of the user (`admin`, `write`, `read`, `none`) |
-| `should_skip` | `true` when failure_mode is `skip` and permission check fails |
+| `should_skip`     | `true` when failure_mode is `skip` and permission check fails          |
 
 ## Usage Examples
 

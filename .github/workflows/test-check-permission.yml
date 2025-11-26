@@ -40,7 +40,7 @@ jobs:
           echo "Should skip: $SHOULD_SKIP"
 
   test-skip-mode:
-    name: Test Skip Mode
+    name: Test skip mode
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -66,7 +66,7 @@ jobs:
         run: echo "Skipped privileged operation due to permissions"
 
   test-continue-mode:
-    name: Test Continue Mode
+    name: Test continue mode
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -97,15 +97,15 @@ jobs:
 
       - name: Always runs
         env:
-            USER_PERMISSION: ${{ steps.permission.outputs.user_permission }}
-            HAS_PERMISSION: ${{ steps.permission.outputs.has_permission }}
+          USER_PERMISSION: ${{ steps.permission.outputs.user_permission }}
+          HAS_PERMISSION: ${{ steps.permission.outputs.has_permission }}
         run: |
           echo "This step always runs"
           echo "User permission: $USER_PERMISSION"
           echo "Has required permission: $HAS_PERMISSION"
 
   test-fallback-pattern:
-    name: Test Fallback Pattern
+    name: Test fallback pattern
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout

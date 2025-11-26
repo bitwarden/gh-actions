@@ -1,17 +1,17 @@
-name: Reusable Permission Check
+name: Permission Check
 
 on:
   workflow_call:
     inputs:
       failure_mode:
-        description: 'Permission check failure mode: fail, skip, or continue'
+        description: "Permission check failure mode: fail, skip, or continue"
         type: string
-        default: 'fail'
+        default: "fail"
         required: false
       require_permission:
-        description: 'Required permission level: admin, write, read, or none'
+        description: "Required permission level: admin, write, read, or none"
         type: string
-        default: 'write'
+        default: "write"
         required: false
     outputs:
       has_permission:
@@ -29,7 +29,7 @@ permissions:
 
 jobs:
   check-permission:
-    name: Check Permission
+    name: Check permission
     runs-on: ubuntu-22.04
     outputs:
       has_permission: ${{ steps.check.outputs.has_permission }}

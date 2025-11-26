@@ -56,7 +56,7 @@ runs:
           exit 1
         fi
 
-        if [[ -z "$USERNAME" ]] || [[ ! "$USERNAME" =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,37}[A-Za-z0-9])?$ ]]; then
+        if [[ -z "$USERNAME" ]] || [[ ! "$USERNAME" =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,37}[A-Za-z0-9])?(\[bot\])?$ ]]; then
           echo "::error::Invalid username format. Username cannot be empty and must match GitHub's username requirements."
           exit 1
         fi

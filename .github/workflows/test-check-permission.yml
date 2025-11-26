@@ -30,10 +30,14 @@ jobs:
           failure_mode: fail
 
       - name: Verify output
+        env:
+          HAS_PERMISSION: ${{ steps.check-fail.outputs.has_permission }}
+          USER_PERMISSION: ${{ steps.check-fail.outputs.user_permission }}
+          SHOULD_SKIP: ${{ steps.check-fail.outputs.should_skip }}
         run: |
-          echo "Has permission: ${{ steps.check-fail.outputs.has_permission }}"
-          echo "User permission: ${{ steps.check-fail.outputs.user_permission }}"
-          echo "Should skip: ${{ steps.check-fail.outputs.should_skip }}"
+          echo "Has permission: $HAS_PERMISSION"
+          echo "User permission: $USER_PERMISSION"
+          echo "Should skip: $SHOULD_SKIP"
 
   test-skip-mode:
     name: Test Skip Mode
@@ -92,10 +96,13 @@ jobs:
         run: echo "Running read-level operations"
 
       - name: Always runs
+        env:
+            USER_PERMISSION: ${{ steps.permission.outputs.user_permission }}
+            HAS_PERMISSION: ${{ steps.permission.outputs.has_permission }}
         run: |
           echo "This step always runs"
-          echo "User permission: ${{ steps.permission.outputs.user_permission }}"
-          echo "Has required permission: ${{ steps.permission.outputs.has_permission }}"
+          echo "User permission: $USER_PERMISSION"
+          echo "Has required permission: $HAS_PERMISSION"
 
   test-fallback-pattern:
     name: Test Fallback Pattern

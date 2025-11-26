@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Check permission (should pass for repo collaborators)
         id: check-fail
@@ -39,6 +41,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Check permission (always succeeds with skip mode)
         id: check-skip
@@ -63,6 +67,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Check permission with continue mode
         id: permission
@@ -97,6 +103,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Check admin permission (preferred)
         id: check-admin
@@ -118,8 +126,13 @@ jobs:
           failure_mode: skip
 
       - name: Report results
+        env:
+          ACTOR: ${{ github.triggering_actor }}
+          ADMIN_PERM: ${{ steps.check-admin.outputs.has_permission }}
+          WRITE_PERM: ${{ steps.check-write.outputs.has_permission }}
+          ACTUAL_PERM: ${{ steps.check-admin.outputs.user_permission }}
         run: |
-          echo "User: ${{ github.triggering_actor }}"
-          echo "Admin permission: ${{ steps.check-admin.outputs.has_permission }}"
-          echo "Write permission: ${{ steps.check-write.outputs.has_permission }}"
-          echo "Actual permission: ${{ steps.check-admin.outputs.user_permission }}"
+          echo "User: $ACTOR"
+          echo "Admin permission: $ADMIN_PERM"
+          echo "Write permission: $WRITE_PERM"
+          echo "Actual permission: $ACTUAL_PERM"

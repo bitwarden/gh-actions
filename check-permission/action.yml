@@ -1,0 +1,113 @@
+name: "Check Permission"
+description: "A composite action that checks if a user has the required permission level with configurable failure modes"
+author: "Bitwarden"
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  require:
+    description: "Required permission level (admin, write, read, none)"
+    required: true
+  username:
+    description: "Username to check permissions for"
+    required: true
+  token:
+    description: "GitHub token for API access"
+    required: true
+  failure_mode:
+    description: "How to handle permission failures: 'fail' (exit 1), 'skip' (exit 0 with skip output), 'continue' (exit 0 always, use outputs for branching)"
+    required: false
+    default: "fail"
+
+outputs:
+  has_permission:
+    description: "Whether the user has the required permission (true/false)"
+    value: ${{ steps.check-permission.outputs.has_permission }}
+  user_permission:
+    description: "The actual permission level of the user"
+    value: ${{ steps.check-permission.outputs.user_permission }}
+  should_skip:
+    description: "Whether the workflow should skip (true when failure_mode is 'skip' and permission check fails)"
+    value: ${{ steps.check-permission.outputs.should_skip }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check user permission
+      id: check-permission
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        REQUIRE: ${{ inputs.require }}
+        USERNAME: ${{ inputs.username }}
+        FAILURE_MODE: ${{ inputs.failure_mode }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+      run: |
+        set -e
+
+        if [[ ! "$FAILURE_MODE" =~ ^(fail|skip|continue)$ ]]; then
+          echo "::error::Invalid failure_mode; it must be 'fail', 'skip', or 'continue'"
+          exit 1
+        fi
+
+        if [[ ! "$REQUIRE" =~ ^(admin|write|read|none)$ ]]; then
+          echo "::error::Invalid require level; it must be 'admin', 'write', 'read', or 'none'"
+          exit 1
+        fi
+
+        if [[ -z "$USERNAME" ]] || [[ ! "$USERNAME" =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,37}[A-Za-z0-9])?(\[bot\])?$ ]]; then
+          echo "::error::Invalid username format. Username cannot be empty and must match GitHub's username requirements."
+          exit 1
+        fi
+
+        if ! USER_PERMISSION=$(gh api \
+          "repos/$GITHUB_REPOSITORY/collaborators/$USERNAME/permission" \
+          --jq '.permission // "none"' 2>&1); then
+
+          echo "::warning::Failed to check user permission: $USER_PERMISSION"
+
+          if [[ "$FAILURE_MODE" == "fail" ]]; then
+            echo "::error::Permission check failed and failure_mode is 'fail'"
+            exit 1
+          else
+            # Treat API failure as "no permission" for skip/continue modes
+            echo "::notice::Treating API failure as 'none' permission due to failure_mode='$FAILURE_MODE'"
+            USER_PERMISSION="none"
+          fi
+        fi
+
+        echo "user_permission=$USER_PERMISSION" >> "$GITHUB_OUTPUT"
+
+        declare -A PERM_LEVELS=( ["none"]=0 ["read"]=1 ["write"]=2 ["admin"]=3 )
+
+        USER_LEVEL=${PERM_LEVELS[$USER_PERMISSION]:-0}
+        REQUIRED_LEVEL=${PERM_LEVELS[$REQUIRE]}
+
+        # Check if user has required permission
+        if [ $USER_LEVEL -ge $REQUIRED_LEVEL ]; then
+          echo "✓ User has required permission"
+          echo "has_permission=true" >> "$GITHUB_OUTPUT"
+          echo "should_skip=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        else
+          echo "✗ User does not have required permission"
+          echo "has_permission=false" >> "$GITHUB_OUTPUT"
+          case "$FAILURE_MODE" in
+            fail)
+              echo "::error::User '$USERNAME' does not have required '$REQUIRE' permission."
+              echo "should_skip=false" >> "$GITHUB_OUTPUT"
+              exit 1
+              ;;
+            skip)
+              echo "::warning::User '$USERNAME' does not have required '$REQUIRE' permission. Marking for skip."
+              echo "should_skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+              ;;
+            continue)
+              echo "::notice::User '$USERNAME' does not have required '$REQUIRE' permission. Continuing - check outputs for branching."
+              echo "should_skip=false" >> "$GITHUB_OUTPUT"
+              exit 0
+              ;;
+          esac
+        fi

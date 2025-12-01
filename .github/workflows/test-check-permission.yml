@@ -1,0 +1,145 @@
+name: Test Check Permission Action
+
+on:
+  pull_request:
+    paths:
+      - "check-permission/**"
+      - ".github/workflows/test-check-permission.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-fail-mode:
+    name: Test Fail Mode
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+
+      - name: Check permission (should pass for repo collaborators)
+        id: check-fail
+        uses: ./check-permission
+        with:
+          require: read
+          username: ${{ github.triggering_actor }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          failure_mode: fail
+
+      - name: Verify output
+        env:
+          HAS_PERMISSION: ${{ steps.check-fail.outputs.has_permission }}
+          USER_PERMISSION: ${{ steps.check-fail.outputs.user_permission }}
+          SHOULD_SKIP: ${{ steps.check-fail.outputs.should_skip }}
+        run: |
+          echo "Has permission: $HAS_PERMISSION"
+          echo "User permission: $USER_PERMISSION"
+          echo "Should skip: $SHOULD_SKIP"
+
+  test-skip-mode:
+    name: Test skip mode
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+
+      - name: Check permission (always succeeds with skip mode)
+        id: check-skip
+        uses: ./check-permission
+        with:
+          require: admin
+          username: ${{ github.triggering_actor }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          failure_mode: skip
+
+      - name: Conditional step
+        if: steps.check-skip.outputs.should_skip != 'true'
+        run: echo "Would run privileged operation"
+
+      - name: Skip notification
+        if: steps.check-skip.outputs.should_skip == 'true'
+        run: echo "Skipped privileged operation due to permissions"
+
+  test-continue-mode:
+    name: Test continue mode
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+
+      - name: Check permission with continue mode
+        id: permission
+        uses: ./check-permission
+        with:
+          require: write
+          username: ${{ github.triggering_actor }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          failure_mode: continue
+
+      - name: Admin operations
+        if: steps.permission.outputs.user_permission == 'admin'
+        run: echo "Running admin-level operations"
+
+      - name: Write operations
+        if: steps.permission.outputs.user_permission == 'write'
+        run: echo "Running write-level operations"
+
+      - name: Read operations
+        if: steps.permission.outputs.user_permission == 'read'
+        run: echo "Running read-level operations"
+
+      - name: Always runs
+        env:
+          USER_PERMISSION: ${{ steps.permission.outputs.user_permission }}
+          HAS_PERMISSION: ${{ steps.permission.outputs.has_permission }}
+        run: |
+          echo "This step always runs"
+          echo "User permission: $USER_PERMISSION"
+          echo "Has required permission: $HAS_PERMISSION"
+
+  test-fallback-pattern:
+    name: Test fallback pattern
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+
+      - name: Check admin permission (preferred)
+        id: check-admin
+        uses: ./check-permission
+        with:
+          require: admin
+          username: ${{ github.triggering_actor }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          failure_mode: skip
+
+      - name: Check write permission (fallback)
+        if: steps.check-admin.outputs.should_skip == 'true'
+        id: check-write
+        uses: ./check-permission
+        with:
+          require: write
+          username: ${{ github.triggering_actor }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          failure_mode: skip
+
+      - name: Report results
+        env:
+          ACTOR: ${{ github.triggering_actor }}
+          ADMIN_PERM: ${{ steps.check-admin.outputs.has_permission }}
+          WRITE_PERM: ${{ steps.check-write.outputs.has_permission }}
+          ACTUAL_PERM: ${{ steps.check-admin.outputs.user_permission }}
+        run: |
+          echo "User: $ACTOR"
+          echo "Admin permission: $ADMIN_PERM"
+          echo "Write permission: $WRITE_PERM"
+          echo "Actual permission: $ACTUAL_PERM"

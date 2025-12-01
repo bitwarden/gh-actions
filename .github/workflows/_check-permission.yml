@@ -1,0 +1,67 @@
+name: Permission Check
+
+on:
+  workflow_call:
+    inputs:
+      failure_mode:
+        description: "Permission check failure mode: fail, skip, or continue"
+        type: string
+        default: "fail"
+        required: false
+      require_permission:
+        description: "Required permission level: admin, write, read, or none"
+        type: string
+        default: "write"
+        required: false
+    outputs:
+      has_permission:
+        description: "Whether the user has the required permission"
+        value: ${{ jobs.check-permission.outputs.has_permission }}
+      user_permission:
+        description: "The actual permission level of the user"
+        value: ${{ jobs.check-permission.outputs.user_permission }}
+      should_skip:
+        description: "Whether subsequent jobs should be skipped"
+        value: ${{ jobs.check-permission.outputs.should_skip }}
+
+permissions:
+  contents: read
+
+jobs:
+  check-permission:
+    name: Check permission
+    runs-on: ubuntu-24.04
+    outputs:
+      has_permission: ${{ steps.check.outputs.has_permission }}
+      user_permission: ${{ steps.check.outputs.user_permission }}
+      should_skip: ${{ steps.check.outputs.should_skip }}
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+
+      - name: Check user permission
+        id: check
+        uses: bitwarden/gh-actions/check-permission@main
+        with:
+          require: ${{ inputs.require_permission }}
+          username: ${{ github.triggering_actor }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          failure_mode: ${{ inputs.failure_mode }}
+
+      - name: Report results
+        env:
+          ACTOR: ${{ github.triggering_actor }}
+          REQUIRED: ${{ inputs.require_permission }}
+          ACTUAL: ${{ steps.check.outputs.user_permission }}
+          HAS_PERM: ${{ steps.check.outputs.has_permission }}
+          SHOULD_SKIP: ${{ steps.check.outputs.should_skip }}
+        run: |
+          echo "🤖 Permission Check"
+          echo "================================"
+          echo "User: $ACTOR"
+          echo "Required: $REQUIRED"
+          echo "Actual: $ACTUAL"
+          echo "Has permission: $HAS_PERM"
+          echo "Should skip: $SHOULD_SKIP"

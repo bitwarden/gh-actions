@@ -47,12 +47,12 @@ runs:
         set -e
 
         if [[ ! "$FAILURE_MODE" =~ ^(fail|skip|continue)$ ]]; then
-          echo "::error:: Invalid failure_mode; it must be 'fail', 'skip', or 'continue'"
+          echo "::error::Invalid failure_mode; it must be 'fail', 'skip', or 'continue'"
           exit 1
         fi
 
         if [[ ! "$REQUIRE" =~ ^(admin|write|read|none)$ ]]; then
-          echo "::error:: Invalid require level; it must be 'admin', 'write', 'read', or 'none'"
+          echo "::error::Invalid require level; it must be 'admin', 'write', 'read', or 'none'"
           exit 1
         fi
 

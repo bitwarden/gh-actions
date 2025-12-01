@@ -162,6 +162,6 @@ jobs:
           plugins: |
             claude-config-validator@bitwarden-marketplace
             bitwarden-code-review@bitwarden-marketplace
-          prompt: ${{ steps.build-prompt.outputs.FINAL_PROMPT }}
+          prompt: "Use @agent-bitwarden-code-review:bitwarden-code-reviewer to review the currently checked out pull request changes."
           claude_args: |
             --allowedTools "mcp__github_comment__update_claude_comment,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*)"

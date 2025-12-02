@@ -13,8 +13,8 @@ on:
 permissions: {}
 
 jobs:
-  check-run:
-    name: Check PR run
+  check-permission:
+    name: Check permission
     uses: ./.github/workflows/_check-permission.yml
     with:
       failure_mode: "skip"
@@ -24,8 +24,8 @@ jobs:
 
   validation:
     name: Validation
-    needs: check-run
-    if: needs.check-run.outputs.should_skip != 'true'
+    needs: check-permission
+    if: needs.check-permission.outputs.should_proceed == 'true'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -78,9 +78,9 @@ jobs:
   comment:
     name: Claude comment
     runs-on: ubuntu-24.04
-    needs: [check-run, validation]
+    needs: [check-permission, validation]
     timeout-minutes: 15
-    if: needs.check-run.outputs.should_skip != 'true' && needs.validation.outputs.should_comment == 'true'
+    if: needs.check-permission.outputs.should_proceed == 'true' && needs.validation.outputs.should_comment == 'true'
     permissions:
       actions: read
       contents: write

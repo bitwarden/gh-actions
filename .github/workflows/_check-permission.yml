@@ -20,9 +20,9 @@ on:
       user_permission:
         description: "The actual permission level of the user"
         value: ${{ jobs.check-permission.outputs.user_permission }}
-      should_skip:
-        description: "Whether subsequent jobs should be skipped"
-        value: ${{ jobs.check-permission.outputs.should_skip }}
+      should_proceed:
+        description: "Whether subsequent jobs should proceed"
+        value: ${{ jobs.check-permission.outputs.should_proceed }}
 
 permissions:
   contents: read
@@ -34,7 +34,7 @@ jobs:
     outputs:
       has_permission: ${{ steps.check.outputs.has_permission }}
       user_permission: ${{ steps.check.outputs.user_permission }}
-      should_skip: ${{ steps.check.outputs.should_skip }}
+      should_proceed: ${{ steps.check.outputs.should_proceed }}
     steps:
       - name: Check out repo
         uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
@@ -56,7 +56,7 @@ jobs:
           REQUIRED: ${{ inputs.require_permission }}
           ACTUAL: ${{ steps.check.outputs.user_permission }}
           HAS_PERM: ${{ steps.check.outputs.has_permission }}
-          SHOULD_SKIP: ${{ steps.check.outputs.should_skip }}
+          SHOULD_PROCEED: ${{ steps.check.outputs.should_proceed }}
         run: |
           echo "🤖 Permission Check"
           echo "================================"
@@ -64,4 +64,4 @@ jobs:
           echo "Required: $REQUIRED"
           echo "Actual: $ACTUAL"
           echo "Has permission: $HAS_PERM"
-          echo "Should skip: $SHOULD_SKIP"
+          echo "Should proceed: $SHOULD_PROCEED"

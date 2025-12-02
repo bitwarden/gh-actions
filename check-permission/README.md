@@ -21,16 +21,16 @@ Check user permissions with configurable failure handling.
 ### Failure Modes
 
 - **`fail`**: Exit 1 when permission missing - workflow stops
-- **`skip`**: Exit 0, set `should_skip=true` - skip protected steps
+- **`skip`**: Exit 0, set `should_proceed=false` - skip protected steps
 - **`continue`**: Exit 0 always - branch on `has_permission` output
 
 ## Outputs
 
-| Output            | Description                                                            |
-| ----------------- | ---------------------------------------------------------------------- |
-| `has_permission`  | `true` if user has required permission, `false` otherwise              |
-| `user_permission` | Actual permission level of the user (`admin`, `write`, `read`, `none`) |
-| `should_skip`     | `true` when failure_mode is `skip` and permission check fails          |
+| Output            | Description                                                             |
+| ----------------- | ----------------------------------------------------------------------- |
+| `has_permission`  | `true` if user has required permission, `false` otherwise               |
+| `user_permission` | Actual permission level of the user (`admin`, `write`, `read`, `none`)  |
+| `should_proceed`  | `true` when permission check passes, `false` when `skip` mode and fails |
 
 ## Usage Examples
 
@@ -55,7 +55,7 @@ Check user permissions with configurable failure handling.
     token: ${{ secrets.GITHUB_TOKEN }}
     failure_mode: skip
 
-- if: steps.permission.outputs.should_skip != 'true'
+- if: steps.permission.outputs.should_proceed == 'true'
   run: ./deploy.sh
 ```
 
@@ -90,7 +90,7 @@ on:
 jobs:
   check:
     outputs:
-      should_skip: ${{ steps.check.outputs.should_skip }}
+      should_proceed: ${{ steps.check.outputs.should_proceed }}
     steps:
       - uses: actions/checkout@v4
       - id: check
@@ -103,7 +103,7 @@ jobs:
 
   deploy:
     needs: check
-    if: needs.check.outputs.should_skip != 'true'
+    if: needs.check.outputs.should_proceed == 'true'
     steps:
       - run: ./deploy.sh
 ```

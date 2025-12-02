@@ -27,9 +27,9 @@ outputs:
   user_permission:
     description: "The actual permission level of the user"
     value: ${{ steps.check-permission.outputs.user_permission }}
-  should_skip:
-    description: "Whether the workflow should skip (true when failure_mode is 'skip' and permission check fails)"
-    value: ${{ steps.check-permission.outputs.should_skip }}
+  should_proceed:
+    description: "Whether the workflow should proceed (true when permission check passes, or failure_mode is 'continue')"
+    value: ${{ steps.check-permission.outputs.should_proceed }}
 
 runs:
   using: "composite"
@@ -88,7 +88,7 @@ runs:
         if [ $USER_LEVEL -ge $REQUIRED_LEVEL ]; then
           echo "✓ User has required permission"
           echo "has_permission=true" >> "$GITHUB_OUTPUT"
-          echo "should_skip=false" >> "$GITHUB_OUTPUT"
+          echo "should_proceed=true" >> "$GITHUB_OUTPUT"
           exit 0
         else
           echo "✗ User does not have required permission"
@@ -96,17 +96,17 @@ runs:
           case "$FAILURE_MODE" in
             fail)
               echo "::error::User '$USERNAME' does not have required '$REQUIRE' permission."
-              echo "should_skip=false" >> "$GITHUB_OUTPUT"
+              echo "should_proceed=false" >> "$GITHUB_OUTPUT"
               exit 1
               ;;
             skip)
               echo "::warning::User '$USERNAME' does not have required '$REQUIRE' permission. Marking for skip."
-              echo "should_skip=true" >> "$GITHUB_OUTPUT"
+              echo "should_proceed=false" >> "$GITHUB_OUTPUT"
               exit 0
               ;;
             continue)
               echo "::notice::User '$USERNAME' does not have required '$REQUIRE' permission. Continuing - check outputs for branching."
-              echo "should_skip=false" >> "$GITHUB_OUTPUT"
+              echo "should_proceed=true" >> "$GITHUB_OUTPUT"
               exit 0
               ;;
           esac

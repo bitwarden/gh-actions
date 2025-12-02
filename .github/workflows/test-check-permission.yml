@@ -33,11 +33,11 @@ jobs:
         env:
           HAS_PERMISSION: ${{ steps.check-fail.outputs.has_permission }}
           USER_PERMISSION: ${{ steps.check-fail.outputs.user_permission }}
-          SHOULD_SKIP: ${{ steps.check-fail.outputs.should_skip }}
+          SHOULD_PROCEED: ${{ steps.check-fail.outputs.should_proceed }}
         run: |
           echo "Has permission: $HAS_PERMISSION"
           echo "User permission: $USER_PERMISSION"
-          echo "Should skip: $SHOULD_SKIP"
+          echo "Should proceed: $SHOULD_PROCEED"
 
   test-skip-mode:
     name: Test skip mode
@@ -58,11 +58,11 @@ jobs:
           failure_mode: skip
 
       - name: Conditional step
-        if: steps.check-skip.outputs.should_skip != 'true'
+        if: steps.check-skip.outputs.should_proceed == 'true'
         run: echo "Would run privileged operation"
 
       - name: Skip notification
-        if: steps.check-skip.outputs.should_skip == 'true'
+        if: steps.check-skip.outputs.should_proceed != 'true'
         run: echo "Skipped privileged operation due to permissions"
 
   test-continue-mode:
@@ -123,7 +123,7 @@ jobs:
           failure_mode: skip
 
       - name: Check write permission (fallback)
-        if: steps.check-admin.outputs.should_skip == 'true'
+        if: steps.check-admin.outputs.should_proceed != 'true'
         id: check-write
         uses: ./check-permission
         with:

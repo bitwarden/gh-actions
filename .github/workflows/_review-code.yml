@@ -127,52 +127,50 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           repository: bitwarden/ai-plugins
-          path: ../../ai-plugins
+          # Clone as sibling to main repo checkout to avoid workspace nesting issues
+          path: ../mktemp
           token: ${{ steps.app-token.outputs.token }}
           persist-credentials: false
 
       - name: Configure Claude Code with local marketplace
         run: |
-          MARKETPLACE_DIR=$(realpath ../../ai-plugins/ai-plugins)
-
           # Verify marketplace directory exists
-          if [ ! -d "$MARKETPLACE_DIR" ]; then
-            echo "❌ Plugin directory $MARKETPLACE_DIR does not exist"
+          if ! MARKETPLACE_DIR=$(realpath ../mktemp 2>/dev/null); then
+            echo "❌ Error: Marketplace directory $MARKETPLACE_DIR does not exist"
             exit 1
           fi
           echo "✅ Found marketplace at: $MARKETPLACE_DIR"
 
           # Verify required plugin directories exist
-          if [ ! -d "$MARKETPLACE_DIR/claude-config-validator" ]; then
+          if [ ! -d "$MARKETPLACE_DIR/plugins/claude-config-validator" ]; then
             echo "❌ Error: Plugin 'claude-config-validator' not found"
             exit 1
           fi
           echo "✅ Found plugin: claude-config-validator"
 
-          if [ ! -d "$MARKETPLACE_DIR/bitwarden-code-review" ]; then
+          if [ ! -d "$MARKETPLACE_DIR/plugins/bitwarden-code-review" ]; then
             echo "❌ Error: Plugin 'bitwarden-code-review' not found"
             exit 1
           fi
           echo "✅ Found plugin: bitwarden-code-review"
 
           # Create Claude Code configuration
-          mkdir -p ~/.claude
-          cat > ~/.claude/settings.json << EOF
-          {
-            "extraKnownMarketplaces": {
-              "bitwarden-marketplace": {
-                "source": {
-                  "source": "directory",
-                  "path": "$MARKETPLACE_DIR"
+          jq -n \
+            --arg path "$MARKETPLACE_DIR" \
+            '{
+              extraKnownMarketplaces: {
+                "bitwarden-marketplace": {
+                  source: {
+                    source: "directory",
+                    path: $path
+                  }
                 }
+              },
+              enabledPlugins: {
+                "claude-config-validator@bitwarden-marketplace": true,
+                "bitwarden-code-review@bitwarden-marketplace": true
               }
-            },
-            "enabledPlugins": {
-              "claude-config-validator@bitwarden-marketplace": true,
-              "bitwarden-code-review@bitwarden-marketplace": true
-            }
-          }
-          EOF
+            }' > ~/.claude/settings.json
 
           echo "✅ Claude Code configured with local marketplace"
 

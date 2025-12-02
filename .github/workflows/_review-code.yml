@@ -129,6 +129,7 @@ jobs:
           repository: bitwarden/ai-plugins
           path: .ai-plugins
           token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
 
       - name: Configure Claude Code with local marketplace
         run: |

@@ -126,7 +126,7 @@ jobs:
       - name: Create temporary directory for marketplace
         id: mktemp
         run: |
-          TEMP_DIR=$(mktemp -d)
+          TEMP_DIR=$(mktemp -d -p .)
           echo "temp_dir=$TEMP_DIR" >> "$GITHUB_OUTPUT"
           echo "✅ Created temporary directory: $TEMP_DIR"
 

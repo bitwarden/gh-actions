@@ -139,9 +139,9 @@ jobs:
           persist-credentials: false
 
       - name: Configure Claude Code with local marketplace
+        env:
+          MARKETPLACE_DIR: ${{ steps.mktemp.outputs.temp_dir }}
         run: |
-          MARKETPLACE_DIR="${{ steps.mktemp.outputs.temp_dir }}"
-
           # Verify marketplace directory exists
           if [ ! -d "$MARKETPLACE_DIR" ]; then
             echo "❌ Error: Marketplace directory $MARKETPLACE_DIR does not exist"

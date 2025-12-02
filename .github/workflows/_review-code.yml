@@ -114,47 +114,12 @@ jobs:
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
 
-      - name: Build review prompt
-        id: build-prompt
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PROMPT_FILE: ".claude/prompts/review-code.md"
-          REUSABLE_PROMPT_REPO: "bitwarden/gh-actions"
-          REUSABLE_PROMPT_FILE: ".claude/prompts/bitwarden-review-code.md"
-          REUSABLE_PROMPT_TEMP_FILE: "/tmp/bitwarden-review-code-prompt.md"
-        run: |
-          set -e
-
-          # Fetch the company-wide prompt file from gh-actions repo using GitHub API
-          gh api "repos/$REUSABLE_PROMPT_REPO/contents/$REUSABLE_PROMPT_FILE" \
-            --jq '.content' | base64 -d > "$REUSABLE_PROMPT_TEMP_FILE" || true
-
-          if [ -f "$REUSABLE_PROMPT_TEMP_FILE" ] && [ -s "$REUSABLE_PROMPT_TEMP_FILE" ]; then
-            echo "✅ Successfully fetched Bitwarden prompt file"
-          else
-            echo "⚠️  Warning: Failed to fetch Bitwarden prompt file - continuing without it"
-            touch "$REUSABLE_PROMPT_TEMP_FILE"
-          fi
-
-          # Build the code review prompt
-          {
-            cat "$REUSABLE_PROMPT_TEMP_FILE"
-            printf "\n---\n\n"
-            cat "$PROMPT_FILE"
-          } > /tmp/review-prompt.md
-
-          # Output the prompt
-          {
-            echo 'FINAL_PROMPT<<EOF'
-            cat /tmp/review-prompt.md
-            echo 'EOF'
-          } >> "$GITHUB_OUTPUT"
-
       - name: Review with Claude Code
         timeout-minutes: 10
         uses: anthropics/claude-code-action@8a1c4371755898f67cd97006ba7c97702d5fc4bf # v1.0.16
         with:
           anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-CODE-REVIEW-API-KEY }}
+          github_token: ${{ github.token }}
           track_progress: true
           use_sticky_comment: true
           plugin_marketplaces: |

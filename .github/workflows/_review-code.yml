@@ -162,6 +162,9 @@ jobs:
           fi
           echo "✅ Found plugin: bitwarden-code-review"
 
+          mkdir -p ~/.claude
+          echo "✅ Created Claude Code configuration directory"
+
           # Create Claude Code configuration
           jq -n \
             --arg path "$MARKETPLACE_DIR" \

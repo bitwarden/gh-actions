@@ -17,15 +17,19 @@ concurrency:
 permissions: {}
 
 jobs:
-  check-run:
-    name: Check PR run
-    uses: ./.github/workflows/check-run.yml
+  check-permission:
+    name: Check permission
+    uses: ./.github/workflows/_check-permission.yml
+    with:
+      failure_mode: "skip"
+      require_permission: "write"
     permissions:
       contents: read
 
   validation:
     name: Validation
-    needs: check-run
+    needs: check-permission
+    if: needs.check-permission.outputs.should_proceed == 'true'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -80,9 +84,9 @@ jobs:
   review:
     name: Review
     runs-on: ubuntu-24.04
-    needs: validation
+    needs: [check-permission, validation]
+    if: needs.check-permission.outputs.should_proceed == 'true' && needs.validation.outputs.should_review == 'true'
     timeout-minutes: 15
-    if: needs.validation.outputs.should_review == 'true'
     permissions:
       actions: read
       contents: read
@@ -91,7 +95,7 @@ jobs:
 
     steps:
       - name: Check out repo
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha }}
@@ -131,7 +135,7 @@ jobs:
           echo "✅ Created temporary directory: $TEMP_DIR"
 
       - name: Check out AI plugins marketplace
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           repository: bitwarden/ai-plugins
           path: ${{ steps.mktemp.outputs.temp_dir }}

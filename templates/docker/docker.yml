@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  checks: write
+  contents: read
+  id-token: write
+  pull-requests: write
+  security-events: write
+
+jobs:
+  version:
+    name: Calculate version
+    uses: ./.github/workflows/_version.yml
+
+  build-push-docker:
+    name: Build Docker image
+    needs:
+      - test
+      - version
+      - build
+    uses: bitwarden/gh-actions/.github/workflows/_docker.yml
+    with:
+      project-name: # UPDATE THIS! Example: My-Project
+      project-path: # UPDATE THIS! Example: ./src/My-Project
+      version: ${{ needs.version.outputs.version }}
+      image-name: # UPDATE THIS! Example: my-project-image
+    secrets: inherit

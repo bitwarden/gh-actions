@@ -1,0 +1,98 @@
+name: _docker
+run-name: "Build ${{ inputs.project-name }} docker image and push ${{ inputs.push-docker-image }} to ACR"
+
+on:
+  workflow_call:
+    inputs:
+      project-name:
+        type: string
+        required: true
+      project-path:
+        type: string
+        required: true
+      version:
+        type: string
+        required: false
+      push-docker-image:
+        type: boolean
+        required: false
+        default: false
+      image-name:
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  security-events: write
+  id-token: write
+
+jobs:
+  docker:
+    name: Docker
+    runs-on: ubuntu-22.04
+    env:
+      _PROJECT_PATH: ${{ inputs.project-path }}
+      _PROJECT_NAME: ${{ inputs.project-name }}
+      _VERSION: ${{ inputs.version }}
+      _PUSH_DOCKER_IMAGE: ${{ inputs.push-docker-image }}
+      _IMAGE_NAME: ${{ inputs.image-name }}
+
+    steps:
+      - name: Log in to Azure
+        if: ${{ inputs.push-docker-image }}
+        uses: bitwarden/gh-actions/azure-login@main
+        with:
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
+
+      - name: Log in to ACR
+        if: ${{ inputs.push-docker-image }}
+        run: az acr login -n "bitwardenprod"
+
+      - name: Generate Docker image tag
+        id: tag
+        run: |
+          IMAGE_TAG="$_VERSION"
+          # IMAGE_TAG=$(echo "${GITHUB_REF#refs/heads/}" | sed "s#/#-#g")  # slash safe branch name
+          # if [[ "$IMAGE_TAG" == "main" ]]; then
+          #   IMAGE_TAG="$_VERSION"
+          # fi
+          echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Generate tag list
+        id: tag-list
+        env:
+          IMAGE_TAG: ${{ steps.tag.outputs.image_tag }}
+          IMAGE_NAME: ${{ inputs.image-name }}
+        run: echo "tags=bitwardenprod.azurecr.io/$IMAGE_NAME:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker image
+        uses: docker/build-push-action@ca877d9245402d1537745e0e356eab47c3520991 # v6.13.0
+        with:
+          context: ${{ env._PROJECT_PATH }}
+          file: ${{ env._PROJECT_PATH }}/Dockerfile
+          platforms: linux/amd64
+          push: ${{ env._PUSH_DOCKER_IMAGE }}
+          tags: ${{ steps.tag-list.outputs.tags }}
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
+
+      - name: Scan Docker image
+        id: container-scan
+        uses: anchore/scan-action@f6601287cdb1efc985d6b765bbf99cb4c0ac29d8 # v7.0.0
+        with:
+          image: ${{ steps.tag-list.outputs.tags }}
+          fail-build: false
+          output-format: sarif
+
+      - name: Log out from Azure
+        if: ${{ inputs.push-docker-image }}
+        uses: bitwarden/gh-actions/azure-logout@main
+
+      - name: Upload Grype results to GitHub
+        uses: github/codeql-action/upload-sarif@9e8d0789d4a0fa9ceb6b1738f7e269594bdd67f0 # v3.28.9
+        with:
+          sarif_file: ${{ steps.container-scan.outputs.sarif }}
+          sha: ${{ contains(github.event_name, 'pull_request') && github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ contains(github.event_name, 'pull_request') && format('refs/pull/{0}/head', github.event.pull_request.number) || github.ref }}

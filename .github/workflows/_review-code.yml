@@ -181,11 +181,15 @@ jobs:
             exit 1
           fi
 
-          # Get git commit SHA for tracking
+          # Get git commit SHA from ai-plugins repository (not the PR repo)
+          echo "📍 Extracting git SHA from ai-plugins marketplace..."
           cd "$MARKETPLACE_PATH"
+          echo "   Working directory: $(pwd)"
+          echo "   Git remote: $(git remote get-url origin)"
           GIT_SHA=$(git rev-parse HEAD)
+          echo "   Commit SHA: $GIT_SHA"
           cd - > /dev/null
-          echo "✅ Git commit SHA: $GIT_SHA"
+          echo "✅ ai-plugins marketplace SHA captured: $GIT_SHA"
 
           # Read plugin versions from plugin.json manifests
           CONFIG_VALIDATOR_VERSION=$(jq -r '.version' "$MARKETPLACE_PATH/plugins/claude-config-validator/.claude-plugin/plugin.json")

@@ -16,6 +16,8 @@ defaults:
 
 env:
   _IMAGE_NAME: ghcr.io/bitwarden/TEMPLATE_IMAGE_NAME # TEMPLATE VALUE TO UPDATE WHEN COPIED
+  _AZURE_REGISTRY_NAME: bitwardenprod
+  _AZURE_IMAGE_NAME: bitwardenprod.azurecr.io/TEMPLATE_IMAGE_NAME # UPDATE: TEMPLATE VALUE TO UPDATE WHEN COPIED
 
 jobs:
   setup:
@@ -59,7 +61,6 @@ jobs:
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
           initial-status: "in_progress"
-          environment: "NPM"
           description: "Deployment ${{ steps.version-output.outputs.version }} from branch ${{ github.ref_name }}"
           task: release
 
@@ -87,12 +88,44 @@ jobs:
           docker tag "${_IMAGE_NAME}:${_RELEASE_TAG}" "${_IMAGE_NAME}:latest"
           docker push "${_IMAGE_NAME}:latest"
 
+  publish-acr:
+    name: Publish release as latest
+    runs-on: ubuntu-24.04
+    needs: setup
+    env:
+      _RELEASE_TAG: ${{ needs.setup.outputs.release_version }}
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Log in to Azure
+        uses: bitwarden/gh-actions/azure-login@main
+        with:
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
+
+      - name: Log in to ACR
+          run: az acr login -n "${_AZURE_REGISTRY_NAME}"
+
+      - name: Pull, tag, and push release
+        run: |
+          docker pull "${_AZURE_IMAGE_NAME}:${_RELEASE_TAG}"
+          docker tag "${_AZURE_IMAGE_NAME}:${_RELEASE_TAG}" "${_AZURE_IMAGE_NAME}:latest"
+          docker push "${_AZURE_IMAGE_NAME}:latest"
+
+      - name: Log out of ACR
+        run: docker logout "${_AZURE_REGISTRY_NAME}"
+
+      - name: Log out of Azure
+        uses: bitwarden/gh-actions/azure-logout@main
+
   update-deployment:
     name: Update deployment status
     runs-on: ubuntu-24.04
     needs:
       - setup
-      - publish-npm
       - publish-ghpr
     permissions:
       contents: read

@@ -133,17 +133,24 @@ jobs:
           mkdir -p ~/.claude/plugins/repos
           echo "✅ Created Claude Code plugin directory structure"
 
+      - name: Create temporary directory for marketplace checkout
+        id: mktemp
+        run: |
+          TEMP_DIR=$(mktemp -d -p .)
+          echo "temp_dir=$TEMP_DIR" >> "$GITHUB_OUTPUT"
+          echo "✅ Created temporary directory: $TEMP_DIR"
+
       - name: Check out AI plugins marketplace
         uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           repository: bitwarden/ai-plugins
-          path: .tmp-marketplace
+          path: ${{ steps.mktemp.outputs.temp_dir }}
           token: ${{ steps.app-token.outputs.token }}
           persist-credentials: false
 
       - name: Move marketplace to Claude Code plugins directory
         run: |
-          mv .tmp-marketplace "$HOME/.claude/plugins/marketplaces/bitwarden-marketplace"
+          mv "${{ steps.mktemp.outputs.temp_dir }}" "$HOME/.claude/plugins/marketplaces/bitwarden-marketplace"
           echo "✅ Moved marketplace to: $HOME/.claude/plugins/marketplaces/bitwarden-marketplace"
 
       - name: Initialize Claude Code plugin system

@@ -188,7 +188,7 @@ jobs:
             }' > ~/.claude/settings.json
 
           # Verify agent file exists
-          if [ -f "$MARKETPLACE_PATH/plugins/bitwarden-code-review/.claude-plugin/plugin.json" ]; then
+          if [ -f "$MARKETPLACE_DIR/plugins/bitwarden-code-review/.claude-plugin/plugin.json" ]; then
             echo "✅ Plugin metadata found:"
           else
             echo "⚠️  Warning: Plugin metadata not found at expected location"

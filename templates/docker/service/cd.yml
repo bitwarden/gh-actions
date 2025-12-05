@@ -6,8 +6,7 @@ on:
     branches:
       - main
 
-permissions:
-  id-token: write
+permissions: {}
 
 env:
   _IMAGE_NAME: # Specify the image name
@@ -18,20 +17,17 @@ env:
   _DEPLOY_TAG: # Specify the tag to deploy - This may require adding steps to dynamically determine
 
 jobs:
-  # NOTE: This is built prior to
-  # This should simply retag what was built in CI unless not possible for a specific reason
+  # NOTE: This should simply retag what was built in CI unless not possible for a specific reason
   build-push-docker:
     name: Build and Push Docker Image
-    needs:
-      - tag
-      - version
     uses: ./.github/workflows/_docker.yml
     with:
-      project-name: REST
-      project-path: ./src/REST
-      version: ${{ needs.version.outputs.version }}
-      image-name: ${{ env._IMAGE_NAME }}
+      image-name: TEMPLATE_IMAGE_NAME # UPDATE THIS VALUE AFTER COPYING THE TEMPLATE
+      tags: # UPDATE THIS VALUE AFTER COPYING THE TEMPLATE
       push-docker-image: true
+    permissions:
+      contents: read
+      id-token: write
     secrets: inherit
 
   deploy-k8s-service:
@@ -39,6 +35,8 @@ jobs:
     runs-on: ubuntu-24.04
     needs:
       - build-push-docker
+    permissions:
+      id-token: write
 
     steps:
       - name: Log in to Azure

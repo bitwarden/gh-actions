@@ -108,7 +108,7 @@ jobs:
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Log in to ACR
-          run: az acr login -n "${_AZURE_REGISTRY_NAME}"
+        run: az acr login -n "${_AZURE_REGISTRY_NAME}"
 
       - name: Pull, tag, and push release
         run: |

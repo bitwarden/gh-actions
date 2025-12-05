@@ -18,6 +18,8 @@ env:
   _IMAGE_NAME: ghcr.io/bitwarden/TEMPLATE_IMAGE_NAME # TEMPLATE VALUE TO UPDATE WHEN COPIED
   _AZURE_REGISTRY_NAME: bitwardenprod
   _AZURE_IMAGE_NAME: bitwardenprod.azurecr.io/TEMPLATE_IMAGE_NAME # UPDATE: TEMPLATE VALUE TO UPDATE WHEN COPIED
+  _INPUT_VERSION: ${{ inputs.version }}
+  _REPOSITORY: ${{ github.repository }}
 
 jobs:
   setup:
@@ -43,11 +45,9 @@ jobs:
       - name: Output version
         id: version-output
         env:
-          INPUT_VERSION: ${{ inputs.version }}
-          REPOSITORY: ${{ github.repository }}
         run: |
           if [[ "${_INPUT_VERSION}" == "latest" || "${_INPUT_VERSION}" == "" ]]; then
-            VERSION=$(curl  "https://api.github.com/repos/$REPOSITORY/releases" | jq -c '.[] | select(.tag_name | contains("v")) | .tag_name' | head -1 | grep -ohE '20[0-9]{2}\.([1-9]|1[0-2])\.[0-9]+')
+            VERSION=$(curl  "https://api.github.com/repos/$_REPOSITORY/releases" | jq -c '.[] | select(.tag_name | contains("v")) | .tag_name' | head -1 | grep -ohE '20[0-9]{2}\.([1-9]|1[0-2])\.[0-9]+')
             echo "Latest Released Version: $VERSION"
             echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           else
@@ -107,7 +107,7 @@ jobs:
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Log in to ACR
-          run: az acr login -n "${_AZURE_REGISTRY_NAME}"
+        run: az acr login -n "${_AZURE_REGISTRY_NAME}"
 
       - name: Pull, tag, and push release
         run: |

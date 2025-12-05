@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+permissions: {}
+
+jobs:
+  docker-tag:
+    name: Get docker tag
+    runs-on: ubuntu-24.04
+    outputs:
+      IMAGE_TAG: ${{ steps.sha.outputs.SHORT_SHA }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set short SHA
+        id: sha
+        run: echo "SHORT_SHA=${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+
+  docker:
+    name: Docker Build
+    needs: docker-tag
+    uses: ./.github/workflows/_docker.yml
+    with:
+      image-name: TEMPLATE_IMAGE_NAME # UPDATE THIS VALUE AFTER COPYING THE TEMPLATE
+      tags: ${{ needs.docker-tag.outputs.IMAGE_TAG }}
+      push-docker-image: true
+    permissions:
+      contents: read
+      id-token: write
+    secrets: inherit

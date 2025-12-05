@@ -1,0 +1,98 @@
+name: Docker
+run-name: "Build and push Docker image to ACR"
+
+on:
+  workflow_call:
+    inputs:
+      context:
+        type: string
+        required: false
+        default: .
+      file:
+        type: string
+        required: false
+        default: Dockerfile
+      platforms:
+        type: string
+        required: false
+        default: linux/amd64
+      tags:
+        description: Comma separated list of tags to apply to the image
+        type: string
+        required: true
+      push-docker-image:
+        type: boolean
+        required: false
+        default: false
+      image-name:
+        type: string
+        required: true
+      acr-name:
+        type: string
+        required: false
+        default: bitwardenprod
+
+env:
+  _ACR_NAME: ${{ inputs.acr-name }}
+  _IMAGE_NAME: ${{ inputs.image-name }}
+
+jobs:
+  docker:
+    name: Docker
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Log in to Azure
+        if: ${{ inputs.push-docker-image }}
+        uses: bitwarden/gh-actions/azure-login@main
+        with:
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
+
+      - name: Log in to ACR
+        if: ${{ inputs.push-docker-image }}
+        run: az acr login -n "${ACR_NAME}"
+
+      - name: Get Image tags
+        id: tag-list
+        env:
+          INPUT_TAGS: ${{ inputs.tags }}
+        run: |
+          IFS=',' read -ra TAG_ARRAY <<< "$INPUT_TAGS"
+          FULL_TAGS=""
+          for tag in "${TAG_ARRAY[@]}"; do
+            if [ -n "$FULL_TAGS" ]; then
+              FULL_TAGS="$FULL_TAGS,${_ACR_NAME}.azurecr.io/${_IMAGE_NAME}:$tag"
+            else
+              FULL_TAGS="${_ACR_NAME}.azurecr.io/${_IMAGE_NAME}:$tag"
+            fi
+          done
+          echo "tags=$FULL_TAGS" >> $GITHUB_OUTPUT
+
+      - name: Build Docker image
+        uses: docker/build-push-action@48aba3b46d1b1fec4febb7c5d0c644b249a11355 # v6.10.0
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.file }}
+          platforms: ${{ inputs.platforms }}
+          push: ${{ inputs.push-docker-image }}
+          tags: ${{ steps.tag-list.outputs.tags }}
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
+
+      - name: Log out from ACR
+        if: ${{ inputs.push-docker-image }}
+        run: docker logout "${_ACR_NAME}.azurecr.io"
+
+      - name: Log out from Azure
+        if: ${{ inputs.push-docker-image }}
+        uses: bitwarden/gh-actions/azure-logout@main

@@ -1,6 +1,11 @@
-# Docker workflow templates
+# Docker Workflow Templates
 
 These workflow templates can be copied and modified as necessary to support building, releasing, and publishing docker images.
+
+## General Flow
+1. Build and Push
+2. Release
+3. Publish
 
 ## Templates
 
@@ -17,6 +22,8 @@ Tags that are pushed:
 - On push to main: `dev`
 - On PR: `pr-#`
 
+---
+
 ### Release
 The `release.yml` workflow handles release both ACR and GHCR.
 It can be modified to adjust to only doing one by removing the respective job.
@@ -25,9 +32,16 @@ This will do 2 things:
 1. Create a GitHub Release
 2. Publish the `dev` tag as the release version tag in ACR and GHCR
 
+Tags that are pushed:
+- Release version tag
+
+---
 
 ### Publish
 The `publish.yml` workflow handles publishing both ACR and GHCR.
 It can be modified to adjust to only doing one by removing the respective job
 
 This will copy the tag corresponding to the latest release to the `latest` tag
+
+Tags that are pushed:
+- `latest`

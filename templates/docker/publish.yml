@@ -126,7 +126,8 @@ jobs:
     runs-on: ubuntu-24.04
     needs:
       - setup
-      - publish-ghpr
+      - publish-ghcr
+      - publish-acr
     permissions:
       contents: read
       deployments: write

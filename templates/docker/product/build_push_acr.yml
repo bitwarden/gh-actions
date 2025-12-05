@@ -11,7 +11,7 @@ permissions: {}
 
 env:
   _AZURE_REGISTRY: bitwardenprod.azurecr.io
-  _IMAGE_NAME: bitwardenprod.azurecr.io/TEMPLATE_IMAGE_NAME # UPDATE: TEMPLATE VALUE TO UPDATE WHEN COPIED
+  _IMAGE_NAME: TEMPLATE_IMAGE_NAME # UPDATE: TEMPLATE VALUE TO UPDATE WHEN COPIED
 
 jobs:
   build:

@@ -32,8 +32,10 @@ on:
         required: false
         default: bitwardenprod
 
+permissions: {}
+
 env:
-  _ACR_NAME: ${{ inputs.acr-name }}
+  _ACR_NAME: ${{ inputs.acr-name }}.azurecr.io
   _IMAGE_NAME: ${{ inputs.image-name }}
 
 jobs:
@@ -61,7 +63,7 @@ jobs:
 
       - name: Log in to ACR
         if: ${{ inputs.push-docker-image }}
-        run: az acr login -n "${_ACR_NAME}"
+        run: az acr login -n "${_ACR_NAME%%.*}"
 
       - name: Get Image tags
         id: tag-list
@@ -72,9 +74,9 @@ jobs:
           FULL_TAGS=""
           for tag in "${TAG_ARRAY[@]}"; do
             if [ -n "$FULL_TAGS" ]; then
-              FULL_TAGS="$FULL_TAGS,${_ACR_NAME}.azurecr.io/${_IMAGE_NAME}:$tag"
+              FULL_TAGS="$FULL_TAGS,${_ACR_NAME}/${_IMAGE_NAME}:$tag"
             else
-              FULL_TAGS="${_ACR_NAME}.azurecr.io/${_IMAGE_NAME}:$tag"
+              FULL_TAGS="${_ACR_NAME}/${_IMAGE_NAME}:$tag"
             fi
           done
           echo "tags=$FULL_TAGS" >> $GITHUB_OUTPUT
@@ -92,7 +94,7 @@ jobs:
 
       - name: Log out from ACR
         if: ${{ inputs.push-docker-image }}
-        run: docker logout "${_ACR_NAME}.azurecr.io"
+        run: docker logout "${_ACR_NAME}"
 
       - name: Log out from Azure
         if: ${{ inputs.push-docker-image }}

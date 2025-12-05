@@ -8,9 +8,9 @@ permissions:
   contents: read
 
 env:
-  _IMAGE_NAME: ghcr.io/bitwarden/TEMPLATE_IMAGE_NAME # TEMPLATE VALUE TO UPDATE WHEN COPIED
-  _AZURE_REGISTRY_NAME: bitwardenprod
-  _AZURE_IMAGE_NAME: bitwardenprod.azurecr.io/TEMPLATE_IMAGE_NAME # UPDATE: TEMPLATE VALUE TO UPDATE WHEN COPIED
+  _GHCR_REGISTRY: ghcr.io/bitwarden
+  _AZURE_REGISTRY: bitwardenprod.azurecr.io
+  _IMAGE_NAME: TEMPLATE_IMAGE_NAME # UPDATE: TEMPLATE VALUE TO UPDATE WHEN COPIED
   _SOURCE_RELEASE_TAG: dev
 
 jobs:
@@ -85,9 +85,10 @@ jobs:
 
       - name: Pull, tag, and push release
         run: |
-          docker pull "${_IMAGE_NAME}:${_SOURCE_RELEASE_TAG}"
-          docker tag "${_IMAGE_NAME}:${_SOURCE_RELEASE_TAG}" "${_IMAGE_NAME}:${_RELEASE_TAG}"
-          docker push "${_IMAGE_NAME}:${_RELEASE_TAG}"
+          GHCR_IMAGE_NAME="${_GHCR_REGISTRY}/${_IMAGE_NAME}"
+          docker pull "${GHCR_IMAGE_NAME}:${_SOURCE_RELEASE_TAG}"
+          docker tag "${GHCR_IMAGE_NAME}:${_SOURCE_RELEASE_TAG}" "${GHCR_IMAGE_NAME}:${_RELEASE_TAG}"
+          docker push "${GHCR_IMAGE_NAME}:${_RELEASE_TAG}"
 
       - name: Log out of Docker
         run: docker logout ghcr.io
@@ -110,16 +111,17 @@ jobs:
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Log in to ACR
-        run: az acr login -n "${_AZURE_REGISTRY_NAME}"
+        run: az acr login -n "${_AZURE_REGISTRY%%.*}"
 
       - name: Pull, tag, and push release
         run: |
-          docker pull "${_AZURE_IMAGE_NAME}:${_SOURCE_RELEASE_TAG}"
-          docker tag "${_AZURE_IMAGE_NAME}:${_SOURCE_RELEASE_TAG}" "${_AZURE_IMAGE_NAME}:${_RELEASE_TAG}"
-          docker push "${_AZURE_IMAGE_NAME}:${_RELEASE_TAG}"
+          AZURE_IMAGE_NAME="${_AZURE_REGISTRY}/${_IMAGE_NAME}"
+          docker pull "${AZURE_IMAGE_NAME}:${_SOURCE_RELEASE_TAG}"
+          docker tag "${AZURE_IMAGE_NAME}:${_SOURCE_RELEASE_TAG}" "${AZURE_IMAGE_NAME}:${_RELEASE_TAG}"
+          docker push "${AZURE_IMAGE_NAME}:${_RELEASE_TAG}"
 
       - name: Log out of ACR
-        run: docker logout "${_AZURE_REGISTRY_NAME}"
+        run: docker logout "${_AZURE_REGISTRY}"
 
       - name: Log out of Azure
         uses: bitwarden/gh-actions/azure-logout@main

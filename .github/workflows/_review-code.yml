@@ -143,6 +143,7 @@ jobs:
           persist-credentials: false
 
       - name: Configure Claude Code with local marketplace
+        id: configure-marketplace
         env:
           MARKETPLACE_DIR: ${{ steps.mktemp.outputs.temp_dir }}
         run: |
@@ -166,11 +167,18 @@ jobs:
           fi
           echo "✅ Found plugin: bitwarden-code-review"
 
+          # Verify agent file exists
+          if [ -f "$MARKETPLACE_DIR/plugins/bitwarden-code-review/.claude-plugin/plugin.json" ]; then
+            echo "✅ Plugin metadata found in expected location."
+          else
+            echo "⚠️  Warning: Plugin metadata not found at expected location"
+          fi
+
           mkdir -p ~/.claude
           echo "✅ Created Claude Code configuration directory"
 
-          # Create Claude Code configuration
-          jq -n \
+          # Create Claude Code configuration JSON
+          SETTINGS_JSON=$(jq -n \
             --arg path "$(realpath "$MARKETPLACE_DIR")" \
             '{
               extraKnownMarketplaces: {
@@ -185,14 +193,16 @@ jobs:
                 "claude-config-validator@bitwarden-marketplace": true,
                 "bitwarden-code-review@bitwarden-marketplace": true
               }
-            }' > ~/.claude/settings.json
+            }')
 
-          # Verify agent file exists
-          if [ -f "$MARKETPLACE_DIR/plugins/bitwarden-code-review/.claude-plugin/plugin.json" ]; then
-            echo "✅ Plugin metadata found:"
-          else
-            echo "⚠️  Warning: Plugin metadata not found at expected location"
-          fi
+          # Write to file for debugging
+          echo "$SETTINGS_JSON" > ~/.claude/settings.json
+          echo "✅ Created settings file at ~/.claude/settings.json"
+
+          # Output JSON to GitHub Actions output for passing to action
+          echo "settings_json<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$SETTINGS_JSON" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
 
           echo "✅ Claude Code configured with local marketplace"
 
@@ -203,7 +213,7 @@ jobs:
           anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-CODE-REVIEW-API-KEY }}
           track_progress: true
           use_sticky_comment: true
-          settings: ~/.claude/settings.json
+          settings: ${{ steps.configure-marketplace.outputs.settings_json }}
           prompt: |
             Use bitwarden-code-reviewer agent to review the currently checked out pull request changes.
           claude_args: |

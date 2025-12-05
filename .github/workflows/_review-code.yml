@@ -149,8 +149,10 @@ jobs:
           persist-credentials: false
 
       - name: Move marketplace to Claude Code plugins directory
+        env:
+          TEMP_DIR: ${{ steps.mktemp.outputs.temp_dir }}
         run: |
-          mv "${{ steps.mktemp.outputs.temp_dir }}" "$HOME/.claude/plugins/marketplaces/bitwarden-marketplace"
+          mv "$TEMP_DIR" "$HOME/.claude/plugins/marketplaces/bitwarden-marketplace"
           echo "✅ Moved marketplace to: $HOME/.claude/plugins/marketplaces/bitwarden-marketplace"
 
       - name: Initialize Claude Code plugin system

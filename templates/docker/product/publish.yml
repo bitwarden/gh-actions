@@ -10,6 +10,8 @@ on:
         type: string
         default: latest
 
+permissions: {}
+
 defaults:
   run:
     working-directory: .
@@ -97,7 +99,6 @@ jobs:
       _RELEASE_TAG: ${{ needs.setup.outputs.release_version }}
     permissions:
       contents: read
-      packages: write
 
     steps:
       - name: Log in to Azure

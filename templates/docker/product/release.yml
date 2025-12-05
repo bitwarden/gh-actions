@@ -4,8 +4,7 @@ run-name: Release
 on:
   workflow_dispatch:
 
-permissions:
-  contents: read
+permissions: {}
 
 env:
   _GHCR_REGISTRY: ghcr.io/bitwarden
@@ -17,6 +16,8 @@ jobs:
   setup:
     name: Setup
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     outputs:
       release_version: ${{ steps.version.outputs.version }}
 
@@ -58,7 +59,7 @@ jobs:
       - name: Create release
         uses: ncipollo/release-action@b7eabc95ff50cbeeedec83973935c8f306dfcd0b # v1.20.0
         with:
-          #artifacts: "./mcp-server-${{ env._PKG_VERSION }}.zip"
+          #artifacts: "SOME-ARTIFACT"
           commit: ${{ github.sha }}
           tag: v${{ env._PKG_VERSION }}
           name: v${{ env._PKG_VERSION }}

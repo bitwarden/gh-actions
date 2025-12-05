@@ -203,6 +203,7 @@ jobs:
           anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-CODE-REVIEW-API-KEY }}
           track_progress: true
           use_sticky_comment: true
+          settings: ~/.claude/settings.json
           prompt: |
             Use bitwarden-code-reviewer agent to review the currently checked out pull request changes.
           claude_args: |

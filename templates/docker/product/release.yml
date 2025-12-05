@@ -98,6 +98,8 @@ jobs:
     needs: setup
     env:
       _RELEASE_TAG: ${{ needs.setup.outputs.release_version }}
+    permissions:
+      id-token: write
 
     steps:
       - name: Log in to Azure

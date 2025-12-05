@@ -23,7 +23,7 @@ jobs:
     uses: ./.github/workflows/_docker.yml
     with:
       image-name: TEMPLATE_IMAGE_NAME # UPDATE THIS VALUE AFTER COPYING THE TEMPLATE
-      tags: # UPDATE THIS VALUE AFTER COPYING THE TEMPLATE
+      tags: SOME_TAG # UPDATE THIS VALUE AFTER COPYING THE TEMPLATE
       push-docker-image: true
     permissions:
       contents: read

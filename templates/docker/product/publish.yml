@@ -45,9 +45,10 @@ jobs:
       - name: Output version
         id: version-output
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [[ "${_INPUT_VERSION}" == "latest" || "${_INPUT_VERSION}" == "" ]]; then
-            VERSION=$(curl  "https://api.github.com/repos/$_REPOSITORY/releases" | jq -c '.[] | select(.tag_name | contains("v")) | .tag_name' | head -1 | grep -ohE '20[0-9]{2}\.([1-9]|1[0-2])\.[0-9]+')
+            VERSION=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' | sed 's/^v//')
             echo "Latest Released Version: $VERSION"
             echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           else

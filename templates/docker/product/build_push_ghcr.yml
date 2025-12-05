@@ -28,7 +28,6 @@ jobs:
           PUBLISH_BRANCHES: "main"
           PUBLISH_TAGS: "false"
           PUBLISH_PR: "true"
-        id: publish-branch-check
         run: |
           BRANCH_REF=${GITHUB_REF#refs/heads/}
           IFS="," read -a publish_branches <<< "$PUBLISH_BRANCHES"
@@ -130,6 +129,7 @@ jobs:
           output-format: sarif
 
       - name: Upload Grype results to GitHub
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         uses: github/codeql-action/upload-sarif@0499de31b99561a6d14a36a5f662c2a54f91beee # v4.31.2
         with:
           sarif_file: ${{ steps.container-scan.outputs.sarif }}

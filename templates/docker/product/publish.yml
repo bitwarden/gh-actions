@@ -17,9 +17,9 @@ defaults:
     working-directory: .
 
 env:
-  _IMAGE_NAME: ghcr.io/bitwarden/TEMPLATE_IMAGE_NAME # TEMPLATE VALUE TO UPDATE WHEN COPIED
-  _AZURE_REGISTRY_NAME: bitwardenprod
-  _AZURE_IMAGE_NAME: bitwardenprod.azurecr.io/TEMPLATE_IMAGE_NAME # UPDATE: TEMPLATE VALUE TO UPDATE WHEN COPIED
+  _IMAGE_NAME: TEMPLATE_IMAGE_NAME # TEMPLATE VALUE TO UPDATE WHEN COPIED
+  _GHCR_REGISTRY: ghcr.io/bitwarden
+  _AZURE_REGISTRY: bitwardenprod.azurecr.io
   _INPUT_VERSION: ${{ inputs.version }}
   _REPOSITORY: ${{ github.repository }}
 
@@ -87,9 +87,10 @@ jobs:
 
       - name: Pull, tag, and push release as latest
         run: |
-          docker pull "${_IMAGE_NAME}:${_RELEASE_TAG}"
-          docker tag "${_IMAGE_NAME}:${_RELEASE_TAG}" "${_IMAGE_NAME}:latest"
-          docker push "${_IMAGE_NAME}:latest"
+          GHCR_IMAGE_NAME="${_GHCR_REGISTRY}/${_REPOSITORY#*/}/${_IMAGE_NAME}"
+          docker pull "${GHCR_IMAGE_NAME}:${_RELEASE_TAG}"
+          docker tag "${GHCR_IMAGE_NAME}:${_RELEASE_TAG}" "${GHCR_IMAGE_NAME}:latest"
+          docker push "${GHCR_IMAGE_NAME}:latest"
 
   publish-acr:
     name: Publish release as latest
@@ -109,16 +110,17 @@ jobs:
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Log in to ACR
-        run: az acr login -n "${_AZURE_REGISTRY_NAME}"
+        run: az acr login -n "${_AZURE_REGISTRY%%.*}"
 
       - name: Pull, tag, and push release
         run: |
-          docker pull "${_AZURE_IMAGE_NAME}:${_RELEASE_TAG}"
-          docker tag "${_AZURE_IMAGE_NAME}:${_RELEASE_TAG}" "${_AZURE_IMAGE_NAME}:latest"
-          docker push "${_AZURE_IMAGE_NAME}:latest"
+          AZURE_IMAGE_NAME="${_AZURE_REGISTRY}/${_IMAGE_NAME}"
+          docker pull "${AZURE_IMAGE_NAME}:${_RELEASE_TAG}"
+          docker tag "${AZURE_IMAGE_NAME}:${_RELEASE_TAG}" "${AZURE_IMAGE_NAME}:latest"
+          docker push "${AZURE_IMAGE_NAME}:latest"
 
       - name: Log out of ACR
-        run: docker logout "${_AZURE_REGISTRY_NAME}"
+        run: docker logout "${_AZURE_REGISTRY}"
 
       - name: Log out of Azure
         uses: bitwarden/gh-actions/azure-logout@main

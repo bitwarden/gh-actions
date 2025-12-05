@@ -187,6 +187,11 @@ jobs:
           cd - > /dev/null
           echo "✅ Git commit SHA: $GIT_SHA"
 
+          # Read plugin versions from plugin.json manifests
+          CONFIG_VALIDATOR_VERSION=$(jq -r '.version' "$MARKETPLACE_PATH/plugins/claude-config-validator/.claude-plugin/plugin.json")
+          CODE_REVIEW_VERSION=$(jq -r '.version' "$MARKETPLACE_PATH/plugins/bitwarden-code-review/.claude-plugin/plugin.json")
+          echo "✅ Plugin versions: claude-config-validator=$CONFIG_VALIDATOR_VERSION, bitwarden-code-review=$CODE_REVIEW_VERSION"
+
           # Create config.json
           echo '{"repositories": {}}' > ~/.claude/plugins/config.json
           echo "✅ Created config.json"
@@ -216,11 +221,13 @@ jobs:
             --arg path "$MARKETPLACE_PATH" \
             --arg sha "$GIT_SHA" \
             --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+            --arg configValidatorVersion "$CONFIG_VALIDATOR_VERSION" \
+            --arg codeReviewVersion "$CODE_REVIEW_VERSION" \
             '{
               "version": 1,
               "plugins": {
                 "claude-config-validator@bitwarden-marketplace": {
-                  "version": "1.0.0",
+                  "version": $configValidatorVersion,
                   "installedAt": $timestamp,
                   "lastUpdated": $timestamp,
                   "installPath": ($path + "/plugins/claude-config-validator"),
@@ -228,7 +235,7 @@ jobs:
                   "isLocal": true
                 },
                 "bitwarden-code-review@bitwarden-marketplace": {
-                  "version": "1.2.0",
+                  "version": $codeReviewVersion,
                   "installedAt": $timestamp,
                   "lastUpdated": $timestamp,
                   "installPath": ($path + "/plugins/bitwarden-code-review"),

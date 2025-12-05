@@ -1,0 +1,54 @@
+name: _docker
+run-name: "Build ${{ inputs.project-name }} docker image and push ${{ inputs.push-docker-image }}"
+
+on:
+  workflow_call:
+    inputs:
+      project-name:
+        type: string
+        required: true
+      project-path:
+        type: string
+        required: true
+      version:
+        type: string
+        required: false
+      push-docker-image:
+        type: boolean
+        required: false
+        default: false
+      image-name:
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  security-events: write
+  id-token: write
+
+jobs:
+  docker:
+    name: Docker
+    runs-on: ubuntu-24.04
+    env:
+      _PROJECT_PATH: ${{ inputs.project-path }}
+      _PROJECT_NAME: ${{ inputs.project-name }}
+      _VERSION: ${{ inputs.version }}
+      _PUSH_DOCKER_IMAGE: ${{ inputs.push-docker-image }}
+      _IMAGE_NAME: ${{ inputs.image-name }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Build docker
+        uses: bitwarden/gh-actions/docker@main
+        with:
+          project-path: ${{ env._PROJECT_PATH }}
+          project-name: ${{ env._PROJECT_NAME }}
+          version: ${{ env._VERSION }}
+          push-docker-image: ${{ env._PUSH_DOCKER_IMAGE }}
+          image-name: ${{ env._IMAGE_NAME }}

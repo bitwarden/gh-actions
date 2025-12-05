@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       release_version: ${{ steps.version.outputs.version }}
+
     steps:
       - name: Check out repo
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -53,6 +54,7 @@ jobs:
       packages: read
       actions: read
 
+    steps:
       - name: Create release
         uses: ncipollo/release-action@b7eabc95ff50cbeeedec83973935c8f306dfcd0b # v1.20.0
         with:
@@ -96,6 +98,7 @@ jobs:
     needs: setup
     env:
       _RELEASE_TAG: ${{ needs.setup.outputs.release_version }}
+
     steps:
       - name: Log in to Azure
         uses: bitwarden/gh-actions/azure-login@main

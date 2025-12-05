@@ -214,9 +214,6 @@ jobs:
           track_progress: true
           use_sticky_comment: true
           settings: ${{ steps.configure-marketplace.outputs.settings_json }}
-          plugins: |
-            claude-config-validator@bitwarden-marketplace
-            bitwarden-code-review@bitwarden-marketplace
           prompt: |
             Use bitwarden-code-reviewer agent to review the currently checked out pull request changes.
           claude_args: |

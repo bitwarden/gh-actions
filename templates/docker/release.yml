@@ -1,0 +1,120 @@
+name: Release
+run-name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  _IMAGE_NAME: ghcr.io/bitwarden/TEMPLATE_IMAGE_NAME # TEMPLATE VALUE TO UPDATE WHEN COPIED
+  _AZURE_REGISTRY_NAME: bitwardenprod
+  _AZURE_IMAGE_NAME: bitwardenprod.azurecr.io/TEMPLATE_IMAGE_NAME # UPDATE: TEMPLATE VALUE TO UPDATE WHEN COPIED
+  _SOURCE_RELEASE_TAG: dev
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-24.04
+    outputs:
+      release_version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Check branch
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "==================================="
+            echo "[!] Can only release from the 'main' branch"
+            echo "==================================="
+            exit 1
+          fi
+
+      - name: Check release version
+        id: version
+        uses: bitwarden/gh-actions/release-version-check@main
+        with:
+          release-type: ${{ inputs.release_type }}
+          project-type: ts
+          file: ./package.json
+
+  release:
+    name: Release
+    runs-on: ubuntu-24.04
+    needs: setup
+    env:
+      _PKG_VERSION: ${{ needs.setup.outputs.release_version }}
+    permissions:
+      contents: write
+      packages: read
+      actions: read
+
+      - name: Create release
+        uses: ncipollo/release-action@b7eabc95ff50cbeeedec83973935c8f306dfcd0b # v1.20.0
+        with:
+          #artifacts: "./mcp-server-${{ env._PKG_VERSION }}.zip"
+          commit: ${{ github.sha }}
+          tag: v${{ env._PKG_VERSION }}
+          name: v${{ env._PKG_VERSION }}
+          body: "<insert release notes here>"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: true
+
+  release-ghcr:
+    name: Push Release to GitHub Container Registry
+    runs-on: ubuntu-24.04
+    needs: setup
+    env:
+      _RELEASE_TAG: ${{ needs.setup.outputs.release_version }}
+    permissions:
+      packages: write
+
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull, tag, and push release
+        run: |
+          docker pull "${_IMAGE_NAME}:${_SOURCE_RELEASE_TAG}"
+          docker tag "${_IMAGE_NAME}:${_SOURCE_RELEASE_TAG}" "${_IMAGE_NAME}:${_RELEASE_TAG}"
+          docker push "${_IMAGE_NAME}:${_RELEASE_TAG}"
+
+      - name: Log out of Docker
+        run: docker logout ghcr.io
+
+  release-acr:
+    name: Push Release to Azure Container Registry
+    runs-on: ubuntu-24.04
+    needs: setup
+    env:
+      _RELEASE_TAG: ${{ needs.setup.outputs.release_version }}
+    steps:
+      - name: Log in to Azure
+        uses: bitwarden/gh-actions/azure-login@main
+        with:
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
+
+      - name: Log in to ACR
+          run: az acr login -n "${_AZURE_REGISTRY_NAME}"
+
+      - name: Pull, tag, and push release
+        run: |
+          docker pull "${_AZURE_IMAGE_NAME}:${_SOURCE_RELEASE_TAG}"
+          docker tag "${_AZURE_IMAGE_NAME}:${_SOURCE_RELEASE_TAG}" "${_AZURE_IMAGE_NAME}:${_RELEASE_TAG}"
+          docker push "${_AZURE_IMAGE_NAME}:${_RELEASE_TAG}"
+
+      - name: Log out of ACR
+        run: docker logout "${_AZURE_REGISTRY_NAME}"
+
+      - name: Log out of Azure
+        uses: bitwarden/gh-actions/azure-logout@main

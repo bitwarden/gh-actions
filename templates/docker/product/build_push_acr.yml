@@ -63,7 +63,7 @@ jobs:
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Login to Azure ACR
-        run: az acr login -n "${_AZ_REGISTRY_NAME}"
+        run: az acr login -n "${_AZURE_REGISTRY_NAME}"
 
       ########## Generate image tag and build Docker image ##########
       - name: Generate Docker image tag

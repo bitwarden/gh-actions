@@ -1,0 +1,141 @@
+name: Build
+
+on:
+  pull_request:
+  push:
+    branches:
+      - "main"
+  workflow_dispatch:
+
+permissions: {}
+
+env:
+  _IMAGE_NAME: ghcr.io/bitwarden/TEMPLATE_IMAGE_NAME # TEMPLATE VALUE TO UPDATE WHEN COPIED
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      security-events: write
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Check if image should be published
+        env:
+          PUBLISH_BRANCHES: "main"
+          PUBLISH_TAGS: "false"
+          PUBLISH_PR: "true"
+        run: |
+          BRANCH_REF=${GITHUB_REF#refs/heads/}
+          IFS="," read -a publish_branches <<< "$PUBLISH_BRANCHES"
+
+          if [[ "${PUBLISH_TAGS}" == "true" && "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "push_image=true" >> "$GITHUB_ENV"
+          elif [[ "${publish_branches[*]}" =~ "${BRANCH_REF}" ]]; then
+            echo "push_image=true" >> "$GITHUB_ENV"
+          else
+            echo "push_image=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Check out repo
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      ########## Set up Docker ##########
+      - name: Set up QEMU emulators
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+      ########## Login to Docker registries ##########
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      ########## Generate image tag and build Docker image ##########
+      - name: Generate Docker image tag
+        id: tag
+        env:
+          EVENT_TYPE: ${{ contains(github.event_name, 'pull_request') && 'pull_request' || '' }}
+        run: |
+          if [[ "$EVENT_TYPE" == "pull_request" ]]; then
+            IMAGE_TAG="pr-${{ github.event.pull_request.number }}"
+          else
+            IMAGE_TAG=$(echo "${GITHUB_REF:11}" | sed "s#/#-#g")  # slash safe branch name
+            if [[ "$IMAGE_TAG" == "main" ]]; then
+              IMAGE_TAG=dev
+            fi
+          fi
+          echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Generate image tag(s)
+        id: image-tags
+        env:
+          IMAGE_TAG: ${{ steps.tag.outputs.image_tag }}
+          SHA: ${{ github.sha }}
+        run: |
+          TAGS="${_IMAGE_NAME}:${IMAGE_TAG}"
+          echo "primary_tag=$TAGS" >> "$GITHUB_OUTPUT"
+          if [[ "$IMAGE_TAG" == "dev" ]]; then
+            SHORT_SHA="$(git rev-parse --short "${SHA}")"
+            TAGS="$TAGS,${_IMAGE_NAME}:${IMAGE_TAG}-${SHORT_SHA}"
+          fi
+          echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
+
+      ########## Build Docker image ##########
+      - name: Build Docker image
+        id: build-docker
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64
+          push: ${{ env.push_image == 'true' }}
+          tags: ${{ steps.image-tags.outputs.tags }}
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
+
+      - name: Install Cosign
+        if: env.push_image == 'true'
+        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
+
+      - name: Sign image with Cosign
+        if: env.push_image == 'true'
+        env:
+          DIGEST: ${{ steps.build-docker.outputs.digest }}
+          TAGS: ${{ steps.image-tags.outputs.tags }}
+        run: |
+          IFS=',' read -r -a tags_array <<< "${TAGS}"
+          images=()
+          for tag in "${tags_array[@]}"; do
+            images+=("${tag}@${DIGEST}")
+          done
+          cosign sign --yes ${images[@]} # Do not quote the array to expand properly
+
+      - name: Scan Docker image
+        id: container-scan
+        uses: anchore/scan-action@568b89d27fc18c60e56937bff480c91c772cd993 # v7.1.0
+        with:
+          image: ${{ steps.image-tags.outputs.primary_tag }}
+          fail-build: false
+          output-format: sarif
+
+      - name: Upload Grype results to GitHub
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: github/codeql-action/upload-sarif@0499de31b99561a6d14a36a5f662c2a54f91beee # v4.31.2
+        with:
+          sarif_file: ${{ steps.container-scan.outputs.sarif }}
+          sha: ${{ contains(github.event_name, 'pull_request') && github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ contains(github.event_name, 'pull_request') && format('refs/pull/{0}/head', github.event.pull_request.number) || github.ref }}
+
+      - name: Log out of Docker
+        run: |
+          docker logout ghcr.io

@@ -40,7 +40,7 @@ jobs:
         id: version
         uses: bitwarden/gh-actions/release-version-check@main
         with:
-          release-type: ${{ inputs.release_type }}
+          release-type: Initial Release # Hardcoded until this is removed from the action
           project-type: ts
           file: ./package.json
 

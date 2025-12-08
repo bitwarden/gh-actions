@@ -87,7 +87,7 @@ jobs:
 
       - name: Pull, tag, and push release as latest
         run: |
-          GHCR_IMAGE_NAME="${_GHCR_REGISTRY}/${_REPOSITORY#*/}/${_IMAGE_NAME}"
+          GHCR_IMAGE_NAME="${_GHCR_REGISTRY}/${_IMAGE_NAME}"
           docker pull "${GHCR_IMAGE_NAME}:${_RELEASE_TAG}"
           docker tag "${GHCR_IMAGE_NAME}:${_RELEASE_TAG}" "${GHCR_IMAGE_NAME}:latest"
           docker push "${GHCR_IMAGE_NAME}:latest"

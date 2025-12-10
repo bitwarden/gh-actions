@@ -287,7 +287,7 @@ jobs:
           track_progress: true
           use_sticky_comment: true
           prompt: |
-            Use bitwarden-code-reviewer agent to review the currently checked out pull request changes.
+            Use bitwarden-code-reviewer agent to review the currently checked out pull request changes. The agent will provide inline comments as well as a summary comment. Place inline comments on specific lines of code that need attention, and provide the Agent's summary of overall findings at the end.
           claude_args: |
             --verbose
             --allowedTools "mcp__github_comment__update_claude_comment,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*)"

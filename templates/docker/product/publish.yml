@@ -1,0 +1,159 @@
+name: Publish
+run-name: Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (default: latest release)"
+        required: true
+        type: string
+        default: latest
+
+permissions: {}
+
+defaults:
+  run:
+    working-directory: .
+
+env:
+  _IMAGE_NAME: TEMPLATE_IMAGE_NAME # TEMPLATE VALUE TO UPDATE WHEN COPIED
+  _GHCR_REGISTRY: ghcr.io/bitwarden
+  _AZURE_REGISTRY: bitwardenprod.azurecr.io
+  _INPUT_VERSION: ${{ inputs.version }}
+  _REPOSITORY: ${{ github.repository }}
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-24.04
+    outputs:
+      release_version: ${{ steps.version-output.outputs.version }}
+      deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - name: Check branch
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "==================================="
+            echo "[!] Can only publish from the 'main' branch"
+            echo "==================================="
+            exit 1
+          fi
+
+      - name: Output version
+        id: version-output
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ "${_INPUT_VERSION}" == "latest" || "${_INPUT_VERSION}" == "" ]]; then
+            VERSION=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' | sed 's/^v//')
+            echo "Latest Released Version: $VERSION"
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          else
+            echo "Release Version: ${_INPUT_VERSION}"
+            echo "version=${_INPUT_VERSION}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create GitHub deployment
+        uses: chrnorm/deployment-action@55729fcebec3d284f60f5bcabbd8376437d696b1 # v2.0.7
+        id: deployment
+        with:
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          initial-status: "in_progress"
+          description: "Deployment ${{ steps.version-output.outputs.version }} from branch ${{ github.ref_name }}"
+          task: release
+
+  publish-ghcr:
+    name: Publish release as latest
+    runs-on: ubuntu-24.04
+    needs: setup
+    env:
+      _RELEASE_TAG: ${{ needs.setup.outputs.release_version }}
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull, tag, and push release as latest
+        run: |
+          GHCR_IMAGE_NAME="${_GHCR_REGISTRY}/${_IMAGE_NAME}"
+          docker pull "${GHCR_IMAGE_NAME}:${_RELEASE_TAG}"
+          docker tag "${GHCR_IMAGE_NAME}:${_RELEASE_TAG}" "${GHCR_IMAGE_NAME}:latest"
+          docker push "${GHCR_IMAGE_NAME}:latest"
+
+  publish-acr:
+    name: Publish release as latest
+    runs-on: ubuntu-24.04
+    needs: setup
+    env:
+      _RELEASE_TAG: ${{ needs.setup.outputs.release_version }}
+    permissions:
+      contents: read
+
+    steps:
+      - name: Log in to Azure
+        uses: bitwarden/gh-actions/azure-login@main
+        with:
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
+
+      - name: Log in to ACR
+        run: az acr login -n "${_AZURE_REGISTRY%%.*}"
+
+      - name: Pull, tag, and push release
+        run: |
+          AZURE_IMAGE_NAME="${_AZURE_REGISTRY}/${_IMAGE_NAME}"
+          docker pull "${AZURE_IMAGE_NAME}:${_RELEASE_TAG}"
+          docker tag "${AZURE_IMAGE_NAME}:${_RELEASE_TAG}" "${AZURE_IMAGE_NAME}:latest"
+          docker push "${AZURE_IMAGE_NAME}:latest"
+
+      - name: Log out of ACR
+        run: docker logout "${_AZURE_REGISTRY}"
+
+      - name: Log out of Azure
+        uses: bitwarden/gh-actions/azure-logout@main
+
+  update-deployment:
+    name: Update deployment status
+    runs-on: ubuntu-24.04
+    needs:
+      - setup
+      - publish-ghcr
+      - publish-acr
+    permissions:
+      contents: read
+      deployments: write
+
+    if: ${{ always() }}
+    steps:
+      - name: Check if any job failed
+        if: contains(needs.*.result, 'failure')
+        run: exit 1
+
+      - name: Update deployment status to Success
+        if: success()
+        uses: chrnorm/deployment-status@9a72af4586197112e0491ea843682b5dc280d806 # v2.0.3
+        with:
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          state: "success"
+          deployment-id: ${{ needs.setup.outputs.deployment_id }}
+
+      - name: Update deployment status to Failure
+        if: failure()
+        uses: chrnorm/deployment-status@9a72af4586197112e0491ea843682b5dc280d806 # v2.0.3
+        with:
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          state: "failure"
+          deployment-id: ${{ needs.setup.outputs.deployment_id }}

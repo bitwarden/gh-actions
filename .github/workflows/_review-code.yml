@@ -113,181 +113,28 @@ jobs:
         uses: bitwarden/gh-actions/get-keyvault-secrets@main
         with:
           keyvault: gh-org-bitwarden
-          secrets: "ANTHROPIC-CODE-REVIEW-API-KEY,BW-GHAPP-ID,BW-GHAPP-KEY"
+          secrets: "ANTHROPIC-CODE-REVIEW-API-KEY"
 
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
 
-      - name: Generate GH App token
-        uses: actions/create-github-app-token@67018539274d69449ef7c02e8e71183d1719ab42 # v2.1.4
-        id: app-token
-        with:
-          app-id: ${{ steps.get-kv-secrets.outputs.BW-GHAPP-ID }}
-          private-key: ${{ steps.get-kv-secrets.outputs.BW-GHAPP-KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ai-plugins
-
-      - name: Create Claude Code plugin directories
-        run: |
-          mkdir -p ~/.claude/plugins/marketplaces
-          mkdir -p ~/.claude/plugins/repos
-          echo "✅ Created Claude Code plugin directory structure"
-
-      - name: Create temporary directory for marketplace checkout
-        id: mktemp
-        run: |
-          TEMP_DIR=$(mktemp -d -p .)
-          echo "temp_dir=$TEMP_DIR" >> "$GITHUB_OUTPUT"
-          echo "✅ Created temporary directory: $TEMP_DIR"
-
-      - name: Check out AI plugins marketplace
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
-        with:
-          repository: bitwarden/ai-plugins
-          path: ${{ steps.mktemp.outputs.temp_dir }}
-          token: ${{ steps.app-token.outputs.token }}
-          persist-credentials: false
-
-      - name: Move marketplace to Claude Code plugins directory
-        env:
-          TEMP_DIR: ${{ steps.mktemp.outputs.temp_dir }}
-        run: |
-          mv "$TEMP_DIR" "$HOME/.claude/plugins/marketplaces/bitwarden-marketplace"
-          echo "✅ Moved marketplace to: $HOME/.claude/plugins/marketplaces/bitwarden-marketplace"
-
-      - name: Initialize Claude Code plugin system
-        id: init-plugins
-        run: |
-          MARKETPLACE_PATH="$HOME/.claude/plugins/marketplaces/bitwarden-marketplace"
-
-          # Verify marketplace directory exists
-          if [ ! -d "$MARKETPLACE_PATH" ]; then
-            echo "❌ Error: Marketplace directory $MARKETPLACE_PATH does not exist"
-            exit 1
-          fi
-          echo "✅ Found marketplace at: $MARKETPLACE_PATH"
-
-          # Verify required plugin directories exist
-          if [ ! -d "$MARKETPLACE_PATH/plugins/claude-config-validator" ]; then
-            echo "❌ Error: Plugin 'claude-config-validator' not found"
-            exit 1
-          fi
-          echo "✅ Found plugin: claude-config-validator"
-
-          if [ ! -d "$MARKETPLACE_PATH/plugins/bitwarden-code-review" ]; then
-            echo "❌ Error: Plugin 'bitwarden-code-review' not found"
-            exit 1
-          fi
-          echo "✅ Found plugin: bitwarden-code-review"
-
-          # Verify plugin metadata files exist
-          if [ -f "$MARKETPLACE_PATH/plugins/claude-config-validator/.claude-plugin/plugin.json" ]; then
-            echo "✅ Plugin metadata found: claude-config-validator"
-          else
-            echo "❌ Error: Plugin metadata not found for claude-config-validator"
-            exit 1
-          fi
-
-          if [ -f "$MARKETPLACE_PATH/plugins/bitwarden-code-review/.claude-plugin/plugin.json" ]; then
-            echo "✅ Plugin metadata found: bitwarden-code-review"
-          else
-            echo "❌ Error: Plugin metadata not found for bitwarden-code-review"
-            exit 1
-          fi
-
-          # Get git commit SHA from ai-plugins repository (not the PR repo)
-          echo "📍 Extracting git SHA from ai-plugins marketplace..."
-          cd "$MARKETPLACE_PATH"
-          echo "   Working directory: $(pwd)"
-          echo "   Git remote: $(git remote get-url origin)"
-          GIT_SHA=$(git rev-parse HEAD)
-          echo "   Commit SHA: $GIT_SHA"
-          cd - > /dev/null
-          echo "✅ ai-plugins marketplace SHA captured: $GIT_SHA"
-
-          # Read plugin versions from plugin.json manifests
-          CONFIG_VALIDATOR_VERSION=$(jq -r '.version' "$MARKETPLACE_PATH/plugins/claude-config-validator/.claude-plugin/plugin.json")
-          CODE_REVIEW_VERSION=$(jq -r '.version' "$MARKETPLACE_PATH/plugins/bitwarden-code-review/.claude-plugin/plugin.json")
-          echo "✅ Plugin versions: claude-config-validator=$CONFIG_VALIDATOR_VERSION, bitwarden-code-review=$CODE_REVIEW_VERSION"
-
-          # Create config.json
-          echo '{"repositories": {}}' > ~/.claude/plugins/config.json
-          echo "✅ Created config.json"
-          echo "📄 Contents of config.json:"
-          cat ~/.claude/plugins/config.json
-
-          # Create known_marketplaces.json
-          jq -n \
-            --arg path "$MARKETPLACE_PATH" \
-            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
-            '{
-              "bitwarden-marketplace": {
-                "source": {
-                  "source": "git",
-                  "url": "https://github.com/bitwarden/ai-plugins.git"
-                },
-                "installLocation": $path,
-                "lastUpdated": $timestamp
-              }
-            }' > ~/.claude/plugins/known_marketplaces.json
-          echo "✅ Created known_marketplaces.json"
-          echo "📄 Contents of known_marketplaces.json:"
-          cat ~/.claude/plugins/known_marketplaces.json
-
-          # Create installed_plugins.json
-          jq -n \
-            --arg path "$MARKETPLACE_PATH" \
-            --arg sha "$GIT_SHA" \
-            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
-            --arg configValidatorVersion "$CONFIG_VALIDATOR_VERSION" \
-            --arg codeReviewVersion "$CODE_REVIEW_VERSION" \
-            '{
-              "version": 1,
-              "plugins": {
-                "claude-config-validator@bitwarden-marketplace": {
-                  "version": $configValidatorVersion,
-                  "installedAt": $timestamp,
-                  "lastUpdated": $timestamp,
-                  "installPath": ($path + "/plugins/claude-config-validator"),
-                  "gitCommitSha": $sha,
-                  "isLocal": true
-                },
-                "bitwarden-code-review@bitwarden-marketplace": {
-                  "version": $codeReviewVersion,
-                  "installedAt": $timestamp,
-                  "lastUpdated": $timestamp,
-                  "installPath": ($path + "/plugins/bitwarden-code-review"),
-                  "gitCommitSha": $sha,
-                  "isLocal": true
-                }
-              }
-            }' > ~/.claude/plugins/installed_plugins.json
-          echo "✅ Created installed_plugins.json"
-          echo "📄 Contents of installed_plugins.json:"
-          cat ~/.claude/plugins/installed_plugins.json
-
-          # Create settings.json with enabledPlugins
-          jq -n '{
-            "enabledPlugins": {
-              "claude-config-validator@bitwarden-marketplace": true,
-              "bitwarden-code-review@bitwarden-marketplace": true
-            }
-          }' > ~/.claude/settings.json
-          echo "✅ Created settings.json"
-          echo "📄 Contents of settings.json:"
-          cat ~/.claude/settings.json
-
-          echo "✅ Claude Code plugin system fully initialized"
-
       - name: Review with Claude Code
         timeout-minutes: 10
-        uses: anthropics/claude-code-action@6337623ebba10cf8c8214b507993f8062fd4ccfb # v1.0.22
+        uses: anthropics/claude-code-action@f0c8eb29807907de7f5412d04afceb5e24817127 # v1.0.23
+        env:
+          USE_AGENT_SDK: "true"
+          USE_SIMPLE_PROMPT: "true"
         with:
           anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-CODE-REVIEW-API-KEY }}
           track_progress: true
           use_sticky_comment: true
+          plugin_marketplaces: "https://github.com/bitwarden/ai-plugins.git"
+          plugins: "bitwarden-code-review@bitwarden-marketplace"
           prompt: |
             Use bitwarden-code-reviewer agent to review the currently checked out pull request changes.
+            The agent will post inline comments and a summary comment directly.
+            Do not repeat or summarize the agent's findings after it completes.
+            Do not add excessive praise or commentary to findings.
           claude_args: |
             --verbose
-            --allowedTools "mcp__github_comment__update_claude_comment,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*)"
+            --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr review:*),Bash(gh pr comment:*),mcp__github_comment__update_claude_comment,mcp__github_inline_comment__create_inline_comment"

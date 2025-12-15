@@ -66,14 +66,32 @@ jobs:
             echo "⚠️  Validation: No $FILE_PATH found - skipping Claude review"
           fi
 
+      - name: Check for no-claude-review label
+        id: check-label
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          LABELS=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json labels --jq '.labels[].name')
+          if echo "$LABELS" | grep -q "^no-claude-review$"; then
+            echo "label_present=true" >> "$GITHUB_OUTPUT"
+            echo "⚠️  Validation: 'no-claude-review' label found - skipping Claude review"
+          else
+            echo "label_present=false" >> "$GITHUB_OUTPUT"
+            echo "✅ No 'no-claude-review' label found"
+          fi
+
       - name: Set validation result
         id: validate
         env:
           PR_VALID: ${{ steps.check-pr.outputs.pr_valid }}
           PROMPT_EXISTS: ${{ steps.check-prompt.outputs.prompt_exists }}
+          LABEL_PRESENT: ${{ steps.check-label.outputs.label_present }}
         run: |
           if [ "$PR_VALID" == "true" ] && \
-             [ "$PROMPT_EXISTS" == "true" ]; then
+             [ "$PROMPT_EXISTS" == "true" ] && \
+             [ "$LABEL_PRESENT" == "false" ]; then
             echo "should_review=true" >> "$GITHUB_OUTPUT"
             echo "✅ Validation passed - code review will proceed"
           else

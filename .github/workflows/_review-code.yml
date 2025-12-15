@@ -137,4 +137,4 @@ jobs:
             Do not add excessive praise or commentary to findings.
           claude_args: |
             --verbose
-            --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr review:--comment*),Bash(gh pr comment:*),mcp__github_comment__update_claude_comment,mcp__github_inline_comment__create_inline_comment"
+            --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr review:--comment*),Bash(gh pr comment:*),mcp__github_comment__update_claude_comment,mcp__github_inline_comment__create_inline_comment,Skill"

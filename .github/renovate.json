@@ -20,6 +20,14 @@
         "pipenv"
       ],
       "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "matchPaths": ["proxy-actions/codecov/action.yml"],
+      "matchManagers": ["regex"],
+      "matchStrings": ["version: (?<currentValue>v\\d+\\.\\d+\\.\\d+)"],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "codecov/codecov-action",
+      "extractVersionTemplate": "^v(?<version>.*)$"
     }
   ]
 }

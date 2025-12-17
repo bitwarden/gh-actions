@@ -33,7 +33,7 @@ runs:
         fi
 
         # Sanitize the tag
-        IMAGE_TAG=$(echo "${BRANCH_NAME}" | tr '[:upper:]' '[:lower:]' | sed -E 's/^v//; s/[^a-z0-9._-]+/-/g; s/-+/-/g; s/^-+|-+$//g' | cut -c1-128 | sed -E 's/[.-]$//')
+        IMAGE_TAG=$(echo "${BRANCH_NAME}" | tr '[:upper:]' '[:lower:]' | sed -E 's/^v//; s/[^a-z0-9._-]+/-/g; s/-+/-/g; s/^[.-]+|[.-]+$//g' | cut -c1-128 | sed -E 's/[.-]$//')
 
         # Transform 'main' branch to 'dev' tag
         if [[ "${IMAGE_TAG}" == "main" ]]; then

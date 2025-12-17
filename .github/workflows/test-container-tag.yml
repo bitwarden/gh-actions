@@ -134,6 +134,9 @@ jobs:
           - name: Mixed special characters
             ref: FE@TUR#/T$ST%BR^NCH
             expected: fe-tur-t-st-br-nch
+          - name: Leading dot after v stripping
+            ref: v.something
+            expected: something
     steps:
       - name: Checkout
         uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0

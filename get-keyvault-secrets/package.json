@@ -10,7 +10,7 @@
   "author": "Romil Goyal",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "20.19.10",
+    "@types/node": "24.10.3",
     "typescript": "5.9.2"
   },
   "dependencies": {

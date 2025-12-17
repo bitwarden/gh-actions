@@ -1,22 +1,22 @@
-name: 'Generate Container Image Tag'
-description: 'Generates a standardized, sanitized container image tag for Docker images'
-author: 'Bitwarden'
+name: "Generate Container Image Tag"
+description: "Generates a standardized, sanitized container image tag for Docker images"
+author: "Bitwarden"
 branding:
   icon: tag
   color: blue
 
 inputs:
   ref:
-    description: 'Branch or tag reference (use: github.head_ref || github.ref)'
+    description: "Branch or tag reference (use: github.head_ref || github.ref)"
     required: true
 
 outputs:
   tag:
-    description: 'The generated container image tag'
+    description: "The generated container image tag"
     value: ${{ steps.generate-tag.outputs.tag }}
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Generate container image tag
       id: generate-tag
@@ -33,7 +33,7 @@ runs:
         fi
 
         # Sanitize the tag
-        IMAGE_TAG=$(echo "${BRANCH_NAME}" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g; s/-+/-/g; s/^-+|-+$//g' | cut -c1-128 | sed -E 's/[.-]$//')
+        IMAGE_TAG=$(echo "${BRANCH_NAME}" | tr '[:upper:]' '[:lower:]' | sed -E 's/^v//; s/[^a-z0-9._-]+/-/g; s/-+/-/g; s/^-+|-+$//g' | cut -c1-128 | sed -E 's/[.-]$//')
 
         # Transform 'main' branch to 'dev' tag
         if [[ "${IMAGE_TAG}" == "main" ]]; then

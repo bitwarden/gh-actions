@@ -44,10 +44,10 @@ jobs:
             expected: develop
           - name: Refs tags prefix
             ref: refs/tags/v2024.12.0
-            expected: v2024-12-0
+            expected: 2024.12.0
           - name: Version tag
             ref: v1.2.3
-            expected: v1-2-3
+            expected: 1.2.3
           - name: Branch with special characters
             ref: feature/test@special#chars
             expected: feature-test-special-chars

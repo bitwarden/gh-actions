@@ -137,6 +137,12 @@ jobs:
           - name: Leading dot after v stripping
             ref: v.something
             expected: something
+          - name: Long branch name truncation
+            ref: feature/this-is-a-very-long-branch-name-that-exceeds-the-maximum-allowed-length-of-128-characters-for-docker-tags-and-should-be-truncated-properly-without-leaving-trailing-special-chars
+            expected: feature-this-is-a-very-long-branch-name-that-exceeds-the-maximum-allowed-length-of-128-characters-for-docker-tags-and-should-be
+          - name: Truncation removes trailing dot
+            ref: vaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.xxx
+            expected: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
     steps:
       - name: Checkout
         uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0

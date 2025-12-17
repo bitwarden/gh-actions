@@ -26,14 +26,14 @@ runs:
       run: |
         # Extract branch/tag name from ref if it starts with refs/
         if [[ "${REF_INPUT}" == refs/* ]]; then
-          BRANCH_NAME=$(echo "${REF_INPUT}" | sed 's|^refs/heads/||; s|^refs/tags/||')
+          BRANCH_NAME=$(sed 's|^refs/heads/||; s|^refs/tags/||' <<< "${REF_INPUT}")
         else
           # Already a plain branch name (from github.head_ref)
           BRANCH_NAME="${REF_INPUT}"
         fi
 
         # Sanitize the tag
-        IMAGE_TAG=$(echo "${BRANCH_NAME}" | tr '[:upper:]' '[:lower:]' | sed -E 's/^v//; s/[^a-z0-9._-]+/-/g; s/-+/-/g; s/^[.-]+|[.-]+$//g' | cut -c1-128 | sed -E 's/[.-]$//')
+        IMAGE_TAG=$(tr '[:upper:]' '[:lower:]' <<< "${BRANCH_NAME}" | sed -E 's/^v//; s/[^a-z0-9._-]+/-/g; s/-+/-/g; s/^[.-]+|[.-]+$//g' | cut -c1-128 | sed -E 's/[.-]$//')
 
         # Transform 'main' branch to 'dev' tag
         if [[ "${IMAGE_TAG}" == "main" ]]; then

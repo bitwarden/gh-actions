@@ -1,4 +1,4 @@
-# Generate Container Image Tag
+# Container Tag
 
 A reusable GitHub Action that generates standardized, sanitized container image tags for Docker images across Bitwarden repositories.
 
@@ -79,35 +79,3 @@ A reusable GitHub Action that generates standardized, sanitized container image 
 | `feature/PM-1234_update` | `feature-pm-1234_update` |
 | `v2024.12.0`             | `2024.12.0`              |
 | `v1.2.3`                 | `1.2.3`                  |
-
-## Migration from Inline Script
-
-**Before:**
-
-```yaml
-- name: Generate Docker image tag
-  id: tag
-  run: |
-    if [[ "${GITHUB_EVENT_NAME}" == "pull_request" || "${GITHUB_EVENT_NAME}" == "pull_request_target" ]]; then
-      IMAGE_TAG=$(echo "${GITHUB_HEAD_REF}" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g; s/-+/-/g; s/^-+|-+$//g' | cut -c1-128 | sed -E 's/[.-]$//')
-    else
-      BRANCH_NAME=$(echo "${GITHUB_REF}" | sed 's|^refs/heads/||; s|^refs/tags/||')
-      IMAGE_TAG=$(echo "${BRANCH_NAME}" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g; s/-+/-/g; s/^-+|-+$//g' | cut -c1-128 | sed -E 's/[.-]$//')
-    fi
-    if [[ "$IMAGE_TAG" == "main" ]]; then
-      IMAGE_TAG=dev
-    fi
-    echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
-```
-
-**After:**
-
-```yaml
-- name: Generate Docker image tag
-  id: tag
-  uses: bitwarden/gh-actions/container-tag@main
-  with:
-    ref: ${{ github.head_ref || github.ref }}
-```
-
-Then reference as `${{ steps.tag.outputs.tag }}`.

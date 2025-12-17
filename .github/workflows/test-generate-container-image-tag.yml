@@ -1,0 +1,165 @@
+name: Test Generate Container Image Tag Action
+
+on:
+  pull_request:
+    paths:
+      - "container-tag/**"
+      - ".github/workflows/test-generate-container-image-tag.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-tag-generation:
+    name: Test Tag Generation
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Main branch to dev
+            ref: main
+            expected: dev
+          - name: RC branch
+            ref: rc
+            expected: rc
+          - name: Hotfix RC branch
+            ref: hotfix-rc
+            expected: hotfix-rc
+          - name: Feature branch with slashes
+            ref: feature/add-login
+            expected: feature-add-login
+          - name: Feature branch with uppercase
+            ref: Feature/Add-Login
+            expected: feature-add-login
+          - name: Feature branch with underscores
+            ref: feature/PM-1234_update
+            expected: feature-pm-1234_update
+          - name: Refs heads prefix
+            ref: refs/heads/develop
+            expected: develop
+          - name: Refs tags prefix
+            ref: refs/tags/v2024.12.0
+            expected: v2024-12-0
+          - name: Version tag
+            ref: v1.2.3
+            expected: v1-2-3
+          - name: Branch with special characters
+            ref: feature/test@special#chars
+            expected: feature-test-special-chars
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+
+      - name: Generate tag - ${{ matrix.name }}
+        id: generate
+        uses: ./container-tag
+        with:
+          ref: ${{ matrix.ref }}
+
+      - name: Verify output
+        env:
+          ACTUAL: ${{ steps.generate.outputs.tag }}
+          EXPECTED: ${{ matrix.expected }}
+          TEST_NAME: ${{ matrix.name }}
+        run: |
+          echo "Test: $TEST_NAME"
+          echo "Input: ${{ matrix.ref }}"
+          echo "Expected: $EXPECTED"
+          echo "Actual: $ACTUAL"
+
+          if [[ "$ACTUAL" == "$EXPECTED" ]]; then
+            echo "✓ Test passed"
+          else
+            echo "✗ Test failed: expected '$EXPECTED' but got '$ACTUAL'"
+            exit 1
+          fi
+
+  test-github-context:
+    name: Test with GitHub context
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+
+      - name: Generate tag from GitHub ref
+        id: tag
+        uses: ./container-tag
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+
+      - name: Display generated tag
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          REF: ${{ github.head_ref || github.ref }}
+        run: |
+          echo "GitHub ref: $REF"
+          echo "Generated tag: $TAG"
+
+          # Verify tag is not empty
+          if [[ -z "$TAG" ]]; then
+            echo "✗ Error: Generated tag is empty"
+            exit 1
+          fi
+
+          # Verify tag only contains valid characters
+          if ! [[ "$TAG" =~ ^[a-z0-9._-]+$ ]]; then
+            echo "✗ Error: Tag contains invalid characters"
+            exit 1
+          fi
+
+          echo "✓ Tag validation passed"
+
+  test-edge-cases:
+    name: Test Edge Cases
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Multiple consecutive slashes
+            ref: feature///multiple-slashes
+            expected: feature-multiple-slashes
+          - name: Leading and trailing special chars
+            ref: -feature-branch-
+            expected: feature-branch
+          - name: Only underscores and dots preserved
+            ref: feature_test.version
+            expected: feature_test.version
+          - name: Mixed special characters
+            ref: FE@TUR#/T$ST%BR^NCH
+            expected: fe-tur-t-st-br-nch
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+
+      - name: Generate tag - ${{ matrix.name }}
+        id: generate
+        uses: ./container-tag
+        with:
+          ref: ${{ matrix.ref }}
+
+      - name: Verify output
+        env:
+          ACTUAL: ${{ steps.generate.outputs.tag }}
+          EXPECTED: ${{ matrix.expected }}
+          TEST_NAME: ${{ matrix.name }}
+        run: |
+          echo "Test: $TEST_NAME"
+          echo "Input: ${{ matrix.ref }}"
+          echo "Expected: $EXPECTED"
+          echo "Actual: $ACTUAL"
+
+          if [[ "$ACTUAL" == "$EXPECTED" ]]; then
+            echo "✓ Test passed"
+          else
+            echo "✗ Test failed: expected '$EXPECTED' but got '$ACTUAL'"
+            exit 1
+          fi

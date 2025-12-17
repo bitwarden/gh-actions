@@ -1,4 +1,4 @@
-name: "Generate Container Image Tag"
+name: "Container Tag"
 description: "Generates a standardized, sanitized container image tag for Docker images"
 author: "Bitwarden"
 branding:

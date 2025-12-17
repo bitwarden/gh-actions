@@ -6,6 +6,9 @@ on:
       - "container-tag/**"
       - ".github/workflows/test-container-tag.yml"
   workflow_dispatch:
+  push:
+    branches:
+      - bre-1004_add-centralized-container-tag-action # Remove me before merge
 
 permissions:
   contents: read

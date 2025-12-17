@@ -1,10 +1,10 @@
-name: Test Generate Container Image Tag Action
+name: Test Container Tag Action
 
 on:
   pull_request:
     paths:
       - "container-tag/**"
-      - ".github/workflows/test-generate-container-image-tag.yml"
+      - ".github/workflows/test-container-tag.yml"
   workflow_dispatch:
 
 permissions:

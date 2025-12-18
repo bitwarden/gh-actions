@@ -33,6 +33,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
+      pull-requests: read
     outputs:
       should_review: ${{ steps.validate.outputs.should_review }}
 
@@ -50,17 +51,35 @@ jobs:
             echo "pr_valid=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Check for review label
+        id: check-label
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          LABELS=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json labels --jq '.labels[].name')
+          if echo "$LABELS" | grep -q "^ai-review$"; then
+            echo "label_present=true" >> "$GITHUB_OUTPUT"
+            echo "✅ Validation: 'ai-review' label found"
+          else
+            echo "label_present=false" >> "$GITHUB_OUTPUT"
+            echo "⚠️ Validation: 'ai-review' label not found - skipping Claude review"
+          fi
+
       - name: Set validation result
         id: validate
         env:
           PR_VALID: ${{ steps.check-pr.outputs.pr_valid }}
+          LABEL_PRESENT: ${{ steps.check-label.outputs.label_present }}
         run: |
-          if [ "$PR_VALID" == "true" ]; then
+          if [ "$PR_VALID" == "true" ] && \
+             [ "$LABEL_PRESENT" == "true" ]; then
             echo "should_review=true" >> "$GITHUB_OUTPUT"
             echo "✅ Validation passed - code review will proceed"
           else
             echo "should_review=false" >> "$GITHUB_OUTPUT"
-            echo "⚠️  Validation failed - code review will be skipped"
+            echo "⚠️ Validation failed - code review will be skipped"
           fi
 
   review:

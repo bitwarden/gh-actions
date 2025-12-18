@@ -50,30 +50,12 @@ jobs:
             echo "pr_valid=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Check if prompt file exists using GitHub CLI
-        id: check-prompt
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          REF: ${{ github.event.pull_request.head.sha }}
-          FILE_PATH: ".claude/prompts/review-code.md"
-        run: |
-          if gh api "repos/$REPO/contents/$FILE_PATH?ref=$REF" --silent 2>/dev/null; then
-            echo "prompt_exists=true" >> "$GITHUB_OUTPUT"
-            echo "✅ Found $FILE_PATH in $REPO"
-          else
-            echo "prompt_exists=false" >> "$GITHUB_OUTPUT"
-            echo "⚠️  Validation: No $FILE_PATH found - skipping Claude review"
-          fi
-
       - name: Set validation result
         id: validate
         env:
           PR_VALID: ${{ steps.check-pr.outputs.pr_valid }}
-          PROMPT_EXISTS: ${{ steps.check-prompt.outputs.prompt_exists }}
         run: |
-          if [ "$PR_VALID" == "true" ] && \
-             [ "$PROMPT_EXISTS" == "true" ]; then
+          if [ "$PR_VALID" == "true" ]; then
             echo "should_review=true" >> "$GITHUB_OUTPUT"
             echo "✅ Validation passed - code review will proceed"
           else
@@ -120,7 +102,7 @@ jobs:
 
       - name: Review with Claude Code
         timeout-minutes: 10
-        uses: anthropics/claude-code-action@f0c8eb29807907de7f5412d04afceb5e24817127 # v1.0.23
+        uses: anthropics/claude-code-action@0d1933529914177075d5bc3558ae3d047f188146 # v1.0.26
         env:
           USE_AGENT_SDK: "true"
           USE_SIMPLE_PROMPT: "true"

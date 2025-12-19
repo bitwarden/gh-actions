@@ -33,6 +33,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
+      pull-requests: read
     outputs:
       should_review: ${{ steps.validate.outputs.should_review }}
 
@@ -50,35 +51,35 @@ jobs:
             echo "pr_valid=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Check if prompt file exists using GitHub CLI
-        id: check-prompt
+      - name: Check for review label
+        id: check-label
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          REF: ${{ github.event.pull_request.head.sha }}
-          FILE_PATH: ".claude/prompts/review-code.md"
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          if gh api "repos/$REPO/contents/$FILE_PATH?ref=$REF" --silent 2>/dev/null; then
-            echo "prompt_exists=true" >> "$GITHUB_OUTPUT"
-            echo "✅ Found $FILE_PATH in $REPO"
+          LABELS=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json labels --jq '.labels[].name')
+          if echo "$LABELS" | grep -q "^ai-review$"; then
+            echo "label_present=true" >> "$GITHUB_OUTPUT"
+            echo "✅ Validation: 'ai-review' label found"
           else
-            echo "prompt_exists=false" >> "$GITHUB_OUTPUT"
-            echo "⚠️  Validation: No $FILE_PATH found - skipping Claude review"
+            echo "label_present=false" >> "$GITHUB_OUTPUT"
+            echo "⚠️ Validation: 'ai-review' label not found - skipping Claude review"
           fi
 
       - name: Set validation result
         id: validate
         env:
           PR_VALID: ${{ steps.check-pr.outputs.pr_valid }}
-          PROMPT_EXISTS: ${{ steps.check-prompt.outputs.prompt_exists }}
+          LABEL_PRESENT: ${{ steps.check-label.outputs.label_present }}
         run: |
           if [ "$PR_VALID" == "true" ] && \
-             [ "$PROMPT_EXISTS" == "true" ]; then
+             [ "$LABEL_PRESENT" == "true" ]; then
             echo "should_review=true" >> "$GITHUB_OUTPUT"
             echo "✅ Validation passed - code review will proceed"
           else
             echo "should_review=false" >> "$GITHUB_OUTPUT"
-            echo "⚠️  Validation failed - code review will be skipped"
+            echo "⚠️ Validation failed - code review will be skipped"
           fi
 
   review:
@@ -120,7 +121,7 @@ jobs:
 
       - name: Review with Claude Code
         timeout-minutes: 10
-        uses: anthropics/claude-code-action@f0c8eb29807907de7f5412d04afceb5e24817127 # v1.0.23
+        uses: anthropics/claude-code-action@0d1933529914177075d5bc3558ae3d047f188146 # v1.0.26
         env:
           USE_AGENT_SDK: "true"
           USE_SIMPLE_PROMPT: "true"
@@ -137,4 +138,4 @@ jobs:
             Do not add excessive praise or commentary to findings.
           claude_args: |
             --verbose
-            --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr review:--comment*),Bash(gh pr comment:*),mcp__github_comment__update_claude_comment,mcp__github_inline_comment__create_inline_comment,Skill"
+            --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr review:--comment*),Bash(gh pr comment:*),Bash(./scripts/get-review-threads.sh:*),mcp__github_comment__update_claude_comment,mcp__github_inline_comment__create_inline_comment,Skill"

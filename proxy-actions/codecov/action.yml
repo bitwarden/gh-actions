@@ -11,7 +11,7 @@ inputs:
     description: 'The file location of a pre-downloaded version of the CLI. If specified, integrity checking will be bypassed.'
     required: false
   codecov_yml_path:
-    description: 'The location of the codecov.yml file. This is crrently ONLY used for automated test selection (https://docs.codecov.com/docs/getting-started-with-ats). Note that for all other cases, the Codecov yaml will need to be located as described here: https://docs.codecov.com/docs/codecov-yaml#can-i-name-the-file-codecovyml'
+    description: 'The location of the codecov.yml file. This is currently ONLY used for automated test selection (https://docs.codecov.com/docs/getting-started-with-ats). Note that for all other cases, the Codecov yaml will need to be located as described here: https://docs.codecov.com/docs/codecov-yaml#can-i-name-the-file-codecovyml'
     required: false
   commit_parent:
     description: 'SHA (with 40 chars) of what should be the parent of this commit.'
@@ -161,9 +161,9 @@ inputs:
     required: false
     default: 'false'
   version:
-    description: "Which version of the Codecov CLI to use (defaults to 'latest')"
+    description: "Which version of the Codecov CLI to use"
     required: false
-    default: 'latest'
+    default: 11.2.6
   working-directory:
     description: 'Directory in which to execute codecov.sh'
     required: false
@@ -221,5 +221,5 @@ runs:
         use_oidc: ${{ inputs.use_oidc }}
         use_pypi: ${{ inputs.use_pypi }}
         verbose: ${{ inputs.verbose }}
-        version: v11.2.3 # Do not bump until this is fixed: https://github.com/getsentry/prevent-cli/issues/101
+        version: ${{ inputs.version }}
         working-directory: ${{ inputs.working-directory }}

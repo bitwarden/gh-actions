@@ -15,4 +15,7 @@ permissions:
 jobs:
   test-codecov-proxy:
     name: Test codecov proxy action
-    uses: ./proxy-actions/codecov
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run codecov proxy action
+        uses: ./proxy-actions/codecov

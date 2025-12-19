@@ -16,9 +16,6 @@ When a new version of the Codecov action is released, follow these steps:
 - For any removed inputs, remove the corresponding `with:` entries
 - Ensure the `uses:` reference is updated to the new version git hash and tag in the comment
 
-### 3. Update the Version Pin
-- Update the `version:` input in the composite step to the new release version
-- **⚠️ Note:** `version: v11.2.3` is currently pinned and should not be bumped until this issue is resolved: https://github.com/getsentry/prevent-cli/issues/101
 
 ## Example
 

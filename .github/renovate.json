@@ -1,7 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["github>bitwarden/renovate-config"],
-  "enabledManagers": ["dockerfile", "github-actions", "npm", "nuget", "pipenv"],
+  "enabledManagers": ["dockerfile", "github-actions", "npm", "nuget", "pipenv", "regex"],
   "ignorePaths": [
     "release-version-check/tests/fixtures/**",
     "version-bump/tests/fixtures/**",
@@ -20,14 +20,16 @@
         "pipenv"
       ],
       "matchUpdateTypes": ["minor", "patch"]
-    },
+    }
+  ],
+  "regexManagers": [
     {
-      "matchPaths": ["proxy-actions/codecov/action.yml"],
-      "matchManagers": ["regex"],
-      "matchStrings": ["version: (?<currentValue>v\\d+\\.\\d+\\.\\d+)"],
-      "datasourceTemplate": "github-releases",
-      "depNameTemplate": "codecov/codecov-action",
-      "extractVersionTemplate": "^v(?<version>.*)$"
+      "fileMatch": ["\\proxy-actions/codecov/action.yml$"],
+      "matchStrings": [
+        "version:[\\s\\S]*?default: (?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
+      "depNameTemplate": "getsentry/prevent-cli",
+      "datasourceTemplate": "github-releases"
     }
   ]
 }

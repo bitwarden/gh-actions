@@ -7,7 +7,7 @@ on:
       - main
     paths:
       - 'proxy-actions/codecov/**'
-      - '.github/workflows/test-codecov-proxy-action.yml'
+      - '.github/workflows/test-proxy-action-codecov.yml'
 
 permissions:
   contents: read

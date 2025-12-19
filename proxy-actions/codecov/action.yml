@@ -221,5 +221,5 @@ runs:
         use_oidc: ${{ inputs.use_oidc }}
         use_pypi: ${{ inputs.use_pypi }}
         verbose: ${{ inputs.verbose }}
-        version: v11.2.3 # Do not bump until this is fixed: https://github.com/getsentry/prevent-cli/issues/101
+        version: ${{ inputs.version }}
         working-directory: ${{ inputs.working-directory }}

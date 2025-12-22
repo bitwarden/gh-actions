@@ -24,7 +24,7 @@
   ],
   "regexManagers": [
     {
-      "fileMatch": ["\\proxy-actions/codecov/action.yml$"],
+      "fileMatch": ["proxy-actions/codecov/action.yml$"],
       "matchStrings": [
         "version:[\\s\\S]*?default: (?<currentValue>\\d+\\.\\d+\\.\\d+)"
       ],

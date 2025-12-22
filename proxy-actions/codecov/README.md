@@ -10,7 +10,8 @@ When a new version of the Codecov action is released, follow these steps:
 - Visit the [Codecov action repository](https://github.com/codecov/codecov-action/blob/main/action.yml)
 - Copy all input definitions from the upstream `action.yml`
 - Paste them into the `inputs` section of this action's `action.yml`
-
+- Add the `default:` section to the `version:` input with the latest [CodeCov CLI](https://github.com/getsentry/prevent-cli/releases) version.  Example `default: 11.2.6`)
+ 
 ### 2. Update the Composite Action Step
 - For any new inputs, add corresponding `with:` entries in the composite step that passes them through to the codecov action
 - For any removed inputs, remove the corresponding `with:` entries

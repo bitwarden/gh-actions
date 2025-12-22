@@ -133,7 +133,8 @@ jobs:
           plugins: "bitwarden-code-review@bitwarden-marketplace"
           prompt: |
             Use bitwarden-code-reviewer agent to review the currently checked out pull request changes.
-            The agent will post inline comments and a summary comment directly.
+            Use the classifying-review-findings skill to classify findings.
+            Use the posting-bitwarden-review-comments skill to format inline comments and a single summary comment.
             Do not repeat or summarize the agent's findings after it completes.
             Do not add excessive praise or commentary to findings.
           claude_args: |

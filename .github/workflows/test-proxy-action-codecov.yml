@@ -24,3 +24,20 @@ jobs:
 
       - name: Run codecov proxy action
         uses: ./proxy-actions/codecov
+
+  check-default-version:
+    name: Check if default version of codecov CLI is present in the action
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Verify default version
+        run: |
+            VERSION=$(yq -r '.inputs.version.default' ./proxy-actions/codecov/action.yml)
+            if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+              echo "Error: Default version is null or empty"
+              exit 1
+            fi
+            echo "Default version: $VERSION"
+

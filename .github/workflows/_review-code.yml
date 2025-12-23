@@ -133,10 +133,7 @@ jobs:
           plugins: "bitwarden-code-review@bitwarden-marketplace"
           prompt: |
             Use bitwarden-code-reviewer agent to review the currently checked out pull request changes.
-            Use the classifying-review-findings skill to classify findings.
-            Use the posting-bitwarden-review-comments skill to format inline comments and a single summary comment.
-            Do not repeat or summarize the agent's findings after it completes.
-            Do not add excessive praise or commentary to findings.
+            Do not add commentary after the agent completes.
           claude_args: |
             --verbose
-            --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr review:--comment*),Bash(gh pr comment:*),Bash(./scripts/get-review-threads.sh:*),mcp__github_comment__update_claude_comment,mcp__github_inline_comment__create_inline_comment,Skill"
+            --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(gh pr checks:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr review:--comment*),Bash(gh pr comment:*),Bash(gh api graphql*reviewThreads*-f owner=*-f repo=*-F pr=*:*),Bash(./scripts/get-review-threads.sh:*),mcp__github_comment__update_claude_comment,mcp__github_inline_comment__create_inline_comment,Skill"

@@ -24,6 +24,8 @@ jobs:
 
       - name: Run codecov proxy action
         uses: ./proxy-actions/codecov
+        with:
+          handle_no_reports_found: true
 
   check-default-version:
     name: Check if default version of codecov CLI is present in the action

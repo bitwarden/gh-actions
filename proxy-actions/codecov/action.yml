@@ -163,7 +163,7 @@ inputs:
   version:
     description: "Which version of the Codecov CLI to use"
     required: false
-    default: 11.2.6
+    default: v11.2.6
   working-directory:
     description: 'Directory in which to execute codecov.sh'
     required: false

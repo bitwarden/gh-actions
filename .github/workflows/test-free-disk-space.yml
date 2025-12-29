@@ -6,12 +6,6 @@ on:
     paths:
       - 'free-disk-space/**'
       - '.github/workflows/test-free-disk-space.yml'
-  push:
-    branches:
-      - main
-    paths:
-      - 'free-disk-space/**'
-      - '.github/workflows/test-free-disk-space.yml'
 
 permissions:
   contents: read

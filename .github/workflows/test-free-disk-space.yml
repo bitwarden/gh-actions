@@ -1,0 +1,190 @@
+name: Test Free Disk Space Action
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'free-disk-space/**'
+      - '.github/workflows/test-free-disk-space.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'free-disk-space/**'
+      - '.github/workflows/test-free-disk-space.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test-defaults:
+    name: Test with defaults (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-22.04
+          - ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+
+      - name: Run action with defaults
+        uses: ./free-disk-space
+
+      - name: Verify cleanup worked
+        run: |
+          echo "=== Verifying directories were removed ==="
+
+          # Function to check if directory was removed
+          check_removed() {
+            if [ ! -d "$1" ]; then
+              echo "✓ $2 removed successfully"
+              return 0
+            else
+              echo "✗ $2 still exists at $1"
+              return 1
+            fi
+          }
+
+          FAILED=0
+
+          check_removed "/usr/share/dotnet" "dotnet" || FAILED=1
+          check_removed "/usr/local/lib/android" "android" || FAILED=1
+          check_removed "/usr/share/miniconda" "miniconda" || FAILED=1
+          check_removed "/usr/share/swift" "swift" || FAILED=1
+          check_removed "/usr/local/.ghcup" "haskell" || FAILED=1
+
+          if [ $FAILED -eq 1 ]; then
+            echo ""
+            echo "ERROR: Some directories were not removed as expected"
+            exit 1
+          fi
+
+          echo ""
+          echo "✓ All directories successfully removed"
+
+  test-selective-removal:
+    name: Test selective removal (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-22.04
+          - ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+
+      - name: Run action keeping dotnet and swift
+        uses: ./free-disk-space
+        with:
+          remove-dotnet: false
+          remove-swift: false
+
+      - name: Verify selective cleanup
+        run: |
+          echo "=== Verifying selective cleanup ==="
+
+          FAILED=0
+
+          # Check that dotnet and swift were KEPT
+          if [ -d "/usr/share/dotnet" ]; then
+            echo "✓ dotnet kept as requested"
+          else
+            echo "✗ dotnet was removed (should be kept)"
+            FAILED=1
+          fi
+
+          if [ -d "/usr/share/swift" ]; then
+            echo "✓ swift kept as requested"
+          else
+            echo "✗ swift was removed (should be kept)"
+            FAILED=1
+          fi
+
+          # Check that others were REMOVED
+          if [ ! -d "/usr/local/lib/android" ]; then
+            echo "✓ android removed"
+          else
+            echo "✗ android still exists (should be removed)"
+            FAILED=1
+          fi
+
+          if [ ! -d "/usr/share/miniconda" ]; then
+            echo "✓ miniconda removed"
+          else
+            echo "✗ miniconda still exists (should be removed)"
+            FAILED=1
+          fi
+
+          if [ ! -d "/usr/local/.ghcup" ]; then
+            echo "✓ haskell removed"
+          else
+            echo "✗ haskell still exists (should be removed)"
+            FAILED=1
+          fi
+
+          if [ $FAILED -eq 1 ]; then
+            echo ""
+            echo "ERROR: Selective removal did not work as expected"
+            exit 1
+          fi
+
+          echo ""
+          echo "✓ Selective removal worked correctly"
+
+  test-cross-platform:
+    name: Test ${{ matrix.os }} (should skip)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - macos-14
+          - windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+
+      - name: Run action (should skip cleanup)
+        uses: ./free-disk-space
+
+      - name: Verify action completed
+        shell: bash
+        run: |
+          echo "✓ Action completed successfully on ${{ matrix.os }}"
+          echo "  (cleanup automatically skipped for non-Linux platforms)"
+
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-24.04
+    needs:
+      - test-defaults
+      - test-selective-removal
+      - test-cross-platform
+    if: always()
+
+    steps:
+      - name: Check test results
+        env:
+          DEFAULTS_RESULT: ${{ needs.test-defaults.result }}
+          SELECTIVE_RESULT: ${{ needs.test-selective-removal.result }}
+          PLATFORM_RESULT: ${{ needs.test-cross-platform.result }}
+        run: |
+          if [ "$DEFAULTS_RESULT" != "success" ] || \
+             [ "$SELECTIVE_RESULT" != "success" ] || \
+             [ "$PLATFORM_RESULT" != "success" ]; then
+            echo "❌ Some tests failed"
+            exit 1
+          fi
+
+          echo "✅ All tests passed successfully!"

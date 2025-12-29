@@ -2,6 +2,8 @@
 
 A reusable GitHub Action that removes pre-installed tools from Linux runners to free disk space for workflows that do not need to use them.
 
+You can view [available storage at this link](https://docs.github.com/en/actions/reference/runners/github-hosted-runners#standard-github-hosted-runners-for-public-repositories), and then can click the workflow label for each runner to view its README that lists preinstalled tools.
+
 ## Features
 
 - **Configurable cleanup**: Choose which tools to remove via inputs

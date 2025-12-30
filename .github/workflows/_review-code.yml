@@ -127,7 +127,7 @@ jobs:
           USE_SIMPLE_PROMPT: "true"
         with:
           anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-CODE-REVIEW-API-KEY }}
-          track_progress: true
+          # track_progress: true (uncomment once https://github.com/anthropics/claude-code-action/issues/418 is resolved)
           use_sticky_comment: true
           plugin_marketplaces: "https://github.com/bitwarden/ai-plugins.git"
           plugins: "bitwarden-code-review@bitwarden-marketplace"

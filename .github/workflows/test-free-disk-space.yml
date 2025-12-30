@@ -173,12 +173,56 @@ jobs:
           DEFAULTS_RESULT: ${{ needs.test-defaults.result }}
           SELECTIVE_RESULT: ${{ needs.test-selective-removal.result }}
           PLATFORM_RESULT: ${{ needs.test-cross-platform.result }}
+          WORKFLOW_NAME: ${{ github.workflow }}
         run: |
+          # Helper function for status emoji
+          get_status_emoji() {
+            if [ "$1" = "success" ]; then
+              echo ":white_check_mark:"
+            else
+              echo ":x:"
+            fi
+          }
+
+          # Title
+          echo "## :bar_chart: $WORKFLOW_NAME Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          # Workflow metadata table
+          echo "### Workflow Information" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Property | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|----------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Event trigger** | \`$GITHUB_EVENT_NAME\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Ref** | \`$GITHUB_REF\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Ref type** | \`$GITHUB_REF_TYPE\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Ref name** | \`$GITHUB_REF_NAME\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Commit SHA** | \`$GITHUB_SHA\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          # Test results table
+          echo "### Test Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Test Suite | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Test with defaults | $(get_status_emoji "$DEFAULTS_RESULT") \`$DEFAULTS_RESULT\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Test selective removal | $(get_status_emoji "$SELECTIVE_RESULT") \`$SELECTIVE_RESULT\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Test cross-platform | $(get_status_emoji "$PLATFORM_RESULT") \`$PLATFORM_RESULT\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          # Overall status section
+          echo "### Overall Status" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
           if [ "$DEFAULTS_RESULT" != "success" ] || \
              [ "$SELECTIVE_RESULT" != "success" ] || \
              [ "$PLATFORM_RESULT" != "success" ]; then
-            echo "❌ Some tests failed"
+            echo ":x: Some tests failed"
+            echo "> [!WARNING]" >> "$GITHUB_STEP_SUMMARY"
+            echo "> :x: **Some tests failed** - Please review the results above" >> "$GITHUB_STEP_SUMMARY"
             exit 1
+          else
+            echo ":white_check_mark: All tests passed successfully!"
+            echo "> [!NOTE]" >> "$GITHUB_STEP_SUMMARY"
+            echo "> :white_check_mark: **All tests passed successfully!**" >> "$GITHUB_STEP_SUMMARY"
           fi
-
-          echo "✅ All tests passed successfully!"

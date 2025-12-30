@@ -158,8 +158,8 @@ jobs:
           echo "✓ Action completed successfully on ${{ matrix.os }}"
           echo "  (cleanup automatically skipped for non-Linux platforms)"
 
-  test-summary:
-    name: Test Summary
+  generate-summary:
+    name: Generate workflow summary
     runs-on: ubuntu-24.04
     needs:
       - test-defaults
@@ -168,14 +168,13 @@ jobs:
     if: always()
 
     steps:
-      - name: Check test results
+      - name: Generate summary
         env:
           DEFAULTS_RESULT: ${{ needs.test-defaults.result }}
           SELECTIVE_RESULT: ${{ needs.test-selective-removal.result }}
           PLATFORM_RESULT: ${{ needs.test-cross-platform.result }}
-          WORKFLOW_NAME: ${{ github.workflow }}
         run: |
-          # Helper function for status emoji
+          # helper
           get_status_emoji() {
             if [ "$1" = "success" ]; then
               echo ":white_check_mark:"
@@ -184,11 +183,10 @@ jobs:
             fi
           }
 
-          # Title
-          echo "## :bar_chart: $WORKFLOW_NAME Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "## :bar_chart: Workflow Summary" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
 
-          # Workflow metadata table
+          # workflow metadata
           echo "### Workflow Information" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| Property | Value |" >> "$GITHUB_STEP_SUMMARY"
@@ -200,7 +198,7 @@ jobs:
           echo "| **Commit SHA** | \`$GITHUB_SHA\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
 
-          # Test results table
+          # test result data
           echo "### Test Results" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| Test Suite | Status |" >> "$GITHUB_STEP_SUMMARY"
@@ -210,7 +208,7 @@ jobs:
           echo "| Test cross-platform | $(get_status_emoji "$PLATFORM_RESULT") \`$PLATFORM_RESULT\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
 
-          # Overall status section
+          # overall status
           echo "### Overall Status" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
 
@@ -219,7 +217,7 @@ jobs:
              [ "$PLATFORM_RESULT" != "success" ]; then
             echo ":x: Some tests failed"
             echo "> [!WARNING]" >> "$GITHUB_STEP_SUMMARY"
-            echo "> :x: **Some tests failed** - Please review the results above" >> "$GITHUB_STEP_SUMMARY"
+            echo "> :x: **Some tests failed** - please review the results above" >> "$GITHUB_STEP_SUMMARY"
             exit 1
           else
             echo ":white_check_mark: All tests passed successfully!"

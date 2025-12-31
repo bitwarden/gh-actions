@@ -1,0 +1,47 @@
+name: Test Codecov proxy-action
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'proxy-actions/codecov/**'
+      - '.github/workflows/test-proxy-action-codecov.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test-codecov-proxy:
+    name: Test codecov proxy action
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Run codecov proxy action
+        uses: ./proxy-actions/codecov
+        with:
+          handle_no_reports_found: true
+
+  check-default-version:
+    name: Check if default version of codecov CLI is present in the action
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Verify default version
+        run: |
+            VERSION=$(yq -r '.inputs.version.default' ./proxy-actions/codecov/action.yml)
+            if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+              echo "Error: Default version is null or empty"
+              exit 1
+            fi
+            echo "Default version: $VERSION"
+

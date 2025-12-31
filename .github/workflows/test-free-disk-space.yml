@@ -31,15 +31,20 @@ jobs:
 
       - name: Verify cleanup worked
         run: |
-          echo "=== Verifying directories were removed ==="
+          # Add header to summary
+          echo "### Default Cleanup Test (${{ matrix.os }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "=== Verifying directories were removed ===" | tee -a $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
           # Function to check if directory was removed
           check_removed() {
             if [ ! -d "$1" ]; then
-              echo "✓ $2 removed successfully"
+              echo "✓ $2 removed successfully" | tee -a $GITHUB_STEP_SUMMARY
               return 0
             else
-              echo "✗ $2 still exists at $1"
+              echo "✗ $2 still exists at $1" | tee -a $GITHUB_STEP_SUMMARY
               return 1
             fi
           }
@@ -53,13 +58,14 @@ jobs:
           check_removed "/usr/local/.ghcup" "haskell" || FAILED=1
 
           if [ $FAILED -eq 1 ]; then
-            echo ""
-            echo "ERROR: Some directories were not removed as expected"
+            echo "" | tee -a $GITHUB_STEP_SUMMARY
+            echo "ERROR: Some directories were not removed as expected" | tee -a $GITHUB_STEP_SUMMARY
             exit 1
           fi
 
-          echo ""
-          echo "✓ All directories successfully removed"
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✓ All directories successfully removed" | tee -a $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
   test-selective-removal:
     name: Test selective removal (${{ matrix.os }})
@@ -84,55 +90,61 @@ jobs:
 
       - name: Verify selective cleanup
         run: |
-          echo "=== Verifying selective cleanup ==="
+          # Add header to summary
+          echo "### Selective Removal Test (${{ matrix.os }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "=== Verifying selective cleanup ===" | tee -a $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
           FAILED=0
 
           # Check that dotnet and swift were KEPT
           if [ -d "/usr/share/dotnet" ]; then
-            echo "✓ dotnet kept as requested"
+            echo "✓ dotnet kept as requested" | tee -a $GITHUB_STEP_SUMMARY
           else
-            echo "✗ dotnet was removed (should be kept)"
+            echo "✗ dotnet was removed (should be kept)" | tee -a $GITHUB_STEP_SUMMARY
             FAILED=1
           fi
 
           if [ -d "/usr/share/swift" ]; then
-            echo "✓ swift kept as requested"
+            echo "✓ swift kept as requested" | tee -a $GITHUB_STEP_SUMMARY
           else
-            echo "✗ swift was removed (should be kept)"
+            echo "✗ swift was removed (should be kept)" | tee -a $GITHUB_STEP_SUMMARY
             FAILED=1
           fi
 
           # Check that others were REMOVED
           if [ ! -d "/usr/local/lib/android" ]; then
-            echo "✓ android removed"
+            echo "✓ android removed" | tee -a $GITHUB_STEP_SUMMARY
           else
-            echo "✗ android still exists (should be removed)"
+            echo "✗ android still exists (should be removed)" | tee -a $GITHUB_STEP_SUMMARY
             FAILED=1
           fi
 
           if [ ! -d "/usr/share/miniconda" ]; then
-            echo "✓ miniconda removed"
+            echo "✓ miniconda removed" | tee -a $GITHUB_STEP_SUMMARY
           else
-            echo "✗ miniconda still exists (should be removed)"
+            echo "✗ miniconda still exists (should be removed)" | tee -a $GITHUB_STEP_SUMMARY
             FAILED=1
           fi
 
           if [ ! -d "/usr/local/.ghcup" ]; then
-            echo "✓ haskell removed"
+            echo "✓ haskell removed" | tee -a $GITHUB_STEP_SUMMARY
           else
-            echo "✗ haskell still exists (should be removed)"
+            echo "✗ haskell still exists (should be removed)" | tee -a $GITHUB_STEP_SUMMARY
             FAILED=1
           fi
 
           if [ $FAILED -eq 1 ]; then
-            echo ""
-            echo "ERROR: Selective removal did not work as expected"
+            echo "" | tee -a $GITHUB_STEP_SUMMARY
+            echo "ERROR: Selective removal did not work as expected" | tee -a $GITHUB_STEP_SUMMARY
             exit 1
           fi
 
-          echo ""
-          echo "✓ Selective removal worked correctly"
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✓ Selective removal worked correctly" | tee -a $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
   test-cross-platform:
     name: Test ${{ matrix.os }} (should skip)
@@ -155,8 +167,13 @@ jobs:
       - name: Verify action completed
         shell: bash
         run: |
-          echo "✓ Action completed successfully on ${{ matrix.os }}"
-          echo "  (cleanup automatically skipped for non-Linux platforms)"
+          # Add header to summary
+          echo "### Cross-Platform Test (${{ matrix.os }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "✓ Action completed successfully on ${{ matrix.os }}" | tee -a $GITHUB_STEP_SUMMARY
+          echo "  (cleanup automatically skipped for non-Linux platforms)" | tee -a $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
   test-summary:
     name: Test Summary
@@ -174,11 +191,38 @@ jobs:
           SELECTIVE_RESULT: ${{ needs.test-selective-removal.result }}
           PLATFORM_RESULT: ${{ needs.test-cross-platform.result }}
         run: |
+          # Add header to summary
+          echo "## Overall Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          # Add each test result to summary
+          if [ "$DEFAULTS_RESULT" = "success" ]; then
+            echo "| Default Cleanup | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Default Cleanup | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "$SELECTIVE_RESULT" = "success" ]; then
+            echo "| Selective Removal | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Selective Removal | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "$PLATFORM_RESULT" = "success" ]; then
+            echo "| Cross-Platform | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Cross-Platform | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
           if [ "$DEFAULTS_RESULT" != "success" ] || \
              [ "$SELECTIVE_RESULT" != "success" ] || \
              [ "$PLATFORM_RESULT" != "success" ]; then
-            echo "❌ Some tests failed"
+            echo "❌ Some tests failed" | tee -a $GITHUB_STEP_SUMMARY
             exit 1
           fi
 
-          echo "✅ All tests passed successfully!"
+          echo "✅ All tests passed successfully!" | tee -a $GITHUB_STEP_SUMMARY

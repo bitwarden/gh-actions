@@ -38,28 +38,11 @@ jobs:
       should_review: ${{ steps.validate.outputs.should_review }}
 
     steps:
-      - name: Check PR is not a draft
-        id: check-pr
-        env:
-          IS_DRAFT: ${{ github.event.pull_request.draft }}
-        run: |
-          if [ "$IS_DRAFT" == "true" ]; then
-            echo "⚠️  Validation: PR is a draft - skipping review"
-            echo "pr_valid=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "✅ Validation: PR is ready for review"
-            echo "pr_valid=true" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Check for review label
         id: check-label
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          LABELS=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json labels --jq '.labels[].name')
-          if echo "$LABELS" | grep -q "^ai-review$"; then
+          LABELS='${{ toJSON(github.event.pull_request.labels.*.name) }}'
+          if echo "$LABELS" | grep -q '"ai-review"'; then
             echo "label_present=true" >> "$GITHUB_OUTPUT"
             echo "✅ Validation: 'ai-review' label found"
           else
@@ -70,11 +53,9 @@ jobs:
       - name: Set validation result
         id: validate
         env:
-          PR_VALID: ${{ steps.check-pr.outputs.pr_valid }}
           LABEL_PRESENT: ${{ steps.check-label.outputs.label_present }}
         run: |
-          if [ "$PR_VALID" == "true" ] && \
-             [ "$LABEL_PRESENT" == "true" ]; then
+          if [ "$LABEL_PRESENT" == "true" ]; then
             echo "should_review=true" >> "$GITHUB_OUTPUT"
             echo "✅ Validation passed - code review will proceed"
           else
@@ -127,7 +108,7 @@ jobs:
           USE_SIMPLE_PROMPT: "true"
         with:
           anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-CODE-REVIEW-API-KEY }}
-          # track_progress: true (uncomment once https://github.com/anthropics/claude-code-action/issues/418 is resolved)
+          track_progress: true
           use_sticky_comment: true
           plugin_marketplaces: "https://github.com/bitwarden/ai-plugins.git"
           plugins: "bitwarden-code-review@bitwarden-marketplace"

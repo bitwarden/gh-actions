@@ -40,8 +40,9 @@ jobs:
     steps:
       - name: Check for review label
         id: check-label
+        env:
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
         run: |
-          LABELS='${{ toJSON(github.event.pull_request.labels.*.name) }}'
           if echo "$LABELS" | grep -q '"ai-review"'; then
             echo "label_present=true" >> "$GITHUB_OUTPUT"
             echo "✅ Validation: 'ai-review' label found"

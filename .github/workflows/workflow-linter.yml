@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - .github/workflows/**
+  pull_request_target: # temporary to force failure
+    types: [opened, synchronize, reopened]
   merge_group:
     types: [checks_requested]
   workflow_call:

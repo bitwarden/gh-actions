@@ -95,25 +95,7 @@ jobs:
           OUTPUT_DATA: ${{ toJSON(steps.lint.outputs) }}
           EXIT_CODE: ${{ steps.lint.outputs.lint_exit_code }}
         run: |
-            # Extract lint output
-            lint_output=$(echo "$OUTPUT_DATA" | jq -r '.lint_output')
-            
-            # Clean ANSI codes
-            clean=$(echo "$lint_output" | sed 's/\x1b\[[0-9;]*m//g')
-            
-            # Extract workflow file name
-            workflow=$(echo "$clean" | grep -oP 'Linting: \K[^\n]+' | head -1)
-            
-            # Check for pull_request_target error
-            if echo "$clean" | grep -q "pull_request_target"; then
-              echo "Found pull_request_target issue"
-                
-              # Extract the specific error message
-              error=$(echo "$clean" | sed -n '/^ - error/,/^$/p' | sed 's/^ - error //' | sed 's/\x1b\[[0-9;]*m//g')
-              
-              echo "Workflow: $workflow"
-              echo "Error: $error"
-              exit $EXIT_CODE
+            echo "$OUTPUT_DATA"
             exit $EXIT_CODE
 
       # - name: Retrieve secrets

@@ -77,9 +77,9 @@ jobs:
       
       - name: echo lint results
         if: steps.changed-workflows.outputs.changed_files_count != '0'
-        run: |
-          echo "Lint Results:"
-          echo "${{ steps.lint.outputs }}" 
+        env:
+          OUTPUT_DATA: ${{ toJSON(steps.lint.outputs) }}
+        run: echo "$OUTPUT_DATA"
 
       # - name: Retrieve secrets
       #   id: retrieve-secrets

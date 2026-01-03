@@ -98,6 +98,9 @@ jobs:
             # Extract lint output
             lint_output=$(echo "$OUTPUT_DATA" | jq -r '.lint_output')
 
+            # Clean ANSI codes
+            clean=$(echo "$lint_output" | sed 's/\x1b\[[0-9;]*m//g')
+
             echo "$OUTPUT_DATA"
             exit $EXIT_CODE
 

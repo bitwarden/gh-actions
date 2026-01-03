@@ -107,17 +107,13 @@ jobs:
             # Check for pull_request_target error
             if echo "$clean" | grep -q "pull_request_target"; then
               echo "Found pull_request_target issue"
+                
+              # Extract the specific error message
+              error=$(echo "$clean" | sed -n '/^ - error/,/^$/p' | sed 's/^ - error //' | sed 's/\x1b\[[0-9;]*m//g')
               
-              # Check if it's NOT about main branch only
-              if ! echo "$clean" | grep -q "only target the 'main' branch"; then
-                echo "Not a main-branch-only issue - should notify"
-                
-                # Extract the specific error message
-                error=$(echo "$clean" | sed -n '/^ - error/,/^$/p' | sed 's/^ - error //' | sed 's/\x1b\[[0-9;]*m//g')
-                
-                echo "Workflow: $workflow"
-                echo "Error: $error"
-            exit $EXIT_CODE
+              echo "Workflow: $workflow"
+              echo "Error: $error"
+              exit $EXIT_CODE
 
       # - name: Retrieve secrets
       #   id: retrieve-secrets

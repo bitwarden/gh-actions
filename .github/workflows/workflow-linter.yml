@@ -67,9 +67,33 @@ jobs:
         run: python -m pip install --upgrade bitwarden_workflow_linter
 
       - name: Lint
+        id: lint
         env:
           files: ${{ steps.changed-workflows.outputs.changed_files }}
         if: steps.changed-workflows.outputs.changed_files_count != '0'
         run: |
           echo "$files"
           bwwl lint -f $files
+      
+      - name: echo lint results
+        if: steps.changed-workflows.outputs.changed_files_count != '0'
+        run: |
+          echo "Lint Results:"
+          echo "${{ steps.lint.outputs }}" 
+
+      # - name: Retrieve secrets
+      #   id: retrieve-secrets
+      #   if: failure()
+      #   uses: bitwarden/gh-actions/get-keyvault-secrets@main
+      #   with:
+      #     keyvault: "bitwarden-ci"
+      #     secrets: "devops-alerts-slack-webhook-url"
+
+      # - name: Notify Slack on failure
+      #   uses: act10ns/slack@44541246747a30eb3102d87f7a4cc5471b0ffb7d # v2.1.0
+      #   if: failure()
+      #   env:
+      #     SLACK_WEBHOOK_URL: ${{ steps.retrieve-secrets.outputs.devops-alerts-slack-webhook-url }}
+      #   with:
+      #     status: ${{ job.status }}
+

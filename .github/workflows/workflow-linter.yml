@@ -95,7 +95,7 @@ jobs:
           OUTPUT_DATA: ${{ toJSON(steps.lint.outputs) }}
           EXIT_CODE: ${{ steps.lint.outputs.lint_exit_code }}
         run: |
-            echo "$OUTPUT_DATA"
+            echo "$OUTPUT_DATA | jq -C .lint_output"
             exit $EXIT_CODE
 
       # - name: Retrieve secrets

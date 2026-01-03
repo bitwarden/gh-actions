@@ -114,6 +114,7 @@ jobs:
               echo "Workflow: $workflow"
               echo "Error: $error"
               exit $EXIT_CODE
+            exit $EXIT_CODE
 
       # - name: Retrieve secrets
       #   id: retrieve-secrets

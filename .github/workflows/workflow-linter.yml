@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - .github/workflows/**
+  pull_request_target: # temporary to force failure
+    types: [opened, synchronize, reopened]
   merge_group:
     types: [checks_requested]
   workflow_call:
@@ -67,9 +69,54 @@ jobs:
         run: python -m pip install --upgrade bitwarden_workflow_linter
 
       - name: Lint
+        id: lint
         env:
           files: ${{ steps.changed-workflows.outputs.changed_files }}
         if: steps.changed-workflows.outputs.changed_files_count != '0'
         run: |
           echo "$files"
-          bwwl lint -f $files
+          set +e  # Don't exit on error
+          output=$(bwwl lint -f $files 2>&1)
+          exit_code=$?
+          set -e
+
+          echo "lint_output<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$output" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "lint_exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+
+          exit $exit_code
+
+        continue-on-error: true
+      
+      - name: Echo lint results
+        if: steps.lint.outcome == 'failure'
+        env:
+          OUTPUT_DATA: ${{ toJSON(steps.lint.outputs) }}
+          EXIT_CODE: ${{ steps.lint.outputs.lint_exit_code }}
+        run: |
+            # Extract lint output
+            lint_output=$(echo "$OUTPUT_DATA" | jq -r '.lint_output')
+
+            # Clean ANSI codes
+            clean=$(echo "$lint_output" | sed 's/\x1b\[[0-9;]*m//g')
+
+            echo "$OUTPUT_DATA"
+            exit $EXIT_CODE
+
+      # - name: Retrieve secrets
+      #   id: retrieve-secrets
+      #   if: failure()
+      #   uses: bitwarden/gh-actions/get-keyvault-secrets@main
+      #   with:
+      #     keyvault: "bitwarden-ci"
+      #     secrets: "devops-alerts-slack-webhook-url"
+
+      # - name: Notify Slack on failure
+      #   uses: act10ns/slack@44541246747a30eb3102d87f7a4cc5471b0ffb7d # v2.1.0
+      #   if: failure()
+      #   env:
+      #     SLACK_WEBHOOK_URL: ${{ steps.retrieve-secrets.outputs.devops-alerts-slack-webhook-url }}
+      #   with:
+      #     status: ${{ job.status }}
+

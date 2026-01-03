@@ -93,7 +93,10 @@ jobs:
         if: steps.lint.outcome == 'failure'
         env:
           OUTPUT_DATA: ${{ toJSON(steps.lint.outputs) }}
-        run: echo "$OUTPUT_DATA"
+          EXIT_CODE: ${{ steps.lint.outputs.lint_exit_code }}
+        run: |
+            echo "$OUTPUT_DATA"
+            exit $EXIT_CODE
 
       # - name: Retrieve secrets
       #   id: retrieve-secrets

@@ -75,7 +75,18 @@ jobs:
         if: steps.changed-workflows.outputs.changed_files_count != '0'
         run: |
           echo "$files"
-          bwwl lint -f $files
+          set +e  # Don't exit on error
+          output=$(bwwl lint -f $files 2>&1)
+          exit_code=$?
+          set -e
+
+          echo "lint_output<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$output" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "lint_exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+
+          exit $exit_code
+
         continue-on-error: true
       
       - name: Echo lint results

@@ -75,7 +75,7 @@ jobs:
           echo "$files"
           bwwl lint -f $files
       
-      - name: echo lint results
+      - name: Echo lint results
         if: steps.changed-workflows.outputs.changed_files_count != '0'
         env:
           OUTPUT_DATA: ${{ toJSON(steps.lint.outputs) }}

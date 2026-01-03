@@ -95,6 +95,9 @@ jobs:
           OUTPUT_DATA: ${{ toJSON(steps.lint.outputs) }}
           EXIT_CODE: ${{ steps.lint.outputs.lint_exit_code }}
         run: |
+            # Extract lint output
+            lint_output=$(echo "$OUTPUT_DATA" | jq -r '.lint_output')
+
             echo "$OUTPUT_DATA"
             exit $EXIT_CODE
 

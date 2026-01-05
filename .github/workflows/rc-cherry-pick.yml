@@ -1,0 +1,65 @@
+name: Cherry pick to RC
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+env:
+  ALLOWED_LABELS: '["rc-cherry-pick", "hotfix-rc-cherry-pick", "BEEEP"]'
+
+permissions: {}
+
+jobs:
+  evaluate-pr:
+    name: Evaluate PR
+    runs-on: ubuntu-24.04
+    outputs:
+      cherry_pick_branch: ${{ steps.parse_labels.outputs.cherry_pick_branch }}
+    permissions: 
+      contents: read
+    steps:
+      - name: Parse Labels
+        id: parse-labels
+        run: |
+          allowed_labels='${{ env.ALLOWED_LABELS }}'
+          #DEBUG allowed_labels='["rc-cherry-pick", "hotfix-rc-cherry-pick"]'
+
+          pr_labels='${{ toJSON(github.event.pull-request.labels.*.name) }}'
+          #DEBUG pr_labels='["rc-cherry-pick", "bug", "hotfix-rc-cherry-pick"]'
+          cherry_pick_branch=''
+
+          IFS=$'\n'
+          for pr_label in $(echo "$pr_labels" | jq -r '.[]'); do
+            for allowed_label in $(echo "$allowed_labels" | jq -r '.[]'); do
+              ##v DEBUG v##
+              if [[ $pr_label == 'BEEEP' ]]; then
+                pr_label='rc-cherry-pick'
+              fi
+              ##^ DEBUG ^##
+              if [[ $pr_label == $allowed_label ]]; then
+                if [[ $cherry_pick_branch != '' ]]; then
+                  echo 'ERROR: Multiple cherry pick labels found. Cannot determine cherry pick destination branch.'
+                  exit 1
+                else
+                  echo 'Found cherry-pick label: $pr_label'
+                  cherry_pick_branch="$pr_label"
+                fi
+              fi
+           done
+          done
+
+          echo "cherry_pick_branch=$cherry_pick_branch" >> $GITHUB_OUTPUT
+          exit 0
+  
+  cherry-pick:
+    name: Cherry Pick
+    needs: evaluate-pr
+    if: github.event.pull_request.merged && needs.evaluate-pr.outputs.cherry_pick_branch != '' 
+    uses: bitwarden/gh-actions/.github/workflows/_rc-cherry-pick@BRE-1359/backport-cherry-pick
+    with:
+      cherry_pick_branch: ${{ needs.evaluate-pr.outputs.cherry_pick_branch }}
+      source_pr: ${{ github.event.pull_request.number }}
+    permissions:
+      contents: write
+      pull-requests: write

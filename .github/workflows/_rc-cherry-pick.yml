@@ -1,0 +1,96 @@
+name: Cherry pick to RC
+
+on:
+  workflow_call:
+    inputs:
+      cherry_pick_branch:
+        required: true
+        type: string
+      source_pr:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      cherry_pick_branch:
+        required: true
+        type: string
+      source_pr:
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  cherry-pick:
+    name: Cherry Pick Commit
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.cherry_pick_branch }}
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+
+  
+      - name: Extract commits from PR
+        id: extract-commits
+        run: |
+          pr_number="${{ inputs.source_pr }}"
+
+          echo "Fetching commits from PR #$pr_number"
+          commits=$(gh pr view "$pr_number" --json commits --jq '.commits[].oid' | tac | tr '\n' ' ')
+
+          echo "Commits to cherry-pick: $commits"
+          echo "commits=$commits" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+
+      - name: Create cherry-pick branch
+        id: create-branch
+        run: |
+          BRANCH_NAME="cherry-pick-PR${{ inputs.source_pr }}-to-${{ inputs.cherry_pick_branch }}"
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          git checkout -b "$BRANCH_NAME"
+
+
+      - name: Cherry pick commit(s)
+        run: |
+          COMMITS="${{ steps.extract-commits.outputs.commits }}"
+
+          echo "Cherry-picking commits to branch ${{ inputs.cherry_pick_branch }}: $COMMITS"
+          for commit in $COMMITS; do
+            echo "Cherry-picking commit: $commit"
+            if ! git cherry-pick "$commit"; then
+              echo "ERROR: Cherry-pick failed for commit $commit"
+              git cherry-pick --abort
+              exit 1
+            fi
+          done
+
+          echo "All cherry-picks successful"
+
+
+      - name: Push cherry-pick branch
+        run: |
+          git push origin ${{ steps.create-branch.outputs.branch_name }}
+
+
+      - name: Create Pull Request
+        run: |
+          gh pr create \
+            --base ${{ inputs.cherry_pick_branch }} \
+            --head ${{ steps.create-branch.outputs.branch_name }} \
+            --title "Cherry-pick PR${{ inputs.source_pr }} to ${{ inputs.cherry_pick_branch }}" \
+            --body "Automated cherry-pick of PR${{ inputs.source_pr }}" \
+            --draft
+        env:
+          GH_TOKEN: ${{ github.token }}

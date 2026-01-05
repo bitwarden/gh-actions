@@ -1,0 +1,179 @@
+name: Cherry pick to RC
+
+on:
+  workflow_call:
+    inputs:
+      source_pr:
+        required: true
+        type: string
+      allowed_labels:
+        required: true
+        type: string
+      label_override:
+        required: false
+        type: string
+        default: ''
+    outputs:
+      cherry_pick_branch:
+        value: ${{ jobs.cherry-pick.outputs.cherry_pick_branch }}
+      pr_number:
+        value: ${{ jobs.cherry-pick.outputs.pr_number }}
+  workflow_dispatch:
+    inputs:
+      source_pr:
+        description: 'Pull request to cherry pick from.'
+        required: true
+        type: string
+      allowed_labels:
+        description: 'PR Labels that will trigger a cherry pick. (Leave blank unless you know what you''re doing.)'
+        required: false
+        type: string
+        default: '["test-label"]'
+      label_override:
+        description: 'Override the labels on the source PR with a single label. (Leave blank unless you know what you''re doing.)'
+        required: false
+        type: string
+        default: 'test-label'
+
+permissions: {}
+jobs:
+  evaluate-pr:
+      # Check the labels on the PR and see if any of them are in the ALLOWED_LABELS list.
+      # If there's exactly one label on the PR that's in that list, parse the RC branch from the label and save it as an env var.
+      name: Evaluate PR
+      env:
+        _SOURCE_PR: ${{ inputs.source_pr }}
+        _LABEL_OVERRIDE:  ${{ inputs.label_override }}
+        _ALLOWED_LABELS:  ${{ inputs.allowed_labels }}
+      runs-on: ubuntu-24.04
+      outputs:
+        rc_branch: ${{ steps.parse-labels.outputs.rc_branch }}
+      permissions: 
+        contents: read
+      steps:
+        - name: Parse Labels
+          id: parse-labels
+          env:
+            GH_TOKEN: ${{ github.token }}
+          run: |
+            set -e        
+            rc_branch=''
+
+            if [[ -n $_LABEL_OVERRIDE ]]; then
+              pr_labels="[\"$_LABEL_OVERRIDE\"]"
+            else
+              pr_labels=$(gh pr view "$_SOURCE_PR" --repo "${{ github.repository }}" --json labels --jq '[.labels[].name]')
+            fi
+
+            echo "PR labels: $pr_labels"
+
+            IFS=$'\n'
+            for pr_label in $(echo "$pr_labels" | jq -r '.[]'); do
+              for allowed_label in $(echo "$_ALLOWED_LABELS" | jq -r '.[]'); do
+                echo "Comparing label [$pr_label] with allowed label [$allowed_label]"
+                if [[ $pr_label == $allowed_label ]]; then
+                  if [[ $rc_branch != '' ]]; then
+                    echo '✗ ERROR: Multiple cherry pick labels found. Cannot determine cherry pick destination branch.'
+                    exit 1
+                  else
+                    echo "✓ Found cherry-pick label: [$pr_label]"
+                    rc_branch=$(echo "$pr_label" | sed 's/-cherry-pick$//g')
+                    echo "rc_branch=$rc_branch" >> $GITHUB_OUTPUT
+                  fi
+                fi
+              done
+            done
+
+            exit 0
+  
+  cherry-pick:
+    # If we found a cherry-pick label on the PR in the last job,
+    # create and push a new branch, cherry-pick the commits from the PR
+    # into the new branch, then open a PR from the new branch to the RC branch.
+    name: Cherry Pick Commit
+    needs: evaluate-pr
+    if: ${{ needs.evaluate-pr.outputs.rc_branch != '' }}
+    env:
+      _SOURCE_PR: "${{ inputs.source_pr }}"
+      _RC_BRANCH: "${{ needs.evaluate-pr.outputs.rc_branch }}"
+    runs-on: ubuntu-24.04
+    outputs:
+      cherry_pick_branch: ${{ steps.create-branch.outputs.cherry_pick_branch }}
+      pr_number: ${{ steps.create-pr.outputs.pr_number }}
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout RC branch
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          ref: ${{ env._RC_BRANCH }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Configure git
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+
+      - name: Extract commits from PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        id: extract-commits
+        run: |
+          echo "Fetching commits from PR: [#$_SOURCE_PR]"
+          commits=$(gh pr view "$_SOURCE_PR" --json commits --jq '.commits[].oid' | tr '\n' ' ')
+
+          echo "Commits to cherry-pick: [$commits]"
+          echo "commits=$commits" >> $GITHUB_OUTPUT
+
+      - name: Create cherry-pick branch
+        id: create-branch
+        run: |
+          cherry_pick_branch="cherry-pick-PR$_SOURCE_PR-to-$_RC_BRANCH"
+          echo "cherry_pick_branch=$cherry_pick_branch" >> $GITHUB_OUTPUT
+          git checkout -b "$cherry_pick_branch"
+
+      - name: Cherry pick commit(s)
+        env:
+          COMMITS: ${{ steps.extract-commits.outputs.commits }}
+        run: |
+          echo "Cherry-picking commits to branch [$_RC_BRANCH]"
+          for commit in $COMMITS; do
+            echo -n "Cherry-picking commit: [$commit]. "
+            if ! git cherry-pick "$commit"; then
+              echo '✗'
+              echo "ERROR: Cherry-pick failed for commit [$commit]"
+              git cherry-pick --abort
+              exit 1
+            else
+              echo '✓'
+            fi
+          done
+
+          echo "✓ All cherry-picks successful!"
+
+      - name: Push cherry-pick branch
+        env:
+          CHERRY_PICK_BRANCH: ${{ steps.create-branch.outputs.cherry_pick_branch }}
+        run: |
+          git push origin "$CHERRY_PICK_BRANCH"
+
+      - name: Create Pull Request
+        id: create-pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHERRY_PICK_BRANCH: ${{ steps.create-branch.outputs.cherry_pick_branch }}
+        run: |
+          source_pr_url=$(gh pr view "$_SOURCE_PR" --json url --jq '.url')
+
+          gh pr create \
+            --base $_RC_BRANCH \
+            --head $CHERRY_PICK_BRANCH \
+            --title "Cherry-pick PR [#$_SOURCE_PR] to [$_RC_BRANCH]" \
+            --body "Automated cherry-pick of PR [#$_SOURCE_PR]($source_pr_url)" \
+            --draft \
+            --json number \
+            --jq '.number' > pr_num.txt
+          
+          echo "pr_num=$(cat pr_num.txt)" >> $GITHUB_OUTPUT

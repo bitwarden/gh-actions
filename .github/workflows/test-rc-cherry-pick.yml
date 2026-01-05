@@ -1,0 +1,127 @@
+name: Test RC Cherry-pick workflow
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/_rc-cherry-pick.yml"
+  push:
+
+permissions: {}
+
+jobs:
+  setup:
+    # Create simulated main, feature, and RC branches as well as a simulated PR from sim feature to sim main.
+    runs-on: ubuntu-24.04
+    outputs:
+      simulated_main_branch: ${{ steps.create-simulated-branches.outputs.simulated_main_branch }}
+      simulated_feature_branch: ${{ steps.create-simulated-branches.outputs.simulated_feature_branch }}
+      simulated_rc_branch: ${{ steps.create-simulated-branches.outputs.simulated_rc_branch }}
+      simulated_pr_number: ${{ steps.create-simulated-branches.outputs.simulated_pr_number}}
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Configure git
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+      
+      - name: Create simulated branches
+        id: create-simulated-branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          simulated_main_branch="rc-cherry-pick-sim-main-$(date +%s)"
+          simulated_feature_branch="rc-cherry-pick-sim-feature-$(date +%s)"
+          simulated_rc_branch="rc-cherry-pick-sim-rc-$(date +%s)"
+
+          sim_branches="$simulated_main_branch $simulated_feature_branch $simulated_rc_branch"
+          for sim_branch in $sim_branches; do
+            git switch -c $sim_branch
+            echo "$sim_branch" > test_file.txt
+            git add test_file.txt
+            git commit -m 'created test file'
+            git push origin "$sim_branch"
+            git switch main
+          done
+          
+          gh pr create \
+            --base $simulated_main_branch \
+            --head "$simulated_feature_branch" \
+            --title "Test RC cherry-pick workflow" \
+            --body "Automated test PR for RC cherry-pick workflow testing" \
+            --draft \
+            --json number \
+            --jq '.number' > pr_num.txt
+          
+          echo "simulated_main_branch=$simulated_main_branch" >> $GITHUB_OUTPUT
+          echo "simulated_feature_branch=$simulated_feature_branch" >> $GITHUB_OUTPUT
+          echo "simulated_rc_branch=$simulated_rc_branch" >> $GITHUB_OUTPUT
+          echo "simulated_pr_number=$(cat pr_num.txt)" >> $GITHUB_OUTPUT
+
+  cherry-pick:
+    # Call the rc-cherry-pick workflow and pass in the simulated branches and PR.
+    needs: setup
+    name: Cherry Pick
+    uses: ./.github/workflows/_rc-cherry-pick.yml
+    with:
+      source_pr: ${{ needs.setup.outputs.simulated_pr_number }}
+      allowed_labels: '["${{ needs.setup.outputs.simulated_rc_branch }}-cherry-pick"]'
+      label_override: "${{ needs.setup.outputs.simulated_rc_branch }}-cherry-pick"
+    permissions:
+      contents: write
+      pull-requests: write
+
+  cleanup:
+    # Cleanup all the simulated resources as well as the cherry-pick PR and branch created by the
+    # rc-cherry-pick workflow.
+    runs-on: ubuntu-24.04
+    needs: [setup, cherry-pick]
+    if: always()
+    env:
+      _SIMULATED_MAIN_BRANCH: "${{ needs.setup.outputs.simulated_main_branch }}"
+      _SIMULATED_FEATURE_BRANCH: "${{ needs.setup.outputs.simulated_feature_branch }}"
+      _SIMULATED_RC_BRANCH: "${{ needs.setup.outputs.simulated_rc_branch }}"
+      _SIMULATED_PR_NUMBER: ${{ needs.setup.outputs.simulated_pr_number }}
+      _CHERRY_PICK_BRANCH: ${{ needs.cherry-pick.outputs.cherry_pick_branch }}
+      _CHERRY_PICK_PR_NUMBER: ${{ needs.cherry-pick.outputs.pr_number }}
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: cleanup
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ -n $_SIMULATED_PR_NUMBER ]]; then
+            echo "Closing simulated PR [#$_SIMULATED_PR_NUMBER] and deleting simulated feature branch [$_SIMULATED_FEATURE_BRANCH]"
+            gh pr close "$_SIMULATED_PR_NUMBER" --delete-branch
+          elif [[ -n $_SIMULATED_FEATURE_BRANCH ]]; then
+            echo "Deleting simulated feature branch [$_SIMULATED_FEATURE_BRANCH]"
+            git push origin --delete "$_SIMULATED_FEATURE_BRANCH"
+          fi
+          
+          echo "Deleting simulated main branch [$_SIMULATED_MAIN_BRANCH]"
+          git push origin --delete "$_SIMULATED_MAIN_BRANCH"
+
+
+          if [[ -n $_CHERRY_PICK_PR_NUMBER ]]; then
+            echo "Closing cherry-pick PR [#$CHERRY_PICK_PR_NUMBER] and deleting cherry-pick branch [$_CHERRY_PICK_BRANCH]"
+            gh pr close "$_CHERRY_PICK_PR_NUMBER" --delete-branch
+          elif [[ -n $_CHERRY_PICK_BRANCH ]]; then
+            echo "Deleting cherry-pick branch [$_CHERRY_PICK_BRANCH]"
+            git push origin --delete "$_CHERRY_PICK_BRANCH"
+          fi
+          
+          echo "Deleting simulated RC branch [$_SIMULATED_RC_BRANCH]"
+          git push origin --delete "$_SIMULATED_RC_BRANCH"
+          
+          echo '✓ Cleanup successful'

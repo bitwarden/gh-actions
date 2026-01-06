@@ -4,13 +4,16 @@ on:
   pull_request:
     paths:
       - .github/workflows/**
+  pull_request_target: # temporary to force failure
+    types: [opened, synchronize, reopened]
   merge_group:
     types: [checks_requested]
   workflow_call:
   workflow_dispatch:
 
-permissions:
-  contents: read
+env:
+  TEST_REPORT_PROJECT: Server
+  TEST_REPORT_COMMIT_SHA: "50f7fa03dbc0f18a641206ab1a92fb11a1131572"
 
 jobs:
   lint:
@@ -73,27 +76,104 @@ jobs:
         if: steps.changed-workflows.outputs.changed_files_count != '0'
         run: |
           echo "$files"
-          bwwl lint -f $files
+          set +e  # Don't exit on error
+          output=$(bwwl lint -f $files 2>&1)
+          exit_code=$?
+          set -e
+
+          echo "lint_output<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$output" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "lint_exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+          echo "pull_request_target_failed=$(echo "$output" | grep -c 'pull_request_target' | awk '{print ($1 > 0 ? "true" : "false")}')" >> "$GITHUB_OUTPUT"
+          exit $exit_code
+
+        continue-on-error: true
       
-      - name: echo lint results
-        if: steps.changed-workflows.outputs.changed_files_count != '0'
+      - name: Echo lint results
+        if: steps.lint.outcome == 'failure'
+        env:
+          OUTPUT_DATA: ${{ toJSON(steps.lint.outputs) }}
         run: |
-          echo "Lint Results:"
-          echo "${{ steps.lint.outputs }}" 
+            # Extract lint output
+            lint_output=$(echo "$OUTPUT_DATA" | jq -r '.lint_output')
+
+            # Clean ANSI codes
+            clean=$(echo "$lint_output" | sed 's/\x1b\[[0-9;]*m//g')
+
+            echo "$OUTPUT_DATA.lint_output"
+
+      - name: Report Failure to Slack
+        if: steps.lint.outcome == 'failure'
+        uses: ./report-deployment-status-to-slack
+        with:
+          project: $TEST_REPORT_PROJECT
+          environment: US-QA Cloud
+          slack-channel: bre-alerts-test
+          tag: test-workflow-failure
+          event: "failure"
+          commit-sha: $TEST_REPORT_COMMIT_SHA
+          url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+
 
       # - name: Retrieve secrets
       #   id: retrieve-secrets
-      #   if: failure()
+      #   if: steps.lint.outputs.pull_request_target_failed
       #   uses: bitwarden/gh-actions/get-keyvault-secrets@main
       #   with:
       #     keyvault: "bitwarden-ci"
       #     secrets: "devops-alerts-slack-webhook-url"
 
       # - name: Notify Slack on failure
-      #   uses: act10ns/slack@44541246747a30eb3102d87f7a4cc5471b0ffb7d # v2.1.0
-      #   if: failure()
+      #   uses: ./report-deployment-status-to-slack
+      #   if: steps.lint.outputs.pull_request_target_failed
       #   env:
       #     SLACK_WEBHOOK_URL: ${{ steps.retrieve-secrets.outputs.devops-alerts-slack-webhook-url }}
       #   with:
       #     status: ${{ job.status }}
+      #     project: $TEST_REPORT_PROJECT
+      #     environment: US-QA Cloud
+      #     slack-channel: bre-alerts-test
+      #     tag: test-workflow-failure
+      #     event: 'failure'
+      #     commit-sha: $TEST_REPORT_COMMIT_SHA
+      #     url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
+      #     AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
+      # - name: Failure
+      #   uses: ./report-deployment-status-to-slack
+      #   if: ${{ steps.lint.outputs.pull_request_target_failed && steps.lint.outcome == 'failure' }}
+      #   env:
+      #     EXIT_CODE: ${{ steps.lint.outputs.lint_exit_code }}
+      #   with:
+      #     project: $TEST_REPORT_PROJECT
+      #     slack-channel: bre-alerts-test
+      #     tag: test-workflow-failure
+      #     project_owner: agalles
+      #     environment: US-QA Cloud
+      #     event: 'failure'
+      #     commit-sha: $TEST_REPORT_COMMIT_SHA
+      #     url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
+      #     AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      #     AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      #     AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+
+      # - name: Failure
+      #   if: ${{ steps.lint.outputs.pull_request_target_failed && steps.lint.outcome == 'failure' }}
+      #   uses: ./report-deployment-status-to-slack
+      #   with:
+      #     project: $TEST_REPORT_PROJECT
+      #     environment: US-QA Cloud
+      #     slack-channel: bre-alerts-test
+      #     tag: test-workflow-failure
+      #     event: "failure"
+      #     commit-sha: $TEST_REPORT_COMMIT_SHA
+      #     url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
+      #     AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      #     AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      #     AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+
+    

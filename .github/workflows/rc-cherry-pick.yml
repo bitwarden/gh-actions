@@ -8,16 +8,30 @@ on:
   workflow_dispatch:
     inputs:
       source_pr:
+        description: 'Pull request to cherry pick from.'
         required: true
         type: string
+      label_override:
+        description: 'Override the tags on the source PR. The workflow will proceed as if the PR has this single tag.'
+        required: false
+        type: string
+        default: ''
+      merged_override:
+        description: '[FOR TESTING] Override the requirement that the source PR has to be merged before it can be cherry-picked from.'
+        required: false
+        type: boolean 
+        default: false
 env:
-  ALLOWED_LABELS: '["rc-cherry-pick", "hotfix-rc-cherry-pick", "BEEEP"]'
+  ALLOWED_LABELS: '["rc-cherry-pick", "hotfix-rc-cherry-pick"]'
 
 permissions: {}
 
 jobs:
   evaluate-pr:
     name: Evaluate PR
+    env:
+      SOURCE_PR_INPUT: ${{ inputs.source_pr }}
+      LABEL_OVERRIDE:  ${{ inputs.label_override }}
     runs-on: ubuntu-24.04
     outputs:
       cherry_pick_branch: ${{ steps.parse-labels.outputs.cherry_pick_branch }}
@@ -31,30 +45,26 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           allowed_labels='${{ env.ALLOWED_LABELS }}'
-          #DEBUG allowed_labels='["rc-cherry-pick", "hotfix-rc-cherry-pick"]'
           
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            source_pr="${{ inputs.source_pr }}"
+            source_pr="$SOURCE_PR_INPUT"
           else
             source_pr="${{ github.event.pull_request.number }}"
           fi
           
           echo "source_pr=$source_pr" >> $GITHUB_OUTPUT
 
-          pr_labels=$(gh pr view "$source_pr" --repo "${{ github.repository }}" --json labels --jq '[.labels[].name]')
+          if [[ -n $LABEL_OVERRIDE ]]; then
+            pr_labels="[\"$LABEL_OVERRIDE\"]"
+          else
+            pr_labels=$(gh pr view "$source_pr" --repo "${{ github.repository }}" --json labels --jq '[.labels[].name]')
+          fi
 
-          #pr_labels='${{ toJSON(github.event.pull-request.labels.*.name) }}'
-          #DEBUG pr_labels='["rc-cherry-pick", "bug", "hotfix-rc-cherry-pick"]'
           cherry_pick_branch=''
 
           IFS=$'\n'
           for pr_label in $(echo "$pr_labels" | jq -r '.[]'); do
             for allowed_label in $(echo "$allowed_labels" | jq -r '.[]'); do
-              ##v DEBUG v##
-              if [[ $pr_label == 'BEEEP' ]]; then
-                pr_label='rc-cherry-pick'
-              fi
-              ##^ DEBUG ^##
               if [[ $pr_label == $allowed_label ]]; then
                 if [[ $cherry_pick_branch != '' ]]; then
                   echo 'ERROR: Multiple cherry pick labels found. Cannot determine cherry pick destination branch.'
@@ -72,8 +82,7 @@ jobs:
   cherry-pick:
     name: Cherry Pick
     needs: evaluate-pr
-    #if: github.event.pull_request.merged && needs.evaluate-pr.outputs.cherry_pick_branch != '' 
-    if: ${{ needs.evaluate-pr.outputs.cherry_pick_branch != '' }}
+    if: ${{ (github.event.pull_request.merged || inputs.merged_override) && needs.evaluate-pr.outputs.cherry_pick_branch != '' }}
     uses: bitwarden/gh-actions/.github/workflows/_rc-cherry-pick.yml@BRE-1359/backport-cherry-pick
     with:
       cherry_pick_branch: ${{ needs.evaluate-pr.outputs.cherry_pick_branch }}

@@ -46,7 +46,7 @@ jobs:
           pr_number="${{ inputs.source_pr }}"
 
           echo "Fetching commits from PR #$pr_number"
-          commits=$(gh pr view "$pr_number" --json commits --jq '.commits[].oid' | tac | tr '\n' ' ')
+          commits=$(gh pr view "$pr_number" --json commits --jq '.commits[].oid' | tr '\n' ' ')
 
           echo "Commits to cherry-pick: $commits"
           echo "commits=$commits" >> $GITHUB_OUTPUT

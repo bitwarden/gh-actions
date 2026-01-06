@@ -75,7 +75,7 @@ jobs:
     needs: evaluate-pr
     #if: github.event.pull_request.merged && needs.evaluate-pr.outputs.cherry_pick_branch != '' 
     if: needs.evaluate-pr.outputs.cherry_pick_branch != '' 
-    uses: bitwarden/gh-actions/.github/workflows/_rc-cherry-pick@BRE-1359/backport-cherry-pick
+    uses: bitwarden/gh-actions/.github/workflows/_rc-cherry-pick.yml@BRE-1359/backport-cherry-pick
     with:
       cherry_pick_branch: ${{ needs.evaluate-pr.outputs.cherry_pick_branch }}
       source_pr: ${{ needs.evaluate-pr.outputs.source_pr }}

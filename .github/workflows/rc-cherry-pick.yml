@@ -5,6 +5,14 @@ on:
     types: [closed]
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      cherry_pick_branch:
+        required: true
+        type: string
+      source_pr:
+        required: true
+        type: string
 env:
   ALLOWED_LABELS: '["rc-cherry-pick", "hotfix-rc-cherry-pick", "BEEEP"]'
 
@@ -21,11 +29,21 @@ jobs:
     steps:
       - name: Parse Labels
         id: parse-labels
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           allowed_labels='${{ env.ALLOWED_LABELS }}'
           #DEBUG allowed_labels='["rc-cherry-pick", "hotfix-rc-cherry-pick"]'
+          
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            pr_number="${{ inputs.pr_number }}"
+          else
+            pr_number="${{ github.event.pull_request.number }}"
+          fi
+          
+          pr_labels=$(gh pr view "$pr_number" --json labels --jq '[.labels[].name]')
 
-          pr_labels='${{ toJSON(github.event.pull-request.labels.*.name) }}'
+          #pr_labels='${{ toJSON(github.event.pull-request.labels.*.name) }}'
           #DEBUG pr_labels='["rc-cherry-pick", "bug", "hotfix-rc-cherry-pick"]'
           cherry_pick_branch=''
 
@@ -55,11 +73,12 @@ jobs:
   cherry-pick:
     name: Cherry Pick
     needs: evaluate-pr
-    if: github.event.pull_request.merged && needs.evaluate-pr.outputs.cherry_pick_branch != '' 
+    #if: github.event.pull_request.merged && needs.evaluate-pr.outputs.cherry_pick_branch != '' 
+    if: needs.evaluate-pr.outputs.cherry_pick_branch != '' 
     uses: bitwarden/gh-actions/.github/workflows/_rc-cherry-pick@BRE-1359/backport-cherry-pick
     with:
       cherry_pick_branch: ${{ needs.evaluate-pr.outputs.cherry_pick_branch }}
-      source_pr: ${{ github.event.pull_request.number }}
+      source_pr: ${{ needs.evaluate-pr.outputs.source_pr }}
     permissions:
       contents: write
       pull-requests: write

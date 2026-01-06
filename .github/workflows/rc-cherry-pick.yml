@@ -13,6 +13,7 @@ on:
       source_pr:
         required: true
         type: string
+  push:
 env:
   ALLOWED_LABELS: '["rc-cherry-pick", "hotfix-rc-cherry-pick", "BEEEP"]'
 

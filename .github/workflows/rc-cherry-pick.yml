@@ -60,7 +60,7 @@ jobs:
                   echo 'ERROR: Multiple cherry pick labels found. Cannot determine cherry pick destination branch.'
                   exit 1
                 else
-                  echo 'Found cherry-pick label: $pr_label'
+                  echo "Found cherry-pick label: $pr_label"
                   cherry_pick_branch="$pr_label"
                 fi
               fi

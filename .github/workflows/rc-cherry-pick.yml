@@ -30,8 +30,8 @@ jobs:
   evaluate-pr:
     name: Evaluate PR
     env:
-      SOURCE_PR_INPUT: ${{ inputs.source_pr }}
-      LABEL_OVERRIDE:  ${{ inputs.label_override }}
+      _SOURCE_PR_INPUT: ${{ inputs.source_pr }}
+      _LABEL_OVERRIDE:  ${{ inputs.label_override }}
     runs-on: ubuntu-24.04
     outputs:
       cherry_pick_branch: ${{ steps.parse-labels.outputs.cherry_pick_branch }}
@@ -47,15 +47,15 @@ jobs:
           allowed_labels='${{ env.ALLOWED_LABELS }}'
           
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            source_pr="$SOURCE_PR_INPUT"
+            source_pr="$_SOURCE_PR_INPUT"
           else
             source_pr="${{ github.event.pull_request.number }}"
           fi
           
           echo "source_pr=$source_pr" >> $GITHUB_OUTPUT
 
-          if [[ -n $LABEL_OVERRIDE ]]; then
-            pr_labels="[\"$LABEL_OVERRIDE\"]"
+          if [[ -n $_LABEL_OVERRIDE ]]; then
+            pr_labels="[\"$_LABEL_OVERRIDE\"]"
           else
             pr_labels=$(gh pr view "$source_pr" --repo "${{ github.repository }}" --json labels --jq '[.labels[].name]')
           fi

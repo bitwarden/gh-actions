@@ -23,9 +23,9 @@ permissions: {}
 jobs:
   cherry-pick:
     name: Cherry Pick Commit
-    env: 
-      SOURCE_PR: "${{ inputs.source_pr }}"
-      CHERRY_PICK_BRANCH: "${{ inputs.cherry_pick_branch }}"
+    env:
+      _SOURCE_PR: "${{ inputs.source_pr }}"
+      _CHERRY_PICK_BRANCH: "${{ inputs.cherry_pick_branch }}"
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -34,7 +34,7 @@ jobs:
       - name: Checkout target branch
         uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
-          ref: ${{ env.CHERRY_PICK_BRANCH }}
+          ref: ${{ env._CHERRY_PICK_BRANCH }}
           fetch-depth: 0
           persist-credentials: true
 
@@ -44,30 +44,28 @@ jobs:
           git config user.email "actions@github.com"
 
       - name: Extract commits from PR
+        env:
+          GH_TOKEN: ${{ github.token }}
         id: extract-commits
         run: |
-          pr_number="$SOURCE_PR"
-
-          echo "Fetching commits from PR: [#$pr_number]"
-          commits=$(gh pr view "$pr_number" --json commits --jq '.commits[].oid' | tr '\n' ' ')
+          echo "Fetching commits from PR: [#$_SOURCE_PR]"
+          commits=$(gh pr view "$_SOURCE_PR" --json commits --jq '.commits[].oid' | tr '\n' ' ')
 
           echo "Commits to cherry-pick: [$commits]"
           echo "commits=$commits" >> $GITHUB_OUTPUT
-        env:
-          GH_TOKEN: ${{ github.token }}
 
       - name: Create cherry-pick branch
         id: create-branch
         run: |
-          branch_name="cherry-pick-PR$SOURCE_PR-to-$CHERRY_PICK_BRANCH"
-          echo "branch_name=$branch_name" >> $GITHUB_OUTPUT
-          git checkout -b "$branch_name"
+          new_branch_name="cherry-pick-PR$_SOURCE_PR-to-$_CHERRY_PICK_BRANCH"
+          echo "new_branch_name=$new_branch_name" >> $GITHUB_OUTPUT
+          git checkout -b "$new_branch_name"
 
       - name: Cherry pick commit(s)
+        env:
+          COMMITS: ${{ steps.extract-commits.outputs.commits }}
         run: |
-          COMMITS="${{ steps.extract-commits.outputs.commits }}"
-
-          echo "Cherry-picking commits to branch ${{ CHERRY_PICK_BRANCH }}"
+          echo "Cherry-picking commits to branch [$_CHERRY_PICK_BRANCH]"
           for commit in $COMMITS; do
             echo -n "Cherry-picking commit: [$commit]. "
             if ! git cherry-pick "$commit"; then
@@ -83,18 +81,21 @@ jobs:
           echo "✓ All cherry-picks successful!"
 
       - name: Push cherry-pick branch
+        env:
+          NEW_BRANCH_NAME: ${{ steps.create-branch.outputs.new_branch_name }}
         run: |
-          git push origin ${{ steps.create-branch.outputs.branch_name }}
+          git push origin "$NEW_BRANCH_NAME"
 
       - name: Create Pull Request
-        run: |
-          pr_url=$(gh pr view "$SOURCE_PR" --json url --jq '.url')
-
-          gh pr create \
-            --base ${{ inputs.cherry_pick_branch }} \
-            --head ${{ steps.create-branch.outputs.branch_name }} \
-            --title "Cherry-pick PR [#$SOURCE_PR] to [$CHERRY_PICK_BRANCH]" \
-            --body "Automated cherry-pick of PR [#$SOURCE_PR]($pr_url)" \
-            --draft
         env:
           GH_TOKEN: ${{ github.token }}
+          NEW_BRANCH_NAME: ${{ steps.create-branch.outputs.new_branch_name }}
+        run: |
+          pr_url=$(gh pr view "$_SOURCE_PR" --json url --jq '.url')
+
+          gh pr create \
+            --base $_CHERRY_PICK_BRANCH \
+            --head $NEW_BRANCH_NAME \
+            --title "Cherry-pick PR [#$_SOURCE_PR] to [$_CHERRY_PICK_BRANCH]" \
+            --body "Automated cherry-pick of PR [#$_SOURCE_PR]($pr_url)" \
+            --draft

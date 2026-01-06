@@ -7,9 +7,6 @@ on:
       - main
   workflow_dispatch:
     inputs:
-      cherry_pick_branch:
-        required: true
-        type: string
       source_pr:
         required: true
         type: string
@@ -24,6 +21,7 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       cherry_pick_branch: ${{ steps.parse_labels.outputs.cherry_pick_branch }}
+      source_pr: ${{ steps.parse_labels.outputs.source_pr }}
     permissions: 
       contents: read
     steps:
@@ -36,12 +34,14 @@ jobs:
           #DEBUG allowed_labels='["rc-cherry-pick", "hotfix-rc-cherry-pick"]'
           
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            pr_number="${{ inputs.pr_number }}"
+            source_pr="${{ inputs.source_pr }}"
           else
-            pr_number="${{ github.event.pull_request.number }}"
+            source_pr="${{ github.event.pull_request.number }}"
           fi
           
-          pr_labels=$(gh pr view "$pr_number" --repo "${{ github.repository }}" --json labels --jq '[.labels[].name]')
+          echo "source_pr=$source_pr" >> $GITHUB_OUTPUT
+
+          pr_labels=$(gh pr view "$source_pr" --repo "${{ github.repository }}" --json labels --jq '[.labels[].name]')
 
           #pr_labels='${{ toJSON(github.event.pull-request.labels.*.name) }}'
           #DEBUG pr_labels='["rc-cherry-pick", "bug", "hotfix-rc-cherry-pick"]'

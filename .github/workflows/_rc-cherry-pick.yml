@@ -54,7 +54,7 @@ jobs:
             cherry_pick_branch=''
 
             if [[ -n $_LABEL_OVERRIDE ]]; then
-              pr_labels='[\"$_LABEL_OVERRIDE\"]'
+              pr_labels="[\"$_LABEL_OVERRIDE\"]"
             else
               pr_labels=$(gh pr view "$_SOURCE_PR" --repo "${{ github.repository }}" --json labels --jq '[.labels[].name]')
             fi

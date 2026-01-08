@@ -53,7 +53,7 @@ jobs:
             exit 0
           fi
 
-          LABELS=$(gh pr view "$PR_NUMBER" --repo "$GH_REPO" --json labels -q '.labels[].name' || true)
+LABELS=$(gh pr view "$PR_NUMBER" --repo "$GH_REPO" --json labels -q '.labels[].name')
           if printf '%s\n' "$LABELS" | grep -Fxq "ai-review"; then
             echo "label_present=true" >> "$GITHUB_OUTPUT"
             echo "✅ Validation: 'ai-review' label found"

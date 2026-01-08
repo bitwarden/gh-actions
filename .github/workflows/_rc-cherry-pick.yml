@@ -3,29 +3,85 @@ name: Cherry pick to RC
 on:
   workflow_call:
     inputs:
-      cherry_pick_branch:
-        required: true
-        type: string
       source_pr:
         required: true
         type: string
+      allowed_labels:
+        required: true
+        type: string
+      label_override:
+        required: false
+        type: string
+        default: ''
   workflow_dispatch:
     inputs:
-      cherry_pick_branch:
-        required: true
-        type: string
       source_pr:
+        description: 'Pull request to cherry pick from.'
         required: true
         type: string
+      allowed_labels:
+        description: 'PR Labels that will trigger a cherry pick. (Leave blank unless you know what you''re doing.)'
+        required: false
+        type: string
+        default: '["test-label"]'
+      label_override:
+        description: 'Override the labels on the source PR with a single label. (Leave blank unless you know what you''re doing.)'
+        required: false
+        type: string
+        default: 'test-label'
 
 permissions: {}
 
 jobs:
+  evaluate-pr:
+      name: Evaluate PR
+      env:
+        _SOURCE_PR: ${{ inputs.source_pr }}
+        _LABEL_OVERRIDE:  ${{ inputs.label_override }}
+        _ALLOWED_LABELS:  ${{ inputs.allowed_labels }}
+      runs-on: ubuntu-24.04
+      outputs:
+        cherry_pick_branch: ${{ steps.parse-labels.outputs.cherry_pick_branch }}
+      permissions: 
+        contents: read
+      steps:
+        - name: Parse Labels
+          id: parse-labels
+          env:
+            GH_TOKEN: ${{ github.token }}
+          run: |        
+            cherry_pick_branch=''
+
+            if [[ -n $_LABEL_OVERRIDE ]]; then
+              pr_labels="[\"$_LABEL_OVERRIDE\"]"
+            else
+              pr_labels=$(gh pr view "$_SOURCE_PR" --repo "${{ github.repository }}" --json labels --jq '[.labels[].name]')
+            fi
+
+            IFS=$'\n'
+            for pr_label in $(echo "$pr_labels" | jq -r '.[]'); do
+              for allowed_label in $(echo "$_ALLOWED_LABELS" | jq -r '.[]'); do
+                if [[ $pr_label == $allowed_label ]]; then
+                  if [[ $cherry_pick_branch != '' ]]; then
+                    echo '✗ ERROR: Multiple cherry pick labels found. Cannot determine cherry pick destination branch.'
+                    exit 1
+                  else
+                    echo "✓ Found cherry-pick label: [$pr_label]"
+                    echo "cherry_pick_branch=$pr_label" >> $GITHUB_OUTPUT
+                  fi
+                fi
+              done
+            done
+
+            exit 0
+  
   cherry-pick:
     name: Cherry Pick Commit
+    needs: evaluate-pr
+    if: ${{ needs.evaluate-pr.outputs.cherry_pick_branch != '' }}
     env:
       _SOURCE_PR: "${{ inputs.source_pr }}"
-      _CHERRY_PICK_BRANCH: "${{ inputs.cherry_pick_branch }}"
+      _CHERRY_PICK_BRANCH: "${{ needs.evaluate-pr.outputs.cherry_pick_branch }}"
     runs-on: ubuntu-24.04
     permissions:
       contents: write

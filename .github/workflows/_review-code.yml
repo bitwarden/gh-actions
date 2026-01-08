@@ -41,9 +41,20 @@ jobs:
       - name: Check for review label
         id: check-label
         env:
-          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          if echo "$LABELS" | grep -q '"ai-review"'; then
+          set -euo pipefail
+
+          if [ -z "${PR_NUMBER:-}" ]; then
+            echo "label_present=false" >> "$GITHUB_OUTPUT"
+            echo "⚠️ Validation: no pull_request context detected - skipping Claude review"
+            exit 0
+          fi
+
+          LABELS=$(gh pr view "$PR_NUMBER" --repo "$GH_REPO" --json labels -q '.labels[].name')
+          if printf '%s\n' "$LABELS" | grep -Fxq "ai-review"; then
             echo "label_present=true" >> "$GITHUB_OUTPUT"
             echo "✅ Validation: 'ai-review' label found"
           else

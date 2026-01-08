@@ -30,7 +30,7 @@ jobs:
   cherry-pick:
     name: Cherry Pick
     if: ${{ github.event.pull_request.merged || inputs.override_merge_check }}
-    uses: gh-actions/.github/workflows/_rc-cherry-pick.yml@BRE-1359/backport-cherry-pick
+    uses: bitwarden/gh-actions/.github/workflows/_rc-cherry-pick.yml@BRE-1359/backport-cherry-pick
     with:
       allowed_labels: '["rc-cherry-pick", "hotfix-rc-cherry-pick"]'
       source_pr: ${{ inputs.source_pr || github.event.pull_request.number }}

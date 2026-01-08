@@ -6,6 +6,10 @@ on:
       - .github/workflows/**
   merge_group:
     types: [checks_requested]
+  pull_request_target: #force failure of workflow
+    types: [synchronize, opened, reopened, edited]
+    paths:
+      - .github/workflows/**
   workflow_call:
     secrets:
       AZURE_SUBSCRIPTION_ID:
@@ -126,7 +130,7 @@ jobs:
             ```"
         uses: slackapi/slack-github-action@b0fa283ad8fea605de13dc3f449259339835fc52 # v2.1.0
         with:
-          method: ${{ 'chat.postMessage' }}
+          method: chat.postMessage
           token: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}
           payload: |
             channel: "bre-alerts-test"
@@ -137,6 +141,10 @@ jobs:
         env:
           EXIT_CODE: ${{ steps.lint.outputs.lint_exit_code }}
         run: |
-          echo "Workflow linting failed with the following output:"
-          echo "${{ steps.lint.outputs.lint_output }}"
-          exit ${{env.EXIT_CODE}}
+           echo "Workflow linting failed with the following output:"
+           printf "%s\n" "${ steps.lint.outputs.lint_output }"
+            if [[ "${env.EXIT_CODE} =~ ^[0-9]+$ ]]; then
+              exit "$exit_code"
+            else
+              exit 1
+            fi

@@ -4,11 +4,16 @@ on:
   pull_request:
     paths:
       - .github/workflows/**
-  pull_request_target: # temporary to force failure
-    types: [opened, synchronize, reopened]
   merge_group:
     types: [checks_requested]
   workflow_call:
+    secrets:
+      AZURE_SUBSCRIPTION_ID:
+        required: true
+      AZURE_TENANT_ID:
+        required: true
+      AZURE_CLIENT_ID:
+        required: true
   workflow_dispatch:
 
 env:
@@ -19,6 +24,9 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Check out branch
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -89,91 +97,46 @@ jobs:
           exit $exit_code
 
         continue-on-error: true
-      
-      - name: Echo lint results
-        if: steps.lint.outcome == 'failure'
-        env:
-          OUTPUT_DATA: ${{ toJSON(steps.lint.outputs) }}
-        run: |
-            # Extract lint output
-            lint_output=$(echo "$OUTPUT_DATA" | jq -r '.lint_output')
 
-            # Clean ANSI codes
-            clean=$(echo "$lint_output" | sed 's/\x1b\[[0-9;]*m//g')
-
-            echo "$OUTPUT_DATA.lint_output"
-
-      - name: Report Failure to Slack
-        if: steps.lint.outcome == 'failure'
-        uses: ./report-deployment-status-to-slack
+      - name: Azure Login
+        uses: bitwarden/gh-actions/azure-login@main
         with:
-          project: $TEST_REPORT_PROJECT
-          environment: US-QA Cloud
-          slack-channel: bre-alerts-test
-          tag: test-workflow-failure
-          event: "failure"
-          commit-sha: $TEST_REPORT_COMMIT_SHA
-          url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
+      - name: Retrieve Slack secrets
+        id: retrieve-slack-secrets
+        uses: bitwarden/gh-actions/get-keyvault-secrets@main
+        with:
+          keyvault: bitwarden-ci
+          secrets: "slack-bot-token"
 
-      # - name: Retrieve secrets
-      #   id: retrieve-secrets
-      #   if: steps.lint.outputs.pull_request_target_failed
-      #   uses: bitwarden/gh-actions/get-keyvault-secrets@main
-      #   with:
-      #     keyvault: "bitwarden-ci"
-      #     secrets: "devops-alerts-slack-webhook-url"
+      - name: Azure Logout
+        uses: bitwarden/gh-actions/azure-logout@main
 
-      # - name: Notify Slack on failure
-      #   uses: ./report-deployment-status-to-slack
-      #   if: steps.lint.outputs.pull_request_target_failed
-      #   env:
-      #     SLACK_WEBHOOK_URL: ${{ steps.retrieve-secrets.outputs.devops-alerts-slack-webhook-url }}
-      #   with:
-      #     status: ${{ job.status }}
-      #     project: $TEST_REPORT_PROJECT
-      #     environment: US-QA Cloud
-      #     slack-channel: bre-alerts-test
-      #     tag: test-workflow-failure
-      #     event: 'failure'
-      #     commit-sha: $TEST_REPORT_COMMIT_SHA
-      #     url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-      #     AZURE_KV_CI_SERVICE_PRINCIPAL: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+      - name: Post/Edit message to a Slack channel
+        if: steps.lint.outputs.pull_request_target_failed == 'true'
+        id: slack-message
+        env:
+          SLACK_MESSAGE: "Workflow lint failure detected in PR target context. :warning:
+            ```
+            View run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-      # - name: Failure
-      #   uses: ./report-deployment-status-to-slack
-      #   if: ${{ steps.lint.outputs.pull_request_target_failed && steps.lint.outcome == 'failure' }}
-      #   env:
-      #     EXIT_CODE: ${{ steps.lint.outputs.lint_exit_code }}
-      #   with:
-      #     project: $TEST_REPORT_PROJECT
-      #     slack-channel: bre-alerts-test
-      #     tag: test-workflow-failure
-      #     project_owner: agalles
-      #     environment: US-QA Cloud
-      #     event: 'failure'
-      #     commit-sha: $TEST_REPORT_COMMIT_SHA
-      #     url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-      #     AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      #     AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      #     AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-
-      # - name: Failure
-      #   if: ${{ steps.lint.outputs.pull_request_target_failed && steps.lint.outcome == 'failure' }}
-      #   uses: ./report-deployment-status-to-slack
-      #   with:
-      #     project: $TEST_REPORT_PROJECT
-      #     environment: US-QA Cloud
-      #     slack-channel: bre-alerts-test
-      #     tag: test-workflow-failure
-      #     event: "failure"
-      #     commit-sha: $TEST_REPORT_COMMIT_SHA
-      #     url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-      #     AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      #     AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      #     AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-
-    
+            ```"
+        uses: slackapi/slack-github-action@b0fa283ad8fea605de13dc3f449259339835fc52 # v2.1.0
+        with:
+          method: ${{ 'chat.postMessage' }}
+          token: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}
+          payload: |
+            channel: "bre-alerts-test"
+            text: "${{ env.SLACK_MESSAGE }}"
+      
+      - name: Fail workflow if linting failed
+        if: steps.lint.outputs.lint_exit_code != '0'
+        env:
+          EXIT_CODE: ${{ steps.lint.outputs.lint_exit_code }}
+        run: |
+          echo "Workflow linting failed with the following output:"
+          echo "${{ steps.lint.outputs.lint_output }}"
+          exit ${{env.EXIT_CODE}}

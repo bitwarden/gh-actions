@@ -22,8 +22,7 @@ on:
         required: false
         type: boolean 
         default: false
-env:
-  ALLOWED_LABELS: '["rc-cherry-pick", "hotfix-rc-cherry-pick"]'
+
 
 permissions: {}
 
@@ -33,8 +32,8 @@ jobs:
     if: ${{ github.event.pull_request.merged || inputs.override_merge_check }}
     uses: gh-actions/.github/workflows/_rc-cherry-pick.yml@BRE-1359/backport-cherry-pick
     with:
+      allowed_labels: '["rc-cherry-pick", "hotfix-rc-cherry-pick"]'
       source_pr: ${{ inputs.source_pr || github.event.pull_request.number }}
-      allowed_labels: ${{ env.ALLOWED_LABELS }}
       label_override: ${{ inputs.label_override }}
     permissions:
       contents: write

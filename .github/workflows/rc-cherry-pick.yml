@@ -1,4 +1,5 @@
-name: Cherry pick to RC - ${{ github.repository }}
+name: Cherry pick to RC 
+run-name: Cherry pick to RC - ${{ github.repository }}
 
 on:
   pull_request:

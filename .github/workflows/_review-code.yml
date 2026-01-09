@@ -114,7 +114,7 @@ jobs:
 
       - name: Review with Claude Code
         timeout-minutes: 10
-        uses: anthropics/claude-code-action@0d1933529914177075d5bc3558ae3d047f188146 # v1.0.26
+        uses: anthropics/claude-code-action@1b8ee3b94104046d71fde52ec3557651ad8c0d71 # v1.0.29
         env:
           USE_AGENT_SDK: "true"
           USE_SIMPLE_PROMPT: "true"

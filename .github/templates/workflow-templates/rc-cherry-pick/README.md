@@ -17,7 +17,7 @@ rc-hotfix-cherry-pick
 rc-cherry-pick
 ```
 
-3. Update the `allowed_labels` input parameter in local copy of `rc-cherry-pick.yml` to include all labels that should trigger the cherry-pick process. This parameter should be in the JSON list format. For example:
+3. Update the `allowed_labels` input parameter in your repo's copy of `rc-cherry-pick.yml` to include all labels that should trigger the cherry-pick process. This parameter should be in the JSON list format. For example:
         
 ```
 allowed_labels: '["rc-cherry-pick", "hotfix-rc-cherry-pick"]'

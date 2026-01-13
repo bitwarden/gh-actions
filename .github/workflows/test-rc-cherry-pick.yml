@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/_rc-cherry-pick.yml"
+      - ".github/templates/rc-cherry-pick/rc-cherry-pick.template.yml"
 
 permissions: {}
 
@@ -77,7 +78,6 @@ jobs:
     # Call the rc-cherry-pick workflow and pass in the simulated branches and PR.
     name: Cherry-pick
     needs: setup
-    name: Cherry Pick
     uses: ./.github/workflows/_rc-cherry-pick.yml
     with:
       source_pr: ${{ needs.setup.outputs.simulated_pr_number }}

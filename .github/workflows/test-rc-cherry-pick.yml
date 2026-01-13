@@ -43,7 +43,12 @@ jobs:
           simulated_main_branch="rc-cherry-pick-sim-main-$(date +%s)"
           simulated_feature_branch="rc-cherry-pick-sim-feature-$(date +%s)"
           simulated_rc_branch="rc-cherry-pick-sim-rc-$(date +%s)"
-
+          
+          # output these here so if this step fails, these can be used by the cleanup job
+          echo "simulated_main_branch=$simulated_main_branch" >> $GITHUB_OUTPUT
+          echo "simulated_feature_branch=$simulated_feature_branch" >> $GITHUB_OUTPUT
+          echo "simulated_rc_branch=$simulated_rc_branch" >> $GITHUB_OUTPUT
+          
           sim_branches="$simulated_main_branch $simulated_feature_branch $simulated_rc_branch"
           for sim_branch in $sim_branches; do
             echo "Creating branch [$sim_branch]"
@@ -68,10 +73,6 @@ jobs:
 
           echo "Retreiving PR number"
           gh pr view "$simulated_feature_branch" --json number --jq '.number' | tee pr_num.txt
-          
-          echo "simulated_main_branch=$simulated_main_branch" >> $GITHUB_OUTPUT
-          echo "simulated_feature_branch=$simulated_feature_branch" >> $GITHUB_OUTPUT
-          echo "simulated_rc_branch=$simulated_rc_branch" >> $GITHUB_OUTPUT
           echo "simulated_pr_number=$(cat pr_num.txt)" >> $GITHUB_OUTPUT
 
   cherry-pick:

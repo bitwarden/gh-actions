@@ -11,6 +11,7 @@ permissions: {}
 jobs:
   setup:
     # Create simulated main, feature, and RC branches as well as a simulated PR from sim feature to sim main.
+    name: Setup
     runs-on: ubuntu-24.04
     outputs:
       simulated_main_branch: ${{ steps.create-simulated-branches.outputs.simulated_main_branch }}
@@ -44,6 +45,7 @@ jobs:
 
           sim_branches="$simulated_main_branch $simulated_feature_branch $simulated_rc_branch"
           for sim_branch in $sim_branches; do
+            echo "Creating branch [$sim_branch]"
             git switch -c $sim_branch
             echo "$sim_branch" > test_file.txt
             git add test_file.txt
@@ -52,14 +54,19 @@ jobs:
             git switch main
           done
           
+          pr_title='Test RC cherry-pick workflow'
+          echo "Creating PR [$pr_title] with base [$simulated_main_branch] and head [$simulated_feature_branch]"
           gh pr create \
             --base $simulated_main_branch \
             --head "$simulated_feature_branch" \
-            --title "Test RC cherry-pick workflow" \
+            --title "$pr_title" \
             --body "Automated test PR for RC cherry-pick workflow testing" \
             --draft \
             --json number \
-            --jq '.number' > pr_num.txt
+            --jq '.number'
+
+          echo "Retreiving PR number"
+          gh pr view "$simulated_feature_branch" --json number --jq '.number' | tee pr_num.txt
           
           echo "simulated_main_branch=$simulated_main_branch" >> $GITHUB_OUTPUT
           echo "simulated_feature_branch=$simulated_feature_branch" >> $GITHUB_OUTPUT
@@ -68,6 +75,7 @@ jobs:
 
   cherry-pick:
     # Call the rc-cherry-pick workflow and pass in the simulated branches and PR.
+    name: Cherry-pick
     needs: setup
     name: Cherry Pick
     uses: ./.github/workflows/_rc-cherry-pick.yml
@@ -82,6 +90,7 @@ jobs:
   cleanup:
     # Cleanup all the simulated resources as well as the cherry-pick PR and branch created by the
     # rc-cherry-pick workflow.
+    name: Cleanup
     runs-on: ubuntu-24.04
     needs: [setup, cherry-pick]
     if: always()

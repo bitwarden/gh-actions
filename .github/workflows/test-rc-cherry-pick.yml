@@ -51,7 +51,7 @@ jobs:
           sim_branches="$simulated_main_branch $simulated_feature_branch $simulated_rc_branch"
           for sim_branch in $sim_branches; do
             echo "Creating branch [$sim_branch]"
-            git switch -c $sim_branch
+            git switch -c "$sim_branch"
             echo 'test' > "$sim_branch.txt"
             git add "$sim_branch.txt"
             git commit -m 'created test file'
@@ -62,15 +62,15 @@ jobs:
           pr_title='Test RC cherry-pick workflow'
           echo "Creating PR [$pr_title] with base [$simulated_main_branch] and head [$simulated_feature_branch]"
           gh pr create \
-            --base $simulated_main_branch \
+            --base "$simulated_main_branch" \
             --head "$simulated_feature_branch" \
             --title "$pr_title" \
             --body "Automated test PR for RC cherry-pick workflow testing" \
             --draft
 
           echo "Retreiving PR number"
-          gh pr view "$simulated_feature_branch" --json number --jq '.number' | tee pr_num.txt
-          echo "simulated_pr_number=$(cat pr_num.txt)" >> $GITHUB_OUTPUT
+          simulated_pr_number=$(gh pr view "$simulated_feature_branch" --json number --jq '.number')
+          echo "simulated_pr_number=$simulated_pr_number" >> $GITHUB_OUTPUT
 
   cherry-pick:
     # Call the rc-cherry-pick workflow and pass in the simulated branches and PR.
@@ -93,9 +93,9 @@ jobs:
     needs: [setup, cherry-pick]
     if: always()
     env:
-      _SIMULATED_MAIN_BRANCH: "${{ needs.setup.outputs.simulated_main_branch }}"
-      _SIMULATED_FEATURE_BRANCH: "${{ needs.setup.outputs.simulated_feature_branch }}"
-      _SIMULATED_RC_BRANCH: "${{ needs.setup.outputs.simulated_rc_branch }}"
+      _SIMULATED_MAIN_BRANCH: ${{ needs.setup.outputs.simulated_main_branch }}
+      _SIMULATED_FEATURE_BRANCH: ${{ needs.setup.outputs.simulated_feature_branch }}
+      _SIMULATED_RC_BRANCH: ${{ needs.setup.outputs.simulated_rc_branch }}
       _SIMULATED_PR_NUMBER: ${{ needs.setup.outputs.simulated_pr_number }}
       _CHERRY_PICK_BRANCH: ${{ needs.cherry-pick.outputs.cherry_pick_branch }}
       _CHERRY_PICK_PR_NUMBER: ${{ needs.cherry-pick.outputs.pr_number }}

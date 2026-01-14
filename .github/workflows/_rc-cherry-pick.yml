@@ -59,8 +59,13 @@ jobs:
             set -e        
             rc_branch=''
 
+            if [[ ! $_SOURCE_PR =~ ^[0-9]+$ ]]; then
+              echo "ERROR: PR number should only contain numbers. Invalid PR number: [$_SOURCE_PR]."
+              exit 1
+            fi
+
             if [[ -n $_LABEL_OVERRIDE ]]; then
-              pr_labels="[\"$_LABEL_OVERRIDE\"]"
+              pr_labels=$(jq -n --arg val "$_LABEL_OVERRIDE" '[$val]')
             else
               pr_labels=$(gh pr view "$_SOURCE_PR" --repo "${{ github.repository }}" --json labels --jq '[.labels[].name]')
             fi
@@ -78,6 +83,10 @@ jobs:
                   else
                     echo "✓ Found cherry-pick label: [$pr_label]"
                     rc_branch=$(echo "$pr_label" | sed 's/-cherry-pick$//g')
+                    if [[ ! $rc_branch =~ ^[a-zA-Z0-9/_-]+$ ]]; then
+                      echo "ERROR: Label [$pr_label] contains invalid branch name: [$rc_branch]."
+                      exit 1
+                    fi
                     echo "rc_branch=$rc_branch" >> $GITHUB_OUTPUT
                   fi
                 fi
@@ -94,8 +103,8 @@ jobs:
     needs: evaluate-pr
     if: ${{ needs.evaluate-pr.outputs.rc_branch != '' }}
     env:
-      _SOURCE_PR: "${{ inputs.source_pr }}"
-      _RC_BRANCH: "${{ needs.evaluate-pr.outputs.rc_branch }}"
+      _SOURCE_PR: ${{ inputs.source_pr }}
+      _RC_BRANCH: ${{ needs.evaluate-pr.outputs.rc_branch }}
     runs-on: ubuntu-24.04
     outputs:
       cherry_pick_branch: ${{ steps.create-branch.outputs.cherry_pick_branch }}
@@ -168,11 +177,11 @@ jobs:
           source_pr_url=$(gh pr view "$_SOURCE_PR" --json url --jq '.url')
 
           gh pr create \
-            --base $_RC_BRANCH \
-            --head $CHERRY_PICK_BRANCH \
+            --base "$_RC_BRANCH" \
+            --head "$CHERRY_PICK_BRANCH" \
             --title "Cherry-pick PR [#$_SOURCE_PR] to [$_RC_BRANCH]" \
             --body "Automated cherry-pick of PR [#$_SOURCE_PR]($source_pr_url)" \
-            --draft \
+            --draft
            
-          gh pr view "$CHERRY_PICK_BRANCH" --json number,baseRefName --jq "select(.baseRefName == \"$_RC_BRANCH\") | .number" > pr_num.txt   
-          echo "pr_num=$(cat pr_num.txt)" >> $GITHUB_OUTPUT
+          pr_num=$(gh pr view "$CHERRY_PICK_BRANCH" --json number --jq '.number')
+          echo "pr_number=$pr_num" >> $GITHUB_OUTPUT

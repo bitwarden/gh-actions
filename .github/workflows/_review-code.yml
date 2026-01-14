@@ -41,9 +41,20 @@ jobs:
       - name: Check for review label
         id: check-label
         env:
-          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          if echo "$LABELS" | grep -q '"ai-review"'; then
+          set -euo pipefail
+
+          if [ -z "${PR_NUMBER:-}" ]; then
+            echo "label_present=false" >> "$GITHUB_OUTPUT"
+            echo "⚠️ Validation: no pull_request context detected - skipping Claude review"
+            exit 0
+          fi
+
+          LABELS=$(gh pr view "$PR_NUMBER" --repo "$GH_REPO" --json labels -q '.labels[].name')
+          if printf '%s\n' "$LABELS" | grep -Fxq "ai-review"; then
             echo "label_present=true" >> "$GITHUB_OUTPUT"
             echo "✅ Validation: 'ai-review' label found"
           else
@@ -103,7 +114,7 @@ jobs:
 
       - name: Review with Claude Code
         timeout-minutes: 10
-        uses: anthropics/claude-code-action@0d1933529914177075d5bc3558ae3d047f188146 # v1.0.26
+        uses: anthropics/claude-code-action@1b8ee3b94104046d71fde52ec3557651ad8c0d71 # v1.0.29
         env:
           USE_AGENT_SDK: "true"
           USE_SIMPLE_PROMPT: "true"
@@ -120,4 +131,5 @@ jobs:
             After the agent completes, output only: "REVIEW COMPLETE"
           claude_args: |
             --verbose
+            --model opus
             --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(gh pr checks:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr review:--comment*),Bash(gh pr comment:*),Bash(gh api graphql*reviewThreads*-f owner=*-f repo=*-F pr=*:*),Bash(./scripts/get-review-threads.sh:*),mcp__github_comment__update_claude_comment,mcp__github_inline_comment__create_inline_comment,Skill"

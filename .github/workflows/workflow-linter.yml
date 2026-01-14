@@ -6,10 +6,6 @@ on:
       - .github/workflows/**
   merge_group:
     types: [checks_requested]
-  # pull_request_target: #force failure of workflow
-  #   types: [synchronize, opened, reopened, edited]
-  #   paths:
-  #     - .github/workflows/**
   workflow_call:
     secrets:
       AZURE_SUBSCRIPTION_ID:

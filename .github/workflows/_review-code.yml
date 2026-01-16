@@ -119,7 +119,6 @@ jobs:
           token: ${{ github.token }}
           pr_number: ${{ github.event.pull_request.number }}
           repository: ${{ github.repository }}
-          output_path: /tmp/pr-threads.json
 
       - name: Review with Claude Code
         timeout-minutes: 10
@@ -135,4 +134,4 @@ jobs:
           claude_args: |
             --verbose
             --model opus
-            --allowedTools "Skill,Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(gh pr checks:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr review:--comment*),Bash(gh pr comment:*),Bash(gh api graphql*reviewThreads*-f owner=*-f repo=*-F pr=*:*),Bash(./scripts/get-review-threads.sh:*),mcp__github_comment__update_claude_comment,mcp__github_inline_comment__create_inline_comment"
+            --allowedTools "Task,Skill,Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(gh pr checks:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr review:--comment*),Bash(gh pr comment:*),Bash(gh api graphql*reviewThreads*-f owner=*-f repo=*-F pr=*:*),Bash(./scripts/get-review-threads.sh:*),mcp__github_comment__update_claude_comment,mcp__github_inline_comment__create_inline_comment"

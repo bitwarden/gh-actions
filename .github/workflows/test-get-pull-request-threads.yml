@@ -11,6 +11,10 @@ on:
         description: "PR number to test with (defaults to a recent PR)"
         required: false
         type: number
+      repository:
+        description: "Repository to test against in owner/repo format (defaults to gh-actions repo)"
+        required: false
+        type: string
 
 permissions:
   pull-requests: read
@@ -26,12 +30,15 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Determine PR number
+      - name: Determine PR number and repository
         id: pr
         env:
           INPUT_PR: ${{ inputs.pr_number }}
           EVENT_PR: ${{ github.event.pull_request.number }}
+          INPUT_REPO: ${{ inputs.repository }}
+          DEFAULT_REPO: ${{ github.repository }}
         run: |
+          # Determine PR number
           if [[ -n "$INPUT_PR" ]]; then
             echo "number=$INPUT_PR" >> "$GITHUB_OUTPUT"
             echo "Using input PR number: $INPUT_PR"
@@ -43,40 +50,43 @@ jobs:
             exit 1
           fi
 
+          # Determine repository
+          if [[ -n "$INPUT_REPO" ]]; then
+            echo "repository=$INPUT_REPO" >> "$GITHUB_OUTPUT"
+            echo "Using input repository: $INPUT_REPO"
+          else
+            echo "repository=$DEFAULT_REPO" >> "$GITHUB_OUTPUT"
+            echo "Using default repository: $DEFAULT_REPO"
+          fi
+
       - name: Retrieve PR threads
         id: threads
         uses: ./get-pull-request-threads
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           pr_number: ${{ steps.pr.outputs.number }}
+          repository: ${{ steps.pr.outputs.repository }}
 
       - name: Verify outputs are set
         env:
-          THREADS_FILE: ${{ steps.threads.outputs.threads_file }}
           TOTAL_THREADS: ${{ steps.threads.outputs.total_threads }}
           UNRESOLVED_COUNT: ${{ steps.threads.outputs.unresolved_count }}
           RESOLVED_COUNT: ${{ steps.threads.outputs.resolved_count }}
         run: |
-          echo "Threads file: $THREADS_FILE"
           echo "Total threads: $TOTAL_THREADS"
           echo "Unresolved: $UNRESOLVED_COUNT"
           echo "Resolved: $RESOLVED_COUNT"
 
           # Verify outputs are not empty
-          if [[ -z "$THREADS_FILE" ]]; then
-            echo "::error::threads_file output is empty"
-            exit 1
-          fi
-
           if [[ -z "$TOTAL_THREADS" ]]; then
             echo "::error::total_threads output is empty"
             exit 1
           fi
 
       - name: Verify JSON file exists and is valid
-        env:
-          THREADS_FILE: ${{ steps.threads.outputs.threads_file }}
         run: |
+          THREADS_FILE="/tmp/pr-threads.json"
+
           if [[ ! -f "$THREADS_FILE" ]]; then
             echo "::error::Threads file does not exist: $THREADS_FILE"
             exit 1
@@ -108,12 +118,15 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Determine PR number
+      - name: Determine PR number and repository
         id: pr
         env:
           INPUT_PR: ${{ inputs.pr_number }}
           EVENT_PR: ${{ github.event.pull_request.number }}
+          INPUT_REPO: ${{ inputs.repository }}
+          DEFAULT_REPO: ${{ github.repository }}
         run: |
+          # Determine PR number
           if [[ -n "$INPUT_PR" ]]; then
             echo "number=$INPUT_PR" >> "$GITHUB_OUTPUT"
           elif [[ -n "$EVENT_PR" ]]; then
@@ -123,25 +136,26 @@ jobs:
             exit 1
           fi
 
+          # Determine repository
+          if [[ -n "$INPUT_REPO" ]]; then
+            echo "repository=$INPUT_REPO" >> "$GITHUB_OUTPUT"
+          else
+            echo "repository=$DEFAULT_REPO" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Retrieve PR threads with custom path
         id: threads
         uses: ./get-pull-request-threads
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           pr_number: ${{ steps.pr.outputs.number }}
+          repository: ${{ steps.pr.outputs.repository }}
           output_path: /tmp/custom-threads-output.json
 
       - name: Verify custom path was used
-        env:
-          THREADS_FILE: ${{ steps.threads.outputs.threads_file }}
         run: |
           if [[ ! -f "/tmp/custom-threads-output.json" ]]; then
             echo "::error::Custom output path was not used"
-            exit 1
-          fi
-
-          if [[ "$THREADS_FILE" != "/tmp/custom-threads-output.json" ]]; then
-            echo "::error::threads_file output does not match custom path"
             exit 1
           fi
 
@@ -156,12 +170,15 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Determine PR number
+      - name: Determine PR number and repository
         id: pr
         env:
           INPUT_PR: ${{ inputs.pr_number }}
           EVENT_PR: ${{ github.event.pull_request.number }}
+          INPUT_REPO: ${{ inputs.repository }}
+          DEFAULT_REPO: ${{ github.repository }}
         run: |
+          # Determine PR number
           if [[ -n "$INPUT_PR" ]]; then
             echo "number=$INPUT_PR" >> "$GITHUB_OUTPUT"
           elif [[ -n "$EVENT_PR" ]]; then
@@ -171,12 +188,20 @@ jobs:
             exit 1
           fi
 
+          # Determine repository
+          if [[ -n "$INPUT_REPO" ]]; then
+            echo "repository=$INPUT_REPO" >> "$GITHUB_OUTPUT"
+          else
+            echo "repository=$DEFAULT_REPO" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Retrieve PR threads
         id: threads
         uses: ./get-pull-request-threads
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           pr_number: ${{ steps.pr.outputs.number }}
+          repository: ${{ steps.pr.outputs.repository }}
 
       - name: Conditional on thread count
         if: steps.threads.outputs.total_threads != '0'

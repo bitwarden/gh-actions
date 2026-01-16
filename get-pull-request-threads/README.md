@@ -11,22 +11,21 @@ Retrieve pull request review threads (including resolved) via GraphQL API.
 
 ## Inputs
 
-| Input         | Description                                 | Required | Default                    |
-| ------------- | ------------------------------------------- | -------- | -------------------------- |
-| `token`       | GitHub token with pull-requests: read       | Yes      | -                          |
-| `pr_number`   | Pull request number to retrieve threads for | Yes      | -                          |
-| `repository`  | Repository in owner/repo format             | No       | `${{ github.repository }}` |
-| `output_path` | Path to write the JSON output               | No       | `/tmp/pr-threads.json`     |
-| `max_threads` | Maximum number of threads to retrieve       | No       | `100`                      |
+| Input         | Description                                 | Required | Default                |
+| ------------- | ------------------------------------------- | -------- | ---------------------- |
+| `token`       | GitHub token with pull-requests: read       | Yes      | -                      |
+| `pr_number`   | Pull request number to retrieve threads for | Yes      | -                      |
+| `repository`  | Repository in owner/repo format             | Yes      | -                      |
+| `output_path` | Path to write the JSON output               | No       | `/tmp/pr-threads.json` |
+| `max_threads` | Maximum number of threads to retrieve       | No       | `100`                  |
 
 ## Outputs
 
-| Output             | Description                     |
-| ------------------ | ------------------------------- |
-| `threads_file`     | Path to the generated JSON file |
-| `total_threads`    | Total number of threads found   |
-| `unresolved_count` | Number of unresolved threads    |
-| `resolved_count`   | Number of resolved threads      |
+| Output             | Description                   |
+| ------------------ | ----------------------------- |
+| `total_threads`    | Total number of threads found |
+| `unresolved_count` | Number of unresolved threads  |
+| `resolved_count`   | Number of resolved threads    |
 
 ## Usage Examples
 
@@ -37,6 +36,7 @@ Retrieve pull request review threads (including resolved) via GraphQL API.
   with:
     token: ${{ secrets.GITHUB_TOKEN }}
     pr_number: ${{ github.event.pull_request.number }}
+    repository: ${{ github.repository }}
 ```
 
 ### Custom Output Path
@@ -47,9 +47,10 @@ Retrieve pull request review threads (including resolved) via GraphQL API.
   with:
     token: ${{ secrets.GITHUB_TOKEN }}
     pr_number: ${{ github.event.pull_request.number }}
+    repository: ${{ github.repository }}
     output_path: /tmp/review-context.json
 
-- run: cat ${{ steps.threads.outputs.threads_file }}
+- run: cat /tmp/review-context.json
 ```
 
 ## Output JSON Schema

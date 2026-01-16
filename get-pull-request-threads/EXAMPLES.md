@@ -10,6 +10,7 @@ steps:
     with:
       token: ${{ secrets.GITHUB_TOKEN }}
       pr_number: ${{ github.event.pull_request.number }}
+      repository: ${{ github.repository }}
 ```
 
 ### Conditional on Thread Count
@@ -21,6 +22,7 @@ steps:
     with:
       token: ${{ secrets.GITHUB_TOKEN }}
       pr_number: ${{ github.event.pull_request.number }}
+      repository: ${{ github.repository }}
 
   - if: steps.threads.outputs.unresolved_count != '0'
     run: echo "There are ${{ steps.threads.outputs.unresolved_count }} unresolved threads"
@@ -48,6 +50,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           pr_number: ${{ github.event.pull_request.number }}
+          repository: ${{ github.repository }}
           output_path: /tmp/existing-threads.json
 
       - name: Run AI code review
@@ -102,6 +105,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           pr_number: ${{ inputs.pr_number }}
+          repository: ${{ github.repository }}
 
       - name: Review
         if: steps.threads.outputs.unresolved_count != '0'
@@ -117,7 +121,6 @@ jobs:
   fetch-context:
     runs-on: ubuntu-latest
     outputs:
-      threads_file: ${{ steps.threads.outputs.threads_file }}
       has_unresolved: ${{ steps.threads.outputs.unresolved_count != '0' }}
     steps:
       - id: threads
@@ -125,6 +128,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           pr_number: ${{ github.event.pull_request.number }}
+          repository: ${{ github.repository }}
 
   process-threads:
     needs: fetch-context

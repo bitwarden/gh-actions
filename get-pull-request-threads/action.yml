@@ -14,8 +14,7 @@ inputs:
     required: true
   repository:
     description: "Repository in owner/repo format"
-    required: false
-    default: "${{ github.repository }}"
+    required: true
   output_path:
     description: "Path to write the JSON output"
     required: false
@@ -23,12 +22,9 @@ inputs:
   max_threads:
     description: "Maximum number of threads to retrieve"
     required: false
-    default: "100"
+    default: 100
 
 outputs:
-  threads_file:
-    description: "Path to the generated JSON file"
-    value: ${{ steps.retrieve-threads.outputs.threads_file }}
   total_threads:
     description: "Total number of threads retrieved"
     value: ${{ steps.retrieve-threads.outputs.total_threads }}
@@ -194,7 +190,6 @@ runs:
         UNRESOLVED=$(echo "$OUTPUT_JSON" | jq -r '.unresolved_count')
         RESOLVED=$(echo "$OUTPUT_JSON" | jq -r '.resolved_count')
 
-        echo "threads_file=$OUTPUT_PATH" >> "$GITHUB_OUTPUT"
         echo "total_threads=$TOTAL" >> "$GITHUB_OUTPUT"
         echo "unresolved_count=$UNRESOLVED" >> "$GITHUB_OUTPUT"
         echo "resolved_count=$RESOLVED" >> "$GITHUB_OUTPUT"

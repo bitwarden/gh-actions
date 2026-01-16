@@ -1,0 +1,206 @@
+name: Test Get Pull Request Threads Action
+
+on:
+  pull_request:
+    paths:
+      - "get-pull-request-threads/**"
+      - ".github/workflows/test-get-pull-request-threads.yml"
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to test with (defaults to a recent PR)"
+        required: false
+        type: number
+
+permissions:
+  pull-requests: read
+  contents: read
+
+jobs:
+  test-basic-get:
+    name: Test basic get
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+
+      - name: Determine PR number
+        id: pr
+        env:
+          INPUT_PR: ${{ inputs.pr_number }}
+          EVENT_PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [[ -n "$INPUT_PR" ]]; then
+            echo "number=$INPUT_PR" >> "$GITHUB_OUTPUT"
+            echo "Using input PR number: $INPUT_PR"
+          elif [[ -n "$EVENT_PR" ]]; then
+            echo "number=$EVENT_PR" >> "$GITHUB_OUTPUT"
+            echo "Using event PR number: $EVENT_PR"
+          else
+            echo "::error::No PR number available. Run on a PR or provide pr_number input."
+            exit 1
+          fi
+
+      - name: Retrieve PR threads
+        id: threads
+        uses: ./get-pull-request-threads
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pr_number: ${{ steps.pr.outputs.number }}
+
+      - name: Verify outputs are set
+        env:
+          THREADS_FILE: ${{ steps.threads.outputs.threads_file }}
+          TOTAL_THREADS: ${{ steps.threads.outputs.total_threads }}
+          UNRESOLVED_COUNT: ${{ steps.threads.outputs.unresolved_count }}
+          RESOLVED_COUNT: ${{ steps.threads.outputs.resolved_count }}
+        run: |
+          echo "Threads file: $THREADS_FILE"
+          echo "Total threads: $TOTAL_THREADS"
+          echo "Unresolved: $UNRESOLVED_COUNT"
+          echo "Resolved: $RESOLVED_COUNT"
+
+          # Verify outputs are not empty
+          if [[ -z "$THREADS_FILE" ]]; then
+            echo "::error::threads_file output is empty"
+            exit 1
+          fi
+
+          if [[ -z "$TOTAL_THREADS" ]]; then
+            echo "::error::total_threads output is empty"
+            exit 1
+          fi
+
+      - name: Verify JSON file exists and is valid
+        env:
+          THREADS_FILE: ${{ steps.threads.outputs.threads_file }}
+        run: |
+          if [[ ! -f "$THREADS_FILE" ]]; then
+            echo "::error::Threads file does not exist: $THREADS_FILE"
+            exit 1
+          fi
+
+          # Validate JSON structure
+          if ! jq empty "$THREADS_FILE" 2>/dev/null; then
+            echo "::error::Invalid JSON in threads file"
+            exit 1
+          fi
+
+          # Verify required fields exist
+          jq -e '.pr_number' "$THREADS_FILE" > /dev/null || { echo "::error::Missing pr_number field"; exit 1; }
+          jq -e '.repository' "$THREADS_FILE" > /dev/null || { echo "::error::Missing repository field"; exit 1; }
+          jq -e '.retrieved_at' "$THREADS_FILE" > /dev/null || { echo "::error::Missing retrieved_at field"; exit 1; }
+          jq -e '.threads' "$THREADS_FILE" > /dev/null || { echo "::error::Missing threads field"; exit 1; }
+          jq -e '.total_threads' "$THREADS_FILE" > /dev/null || { echo "::error::Missing total_threads field"; exit 1; }
+
+          echo "JSON structure validated successfully"
+          echo "--- JSON Content ---"
+          jq '.' "$THREADS_FILE"
+
+  test-custom-output-path:
+    name: Test custom output path
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+
+      - name: Determine PR number
+        id: pr
+        env:
+          INPUT_PR: ${{ inputs.pr_number }}
+          EVENT_PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [[ -n "$INPUT_PR" ]]; then
+            echo "number=$INPUT_PR" >> "$GITHUB_OUTPUT"
+          elif [[ -n "$EVENT_PR" ]]; then
+            echo "number=$EVENT_PR" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::No PR number available"
+            exit 1
+          fi
+
+      - name: Retrieve PR threads with custom path
+        id: threads
+        uses: ./get-pull-request-threads
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pr_number: ${{ steps.pr.outputs.number }}
+          output_path: /tmp/custom-threads-output.json
+
+      - name: Verify custom path was used
+        env:
+          THREADS_FILE: ${{ steps.threads.outputs.threads_file }}
+        run: |
+          if [[ ! -f "/tmp/custom-threads-output.json" ]]; then
+            echo "::error::Custom output path was not used"
+            exit 1
+          fi
+
+          if [[ "$THREADS_FILE" != "/tmp/custom-threads-output.json" ]]; then
+            echo "::error::threads_file output does not match custom path"
+            exit 1
+          fi
+
+          echo "Custom output path verified successfully"
+
+  test-output-conditional:
+    name: Test output conditional logic
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+
+      - name: Determine PR number
+        id: pr
+        env:
+          INPUT_PR: ${{ inputs.pr_number }}
+          EVENT_PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [[ -n "$INPUT_PR" ]]; then
+            echo "number=$INPUT_PR" >> "$GITHUB_OUTPUT"
+          elif [[ -n "$EVENT_PR" ]]; then
+            echo "number=$EVENT_PR" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::No PR number available"
+            exit 1
+          fi
+
+      - name: Retrieve PR threads
+        id: threads
+        uses: ./get-pull-request-threads
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pr_number: ${{ steps.pr.outputs.number }}
+
+      - name: Conditional on thread count
+        if: steps.threads.outputs.total_threads != '0'
+        env:
+          TOTAL_THREADS: ${{ steps.threads.outputs.total_threads }}
+        run: echo "PR has $TOTAL_THREADS threads"
+
+      - name: Conditional on no threads
+        if: steps.threads.outputs.total_threads == '0'
+        run: echo "PR has no threads (fresh PR)"
+
+      - name: Conditional on unresolved
+        if: steps.threads.outputs.unresolved_count != '0'
+        env:
+          UNRESOLVED_COUNT: ${{ steps.threads.outputs.unresolved_count }}
+        run: echo "PR has $UNRESOLVED_COUNT unresolved threads"
+
+      - name: Always runs - report summary
+        env:
+          TOTAL: ${{ steps.threads.outputs.total_threads }}
+          UNRESOLVED: ${{ steps.threads.outputs.unresolved_count }}
+          RESOLVED: ${{ steps.threads.outputs.resolved_count }}
+        run: |
+          echo "=== Thread Summary ==="
+          echo "Total: $TOTAL"
+          echo "Unresolved: $UNRESOLVED"
+          echo "Resolved: $RESOLVED"

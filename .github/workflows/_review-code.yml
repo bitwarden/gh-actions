@@ -112,6 +112,15 @@ jobs:
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
 
+      - name: Retrieve existing PR threads
+        id: retrieve-pull-request-threads
+        uses: bitwarden/gh-actions/get-pull-request-threads@main
+        with:
+          token: ${{ github.token }}
+          pr_number: ${{ github.event.pull_request.number }}
+          repository: ${{ github.repository }}
+          output_path: /tmp/pr-threads.json
+
       - name: Review with Claude Code
         timeout-minutes: 10
         uses: anthropics/claude-code-action@1b8ee3b94104046d71fde52ec3557651ad8c0d71 # v1.0.29

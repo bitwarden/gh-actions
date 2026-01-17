@@ -1,0 +1,197 @@
+name: "Get Pull Request Threads"
+description: "Retrieves pull request review threads (including resolved) via GraphQL API"
+author: "Bitwarden"
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  token:
+    description: "GitHub token for API access"
+    required: true
+  pr_number:
+    description: "Pull request number to retrieve threads for"
+    required: true
+  repository:
+    description: "Repository in owner/repo format"
+    required: true
+  output_path:
+    description: "Path to write the JSON output"
+    required: false
+    default: "/tmp/pr-threads.json"
+  max_threads:
+    description: "Maximum number of threads to retrieve"
+    required: false
+    default: 100
+
+outputs:
+  total_threads:
+    description: "Total number of threads retrieved"
+    value: ${{ steps.retrieve-threads.outputs.total_threads }}
+  unresolved_count:
+    description: "Number of unresolved threads"
+    value: ${{ steps.retrieve-threads.outputs.unresolved_count }}
+  resolved_count:
+    description: "Number of resolved threads"
+    value: ${{ steps.retrieve-threads.outputs.resolved_count }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Retrieve pull request threads
+      id: retrieve-threads
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        PR_NUMBER: ${{ inputs.pr_number }}
+        REPOSITORY: ${{ inputs.repository }}
+        OUTPUT_PATH: ${{ inputs.output_path }}
+        MAX_THREADS: ${{ inputs.max_threads }}
+      run: |
+        set -e
+
+        # =============================================================
+        # Input Validation
+        # =============================================================
+
+        if [[ -z "$PR_NUMBER" ]] || [[ ! "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+          echo "::error::Invalid pr_number: must be a positive integer"
+          exit 1
+        fi
+
+        if [[ -z "$REPOSITORY" ]] || [[ ! "$REPOSITORY" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]]; then
+          echo "::error::Invalid repository format: must be 'owner/repo'"
+          exit 1
+        fi
+
+        if [[ -z "$MAX_THREADS" ]] || [[ ! "$MAX_THREADS" =~ ^[0-9]+$ ]] || [[ "$MAX_THREADS" -lt 1 ]]; then
+          echo "::error::Invalid max_threads: must be a positive integer"
+          exit 1
+        fi
+
+        # Parse owner and repo
+        OWNER="${REPOSITORY%/*}"
+        REPO="${REPOSITORY#*/}"
+
+        echo "Retrieving threads for PR #${PR_NUMBER} in ${OWNER}/${REPO}"
+
+        # =============================================================
+        # Retrieve Review Threads via GraphQL
+        # =============================================================
+
+        GRAPHQL_QUERY='
+        query($owner: String!, $repo: String!, $pr: Int!, $maxThreads: Int!) {
+          repository(owner: $owner, name: $repo) {
+            pullRequest(number: $pr) {
+              reviewThreads(first: $maxThreads) {
+                nodes {
+                  id
+                  isResolved
+                  isOutdated
+                  path
+                  line
+                  startLine
+                  diffSide
+                  comments(first: 10) {
+                    nodes {
+                      id
+                      body
+                      author { login }
+                      createdAt
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }'
+
+        if ! THREADS_RESPONSE=$(gh api graphql \
+          -f query="$GRAPHQL_QUERY" \
+          -f owner="$OWNER" \
+          -f repo="$REPO" \
+          -F pr="$PR_NUMBER" \
+          -F maxThreads="$MAX_THREADS" 2>&1); then
+          echo "::error::Failed to retrieve review threads: $THREADS_RESPONSE"
+          exit 1
+        fi
+
+        # =============================================================
+        # Retrieve General PR Comments
+        # =============================================================
+
+        if ! COMMENTS_RESPONSE=$(gh pr view "$PR_NUMBER" \
+          --repo "$REPOSITORY" \
+          --json comments 2>&1); then
+          echo "::warning::Failed to retrieve general comments: $COMMENTS_RESPONSE"
+          COMMENTS_RESPONSE='{"comments":[]}'
+        fi
+
+        # =============================================================
+        # Process and Merge Results
+        # =============================================================
+
+        TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+        # Build final JSON output using jq
+        OUTPUT_JSON=$(jq -n \
+          --argjson threads "$THREADS_RESPONSE" \
+          --argjson comments "$COMMENTS_RESPONSE" \
+          --arg pr_number "$PR_NUMBER" \
+          --arg repository "$REPOSITORY" \
+          --arg timestamp "$TIMESTAMP" \
+          '
+          {
+            pr_number: ($pr_number | tonumber),
+            repository: $repository,
+            retrieved_at: $timestamp,
+            threads: (
+              $threads.data.repository.pullRequest.reviewThreads.nodes
+              | map({
+                  id: .id,
+                  path: .path,
+                  line: .line,
+                  start_line: .startLine,
+                  diff_side: .diffSide,
+                  is_resolved: .isResolved,
+                  is_outdated: .isOutdated,
+                  comments: (.comments.nodes | map({
+                    id: .id,
+                    author: .author.login,
+                    body: .body,
+                    created_at: .createdAt
+                  }))
+                })
+            ),
+            general_comments: (
+              $comments.comments | map({
+                author: .author.login,
+                body: .body,
+                created_at: .createdAt
+              })
+            )
+          }
+          | . + {
+              total_threads: (.threads | length),
+              unresolved_count: ([.threads[] | select(.is_resolved == false)] | length),
+              resolved_count: ([.threads[] | select(.is_resolved == true)] | length)
+            }
+          ')
+
+        # =============================================================
+        # Write Output and Set Action Outputs
+        # =============================================================
+
+        echo "$OUTPUT_JSON" > "$OUTPUT_PATH"
+        echo "Wrote threads to $OUTPUT_PATH"
+
+        # Extract counts for outputs
+        TOTAL=$(echo "$OUTPUT_JSON" | jq -r '.total_threads')
+        UNRESOLVED=$(echo "$OUTPUT_JSON" | jq -r '.unresolved_count')
+        RESOLVED=$(echo "$OUTPUT_JSON" | jq -r '.resolved_count')
+
+        echo "total_threads=$TOTAL" >> "$GITHUB_OUTPUT"
+        echo "unresolved_count=$UNRESOLVED" >> "$GITHUB_OUTPUT"
+        echo "resolved_count=$RESOLVED" >> "$GITHUB_OUTPUT"
+
+        echo "Found $TOTAL threads ($UNRESOLVED unresolved, $RESOLVED resolved)"

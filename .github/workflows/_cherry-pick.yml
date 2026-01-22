@@ -1,0 +1,159 @@
+name: Automated cherry pick - Reusable Workflow
+
+on:
+  workflow_call:
+    inputs:
+      source_pr:
+        description: 'Source PR to cherry pick from'
+        required: true
+        type: string
+      dest_branch:
+        description: 'Destination branch to cherry pick to'
+        required: true
+        type: string
+    secrets:
+      AZURE_SUBSCRIPTION_ID:
+        required: true
+      AZURE_TENANT_ID:
+        required: true
+      AZURE_CLIENT_ID:
+        required: true
+
+permissions: {}
+
+jobs:
+  cherry-pick:
+    name: Cherry Pick Commit
+    env:
+      _SOURCE_PR: ${{ inputs.source_pr }}
+      _DEST_BRANCH: ${{ inputs.dest_branch }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Log in to Azure
+        uses: bitwarden/gh-actions/azure-login@main
+        with:
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
+
+      - name: Get Azure Key Vault secrets
+        id: get-kv-secrets
+        uses: bitwarden/gh-actions/get-keyvault-secrets@main
+        with:
+          keyvault: gh-org-bitwarden
+          secrets: "BW-GHAPP-ID,BW-GHAPP-KEY"
+
+      - name: Log out from Azure
+        uses: bitwarden/gh-actions/azure-logout@main
+
+      - name: Generate GH App token
+        uses: actions/create-github-app-token@67018539274d69449ef7c02e8e71183d1719ab42 # v2.1.4
+        id: app-token
+        with:
+          app-id: ${{ steps.get-kv-secrets.outputs.BW-GHAPP-ID }}
+          private-key: ${{ steps.get-kv-secrets.outputs.BW-GHAPP-KEY }}
+          permission-contents: write # for pushing to dest branch
+
+      - name: Checkout repo
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          token: ${{ github.token }}
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Validate destination branch
+        id: validate_dest_branch
+        run: |
+           if ! git rev-parse --quiet --verify origin/"$_DEST_BRANCH" >/dev/null; then
+            echo "ERROR: Could not find destination branch [$_DEST_BRANCH]. Please confirm the branch exists and the name is correct."
+            exit 1
+           fi
+
+      - name: Validate PR
+        id: validate_pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: |
+          # get PR info
+          if ! pr_info=$(gh pr view "$_SOURCE_PR" --json state,baseRefName,mergeCommit); then
+            echo "ERROR: Could not gather data for PR [#$_SOURCE_PR]. Please verify the number."
+            exit 1
+          fi
+
+          pr_state=$(echo "$pr_info" | jq -r .state)
+          pr_base_ref=$(echo "$pr_info" | jq -r .baseRefName)
+          pr_commit=$(echo "$pr_info" | jq -r .mergeCommit.oid)
+
+          echo "INFO: PR state: [$pr_state]"
+          echo "INFO: PR base ref: [$pr_base_ref]"
+          echo "INFO: PR commit: [$pr_commit]"
+          echo "INFO: Calling workflow: [$WORKFLOW_REF]"
+
+          # if this is being run by the test-cherry-pick workflow, allow picking from the simulated main branch
+          #if [[ $WORKFLOW_REF == "bitwarden/gh-actions/.github/workflows/test-cherry-pick.yml@refs/heads/main" ]]; then ## PRODUCTION
+          if [[ $WORKFLOW_REF == "bitwarden/gh-actions/.github/workflows/test-cherry-pick.yml@refs/pull/555/merge" ]]; then  ## NEEDED FOR TESTING
+              echo "INFO: This workflow is being run by the [test-cherry-pick.yml] workflow."
+              if [[ ${pr_base_ref:0:21} != "cherry-pick-sim-main-" ]]; then
+                echo "ERROR: Invalid test base ref: [$pr_base_ref]. Test ref/branch must match [cherry-pick-sim-main-*]"
+                exit 1
+              fi
+          else
+            if [[ $pr_base_ref != 'main' ]]; then      
+              echo "ERROR: Invalid PR base ref: [$pr_base_ref]. Base ref/branch must be [main]."
+              exit 1
+            fi
+          fi
+
+          if [[ $pr_state != 'MERGED' ]]; then
+            echo "ERROR: Invalid PR state: [$pr_state]. State must be [MERGED]."
+            exit 1
+          fi
+
+          if [[ -z $pr_commit ]]; then
+            echo "ERROR: GitHub API returned empty commit for PR. Cannot continue."
+            exit 1
+          fi
+
+          echo "pr_commit=$pr_commit" >> $GITHUB_OUTPUT
+
+      - name: Checkout dest branch
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          ref: ${{ inputs.dest_branch }}
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+
+      - name: Cherry pick
+        env:
+          PR_COMMIT: ${{ steps.validate_pr.outputs.pr_commit }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          echo "INFO: Cherry-picking commit [$PR_COMMIT] from PR [#$_SOURCE_PR] to branch [$_DEST_BRANCH]"
+          if ! git cherry-pick "$PR_COMMIT"; then
+            echo "ERROR: Cherry-pick failed for commit [$PR_COMMIT]"
+            git cherry-pick --abort
+            exit 1
+          fi
+          echo 'INFO: Cherry pick successful!'
+
+          echo "INFO: Pushing local [$_DEST_BRANCH] branch to origin"
+          if ! git push origin "$_DEST_BRANCH"; then
+            echo "ERROR: Failed to push to origin."
+            exit 1
+          fi
+
+          echo "INFO: Adding 'cherry-picked' label to PR [#$_SOURCE_PR]"
+          if ! gh pr edit "$_SOURCE_PR" --add-label "cherry-picked"; then
+            echo "WARN: Failed to add label to PR [#$_SOURCE_PR]"
+          fi
+

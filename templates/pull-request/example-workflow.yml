@@ -30,19 +30,19 @@ permissions:
   contents: read
 
 jobs:
-  check-trigger:
-    name: Check trigger source
+  check-event-source:
+    name: Check event and source
     runs-on: ubuntu-24.04
     # Only run this job if the event is workflow_call or the PR is from the same repository (not a fork)
     # This avoid running it twice: once for pull_request from fork and once from pull_request_target
     if: github.event_name == 'workflow_call' || github.event.pull_request.head.repo.full_name == github.repository
     steps:
-      - name: Check PR source and event
+      - name: Check PR event and source
         run: echo "This PR is from the same repository (Not a fork) or called via workflow_call."
   example-job:
     name: Run example job
     runs-on: ubuntu-24.04
-    needs: check-trigger # Only run if intended, otherwise skip
+    needs: check-event-source # Only run if intended, otherwise skip
     permissions:
       contents: read
       id-token: write # Required if you need to authenticate to external services

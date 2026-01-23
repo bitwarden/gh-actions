@@ -61,20 +61,6 @@ Safely handles fork PRs needing secrets. Triggered by `pull_request_target` (tar
 3. **Customize target workflow**: Update name, workflow reference in `uses:`, paths, permissions, and inputs
 4. **Test both scenarios**: Create internal PR (should trigger main workflow) and fork PR (should trigger target workflow with failed check-run)
 
-**Example customization**:
-```yaml
-# In main workflow
-- name: Deploy
-  run: az webapp deploy
-  env:
-    AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
-
-# In target workflow
-uses: ./.github/workflows/your-workflow.yml
-with:
-  environment: 'staging'
-```
-
 ## Best Practices
 
 **DO**:

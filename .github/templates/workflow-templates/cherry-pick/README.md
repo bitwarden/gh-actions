@@ -4,7 +4,7 @@
 The `cherry-pick.yml` provides an automated, on-demand way to cherry-pick commits from merged PRs into destination branches (typically `rc` or `hotfix-rc` branches). This workflow is triggered via `workflow_dispatch`, allowing you to specify which PR to cherry-pick and where to cherry-pick it to.
 
 ## Key Features
-- **Manual Control**: Trigger cherry-picks on-demand via GitHub UI or API
+- **Manual Control**: Trigger cherry-picks on-demand via a GitHub workflow run
 - **Configurable Destination Branches**: Allow cherry-picking to any branch, or restrict to specific allow-listed branches
 - **Automatic Labeling**: Successfully cherry-picked PRs are automatically labeled with `cherry-picked`
 - **Validation**: Ensures source PR is merged to `main` and destination branch exists

@@ -139,7 +139,7 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           echo "INFO: Cherry-picking commit [$PR_COMMIT] from PR [#$_SOURCE_PR] to branch [$_DEST_BRANCH]"
-          if ! git cherry-pick "$PR_COMMIT"; then
+          if ! git cherry-pick -x "$PR_COMMIT"; then
             echo "ERROR: Cherry-pick failed for commit [$PR_COMMIT]"
             git cherry-pick --abort
             exit 1

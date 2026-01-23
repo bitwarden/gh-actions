@@ -1,7 +1,7 @@
 # Cherry-pick Reusable Workflow
 
 ## Description
-The `cherry-pick.yml` provides a automated, on-demand way to cherry-pick commits from merged PRs into destination branches (typically RC branches). This workflow is triggered via `workflow_dispatch`, allowing you to specify which PR to cherry-pick and where to cherry-pick it to.
+The `cherry-pick.yml` provides an automated, on-demand way to cherry-pick commits from merged PRs into destination branches (typically `rc` or `hotfix-rc` branches). This workflow is triggered via `workflow_dispatch`, allowing you to specify which PR to cherry-pick and where to cherry-pick it to.
 
 ## Key Features
 - **Manual Control**: Trigger cherry-picks on-demand via GitHub UI or API

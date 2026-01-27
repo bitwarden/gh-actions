@@ -163,4 +163,6 @@ jobs:
             ARGS+=("-Dsonar.pullrequest.key=${_PULL_REQUEST_KEY}")
           fi
 
+          ARGS+=("-Dsonar.token=${_SONAR_TOKEN}")
+
           mvn clean install -Dgpg.skip=true sonar:sonar "${ARGS[@]}"

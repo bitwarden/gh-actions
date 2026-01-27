@@ -277,7 +277,6 @@ jobs:
         env:
           TAG: ${{ steps.get_latest_draft.outputs.latest_draft_tag }}
           GH_TOKEN: ${{ github.token }}
-          PRODUCT: ${{ inputs.release_name }}
           LATEST: ${{ inputs.make_latest }}
         run: |
           if [ "$LATEST" ]; then

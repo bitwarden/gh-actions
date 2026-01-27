@@ -13,7 +13,7 @@ The `cherry-pick.yml` provides an automated, on-demand way to cherry-pick commit
 
 ### Setup
 1. Copy the `cherry-pick.yml` workflow template into your repository's `.github/workflows/` directory
-2. Update `cherry-pick.yml` with either `string` or `choice` input for the `dest_branch` input. Remove the other type from the yaml. Optionally update the `_DEST_BRANCH_ALLWOED` variable for validating the `dest_branch` string using a regex.
+2. Update `cherry-pick.yml` with either `string` or `choice` input for the `dest_branch` input. Remove the other type from the yaml. Optionally update the `dest_branch_allowed` input parameter for validating the `dest_branch` string using a regex.
 
 ### Usage
 1. Navigate to **Actions** → **Automated cherry pick** in your repository

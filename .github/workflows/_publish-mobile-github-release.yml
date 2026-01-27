@@ -26,6 +26,10 @@ on:
         description: 'Type of the project (e.g. "android" or "ios")'
         type: string
         required: true
+      make_latest: 
+        description: "Whether to mark the release as latest and non-prerelease"
+        type: boolean
+        required: true
       dry_run:
         type: boolean
         description: "Run the workflow in dry-run mode without making any changes"
@@ -273,9 +277,9 @@ jobs:
         env:
           TAG: ${{ steps.get_latest_draft.outputs.latest_draft_tag }}
           GH_TOKEN: ${{ github.token }}
-          PRODUCT: ${{ inputs.release_name }}
+          LATEST: ${{ inputs.make_latest }}
         run: |
-          if [ "$PRODUCT" = "Password Manager" ]; then
+          if [ "$LATEST" ]; then
             gh release edit "$TAG" --prerelease=false --latest --draft=false
           else
             gh release edit "$TAG" --prerelease=false --draft=false

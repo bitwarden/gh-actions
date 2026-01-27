@@ -4,13 +4,18 @@ on:
   workflow_call:
     inputs:
       source_pr:
-        description: 'Source PR to cherry pick from'
+        description: 'Source PR number to cherry pick from. (e.g., 456)'
         required: true
         type: string
       dest_branch:
-        description: 'Destination branch to cherry pick to'
+        description: 'Destination branch to cherry pick to. (e.g., hotfix-rc)'
         required: true
         type: string
+      dest_branch_allowed:
+        description: 'Extended regex expression (ERE) pattern that `dest_branch` must match'
+        required: false
+        type: string
+        default: ''
     secrets:
       AZURE_SUBSCRIPTION_ID:
         required: true
@@ -27,11 +32,21 @@ jobs:
     env:
       _SOURCE_PR: ${{ inputs.source_pr }}
       _DEST_BRANCH: ${{ inputs.dest_branch }}
+      _DEST_BRANCH_ALLOWED: ${{ inputs.dest_branch_allowed }}
     runs-on: ubuntu-24.04
     permissions:
       contents: read
       id-token: write
     steps:
+      - name: Validate destination branch pattern
+        if: inputs.dest_branch_allowed != ''
+        run: |
+          if ! echo "$_DEST_BRANCH" | grep -Eq "$_DEST_BRANCH_ALLOWED"; then
+            echo "ERROR: Destination branch [$_DEST_BRANCH] does not match allowed pattern [$_DEST_BRANCH_ALLOWED]"
+            exit 1
+          fi
+          echo "INFO: Destination branch matches allowed pattern"
+
       - name: Log in to Azure
         uses: bitwarden/gh-actions/azure-login@main
         with:
@@ -156,4 +171,11 @@ jobs:
           if ! gh pr edit "$_SOURCE_PR" --add-label "cherry-picked"; then
             echo "WARN: Failed to add label to PR [#$_SOURCE_PR]"
           fi
+
+          run_url="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          echo "INFO: Adding comment to PR [#$_SOURCE_PR]"
+          if ! gh pr comment "$_SOURCE_PR" --body "✅ Successfully cherry-picked to \`$_DEST_BRANCH\`. [View run]($run_url)"; then
+            echo "WARN: Failed to add comment to PR [#$_SOURCE_PR]"
+          fi
+
 

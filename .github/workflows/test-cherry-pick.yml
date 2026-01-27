@@ -97,6 +97,7 @@ jobs:
     with:
       source_pr: ${{ needs.setup.outputs.simulated_pr_number }}
       dest_branch: ${{ needs.setup.outputs.simulated_dest_branch }}
+      dest_branch_allowed: '^cherry-pick-sim-main-[0-9]{10}$'
     permissions:
       contents: write
       pull-requests: write

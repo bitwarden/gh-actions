@@ -17,17 +17,11 @@ on:
         - hotfix-rc
         - rc-2024-02
 
-# It's also possible to provide `dest_branch` as a string
+# It's also possible to provide `dest_branch` as a free-form string input
 #      dest_branch:
 #        description: 'Destination branch to cherry pick to. (e.g., hotfix-rc)'
 #        required: true
 #        type: string
-
-# Optionally provide an extended regex expression (ERE) pattern that `dest_branch` must match. Leave empty to disable.
-env:
-  #DEST_BRANCH_ALLOWED: '^20[2-9][0-9]\.[0-9][0-9]\-rc[0-9]$' # matches format `2025.01-rc2`
-  _DEST_BRANCH_ALLOWED: ''
-      
 
 permissions: {}
 
@@ -38,7 +32,9 @@ jobs:
     with:
       source_pr: ${{ inputs.source_pr }}
       dest_branch: ${{ inputs.dest_branch }}
-      dest_branch_allowed: ${{ env._DEST_BRANCH_ALLOWED }}
+      # Optionally validate `dest_branch` by providing an extended regex expression (ERE) pattern that `dest_branch` must match. Leave empty ('') to disable.
+      # dest_branch_allowed: '^20[2-9][0-9]\.[0-9][0-9]\-rc[0-9]$' # matches format `2025.01-rc2`
+      dest_branch_allowed: ''
     permissions:
       contents: write
       pull-requests: write

@@ -7,15 +7,26 @@ on:
   merge_group:
     types: [checks_requested]
   workflow_call:
+    secrets:
+      AZURE_SUBSCRIPTION_ID:
+        required: true
+      AZURE_TENANT_ID:
+        required: true
+      AZURE_CLIENT_ID:
+        required: true
   workflow_dispatch:
 
-permissions:
-  contents: read
+env:
+  TEST_REPORT_PROJECT: Server
+  TEST_REPORT_COMMIT_SHA: "50f7fa03dbc0f18a641206ab1a92fb11a1131572"
 
 jobs:
   lint:
     name: Lint
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Check out branch
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -67,9 +78,69 @@ jobs:
         run: python -m pip install --upgrade bitwarden_workflow_linter
 
       - name: Lint
+        id: lint
         env:
           files: ${{ steps.changed-workflows.outputs.changed_files }}
         if: steps.changed-workflows.outputs.changed_files_count != '0'
         run: |
           echo "$files"
-          bwwl lint -f $files
+          set +e  # Don't exit on error
+          output=$(bwwl lint -f $files 2>&1)
+          exit_code=$?
+          set -e
+
+          echo "lint_output<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$output" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "lint_exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+          echo "pull_request_target_failed=$(echo "$output" | grep -c 'pull_request_target' | awk '{print ($1 > 0 ? "true" : "false")}')" >> "$GITHUB_OUTPUT"
+          exit $exit_code
+
+        continue-on-error: true
+
+      - name: Azure Login
+        uses: bitwarden/gh-actions/azure-login@main
+        with:
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
+
+      - name: Retrieve Slack secrets
+        id: retrieve-slack-secrets
+        uses: bitwarden/gh-actions/get-keyvault-secrets@main
+        with:
+          keyvault: bitwarden-ci
+          secrets: "slack-bot-token"
+
+      - name: Azure Logout
+        uses: bitwarden/gh-actions/azure-logout@main
+
+      - name: Post/Edit message to a Slack channel
+        if: steps.lint.outputs.pull_request_target_failed == 'true'
+        id: slack-message
+        env:
+          SLACK_MESSAGE: "Workflow lint failure detected in PR target context. :warning:
+            ```
+            View run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            ```"
+        uses: slackapi/slack-github-action@b0fa283ad8fea605de13dc3f449259339835fc52 # v2.1.0
+        with:
+          method: chat.postMessage
+          token: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}
+          payload: |
+            channel: "bre-alerts-test"
+            text: "${{ env.SLACK_MESSAGE }}"
+      
+      - name: Fail workflow if linting failed
+        if: steps.lint.outputs.lint_exit_code != '0'
+        env:
+          EXIT_CODE: ${{ steps.lint.outputs.lint_exit_code }}
+        run: |
+           echo "Workflow linting failed with the following output:"
+           printf "%s\n" "${ steps.lint.outputs.lint_output }"
+            if [[ "${env.EXIT_CODE} =~ ^[0-9]+$ ]]; then
+              exit "$exit_code"
+            else
+              exit 1
+            fi

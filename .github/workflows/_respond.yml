@@ -15,7 +15,7 @@ permissions: {}
 jobs:
   check-permission:
     name: Check permission
-    uses: ./.github/workflows/_check-permission.yml
+    uses: bitwarden/gh-actions/.github/workflows/_check-permission.yml@main
     with:
       failure_mode: "skip"
       require_permission: "write"

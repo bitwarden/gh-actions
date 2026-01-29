@@ -23,7 +23,7 @@ jobs:
     if: ${{ needs.check-permission.outputs.has_permission == 'false' && github.triggering_actor != 'bw-ghapp[bot]' }}
 
     steps:
-      - name: Fail - insufficient permissions
+      - name: Enforce permission check
         env:
           GITHUB_TRIGGERING_ACTOR: ${{ github.triggering_actor }}
           USER_PERMISSIONS: ${{ needs.check-permission.outputs.user_permission }}

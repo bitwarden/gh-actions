@@ -1,0 +1,54 @@
+---
+# Example pull_request_target workflow for handling external fork PRs
+#
+# ⚠️ CRITICAL SECURITY WARNING ⚠️
+# This workflow runs IMMEDIATELY when a fork PR is opened and has access to repository secrets.
+# The check-run job will FAIL initially (expected behavior) - this is the security gate.
+#
+# REQUIRED STEPS FOR MAINTAINERS:
+# 1. REVIEW THE PR CODE for malicious code that could exfiltrate secrets
+# 2. Only after code review, click "Re-run failed jobs" in GitHub Actions UI
+# 3. Re-running passes your identity to check-run, granting secret access
+#
+# Key patterns:
+# 1. Triggered by pull_request_target (for fork PRs with secrets)
+# 2. Runs check-run first - FAILS for fork users (expected), PASSES on maintainer re-run
+# 3. Only executes for external forks (internal PRs use pull_request trigger)
+# 4. Calls the main workflow and passes secrets
+# 5. Must target default branch per workflow-linter rules
+
+name: Example Workflow on PR Target
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main # Required by workflow-linter: pull_request_target must target default branch
+    paths:
+      - "example/**"
+      - ".github/workflows/example-workflow.yml"
+      - ".github/workflows/example-workflow-target.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  check-run:
+    name: Check PR run approval
+    uses: bitwarden/gh-actions/.github/workflows/check-run.yml@main
+    permissions:
+      contents: read
+
+  example-job:
+    name: Run example job for fork
+    needs: check-run
+    # Only run if the PR is from an external fork
+    # Internal PRs are handled by the pull_request trigger in example-workflow.yml
+    if: github.event.pull_request.head.repo.full_name != github.repository
+    uses: ./.github/workflows/example-workflow.yml
+    permissions:
+      contents: read
+      id-token: write
+    secrets: inherit # Pass all repository secrets to the called workflow
+    with:
+      custom_parameter: "fork-pr-value"

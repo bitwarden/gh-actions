@@ -36,8 +36,6 @@ jobs:
       # dest_branch_allowed: '^20[2-9][0-9]\.[0-9][0-9]\-rc[0-9]$' # matches format `2025.01-rc2`
       dest_branch_allowed: ''
     permissions:
-      contents: write
-      pull-requests: write
       contents: read
       id-token: write
     secrets:

@@ -13,9 +13,9 @@ on:
         required: true
         type: choice
         options:
-        - rc
-        - hotfix-rc
-        - rc-2024-02
+          - rc
+          - hotfix-rc
+          - rc-2024-02
 
 # It's also possible to provide `dest_branch` as a free-form string input
 #      dest_branch:
@@ -38,6 +38,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      contents: read
       id-token: write
     secrets:
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}

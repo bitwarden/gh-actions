@@ -99,8 +99,7 @@ jobs:
       dest_branch: ${{ needs.setup.outputs.simulated_dest_branch }}
       dest_branch_allowed: '^cherry-pick-sim-dest-[0-9]{10}$'
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
       id-token: write
     secrets:
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}

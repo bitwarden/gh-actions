@@ -89,7 +89,7 @@ jobs:
            fi
 
       - name: Validate PR
-        id: validate_pr
+        id: validate-pr
         env:
           GH_TOKEN: ${{ github.token }}
           WORKFLOW_REF: ${{ github.workflow_ref }}
@@ -151,7 +151,7 @@ jobs:
 
       - name: Cherry pick
         env:
-          PR_COMMIT: ${{ steps.validate_pr.outputs.pr_commit }}
+          PR_COMMIT: ${{ steps.validate-pr.outputs.pr_commit }}
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           echo "INFO: Cherry-picking commit [$PR_COMMIT] from PR [#$_SOURCE_PR] to branch [$_DEST_BRANCH]"

@@ -1,0 +1,176 @@
+name: Test Cherry-pick workflow
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/_cherry-pick.yml"
+
+permissions: {}
+
+jobs:
+  setup:
+    # Create simulated main, feature, and destination branches as well as a PR from sim feature to sim main.
+    name: Setup
+    runs-on: ubuntu-24.04
+    outputs:
+      simulated_main_branch: ${{ steps.create-simulated-branches.outputs.simulated_main_branch }}
+      simulated_feature_branch: ${{ steps.create-simulated-branches.outputs.simulated_feature_branch }}
+      simulated_dest_branch: ${{ steps.create-simulated-branches.outputs.simulated_dest_branch }}
+      simulated_pr_number: ${{ steps.create-simulated-branches.outputs.simulated_pr_number}}
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Configure git
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+      
+      - name: Create simulated branches
+        id: create-simulated-branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          simulated_main_branch="cherry-pick-sim-main-$(date +%s)"
+          simulated_feature_branch="cherry-pick-sim-feature-$(date +%s)"
+          simulated_dest_branch="cherry-pick-sim-dest-$(date +%s)"
+          
+          # output these here so if this step fails, these can be used by the cleanup job
+          echo "simulated_main_branch=$simulated_main_branch" >> $GITHUB_OUTPUT
+          echo "simulated_feature_branch=$simulated_feature_branch" >> $GITHUB_OUTPUT
+          echo "simulated_dest_branch=$simulated_dest_branch" >> $GITHUB_OUTPUT
+          
+          sim_branches="$simulated_main_branch $simulated_feature_branch $simulated_dest_branch"
+          for sim_branch in $sim_branches; do
+            echo "INFO: Creating branch [$sim_branch]"
+            git switch -c "$sim_branch"
+            echo 'test' > "$sim_branch.txt"
+            git add "$sim_branch.txt"
+            git commit -m 'created test file'
+            if ! git push origin "$sim_branch"; then
+              echo "ERROR: Failed to push [$sim_branch] branch to origin. Exiting."
+              exit 1
+            fi
+            git switch main
+          done
+          
+          pr_title='Test cherry-pick workflow'
+          echo "INFO: Creating PR [$pr_title] with base [$simulated_main_branch] and head [$simulated_feature_branch]"
+          gh pr create \
+            --base "$simulated_main_branch" \
+            --head "$simulated_feature_branch" \
+            --title "$pr_title" \
+            --body "Automated test PR for cherry-pick workflow testing. This should be cleaned up automatically and can safely be deleted if cleanup has failed."
+
+          if [[ $? -ne 0 ]]; then
+            echo "ERROR: Failed to create PR from [$simulated_feature_branch] branch to [$simulated_main_branch]. Exiting"
+            exit 1
+          fi
+
+          if ! simulated_pr_number=$(gh pr view "$simulated_feature_branch" --json number --jq '.number'); then
+            echo "ERROR: Failed to retrieve simulated PR number from [$simulated_feature_branch]. Exiting."
+            exit 1
+          fi
+          echo "simulated_pr_number=$simulated_pr_number" >> $GITHUB_OUTPUT
+          echo "INFO: Simulated PR is [#$simulated_pr_number]"
+          
+          echo "INFO: Merging PR [#$simulated_pr_number] into branch [$simulated_main_branch]"
+          if ! gh pr merge "$simulated_pr_number" --squash; then
+            echo "ERROR: Failed to merge PR [#$simulated_pr_number]. Exiting."
+            exit 1
+          fi
+
+
+  cherry-pick:
+    # Call the cherry-pick.yml workflow and pass in the simulated branches and PR.
+    name: Cherry-pick
+    needs: setup
+    uses: ./.github/workflows/_cherry-pick.yml
+    with:
+      source_pr: ${{ needs.setup.outputs.simulated_pr_number }}
+      dest_branch: ${{ needs.setup.outputs.simulated_dest_branch }}
+      dest_branch_allowed: '^cherry-pick-sim-dest-[0-9]{10}$'
+    permissions:
+      contents: read
+      id-token: write
+    secrets:
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+
+  cleanup:
+    # Cleanup all the simulated resources
+    name: Cleanup Simulated Resources
+    runs-on: ubuntu-24.04
+    needs: [setup, cherry-pick]
+    if: always()
+    env:
+      _SIMULATED_MAIN_BRANCH: ${{ needs.setup.outputs.simulated_main_branch }}
+      _SIMULATED_FEATURE_BRANCH: ${{ needs.setup.outputs.simulated_feature_branch }}
+      _SIMULATED_DEST_BRANCH: ${{ needs.setup.outputs.simulated_dest_branch }}
+      _SIMULATED_PR_NUMBER: ${{ needs.setup.outputs.simulated_pr_number }}
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: true
+
+      - name: Cleanup
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ -n $_SIMULATED_PR_NUMBER ]]; then
+            pr_state=$(gh pr view "$_SIMULATED_PR_NUMBER" --json state --jq '.state')
+            if [[ $pr_state == 'OPEN' ]]; then
+              echo "INFO: Closing simulated PR [#$_SIMULATED_PR_NUMBER]"
+              if ! gh pr close "$_SIMULATED_PR_NUMBER"; then
+                echo "WARN: Failed to close PR [#$_SIMULATED_PR_NUMBER]. Please manually delete these."
+              fi
+            fi
+          fi
+          
+          if [[ -n $_SIMULATED_FEATURE_BRANCH ]]; then
+            if git ls-remote --exit-code --heads origin "$_SIMULATED_FEATURE_BRANCH" >/dev/null 2>&1; then
+              echo "INFO: Deleting simulated feature branch [$_SIMULATED_FEATURE_BRANCH]"
+              if ! git push origin --delete "$_SIMULATED_FEATURE_BRANCH"; then
+                echo "WARN: Failed to delete [$_SIMULATED_FEATURE_BRANCH] branch. Please manually delete this."
+              fi
+            else
+              echo "INFO: Branch [$_SIMULATED_FEATURE_BRANCH] does not exist or was already deleted."
+            fi
+          fi 
+          
+          if [[ -n $_SIMULATED_MAIN_BRANCH ]]; then
+            if git ls-remote --exit-code --heads origin "$_SIMULATED_MAIN_BRANCH" >/dev/null 2>&1; then
+              echo "INFO: Deleting simulated main branch [$_SIMULATED_MAIN_BRANCH]"
+              if ! git push origin --delete "$_SIMULATED_MAIN_BRANCH"; then
+                echo "WARN: Failed to delete [$_SIMULATED_MAIN_BRANCH] branch. Please manually delete this."
+              fi
+            else
+              echo "INFO: Branch [$_SIMULATED_MAIN_BRANCH] does not exist or was already deleted."
+            fi
+          fi
+
+          if [[ -n $_SIMULATED_DEST_BRANCH ]]; then
+            if git ls-remote --exit-code --heads origin "$_SIMULATED_DEST_BRANCH" >/dev/null 2>&1; then
+              echo "INFO: Deleting simulated destination branch [$_SIMULATED_DEST_BRANCH]"
+              if ! git push origin --delete "$_SIMULATED_DEST_BRANCH"; then
+                echo "WARN: Failed to delete [$_SIMULATED_DEST_BRANCH] branch. Please manually delete this."
+              fi
+            else
+              echo "INFO: Branch [$_SIMULATED_DEST_BRANCH] does not exist or was already deleted."
+            fi
+          fi
+          
+          echo 'INFO: Cleanup successful'

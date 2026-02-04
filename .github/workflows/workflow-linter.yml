@@ -21,13 +21,13 @@ jobs:
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           repository: ${{ github.repository }}
-          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 0 }}
+          fetch-depth: ${{ github.event.pull_request && 2 || 0 }}
           persist-credentials: false
 
       - name: Check changed files for workflow changes
         id: changed-workflows
         run: |
-          if ${{ github.event_name == 'pull_request' }}; then
+          if ${{ github.event.pull_request != null }}; then
             changed_files=$(git diff --name-only --diff-filter=d -r HEAD^1 HEAD | xargs)
           else
             changed_files=$(git diff --name-only --diff-filter=d "${{ github.event.before }}" "${{ github.event.after }}" | xargs)

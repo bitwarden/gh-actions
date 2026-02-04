@@ -69,7 +69,7 @@ jobs:
         env:
           SONAR_TOKEN: ${{ steps.get-kv-secrets.outputs.SONAR-TOKEN }}
           SONAR_ARGS: >-
-            ${{ github.event_name == 'pull_request' && format('"-Dsonar.pullrequest.key={0}"', github.event.pull_request.number) || '' }}
+            ${{ github.event.pull_request.number && format('"-Dsonar.pullrequest.key={0}"', github.event.pull_request.number) || '' }}
             ${{ inputs.sonar-test-inclusions != '' && format('"-Dsonar.test.inclusions={0}"', inputs.sonar-test-inclusions) || '' }}
             ${{ inputs.sonar-exclusions != '' && format('"-Dsonar.exclusions={0}"', inputs.sonar-exclusions) || '' }}
             ${{ inputs.sonar-sources != '' && format('"-Dsonar.sources={0}"', inputs.sonar-sources) || '' }}
@@ -105,7 +105,7 @@ jobs:
           _SONAR_EXCLUSIONS: ${{ inputs.sonar-exclusions }}
           _SONAR_SOURCES: ${{ inputs.sonar-sources }}
           _SONAR_TESTS: ${{ inputs.sonar-tests }}
-          _PULL_REQUEST_KEY: ${{ github.event_name == 'pull_request' && github.event.pull_request.number || '' }}
+          _PULL_REQUEST_KEY: ${{ github.event.pull_request.number || '' }}
         run: |
           set -euo pipefail
           ARGS=()
@@ -142,7 +142,7 @@ jobs:
           _SONAR_EXCLUSIONS: ${{ inputs.sonar-exclusions }}
           _SONAR_SOURCES: ${{ inputs.sonar-sources }}
           _SONAR_TESTS: ${{ inputs.sonar-tests }}
-          _PULL_REQUEST_KEY: ${{ github.event_name == 'pull_request' && github.event.pull_request.number || '' }}
+          _PULL_REQUEST_KEY: ${{ github.event.pull_request.number || '' }}
         run: |
           set -euo pipefail
           ARGS=()

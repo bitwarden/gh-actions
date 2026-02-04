@@ -6,7 +6,7 @@ on:
       incremental:
         description: "Perform incremental scan"
         type: boolean
-        default: ${{ contains(github.event_name, 'pull_request') }}
+        default: ${{ github.event.pull_request != null }}
       upload-sarif:
         description: "Upload SARIF output to GitHub"
         type: boolean
@@ -77,5 +77,5 @@ jobs:
         uses: github/codeql-action/upload-sarif@19b2f06db2b6f5108140aeb04014ef02b648f789 # v4.31.11
         with:
           sarif_file: cx_result.sarif
-          sha: ${{ contains(github.event_name, 'pull_request') && github.event.pull_request.head.sha || github.sha }}
-          ref: ${{ contains(github.event_name, 'pull_request') && format('refs/pull/{0}/head', github.event.pull_request.number) || github.ref }}
+          sha: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request && format('refs/pull/{0}/head', github.event.pull_request.number) || github.ref }}

@@ -2,13 +2,14 @@ name: Code Review
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, labeled]
 
 permissions: {}
 
 jobs:
   review:
     name: Review
+    if: github.event.action != 'labeled' || github.event.label.name == 'ai-review'
     uses: bitwarden/gh-actions/.github/workflows/_review-code.yml@main
     secrets:
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}

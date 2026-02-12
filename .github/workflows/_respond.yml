@@ -116,12 +116,12 @@ jobs:
       - name: Run Claude Code
         id: claude
         timeout-minutes: 10
-        uses: anthropics/claude-code-action@f64219702d7454cf29fe32a74104be6ed43dc637 # v1.0.34
+        uses: anthropics/claude-code-action@f669191d7d1e67f08a54b0c11cf5683a9a391951 # v1.0.49
         with:
           anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-RESPONSE-API-KEY }}
           track_progress: true
           use_sticky_comment: true
           prompt: ${{ github.event.comment.body || github.event.review.body || github.event.issue.body }}
           claude_args: |
-            --model opus
+            --model claude-opus-4-6
             --allowedTools "mcp__github_comment__update_claude_comment,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*)"

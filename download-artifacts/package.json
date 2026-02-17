@@ -2,7 +2,7 @@
   "name": "action-download-artifact",
   "main": "main.js",
   "dependencies": {
-    "@actions/artifact": "5.0.1",
+    "@actions/artifact": "6.1.0",
     "@actions/core": "2.0.1",
     "@actions/github": "7.0.0",
     "adm-zip": "0.5.12",

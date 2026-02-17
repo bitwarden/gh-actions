@@ -14,7 +14,7 @@
     "typescript": "5.9.2"
   },
   "dependencies": {
-    "@actions/core": "2.0.1",
+    "@actions/core": "3.0.0",
     "@actions/exec": "3.0.0",
     "azure-actions-webclient": "1.1.1"
   },

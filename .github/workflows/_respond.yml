@@ -121,6 +121,11 @@ jobs:
           anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-RESPONSE-API-KEY }}
           track_progress: true
           use_sticky_comment: true
+          plugin_marketplaces: "https://github.com/bitwarden/ai-plugins.git"
+          plugins: |
+            bitwarden-code-review@bitwarden-marketplace
+            bitwarden-software-engineer@bitwarden-marketplace
+            bitwarden-security-engineer@bitwarden-marketplace
           prompt: ${{ github.event.comment.body || github.event.review.body || github.event.issue.body }}
           claude_args: |
             --model opus

@@ -128,7 +128,10 @@ jobs:
           track_progress: true
           use_sticky_comment: true
           plugin_marketplaces: "https://github.com/bitwarden/ai-plugins.git"
-          plugins: "bitwarden-code-review@bitwarden-marketplace"
+          plugins: |
+            bitwarden-code-review@bitwarden-marketplace
+            bitwarden-software-engineer@bitwarden-marketplace
+            bitwarden-security-engineer@bitwarden-marketplace
           prompt: |
             /bitwarden-code-review:code-review
           claude_args: |

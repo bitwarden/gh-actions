@@ -3,6 +3,14 @@ name: Upload Test Artifacts
 on:
   workflow_dispatch:
     inputs: {}
+  push:
+    branches:
+      - main
+      - "renovate/**"
+    paths:
+      - "download-artifacts/**"
+      - ".github/workflows/upload-test-artifacts.yml"
+      - ".github/workflows/test-download-artifacts.yml"
   pull_request:
     paths:
       - "download-artifacts/**"

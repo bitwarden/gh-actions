@@ -26,6 +26,10 @@ on:
         description: 'Type of the project (e.g. "android" or "ios")'
         type: string
         required: true
+      make_latest: 
+        description: "Whether to mark the release as latest and non-prerelease"
+        type: boolean
+        required: true
       dry_run:
         type: boolean
         description: "Run the workflow in dry-run mode without making any changes"
@@ -46,7 +50,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -189,7 +193,7 @@ jobs:
 
       - name: Configure Ruby
         if: steps.check_already_processed.outputs.should_skip == 'false'
-        uses: ruby/setup-ruby@efbf473cab83af4468e8606cc33eca9281bb213f # v1.256.0
+        uses: ruby/setup-ruby@90be1154f987f4dc0fe0dd0feedac9e473aa4ba8 # v1.286.0
         with:
           bundler-cache: true
 
@@ -273,9 +277,9 @@ jobs:
         env:
           TAG: ${{ steps.get_latest_draft.outputs.latest_draft_tag }}
           GH_TOKEN: ${{ github.token }}
-          PRODUCT: ${{ inputs.release_name }}
+          LATEST: ${{ inputs.make_latest }}
         run: |
-          if [ "$PRODUCT" = "Password Manager" ]; then
+          if [ "$LATEST" ]; then
             gh release edit "$TAG" --prerelease=false --latest --draft=false
           else
             gh release edit "$TAG" --prerelease=false --draft=false

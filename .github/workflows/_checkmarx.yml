@@ -37,7 +37,7 @@ jobs:
 
     steps:
       - name: Check out repo
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
@@ -60,7 +60,7 @@ jobs:
         uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Scan with Checkmarx
-        uses: checkmarx/ast-github-action@427623bbb54f318e690463e11302a1eb1b9b2b5a # 2.3.25
+        uses: checkmarx/ast-github-action@21c9298d915983b05efce689a157dbfb826fca53 # 2.3.30
         with:
           project_name: ${{ github.repository }}
           cx_tenant: ${{ steps.get-kv-secrets.outputs.CHECKMARX-TENANT }}
@@ -74,7 +74,7 @@ jobs:
 
       - name: Upload Checkmarx results to GitHub
         if: inputs.upload-sarif
-        uses: github/codeql-action/upload-sarif@0499de31b99561a6d14a36a5f662c2a54f91beee # v4.31.2
+        uses: github/codeql-action/upload-sarif@19b2f06db2b6f5108140aeb04014ef02b648f789 # v4.31.11
         with:
           sarif_file: cx_result.sarif
           sha: ${{ contains(github.event_name, 'pull_request') && github.event.pull_request.head.sha || github.sha }}

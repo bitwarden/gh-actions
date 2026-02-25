@@ -1,0 +1,183 @@
+name: Test Upsert Code Review Comment Action
+
+on:
+  pull_request:
+    paths:
+      - "upsert-code-review-comment/**"
+      - ".github/workflows/test-upsert-code-review-comment.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-create:
+    name: Test create comment
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: write
+    outputs:
+      comment_id: ${{ steps.upsert.outputs.comment_id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Determine PR number
+        id: pr
+        env:
+          EVENT_PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [[ -n "$EVENT_PR" ]]; then
+            echo "number=$EVENT_PR" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::No PR number available. Run on a PR event."
+            exit 1
+          fi
+
+      - name: Create comment
+        id: upsert
+        uses: ./upsert-code-review-comment
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pr_number: ${{ steps.pr.outputs.number }}
+          repository: ${{ github.repository }}
+          marker_id: test-upsert-comment
+
+      - name: Verify comment was created
+        env:
+          COMMENT_ID: ${{ steps.upsert.outputs.comment_id }}
+          COMMENT_URL: ${{ steps.upsert.outputs.comment_url }}
+          COMMENT_CREATED: ${{ steps.upsert.outputs.comment_created }}
+        run: |
+          echo "Comment ID: $COMMENT_ID"
+          echo "Comment URL: $COMMENT_URL"
+          echo "Comment created: $COMMENT_CREATED"
+
+          if [[ -z "$COMMENT_ID" ]]; then
+            echo "::error::comment_id output is empty"
+            exit 1
+          fi
+
+          if [[ "$COMMENT_CREATED" != "true" ]]; then
+            echo "::error::Expected comment_created=true, got $COMMENT_CREATED"
+            exit 1
+          fi
+
+  test-update:
+    name: Test update comment
+    needs: test-create
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: write
+    outputs:
+      comment_id: ${{ steps.upsert.outputs.comment_id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Determine PR number
+        id: pr
+        env:
+          EVENT_PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [[ -n "$EVENT_PR" ]]; then
+            echo "number=$EVENT_PR" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::No PR number available. Run on a PR event."
+            exit 1
+          fi
+
+      - name: Update existing comment
+        id: upsert
+        uses: ./upsert-code-review-comment
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pr_number: ${{ steps.pr.outputs.number }}
+          repository: ${{ github.repository }}
+          marker_id: test-upsert-comment
+
+      - name: Verify comment was updated
+        env:
+          COMMENT_ID: ${{ steps.upsert.outputs.comment_id }}
+          COMMENT_CREATED: ${{ steps.upsert.outputs.comment_created }}
+        run: |
+          echo "Comment ID: $COMMENT_ID"
+          echo "Comment created: $COMMENT_CREATED"
+
+          if [[ "$COMMENT_CREATED" != "false" ]]; then
+            echo "::error::Expected comment_created=false, got $COMMENT_CREATED"
+            exit 1
+          fi
+
+  test-downstream:
+    name: Test downstream update
+    needs: test-update
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Update comment with final content
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMENT_ID: ${{ needs.test-update.outputs.comment_id }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          FINAL_BODY="## Test Review Complete"
+          FINAL_BODY="${FINAL_BODY}"$'\n\n'"This comment was updated by the test-downstream job."
+          FINAL_BODY="${FINAL_BODY}"$'\n\n'"<!-- test-upsert-comment -->"
+
+          gh api "repos/${REPOSITORY}/issues/comments/${COMMENT_ID}" \
+            --method PATCH \
+            --field body="$FINAL_BODY"
+
+          echo "Successfully updated comment $COMMENT_ID with final content"
+
+  test-cleanup:
+    name: Test cleanup
+    if: always()
+    needs: [test-create, test-update, test-downstream]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Delete test comments
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          if [[ -z "$PR_NUMBER" ]]; then
+            echo "No PR number available, skipping cleanup"
+            exit 0
+          fi
+
+          MARKER="<!-- test-upsert-comment -->"
+
+          COMMENT_IDS=$(gh api "repos/${REPOSITORY}/issues/${PR_NUMBER}/comments" \
+            --paginate \
+            --jq ".[] | select(.body | contains(\"${MARKER}\")) | .id")
+
+          if [[ -z "$COMMENT_IDS" ]]; then
+            echo "No test comments found to clean up"
+            exit 0
+          fi
+
+          for ID in $COMMENT_IDS; do
+            echo "Deleting comment $ID"
+            gh api "repos/${REPOSITORY}/issues/comments/${ID}" --method DELETE
+          done
+
+          echo "Cleanup complete"

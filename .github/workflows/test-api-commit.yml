@@ -145,13 +145,13 @@ jobs:
             exit 1
           fi
 
-      - name: Cleanup test branch
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          BRANCH: ${{ steps.setup.outputs.test_branch }}
-          REPOSITORY: ${{ github.repository }}
-        run: |
-          if [[ -n "$BRANCH" ]]; then
-            gh api "repos/$REPOSITORY/git/refs/heads/$BRANCH" --method DELETE
-          fi
+      # - name: Cleanup test branch
+      #   if: always()
+      #   env:
+      #     GH_TOKEN: ${{ github.token }}
+      #     BRANCH: ${{ steps.setup.outputs.test_branch }}
+      #     REPOSITORY: ${{ github.repository }}
+      #   run: |
+      #     if [[ -n "$BRANCH" ]]; then
+      #       gh api "repos/$REPOSITORY/git/refs/heads/$BRANCH" --method DELETE
+      #     fi

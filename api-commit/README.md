@@ -102,6 +102,7 @@ Pass a GitHub App token to create commits verified as a GitHub App identity:
 
 - The target `branch` must already exist. The action looks up the branch HEAD via the API as its first step and will fail with a 404 if the branch does not exist.
 - File deletions are not supported. The Git Data API requires a separate approach to remove files from a tree. When using explicit `files`, listing a deleted file will fail with "File not found". When using auto-detect, deleted files are silently excluded from the commit.
+- Auto-detect mode requires a local git repository with a `HEAD` commit (i.e., `actions/checkout` must have run). Explicit `files` mode has no git dependency — files are read directly from disk regardless of git state.
 
 ## Permissions
 

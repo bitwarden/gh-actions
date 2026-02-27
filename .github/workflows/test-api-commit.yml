@@ -103,15 +103,15 @@ jobs:
             exit 1
           fi
 
-      # - name: Cleanup test branch
-      #   if: always()
-      #   env:
-      #     GH_TOKEN: ${{ github.token }}
-      #     BRANCH: ${{ steps.setup.outputs.test_branch }}
-      #   run: |
-      #     if [[ -n "$BRANCH" ]] && git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
-      #       git push origin --delete "$BRANCH" || echo "WARN: Failed to delete test branch $BRANCH"
-      #     fi
+      - name: Cleanup test branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.setup.outputs.test_branch }}
+        run: |
+          if [[ -n "$BRANCH" ]] && git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            git push origin --delete "$BRANCH" || echo "WARN: Failed to delete test branch $BRANCH"
+          fi
 
   # test-api-commit-auto-detect:
   #   name: Test API Commit Auto-detect

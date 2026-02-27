@@ -75,7 +75,7 @@ runs:
             files = process.env.INPUT_FILES.split('\n')
               .map(f => f.trim())
               .filter(f => f.length > 0)
-              .map(f => path.normalize(f));
+              .map(f => path.normalize(f).split(path.sep).join('/'));
           } else {
             // Combine working tree and staged changes so that staged-only changes are included
             const [workingTree, staged] = await Promise.all([
@@ -168,6 +168,13 @@ runs:
             base_tree: commit.tree.sha,
             tree
           });
+
+          // Skip commit if the tree is unchanged (files already match the branch)
+          if (newTree.sha === commit.tree.sha) {
+            core.info('Tree unchanged — specified files already match the branch, skipping commit');
+            core.setOutput('commit_sha', '');
+            return;
+          }
 
           const { data: newCommit } = await github.rest.git.createCommit({
             owner: context.repo.owner,

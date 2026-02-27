@@ -1,0 +1,108 @@
+name: 'API Commit'
+description: 'Create a verified commit via the GitHub API'
+author: 'Bitwarden'
+branding:
+  icon: git-commit
+  color: blue
+
+inputs:
+  files:
+    description: 'Newline-delimited list of files to commit (relative to repository root). If omitted, all files modified relative to HEAD are committed.'
+    required: false
+    default: ''
+  message:
+    description: 'Commit message'
+    required: true
+  branch:
+    description: 'Branch to commit to'
+    required: false
+    default: ${{ github.ref_name }}
+  token:
+    description: 'GitHub token for API access. Use a GitHub App token for verified commits.'
+    required: true
+
+outputs:
+  commit_sha:
+    description: 'SHA of the created commit'
+    value: ${{ steps.api-commit.outputs.commit_sha }}
+
+runs:
+  using: composite
+  steps:
+    - name: Create verified commit via GitHub API
+      id: api-commit
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+      env:
+        INPUT_FILES: ${{ inputs.files }}
+        INPUT_MESSAGE: ${{ inputs.message }}
+        INPUT_BRANCH: ${{ inputs.branch }}
+      with:
+        github-token: ${{ inputs.token }}
+        script: |
+          const fs = require('fs');
+          const branch = process.env.INPUT_BRANCH;
+          const message = process.env.INPUT_MESSAGE;
+
+          // Resolve file list — explicit input or auto-detect via git diff
+          let files;
+          if (process.env.INPUT_FILES.trim().length > 0) {
+            files = process.env.INPUT_FILES.split('\n').map(f => f.trim()).filter(f => f.length > 0);
+          } else {
+            const output = await exec.getExecOutput('git', ['diff', '--name-only', 'HEAD']);
+            files = output.stdout.split('\n').map(f => f.trim()).filter(f => f.length > 0);
+            if (files.length === 0) {
+              core.info('No changed files detected, skipping commit');
+              return;
+            }
+            core.info(`Auto-detected ${files.length} changed file(s):\n${files.join('\n')}`);
+          }
+
+          // Get current branch HEAD
+          const { data: ref } = await github.rest.git.getRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: `heads/${branch}`
+          });
+
+          const { data: commit } = await github.rest.git.getCommit({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            commit_sha: ref.object.sha
+          });
+
+          // Create a blob for each file
+          const tree = await Promise.all(files.map(async (file) => {
+            const content = fs.readFileSync(file, 'utf8');
+            const { data: blob } = await github.rest.git.createBlob({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              content: Buffer.from(content).toString('base64'),
+              encoding: 'base64'
+            });
+            return { path: file, mode: '100644', type: 'blob', sha: blob.sha };
+          }));
+
+          // Create tree, commit, and update the branch ref
+          const { data: newTree } = await github.rest.git.createTree({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            base_tree: commit.tree.sha,
+            tree
+          });
+
+          const { data: newCommit } = await github.rest.git.createCommit({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            message,
+            tree: newTree.sha,
+            parents: [ref.object.sha]
+          });
+
+          await github.rest.git.updateRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: `heads/${branch}`,
+            sha: newCommit.sha
+          });
+
+          core.setOutput('commit_sha', newCommit.sha);

@@ -82,7 +82,7 @@ jobs:
           EXPLICIT_FILES_SHA: ${{ steps.api-commit-explicit.outputs.commit_sha }}
           EXPECTED_EXPLICIT_FILES: "api-commit-test-file-1.txt,api-commit-test-file-2.txt"
           AUTO_DETECT_FILES_SHA: ${{ steps.api-commit-auto.outputs.commit_sha }}
-          EXPECTED_AUTO_DETECT_FILES: "api-commit-auto-test-fiale.txt"
+          EXPECTED_AUTO_DETECT_FILES: "api-commit-auto-test-file.txt"
         run: |
           if [[ -n "$EXPLICIT_FILES_SHA" ]]; then
             echo "sha=$EXPLICIT_FILES_SHA" >> "$GITHUB_OUTPUT"

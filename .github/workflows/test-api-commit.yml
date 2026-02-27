@@ -31,7 +31,8 @@ jobs:
           TEST_BRANCH="api-commit-test-$(date +%s)"
           echo "test_branch=$TEST_BRANCH" >> "$GITHUB_OUTPUT"
 
-          SHA=$(git rev-parse HEAD)
+          # Branch the test branch off main
+          SHA=$(gh api "repos/$REPOSITORY/git/ref/heads/main" --jq '.object.sha')
           gh api "repos/$REPOSITORY/git/refs" \
             --method POST \
             -f "ref=refs/heads/$TEST_BRANCH" \

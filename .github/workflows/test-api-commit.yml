@@ -22,6 +22,7 @@ jobs:
         mode:
           - explicit-files
           - auto-detect-files
+          - no-changes
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -76,6 +77,15 @@ jobs:
           branch: ${{ steps.setup.outputs.test_branch }}
           token: ${{ github.token }}
 
+      - name: Run API Commit action (no changes)
+        id: api-commit-no-changes
+        if: matrix.mode == 'no-changes'
+        uses: ./api-commit
+        with:
+          message: "chore: test API commit no changes"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
       - name: Get commit SHA
         id: commit
         env:
@@ -83,6 +93,7 @@ jobs:
           EXPECTED_EXPLICIT_FILES: "api-commit-test-file-1.txt,api-commit-test-file-2.txt"
           AUTO_DETECT_FILES_SHA: ${{ steps.api-commit-auto.outputs.commit_sha }}
           EXPECTED_AUTO_DETECT_FILES: "api-commit-auto-test-file.txt"
+          NO_CHANGES_OUTCOME: ${{ steps.api-commit-no-changes.outcome }}
         run: |
           if [[ -n "$EXPLICIT_FILES_SHA" ]]; then
             echo "sha=$EXPLICIT_FILES_SHA" >> "$GITHUB_OUTPUT"
@@ -90,6 +101,9 @@ jobs:
           elif [[ -n "$AUTO_DETECT_FILES_SHA" ]]; then
             echo "sha=$AUTO_DETECT_FILES_SHA" >> "$GITHUB_OUTPUT"
             echo "expected_files=$EXPECTED_AUTO_DETECT_FILES" >> "$GITHUB_OUTPUT"
+          elif [[ "$NO_CHANGES_OUTCOME" == "success" ]]; then
+            echo "sha=" >> "$GITHUB_OUTPUT"
+            echo "expected_files=" >> "$GITHUB_OUTPUT"
           else
             echo "::error::No commit SHA found"
             exit 1
@@ -103,6 +117,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
         run: |
+          if [[ -z "$EXPECTED_FILES" ]]; then
+            if [[ -n "$COMMIT_SHA" ]]; then
+              echo "::error::Expected no commit to be made, but got commit_sha=$COMMIT_SHA"
+              exit 1
+            fi
+            echo "Correctly produced no commit"
+            exit 0
+          fi
+
           echo "Commit SHA from action: $COMMIT_SHA"
 
           if [[ -z "$COMMIT_SHA" ]]; then
@@ -129,6 +152,7 @@ jobs:
           echo "Commit verified successfully"
 
       - name: Check commit verification status
+        if: steps.commit.outputs.sha != ''
         env:
           GH_TOKEN: ${{ github.token }}
           COMMIT_SHA: ${{ steps.commit.outputs.sha }}

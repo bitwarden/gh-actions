@@ -17,6 +17,7 @@ jobs:
     permissions:
       contents: write
     strategy:
+      fail-fast: false
       matrix:
         mode:
           - explicit-files
@@ -42,13 +43,13 @@ jobs:
             -f "ref=refs/heads/$TEST_BRANCH" \
             -f "sha=$SHA"
 
-      - name: Create test files
+      - name: Create test files (explicit files)
         if: matrix.mode == 'explicit-files'
         run: |
           echo "content $(date +%s)" > api-commit-test-file-1.txt
           echo "content $(date +%s)" > api-commit-test-file-2.txt
 
-      - name: Run API Commit action
+      - name: Run API Commit action (explicit files)
         id: api-commit-explicit
         if: matrix.mode == 'explicit-files'
         uses: ./api-commit
@@ -60,13 +61,13 @@ jobs:
           branch: ${{ steps.setup.outputs.test_branch }}
           token: ${{ github.token }}
 
-      - name: Create and stage test file
+      - name: Create and stage test file (auto-detect files)
         if: matrix.mode == 'auto-detect-files'
         run: |
           echo "content $(date +%s)" > api-commit-auto-test-file.txt
           git add api-commit-auto-test-file.txt
 
-      - name: Run API Commit action
+      - name: Run API Commit action (auto-detect files)
         id: api-commit-auto
         if: matrix.mode == 'auto-detect-files'
         uses: ./api-commit

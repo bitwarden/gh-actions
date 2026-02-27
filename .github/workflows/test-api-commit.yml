@@ -114,89 +114,102 @@ jobs:
             gh api "repos/$REPOSITORY/git/refs/heads/$BRANCH" --method DELETE
           fi
 
-  # test-api-commit-auto-detect:
-  #   name: Test API Commit Auto-detect
-  #   runs-on: ubuntu-24.04
-  #   permissions:
-  #     contents: write
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-  #       with:
-  #         ref: main
-  #         fetch-depth: 0
-  #         persist-credentials: true
+  test-api-commit-auto-detect:
+    name: Test API Commit Auto-detect
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
-  #     - name: Configure git
-  #       run: |
-  #         git config user.name "GitHub Actions Bot"
-  #         git config user.email "actions@github.com"
+      - name: Create test branch
+        id: setup
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          TEST_BRANCH="api-commit-auto-test-$(date +%s)"
+          echo "test_branch=$TEST_BRANCH" >> "$GITHUB_OUTPUT"
 
-  #     - name: Create test branch with initial file
-  #       id: setup
-  #       env:
-  #         GH_TOKEN: ${{ github.token }}
-  #       run: |
-  #         TEST_BRANCH="api-commit-auto-test-$(date +%s)"
-  #         echo "test_branch=$TEST_BRANCH" >> "$GITHUB_OUTPUT"
+          # Branch the test branch off main
+          SHA=$(gh api "repos/$REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          gh api "repos/$REPOSITORY/git/refs" \
+            --method POST \
+            -f "ref=refs/heads/$TEST_BRANCH" \
+            -f "sha=$SHA"
 
-  #         git switch -c "$TEST_BRANCH"
-  #         echo "initial content" > api-commit-auto-test-file.txt
-  #         git add api-commit-auto-test-file.txt
-  #         git commit -m "Add initial test file"
-  #         git push origin "$TEST_BRANCH"
+      - name: Create and stage test file
+        run: |
+          echo "content $(date +%s)" > api-commit-auto-test-file.txt
+          git add api-commit-auto-test-file.txt
 
-  #     - name: Modify test file
-  #       run: echo "updated content $(date +%s)" > api-commit-auto-test-file.txt
+      - name: Run API Commit action without files input
+        id: api-commit
+        uses: ./api-commit
+        with:
+          message: "chore: test API commit auto-detect"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
 
-  #     - name: Run API Commit action without files input
-  #       id: api-commit
-  #       uses: ./api-commit
-  #       with:
-  #         message: "chore: test API commit auto-detect"
-  #         branch: ${{ steps.setup.outputs.test_branch }}
-  #         token: ${{ github.token }}
+      - name: Validate commit was created
+        env:
+          BRANCH: ${{ steps.setup.outputs.test_branch }}
+          COMMIT_SHA: ${{ steps.api-commit.outputs.commit_sha }}
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          echo "Commit SHA from action: $COMMIT_SHA"
 
-  #     - name: Validate commit was created
-  #       env:
-  #         BRANCH: ${{ steps.setup.outputs.test_branch }}
-  #         COMMIT_SHA: ${{ steps.api-commit.outputs.commit_sha }}
-  #       run: |
-  #         echo "Commit SHA from action: $COMMIT_SHA"
+          if [[ -z "$COMMIT_SHA" ]]; then
+            echo "::error::commit_sha output was empty"
+            exit 1
+          fi
 
-  #         if [[ -z "$COMMIT_SHA" ]]; then
-  #           echo "::error::commit_sha output was empty"
-  #           exit 1
-  #         fi
+          REMOTE_SHA=$(git ls-remote origin "refs/heads/$BRANCH" | cut -f1)
+          echo "Remote branch HEAD SHA: $REMOTE_SHA"
 
-  #         REMOTE_SHA=$(git ls-remote origin "refs/heads/$BRANCH" | cut -f1)
-  #         echo "Remote branch HEAD SHA: $REMOTE_SHA"
+          if [[ "$REMOTE_SHA" != "$COMMIT_SHA" ]]; then
+            echo "::error::SHA mismatch: action returned $COMMIT_SHA but branch HEAD is $REMOTE_SHA"
+            exit 1
+          fi
 
-  #         if [[ "$REMOTE_SHA" != "$COMMIT_SHA" ]]; then
-  #           echo "::error::SHA mismatch: action returned $COMMIT_SHA but branch HEAD is $REMOTE_SHA"
-  #           exit 1
-  #         fi
+          CHANGED_FILES=$(gh api "repos/$REPOSITORY/commits/$COMMIT_SHA" --jq '[.files[].filename] | sort | join(",")')
+          echo "Files changed in commit: $CHANGED_FILES"
 
-  #         echo "Commit verified successfully"
+          if [[ "$CHANGED_FILES" != "api-commit-auto-test-file.txt" ]]; then
+            echo "::error::Expected auto-detect test file in commit, got: $CHANGED_FILES"
+            exit 1
+          fi
 
-  #     - name: Check commit verification status
-  #       env:
-  #         GH_TOKEN: ${{ github.token }}
-  #         COMMIT_SHA: ${{ steps.api-commit.outputs.commit_sha }}
-  #         REPOSITORY: ${{ github.repository }}
-  #       run: |
-  #         # Note: commits created with GITHUB_TOKEN will show verified=false/unsigned.
-  #         # When a GitHub App token is used instead, verified=true/valid is expected.
-  #         gh api "repos/$REPOSITORY/commits/$COMMIT_SHA" \
-  #           --jq '"Verified: \(.commit.verification.verified) (reason: \(.commit.verification.reason))"'
+          echo "Commit verified successfully"
 
-  #     - name: Cleanup test branch
-  #       if: always()
-  #       env:
-  #         GH_TOKEN: ${{ github.token }}
-  #         BRANCH: ${{ steps.setup.outputs.test_branch }}
-  #         REPOSITORY: ${{ github.repository }}
-  #       run: |
-  #         if [[ -n "$BRANCH" ]]; then
-  #           gh api "repos/$REPOSITORY/git/refs/heads/$BRANCH" --method DELETE
-  #         fi
+      - name: Check commit verification status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_SHA: ${{ steps.api-commit.outputs.commit_sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          # GitHub automatically signs commits created via the Git Data API,
+          # so verified=true is expected regardless of which token is used.
+          VERIFIED=$(gh api "repos/$REPOSITORY/commits/$COMMIT_SHA" --jq '.commit.verification.verified')
+          REASON=$(gh api "repos/$REPOSITORY/commits/$COMMIT_SHA" --jq '.commit.verification.reason')
+          echo "Verified: $VERIFIED (reason: $REASON)"
+
+          if [[ "$VERIFIED" != "true" ]]; then
+            echo "::error::Expected commit to be verified, got verified=$VERIFIED reason=$REASON"
+            exit 1
+          fi
+
+      - name: Cleanup test branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.setup.outputs.test_branch }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          if [[ -n "$BRANCH" ]]; then
+            gh api "repos/$REPOSITORY/git/refs/heads/$BRANCH" --method DELETE
+          fi

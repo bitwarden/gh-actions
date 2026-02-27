@@ -85,7 +85,7 @@ runs:
             files = [...new Set([
               ...workingTree.stdout.split('\n'),
               ...staged.stdout.split('\n'),
-            ].map(f => f.trim()).filter(f => f.length > 0).map(f => path.normalize(f)))];
+            ].map(f => f.trim()).filter(f => f.length > 0).map(f => path.normalize(f).split(path.sep).join('/')))];
             if (files.length === 0) {
               core.info('No changed files detected, skipping commit');
               core.setOutput('commit_sha', '');

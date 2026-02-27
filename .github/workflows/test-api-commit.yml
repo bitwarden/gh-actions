@@ -92,10 +92,16 @@ jobs:
           COMMIT_SHA: ${{ steps.api-commit.outputs.commit_sha }}
           REPOSITORY: ${{ github.repository }}
         run: |
-          # Note: commits created with GITHUB_TOKEN will show verified=false/unsigned.
-          # When a GitHub App token is used instead, verified=true/valid is expected.
-          gh api "repos/$REPOSITORY/commits/$COMMIT_SHA" \
-            --jq '"Verified: \(.commit.verification.verified) (reason: \(.commit.verification.reason))"'
+          # GitHub automatically signs commits created via the Git Data API,
+          # so verified=true is expected regardless of which token is used.
+          VERIFIED=$(gh api "repos/$REPOSITORY/commits/$COMMIT_SHA" --jq '.commit.verification.verified')
+          REASON=$(gh api "repos/$REPOSITORY/commits/$COMMIT_SHA" --jq '.commit.verification.reason')
+          echo "Verified: $VERIFIED (reason: $REASON)"
+
+          if [[ "$VERIFIED" != "true" ]]; then
+            echo "::error::Expected commit to be verified, got verified=$VERIFIED reason=$REASON"
+            exit 1
+          fi
 
       # - name: Cleanup test branch
       #   if: always()

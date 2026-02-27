@@ -16,14 +16,14 @@ inputs:
   branch:
     description: 'Branch to commit to'
     required: false
-    default: ${{ github.ref_name }}
+    default: ${{ github.ref }}
   token:
     description: 'GitHub token for API access. Use a GitHub App token for verified commits.'
     required: true
 
 outputs:
   commit_sha:
-    description: 'SHA of the created commit'
+    description: 'SHA of the created commit, or empty if no changed files were detected and no commit was made'
     value: ${{ steps.api-commit.outputs.commit_sha }}
 
 runs:
@@ -40,24 +40,115 @@ runs:
         github-token: ${{ inputs.token }}
         script: |
           const fs = require('fs');
-          const branch = process.env.INPUT_BRANCH;
+          const path = require('path');
           const message = process.env.INPUT_MESSAGE;
+
+          // Validate message
+          if (!message.trim().length) {
+            core.setFailed('message input must not be empty');
+            return;
+          }
+
+          // Resolve branch — strip full ref prefix if provided, reject non-branch refs
+          let branch = process.env.INPUT_BRANCH.trim();
+          if (branch.startsWith('refs/heads/')) {
+            branch = branch.slice('refs/heads/'.length);
+          } else if (branch.startsWith('refs/tags/')) {
+            core.setFailed(`branch resolves to a tag ref (${branch}); the target must be a branch`);
+            return;
+          } else if (branch.startsWith('refs/pull/')) {
+            core.setFailed(`branch resolves to a pull request ref (${branch}); the target must be a branch`);
+            return;
+          } else if (branch.startsWith('refs/')) {
+            core.setFailed(`branch resolves to an unsupported ref (${branch}); the target must be a branch`);
+            return;
+          }
+
+          if (!branch.length) {
+            core.setFailed('branch input must not be empty');
+            return;
+          }
 
           // Resolve file list — explicit input or auto-detect via git diff
           let files;
           if (process.env.INPUT_FILES.trim().length > 0) {
-            files = process.env.INPUT_FILES.split('\n').map(f => f.trim()).filter(f => f.length > 0);
+            files = process.env.INPUT_FILES.split('\n')
+              .map(f => f.trim())
+              .filter(f => f.length > 0)
+              .map(f => path.normalize(f));
           } else {
-            const output = await exec.getExecOutput('git', ['diff', '--name-only', 'HEAD']);
-            files = output.stdout.split('\n').map(f => f.trim()).filter(f => f.length > 0);
+            // Combine working tree and staged changes so that staged-only changes are included
+            const [workingTree, staged] = await Promise.all([
+              exec.getExecOutput('git', ['diff', '--diff-filter=d', '--name-only', 'HEAD']),
+              exec.getExecOutput('git', ['diff', '--diff-filter=d', '--cached', '--name-only', 'HEAD']),
+            ]);
+            files = [
+              ...workingTree.stdout.split('\n'),
+              ...staged.stdout.split('\n'),
+            ].map(f => f.trim()).filter(f => f.length > 0).map(f => path.normalize(f));
             if (files.length === 0) {
               core.info('No changed files detected, skipping commit');
+              core.setOutput('commit_sha', '');
               return;
             }
-            core.info(`Auto-detected ${files.length} changed file(s):\n${files.join('\n')}`);
           }
 
-          // Get current branch HEAD
+          // Deduplicate while preserving order
+          const unique = [...new Set(files)];
+          if (unique.length !== files.length) {
+            core.warning(`Removed ${files.length - unique.length} duplicate file path(s)`);
+          }
+          files = unique;
+
+          // Validate files before making any API calls
+          for (const file of files) {
+            if (path.isAbsolute(file)) {
+              core.setFailed(`File path must be relative to the repository root: ${file}`);
+              return;
+            }
+            if (file.startsWith('..')) {
+              core.setFailed(`File path must not escape the repository root: ${file}`);
+              return;
+            }
+            let stat;
+            try {
+              stat = fs.lstatSync(file);
+            } catch {
+              core.setFailed(`File not found: ${file}`);
+              return;
+            }
+            if (stat.isDirectory()) {
+              core.setFailed(`File path is a directory, not a file: ${file}`);
+              return;
+            }
+          }
+
+          core.info(`Committing ${files.length} file(s):\n${files.join('\n')}`);
+
+          // Create blobs first — no dependency on the branch ref, so doing this
+          // before getRef minimises the window between reading and updating the ref.
+          const tree = await Promise.all(files.map(async (file) => {
+            const stat = fs.lstatSync(file);
+            let content;
+            let mode;
+            if (stat.isSymbolicLink()) {
+              // Store the symlink target path as the blob content, as git does.
+              content = Buffer.from(fs.readlinkSync(file));
+              mode = '120000';
+            } else {
+              content = fs.readFileSync(file);
+              mode = (stat.mode & 0o111) ? '100755' : '100644';
+            }
+            const { data: blob } = await github.rest.git.createBlob({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              content: content.toString('base64'),
+              encoding: 'base64'
+            });
+            return { path: file, mode, type: 'blob', sha: blob.sha };
+          }));
+
+          // Get current branch HEAD as late as possible to reduce the race window
           const { data: ref } = await github.rest.git.getRef({
             owner: context.repo.owner,
             repo: context.repo.repo,
@@ -69,18 +160,6 @@ runs:
             repo: context.repo.repo,
             commit_sha: ref.object.sha
           });
-
-          // Create a blob for each file
-          const tree = await Promise.all(files.map(async (file) => {
-            const content = fs.readFileSync(file, 'utf8');
-            const { data: blob } = await github.rest.git.createBlob({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              content: Buffer.from(content).toString('base64'),
-              encoding: 'base64'
-            });
-            return { path: file, mode: '100644', type: 'blob', sha: blob.sha };
-          }));
 
           // Create tree, commit, and update the branch ref
           const { data: newTree } = await github.rest.git.createTree({
@@ -98,11 +177,19 @@ runs:
             parents: [ref.object.sha]
           });
 
-          await github.rest.git.updateRef({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            ref: `heads/${branch}`,
-            sha: newCommit.sha
-          });
+          try {
+            await github.rest.git.updateRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `heads/${branch}`,
+              sha: newCommit.sha
+            });
+          } catch (err) {
+            if (err.status === 422) {
+              core.setFailed(`Failed to update branch — the branch may have received new commits during this run. Re-run the workflow to retry.`);
+              return;
+            }
+            throw err;
+          }
 
           core.setOutput('commit_sha', newCommit.sha);

@@ -15,14 +15,14 @@ Create a verified commit via the GitHub API without requiring `git` credentials 
 | --------- | ------------------------------------------------------------------------------ | -------- | ------------------------ |
 | `files`   | Newline-delimited list of files to commit. If omitted, all files modified relative to HEAD are committed. | No | -  |
 | `message` | Commit message                                                                 | Yes      | -                        |
-| `branch`  | Branch to commit to                                                            | No       | `${{ github.ref_name }}` |
+| `branch`  | Branch to commit to                                                            | No       | `${{ github.ref }}`      |
 | `token`   | GitHub token for API access. Use a GitHub App token for verified commits.     | Yes      | -                        |
 
 ## Outputs
 
 | Output       | Description                   |
 | ------------ | ----------------------------- |
-| `commit_sha` | SHA of the created commit     |
+| `commit_sha` | SHA of the created commit, or empty if no changed files were detected |
 
 ## Usage
 
@@ -97,6 +97,11 @@ Pass a GitHub App token to create commits verified as a GitHub App identity:
 - name: Print commit SHA
   run: echo "Created commit ${{ steps.api-commit.outputs.commit_sha }}"
 ```
+
+## Requirements
+
+- The target `branch` must already exist. The action looks up the branch HEAD via the API as its first step and will fail with a 404 if the branch does not exist.
+- File deletions are not supported. The Git Data API requires a separate approach to remove files from a tree. When using explicit `files`, listing a deleted file will fail with "File not found". When using auto-detect, deleted files are silently excluded from the commit.
 
 ## Permissions
 

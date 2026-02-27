@@ -108,9 +108,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           BRANCH: ${{ steps.setup.outputs.test_branch }}
+          REPOSITORY: ${{ github.repository }}
         run: |
-          if [[ -n "$BRANCH" ]] && git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
-            git push origin --delete "$BRANCH" || echo "WARN: Failed to delete test branch $BRANCH"
+          if [[ -n "$BRANCH" ]]; then
+            gh api "repos/$REPOSITORY/git/refs/heads/$BRANCH" --method DELETE
           fi
 
   # test-api-commit-auto-detect:
@@ -194,7 +195,8 @@ jobs:
   #       env:
   #         GH_TOKEN: ${{ github.token }}
   #         BRANCH: ${{ steps.setup.outputs.test_branch }}
+  #         REPOSITORY: ${{ github.repository }}
   #       run: |
-  #         if [[ -n "$BRANCH" ]] && git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
-  #           git push origin --delete "$BRANCH" || echo "WARN: Failed to delete test branch $BRANCH"
+  #         if [[ -n "$BRANCH" ]]; then
+  #           gh api "repos/$REPOSITORY/git/refs/heads/$BRANCH" --method DELETE
   #         fi

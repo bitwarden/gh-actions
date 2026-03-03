@@ -25,11 +25,11 @@ inputs:
     required: false
     default: ''
   owner:
-    description: 'Repository owner (org or user). Defaults to the current repository owner.'
+    description: 'Repository owner (org or user). Defaults to the current workflow repository owner.'
     required: false
     default: ''
   repo:
-    description: 'Repository name. Defaults to the current repository.'
+    description: 'Repository name. Defaults to the current workflow repository.'
     required: false
     default: ''
 

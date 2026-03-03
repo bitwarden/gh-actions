@@ -110,40 +110,42 @@ jobs:
       contents: read
     steps:
       - name: Validate release version
+        env:
+          RELEASE_VERSION: ${{ needs.test-release-version.outputs.version }}
         run: |
-          release_version="${{ needs.test-release-version.outputs.version }}"
-          echo "Release version: $release_version"
+          echo "Release version: $RELEASE_VERSION"
 
-          if [[ -z "$release_version" ]]; then
+          if [[ -z "$RELEASE_VERSION" ]]; then
             echo "ERROR: Release version is empty"
             exit 1
           fi
 
           # Should be 99.88.78 (patch increment from 99.88.77)
-          if [[ "$release_version" == "99.88.78" ]]; then
+          if [[ "$RELEASE_VERSION" == "99.88.78" ]]; then
             echo "SUCCESS: Release version is correct"
           else
-            echo "ERROR: Expected version 99.88.78, got $release_version"
+            echo "ERROR: Expected version 99.88.78, got $RELEASE_VERSION"
             exit 1
           fi
 
       - name: Validate non-release version
+        env:
+          NON_RELEASE_VERSION: ${{ needs.test-non-release-version.outputs.version }}
+          PR_NUMBER: ${{ needs.setup.outputs.simulated_pr_number }}
         run: |
-          non_release_version="${{ needs.test-non-release-version.outputs.version }}"
-          pr_number="${{ needs.setup.outputs.simulated_pr_number }}"
-          echo "Non-release version: $non_release_version"
+          echo "Non-release version: $NON_RELEASE_VERSION"
 
-          if [[ -z "$non_release_version" ]]; then
+          if [[ -z "$NON_RELEASE_VERSION" ]]; then
             echo "ERROR: Non-release version is empty"
             exit 1
           fi
 
           # Should be 99.88.77+PR_NUMBER
-          expected="99.88.77+$pr_number"
-          if [[ "$non_release_version" == "$expected" ]]; then
+          expected="99.88.77+$PR_NUMBER"
+          if [[ "$NON_RELEASE_VERSION" == "$expected" ]]; then
             echo "SUCCESS: Non-release version is correct"
           else
-            echo "ERROR: Expected version $expected, got $non_release_version"
+            echo "ERROR: Expected version $expected, got $NON_RELEASE_VERSION"
             exit 1
           fi
 

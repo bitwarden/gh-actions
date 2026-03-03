@@ -36,7 +36,9 @@ jobs:
       - name: Create test tag
         id: create-test-tag
         run: |
-          test_tag="v99.88.77"
+          # Use a unique version for testing
+          timestamp=$(date +%s)
+          test_tag="v99.88.${timestamp:0:4}"
           echo "test_tag=$test_tag" >> $GITHUB_OUTPUT
           echo "INFO: Creating test tag [$test_tag]"
           git tag "$test_tag"
@@ -113,19 +115,32 @@ jobs:
       - name: Validate release version
         env:
           RELEASE_VERSION: ${{ needs.test-release-version.outputs.version }}
+          TEST_TAG: ${{ needs.setup.outputs.test_tag }}
         run: |
           echo "Release version: $RELEASE_VERSION"
+          echo "Test tag: $TEST_TAG"
 
           if [[ -z "$RELEASE_VERSION" ]]; then
             echo "ERROR: Release version is empty"
             exit 1
           fi
 
-          # Should be 99.88.78 (patch increment from 99.88.77)
-          if [[ "$RELEASE_VERSION" == "99.88.78" ]]; then
+          # Extract version from test tag (remove 'v' prefix)
+          base_version="${TEST_TAG:1}"
+
+          # Calculate expected patch increment
+          IFS='.' read -ra VERSION_PARTS <<< "$base_version"
+          major=${VERSION_PARTS[0]}
+          minor=${VERSION_PARTS[1]}
+          patch=${VERSION_PARTS[2]}
+          expected_version="$major.$minor.$((patch + 1))"
+
+          echo "Expected version: $expected_version (patch increment from $base_version)"
+
+          if [[ "$RELEASE_VERSION" == "$expected_version" ]]; then
             echo "SUCCESS: Release version is correct"
           else
-            echo "ERROR: Expected version 99.88.78, got $RELEASE_VERSION"
+            echo "ERROR: Expected version $expected_version, got $RELEASE_VERSION"
             exit 1
           fi
 
@@ -133,16 +148,24 @@ jobs:
         env:
           NON_RELEASE_VERSION: ${{ needs.test-non-release-version.outputs.version }}
           PR_NUMBER: ${{ needs.setup.outputs.simulated_pr_number }}
+          TEST_TAG: ${{ needs.setup.outputs.test_tag }}
         run: |
           echo "Non-release version: $NON_RELEASE_VERSION"
+          echo "PR number: $PR_NUMBER"
+          echo "Test tag: $TEST_TAG"
 
           if [[ -z "$NON_RELEASE_VERSION" ]]; then
             echo "ERROR: Non-release version is empty"
             exit 1
           fi
 
-          # Should be 99.88.77+PR_NUMBER
-          expected="99.88.77+$PR_NUMBER"
+          # Extract version from test tag (remove 'v' prefix)
+          base_version="${TEST_TAG:1}"
+
+          # Should be base_version+PR_NUMBER
+          expected="${base_version}+${PR_NUMBER}"
+          echo "Expected version: $expected"
+
           if [[ "$NON_RELEASE_VERSION" == "$expected" ]]; then
             echo "SUCCESS: Non-release version is correct"
           else

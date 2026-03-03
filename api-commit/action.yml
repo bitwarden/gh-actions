@@ -20,6 +20,18 @@ inputs:
   token:
     description: 'GitHub token for API access. Use a GitHub App token for verified commits.'
     required: true
+  tag_name:
+    description: 'Tag to create pointing at the commit. If omitted, no tag is created. If no commit is made, the tag is skipped.'
+    required: false
+    default: ''
+  owner:
+    description: 'Repository owner (org or user). Defaults to the current repository owner.'
+    required: false
+    default: ''
+  repo:
+    description: 'Repository name. Defaults to the current repository.'
+    required: false
+    default: ''
 
 outputs:
   commit_sha:
@@ -36,11 +48,16 @@ runs:
         INPUT_FILES: ${{ inputs.files }}
         INPUT_MESSAGE: ${{ inputs.message }}
         INPUT_BRANCH: ${{ inputs.branch }}
+        INPUT_TAG_NAME: ${{ inputs.tag_name }}
+        INPUT_OWNER: ${{ inputs.owner }}
+        INPUT_REPO: ${{ inputs.repo }}
       with:
         github-token: ${{ inputs.token }}
         script: |
           const fs = require('fs');
           const path = require('path');
+          const owner = process.env.INPUT_OWNER.trim() || context.repo.owner;
+          const repo = process.env.INPUT_REPO.trim() || context.repo.repo;
           const message = process.env.INPUT_MESSAGE;
 
           // Validate message
@@ -77,6 +94,33 @@ runs:
               .filter(f => f.length > 0)
               .map(f => path.normalize(f).split(path.sep).join('/'));
           } else {
+            // Verify the local git remote matches the target repository to ensure
+            // auto-detected files correspond to the correct repository.
+            const remoteUrl = (await exec.getExecOutput('git', ['remote', 'get-url', 'origin'])).stdout.trim();
+            let remoteOwner, remoteRepo;
+            try {
+              // HTTPS: https://github.com/owner/repo.git
+              const url = new URL(remoteUrl);
+              const parts = url.pathname.replace(/^\//, '').replace(/\.git$/, '').split('/');
+              remoteOwner = parts[0];
+              remoteRepo = parts[1];
+            } catch {
+              // SSH: git@github.com:owner/repo.git
+              const match = remoteUrl.match(/[^:]+:([^/]+)\/(.+?)(?:\.git)?$/);
+              if (match) {
+                remoteOwner = match[1];
+                remoteRepo = match[2];
+              }
+            }
+            if (!remoteOwner || !remoteRepo) {
+              core.setFailed(`Could not parse git remote URL to validate repository: ${remoteUrl}`);
+              return;
+            }
+            if (remoteOwner.toLowerCase() !== owner.toLowerCase() || remoteRepo.toLowerCase() !== repo.toLowerCase()) {
+              core.setFailed(`Auto-detect requires the local git remote to match the target repository. Remote is ${remoteOwner}/${remoteRepo} but targeting ${owner}/${repo}. Use explicit \`files\` input when targeting a different repository.`);
+              return;
+            }
+
             // Combine working tree and staged changes so that staged-only changes are included
             const [workingTree, staged] = await Promise.all([
               exec.getExecOutput('git', ['diff', '--diff-filter=d', '--name-only', 'HEAD']),
@@ -140,8 +184,8 @@ runs:
               mode = (stat.mode & 0o111) ? '100755' : '100644';
             }
             const { data: blob } = await github.rest.git.createBlob({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
+              owner,
+              repo,
               content: content.toString('base64'),
               encoding: 'base64'
             });
@@ -150,21 +194,21 @@ runs:
 
           // Get current branch HEAD as late as possible to reduce the race window
           const { data: ref } = await github.rest.git.getRef({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
+            owner,
+            repo,
             ref: `heads/${branch}`
           });
 
           const { data: commit } = await github.rest.git.getCommit({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
+            owner,
+            repo,
             commit_sha: ref.object.sha
           });
 
           // Create tree, commit, and update the branch ref
           const { data: newTree } = await github.rest.git.createTree({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
+            owner,
+            repo,
             base_tree: commit.tree.sha,
             tree
           });
@@ -177,8 +221,8 @@ runs:
           }
 
           const { data: newCommit } = await github.rest.git.createCommit({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
+            owner,
+            repo,
             message,
             tree: newTree.sha,
             parents: [ref.object.sha]
@@ -186,8 +230,8 @@ runs:
 
           try {
             await github.rest.git.updateRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
+              owner,
+              repo,
               ref: `heads/${branch}`,
               sha: newCommit.sha
             });
@@ -197,6 +241,17 @@ runs:
               return;
             }
             throw err;
+          }
+
+          const tagName = process.env.INPUT_TAG_NAME.trim();
+          if (tagName.length) {
+            await github.rest.git.createRef({
+              owner,
+              repo,
+              ref: `refs/tags/${tagName}`,
+              sha: newCommit.sha
+            });
+            core.info(`Created tag ${tagName} at ${newCommit.sha}`);
           }
 
           core.setOutput('commit_sha', newCommit.sha);

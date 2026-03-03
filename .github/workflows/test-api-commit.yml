@@ -1,0 +1,181 @@
+name: Test API Commit Action
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "api-commit/**"
+      - ".github/workflows/test-api-commit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test-api:
+    name: Test API commit (${{ matrix.mode }})
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        mode:
+          - explicit-files
+          - auto-detect-files
+          - no-changes
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Create test branch
+        id: setup
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          TEST_BRANCH="api-commit-${{ matrix.mode }}-$(date +%s)"
+          echo "test_branch=$TEST_BRANCH" >> "$GITHUB_OUTPUT"
+
+          SHA=$(gh api "repos/$REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          gh api "repos/$REPOSITORY/git/refs" \
+            --method POST \
+            -f "ref=refs/heads/$TEST_BRANCH" \
+            -f "sha=$SHA"
+
+      - name: Create test files (explicit files)
+        if: matrix.mode == 'explicit-files'
+        run: |
+          echo "content $(date +%s)" > api-commit-test-file-1.txt
+          echo "content $(date +%s)" > api-commit-test-file-2.txt
+
+      - name: Run API Commit action (explicit files)
+        id: api-commit-explicit
+        if: matrix.mode == 'explicit-files'
+        uses: ./api-commit
+        with:
+          files: |
+            api-commit-test-file-1.txt
+            api-commit-test-file-2.txt
+          message: "chore: test API commit"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
+      - name: Create and stage test file (auto-detect files)
+        if: matrix.mode == 'auto-detect-files'
+        run: |
+          echo "content $(date +%s)" > api-commit-auto-test-file.txt
+          git add api-commit-auto-test-file.txt
+
+      - name: Run API Commit action (auto-detect files)
+        id: api-commit-auto
+        if: matrix.mode == 'auto-detect-files'
+        uses: ./api-commit
+        with:
+          message: "chore: test API commit auto-detect"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
+      - name: Run API Commit action (no changes)
+        id: api-commit-no-changes
+        if: matrix.mode == 'no-changes'
+        uses: ./api-commit
+        with:
+          message: "chore: test API commit no changes"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
+      - name: Get commit SHA
+        id: commit
+        env:
+          EXPLICIT_FILES_SHA: ${{ steps.api-commit-explicit.outputs.commit_sha }}
+          EXPECTED_EXPLICIT_FILES: "api-commit-test-file-1.txt,api-commit-test-file-2.txt"
+          AUTO_DETECT_FILES_SHA: ${{ steps.api-commit-auto.outputs.commit_sha }}
+          EXPECTED_AUTO_DETECT_FILES: "api-commit-auto-test-file.txt"
+          NO_CHANGES_OUTCOME: ${{ steps.api-commit-no-changes.outcome }}
+        run: |
+          if [[ -n "$EXPLICIT_FILES_SHA" ]]; then
+            echo "sha=$EXPLICIT_FILES_SHA" >> "$GITHUB_OUTPUT"
+            echo "expected_files=$EXPECTED_EXPLICIT_FILES" >> "$GITHUB_OUTPUT"
+          elif [[ -n "$AUTO_DETECT_FILES_SHA" ]]; then
+            echo "sha=$AUTO_DETECT_FILES_SHA" >> "$GITHUB_OUTPUT"
+            echo "expected_files=$EXPECTED_AUTO_DETECT_FILES" >> "$GITHUB_OUTPUT"
+          elif [[ "$NO_CHANGES_OUTCOME" == "success" ]]; then
+            echo "sha=" >> "$GITHUB_OUTPUT"
+            echo "expected_files=" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::No commit SHA found"
+            exit 1
+          fi
+
+      - name: Validate commit was created
+        env:
+          COMMIT_SHA: ${{ steps.commit.outputs.sha }}
+          EXPECTED_FILES: ${{ steps.commit.outputs.expected_files }}
+          BRANCH: ${{ steps.setup.outputs.test_branch }}
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          if [[ -z "$EXPECTED_FILES" ]]; then
+            if [[ -n "$COMMIT_SHA" ]]; then
+              echo "::error::Expected no commit to be made, but got commit_sha=$COMMIT_SHA"
+              exit 1
+            fi
+            echo "Correctly produced no commit"
+            exit 0
+          fi
+
+          echo "Commit SHA from action: $COMMIT_SHA"
+
+          if [[ -z "$COMMIT_SHA" ]]; then
+            echo "::error::commit_sha output was empty"
+            exit 1
+          fi
+
+          REMOTE_SHA=$(git ls-remote origin "refs/heads/$BRANCH" | cut -f1)
+          echo "Remote branch HEAD SHA: $REMOTE_SHA"
+
+          if [[ "$REMOTE_SHA" != "$COMMIT_SHA" ]]; then
+            echo "::error::SHA mismatch: action returned $COMMIT_SHA but branch HEAD is $REMOTE_SHA"
+            exit 1
+          fi
+
+          CHANGED_FILES=$(gh api "repos/$REPOSITORY/commits/$COMMIT_SHA" --jq '[.files[].filename] | sort | join(",")')
+          echo "Files changed in commit: $CHANGED_FILES"
+
+          if [[ "$CHANGED_FILES" != "$EXPECTED_FILES" ]]; then
+            echo "::error::Expected $EXPECTED_FILES in commit, got: $CHANGED_FILES"
+            exit 1
+          fi
+
+          echo "Commit verified successfully"
+
+      - name: Check commit verification status
+        if: steps.commit.outputs.sha != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_SHA: ${{ steps.commit.outputs.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          # GitHub automatically signs commits created via the Git Data API,
+          # so verified=true is expected regardless of which token is used.
+          VERIFIED=$(gh api "repos/$REPOSITORY/commits/$COMMIT_SHA" --jq '.commit.verification.verified')
+          REASON=$(gh api "repos/$REPOSITORY/commits/$COMMIT_SHA" --jq '.commit.verification.reason')
+          echo "Verified: $VERIFIED (reason: $REASON)"
+
+          if [[ "$VERIFIED" != "true" ]]; then
+            echo "::error::Expected commit to be verified, got verified=$VERIFIED reason=$REASON"
+            exit 1
+          fi
+
+      - name: Cleanup test branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.setup.outputs.test_branch }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          if [[ -n "$BRANCH" ]]; then
+            gh api "repos/$REPOSITORY/git/refs/heads/$BRANCH" --method DELETE
+          fi

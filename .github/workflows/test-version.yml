@@ -14,9 +14,10 @@ jobs:
     name: Setup
     runs-on: ubuntu-24.04
     outputs:
-      simulated_feature_branch: ${{ steps.create-test-pr.outputs.simulated_feature_branch }}
-      simulated_pr_number: ${{ steps.create-test-pr.outputs.simulated_pr_number }}
-      test_tag: ${{ steps.create-test-tag.outputs.test_tag }}
+      simulated_main_branch: ${{ steps.create-simulated-branches.outputs.simulated_main_branch }}
+      simulated_feature_branch: ${{ steps.create-simulated-branches.outputs.simulated_feature_branch }}
+      simulated_pr_number: ${{ steps.create-simulated-branches.outputs.simulated_pr_number }}
+      test_tag: ${{ steps.create-simulated-branches.outputs.test_tag }}
     permissions:
       contents: write
       pull-requests: write
@@ -33,36 +34,53 @@ jobs:
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
 
-      - name: Create test tag
-        id: create-test-tag
-        run: |
-          # Use a unique version for testing
-          timestamp=$(date +%s)
-          test_tag="v99.88.${timestamp:0:4}"
-          echo "test_tag=$test_tag" >> $GITHUB_OUTPUT
-          echo "INFO: Creating test tag [$test_tag]"
-          git tag "$test_tag"
-          git push origin "$test_tag"
-
-      - name: Create test PR
-        id: create-test-pr
+      - name: Create simulated branches
+        id: create-simulated-branches
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          simulated_feature_branch="version-test-feature-$(date +%s)"
+          timestamp=$(date +%s)
+          simulated_main_branch="version-sim-main-$timestamp"
+          simulated_feature_branch="version-sim-feature-$timestamp"
+
+          # Output these early so cleanup can use them if this step fails
+          echo "simulated_main_branch=$simulated_main_branch" >> $GITHUB_OUTPUT
           echo "simulated_feature_branch=$simulated_feature_branch" >> $GITHUB_OUTPUT
 
-          echo "INFO: Creating branch [$simulated_feature_branch]"
+          # Create simulated main branch with a test tag
+          echo "INFO: Creating simulated main branch [$simulated_main_branch]"
+          git switch -c "$simulated_main_branch"
+          echo 'test main branch' > "version-sim-main-$timestamp.txt"
+          git add "version-sim-main-$timestamp.txt"
+          git commit -m 'test: simulated main branch'
+          git push origin "$simulated_main_branch"
+
+          # Create and push test tag on simulated main
+          test_tag="v99.88.${timestamp:0:4}"
+          echo "test_tag=$test_tag" >> $GITHUB_OUTPUT
+          echo "INFO: Creating test tag [$test_tag] on [$simulated_main_branch]"
+          git tag "$test_tag"
+          git push origin "$test_tag"
+
+          # Create simulated feature branch
+          echo "INFO: Creating simulated feature branch [$simulated_feature_branch]"
           git switch -c "$simulated_feature_branch"
-          echo 'test version calculation' > "version-test-$(date +%s).txt"
-          git add .
+          echo 'test feature' > "version-sim-feature-$timestamp.txt"
+          git add "version-sim-feature-$timestamp.txt"
           git commit -m 'test: version calculation'
           git push origin "$simulated_feature_branch"
 
+          # Create version:patch label if it doesn't exist
+          if ! gh label list | grep -q "version:patch"; then
+            echo "INFO: Creating version:patch label"
+            gh label create "version:patch" --description "Patch version increment" --color "0075ca"
+          fi
+
+          # Create PR from feature to simulated main
           pr_title='Test version workflow'
-          echo "INFO: Creating PR [$pr_title]"
+          echo "INFO: Creating PR [$pr_title] with base [$simulated_main_branch] and head [$simulated_feature_branch]"
           gh pr create \
-            --base main \
+            --base "$simulated_main_branch" \
             --head "$simulated_feature_branch" \
             --title "$pr_title" \
             --body "Automated test PR for version workflow testing. This should be cleaned up automatically." \
@@ -77,7 +95,10 @@ jobs:
           echo "simulated_pr_number=$simulated_pr_number" >> $GITHUB_OUTPUT
           echo "INFO: Created PR #$simulated_pr_number"
 
-          echo "INFO: Merging PR #$simulated_pr_number"
+          # Switch to simulated main to merge the PR
+          git switch "$simulated_main_branch"
+
+          echo "INFO: Merging PR #$simulated_pr_number into [$simulated_main_branch]"
           if ! gh pr merge "$simulated_pr_number" --squash; then
             echo "ERROR: Failed to merge PR #$simulated_pr_number"
             exit 1
@@ -179,6 +200,7 @@ jobs:
     needs: [setup, test-release-version, test-non-release-version, validate]
     if: always()
     env:
+      _SIMULATED_MAIN_BRANCH: ${{ needs.setup.outputs.simulated_main_branch }}
       _SIMULATED_FEATURE_BRANCH: ${{ needs.setup.outputs.simulated_feature_branch }}
       _SIMULATED_PR_NUMBER: ${{ needs.setup.outputs.simulated_pr_number }}
       _TEST_TAG: ${{ needs.setup.outputs.test_tag }}
@@ -207,6 +229,13 @@ jobs:
             if git ls-remote --exit-code --heads origin "$_SIMULATED_FEATURE_BRANCH" >/dev/null 2>&1; then
               echo "INFO: Deleting branch [$_SIMULATED_FEATURE_BRANCH]"
               git push origin --delete "$_SIMULATED_FEATURE_BRANCH" || echo "WARN: Failed to delete branch"
+            fi
+          fi
+
+          if [[ -n $_SIMULATED_MAIN_BRANCH ]]; then
+            if git ls-remote --exit-code --heads origin "$_SIMULATED_MAIN_BRANCH" >/dev/null 2>&1; then
+              echo "INFO: Deleting branch [$_SIMULATED_MAIN_BRANCH]"
+              git push origin --delete "$_SIMULATED_MAIN_BRANCH" || echo "WARN: Failed to delete branch"
             fi
           fi
 

@@ -1,0 +1,194 @@
+name: Test Version workflow
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/_version.yml"
+
+permissions: {}
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-24.04
+    outputs:
+      simulated_feature_branch: ${{ steps.create-test-pr.outputs.simulated_feature_branch }}
+      simulated_pr_number: ${{ steps.create-test-pr.outputs.simulated_pr_number }}
+      test_tag: ${{ steps.create-test-tag.outputs.test_tag }}
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Configure git
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+
+      - name: Create test tag
+        id: create-test-tag
+        run: |
+          test_tag="v99.88.77"
+          echo "test_tag=$test_tag" >> $GITHUB_OUTPUT
+          echo "INFO: Creating test tag [$test_tag]"
+          git tag "$test_tag"
+          git push origin "$test_tag"
+
+      - name: Create test PR
+        id: create-test-pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          simulated_feature_branch="version-test-feature-$(date +%s)"
+          echo "simulated_feature_branch=$simulated_feature_branch" >> $GITHUB_OUTPUT
+
+          echo "INFO: Creating branch [$simulated_feature_branch]"
+          git switch -c "$simulated_feature_branch"
+          echo 'test version calculation' > "version-test-$(date +%s).txt"
+          git add .
+          git commit -m 'test: version calculation'
+          git push origin "$simulated_feature_branch"
+
+          pr_title='Test version workflow'
+          echo "INFO: Creating PR [$pr_title]"
+          gh pr create \
+            --base main \
+            --head "$simulated_feature_branch" \
+            --title "$pr_title" \
+            --body "Automated test PR for version workflow testing. This should be cleaned up automatically." \
+            --label "version:patch"
+
+          if [[ $? -ne 0 ]]; then
+            echo "ERROR: Failed to create PR"
+            exit 1
+          fi
+
+          simulated_pr_number=$(gh pr view "$simulated_feature_branch" --json number --jq '.number')
+          echo "simulated_pr_number=$simulated_pr_number" >> $GITHUB_OUTPUT
+          echo "INFO: Created PR #$simulated_pr_number"
+
+          echo "INFO: Merging PR #$simulated_pr_number"
+          if ! gh pr merge "$simulated_pr_number" --squash; then
+            echo "ERROR: Failed to merge PR #$simulated_pr_number"
+            exit 1
+          fi
+
+  test-release-version:
+    name: Test Release Version
+    needs: setup
+    uses: ./.github/workflows/_version.yml
+    with:
+      is-release: true
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+
+  test-non-release-version:
+    name: Test Non-Release Version
+    needs: setup
+    uses: ./.github/workflows/_version.yml
+    with:
+      is-release: false
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+
+  validate:
+    name: Validate Outputs
+    runs-on: ubuntu-24.04
+    needs: [setup, test-release-version, test-non-release-version]
+    permissions:
+      contents: read
+    steps:
+      - name: Validate release version
+        run: |
+          release_version="${{ needs.test-release-version.outputs.version }}"
+          echo "Release version: $release_version"
+
+          if [[ -z "$release_version" ]]; then
+            echo "ERROR: Release version is empty"
+            exit 1
+          fi
+
+          # Should be 99.88.78 (patch increment from 99.88.77)
+          if [[ "$release_version" == "99.88.78" ]]; then
+            echo "SUCCESS: Release version is correct"
+          else
+            echo "ERROR: Expected version 99.88.78, got $release_version"
+            exit 1
+          fi
+
+      - name: Validate non-release version
+        run: |
+          non_release_version="${{ needs.test-non-release-version.outputs.version }}"
+          pr_number="${{ needs.setup.outputs.simulated_pr_number }}"
+          echo "Non-release version: $non_release_version"
+
+          if [[ -z "$non_release_version" ]]; then
+            echo "ERROR: Non-release version is empty"
+            exit 1
+          fi
+
+          # Should be 99.88.77+PR_NUMBER
+          expected="99.88.77+$pr_number"
+          if [[ "$non_release_version" == "$expected" ]]; then
+            echo "SUCCESS: Non-release version is correct"
+          else
+            echo "ERROR: Expected version $expected, got $non_release_version"
+            exit 1
+          fi
+
+  cleanup:
+    name: Cleanup Test Resources
+    runs-on: ubuntu-24.04
+    needs: [setup, test-release-version, test-non-release-version, validate]
+    if: always()
+    env:
+      _SIMULATED_FEATURE_BRANCH: ${{ needs.setup.outputs.simulated_feature_branch }}
+      _SIMULATED_PR_NUMBER: ${{ needs.setup.outputs.simulated_pr_number }}
+      _TEST_TAG: ${{ needs.setup.outputs.test_tag }}
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: true
+
+      - name: Cleanup
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ -n $_SIMULATED_PR_NUMBER ]]; then
+            pr_state=$(gh pr view "$_SIMULATED_PR_NUMBER" --json state --jq '.state' 2>/dev/null || echo "NOT_FOUND")
+            if [[ $pr_state == 'OPEN' ]]; then
+              echo "INFO: Closing PR #$_SIMULATED_PR_NUMBER"
+              gh pr close "$_SIMULATED_PR_NUMBER" || echo "WARN: Failed to close PR"
+            fi
+          fi
+
+          if [[ -n $_SIMULATED_FEATURE_BRANCH ]]; then
+            if git ls-remote --exit-code --heads origin "$_SIMULATED_FEATURE_BRANCH" >/dev/null 2>&1; then
+              echo "INFO: Deleting branch [$_SIMULATED_FEATURE_BRANCH]"
+              git push origin --delete "$_SIMULATED_FEATURE_BRANCH" || echo "WARN: Failed to delete branch"
+            fi
+          fi
+
+          if [[ -n $_TEST_TAG ]]; then
+            if git ls-remote --exit-code --tags origin "$_TEST_TAG" >/dev/null 2>&1; then
+              echo "INFO: Deleting tag [$_TEST_TAG]"
+              git push origin --delete "$_TEST_TAG" || echo "WARN: Failed to delete tag"
+            fi
+          fi
+
+          echo 'INFO: Cleanup complete'

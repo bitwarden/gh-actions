@@ -23,6 +23,7 @@ jobs:
           - explicit-files
           - auto-detect-files
           - no-changes
+          - tag
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -35,8 +36,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
         run: |
-          TEST_BRANCH="api-commit-${{ matrix.mode }}-$(date +%s)"
+          TIMESTAMP=$(date +%s)
+          TEST_BRANCH="api-commit-${{ matrix.mode }}-$TIMESTAMP"
           echo "test_branch=$TEST_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "test_tag=api-commit-tag-test-$TIMESTAMP" >> "$GITHUB_OUTPUT"
 
           SHA=$(gh api "repos/$REPOSITORY/git/ref/heads/main" --jq '.object.sha')
           gh api "repos/$REPOSITORY/git/refs" \
@@ -86,6 +89,22 @@ jobs:
           branch: ${{ steps.setup.outputs.test_branch }}
           token: ${{ github.token }}
 
+      - name: Create test file (tag)
+        if: matrix.mode == 'tag'
+        run: |
+          echo "content $(date +%s)" > api-commit-tag-test-file.txt
+
+      - name: Run API Commit action (tag)
+        id: api-commit-tag
+        if: matrix.mode == 'tag'
+        uses: ./api-commit
+        with:
+          files: api-commit-tag-test-file.txt
+          message: "chore: test API commit with tag"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          tag_name: ${{ steps.setup.outputs.test_tag }}
+          token: ${{ github.token }}
+
       - name: Get commit SHA
         id: commit
         env:
@@ -94,16 +113,26 @@ jobs:
           AUTO_DETECT_FILES_SHA: ${{ steps.api-commit-auto.outputs.commit_sha }}
           EXPECTED_AUTO_DETECT_FILES: "api-commit-auto-test-file.txt"
           NO_CHANGES_OUTCOME: ${{ steps.api-commit-no-changes.outcome }}
+          TAG_SHA: ${{ steps.api-commit-tag.outputs.commit_sha }}
+          EXPECTED_TAG_FILES: "api-commit-tag-test-file.txt"
+          TEST_TAG: ${{ steps.setup.outputs.test_tag }}
         run: |
           if [[ -n "$EXPLICIT_FILES_SHA" ]]; then
             echo "sha=$EXPLICIT_FILES_SHA" >> "$GITHUB_OUTPUT"
             echo "expected_files=$EXPECTED_EXPLICIT_FILES" >> "$GITHUB_OUTPUT"
+            echo "tag_name=" >> "$GITHUB_OUTPUT"
           elif [[ -n "$AUTO_DETECT_FILES_SHA" ]]; then
             echo "sha=$AUTO_DETECT_FILES_SHA" >> "$GITHUB_OUTPUT"
             echo "expected_files=$EXPECTED_AUTO_DETECT_FILES" >> "$GITHUB_OUTPUT"
+            echo "tag_name=" >> "$GITHUB_OUTPUT"
           elif [[ "$NO_CHANGES_OUTCOME" == "success" ]]; then
             echo "sha=" >> "$GITHUB_OUTPUT"
             echo "expected_files=" >> "$GITHUB_OUTPUT"
+            echo "tag_name=" >> "$GITHUB_OUTPUT"
+          elif [[ -n "$TAG_SHA" ]]; then
+            echo "sha=$TAG_SHA" >> "$GITHUB_OUTPUT"
+            echo "expected_files=$EXPECTED_TAG_FILES" >> "$GITHUB_OUTPUT"
+            echo "tag_name=$TEST_TAG" >> "$GITHUB_OUTPUT"
           else
             echo "::error::No commit SHA found"
             exit 1
@@ -169,13 +198,35 @@ jobs:
             exit 1
           fi
 
-      - name: Cleanup test branch
+      - name: Validate tag was created
+        if: steps.commit.outputs.tag_name != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_SHA: ${{ steps.commit.outputs.sha }}
+          TAG_NAME: ${{ steps.commit.outputs.tag_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          TAG_SHA=$(gh api "repos/$REPOSITORY/git/ref/tags/$TAG_NAME" --jq '.object.sha')
+          echo "Tag $TAG_NAME points to: $TAG_SHA"
+
+          if [[ "$TAG_SHA" != "$COMMIT_SHA" ]]; then
+            echo "::error::Tag SHA mismatch: expected $COMMIT_SHA but tag points to $TAG_SHA"
+            exit 1
+          fi
+
+          echo "Tag verified successfully"
+
+      - name: Cleanup test branch and tag
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
           BRANCH: ${{ steps.setup.outputs.test_branch }}
+          TAG_NAME: ${{ steps.commit.outputs.tag_name }}
           REPOSITORY: ${{ github.repository }}
         run: |
           if [[ -n "$BRANCH" ]]; then
             gh api "repos/$REPOSITORY/git/refs/heads/$BRANCH" --method DELETE
+          fi
+          if [[ -n "$TAG_NAME" ]]; then
+            gh api "repos/$REPOSITORY/git/refs/tags/$TAG_NAME" --method DELETE
           fi

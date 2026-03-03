@@ -18,8 +18,8 @@ Create a verified commit via the GitHub API without requiring `git` credentials 
 | `branch`   | Branch to commit to                                                            | No       | `${{ github.ref }}`      |
 | `token`    | GitHub token for API access. Use a GitHub App token for verified commits.     | Yes      | -                        |
 | `tag_name` | Tag to create pointing at the commit. If omitted, no tag is created. If no commit is made, the tag is skipped. | No | - |
-| `owner`    | Repository owner (org or user). Defaults to the current repository owner.    | No       | `${{ github.repository_owner }}` |
-| `repo`     | Repository name. Defaults to the current repository.                         | No       | `${{ github.event.repository.name }}` |
+| `owner`    | Repository owner (org or user). Defaults to the current workflow repository owner. | No  | `${{ github.repository_owner }}` |
+| `repo`     | Repository name. Defaults to the current workflow repository.                 | No       | `${{ github.event.repository.name }}` |
 
 ## Outputs
 

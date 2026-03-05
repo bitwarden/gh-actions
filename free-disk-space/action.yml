@@ -29,32 +29,38 @@ runs:
     - name: Free runner disk space
       if: runner.os == 'Linux'
       shell: bash
+      env:
+        INPUT_REMOVE_DOTNET: ${{ inputs.remove-dotnet }}
+        INPUT_REMOVE_ANDROID: ${{ inputs.remove-android }}
+        INPUT_REMOVE_MINICONDA: ${{ inputs.remove-miniconda }}
+        INPUT_REMOVE_SWIFT: ${{ inputs.remove-swift }}
+        INPUT_REMOVE_HASKELL: ${{ inputs.remove-haskell }}
       run: |
         echo "=== Disk space before cleanup ==="
         df -h
         echo ""
 
-        if [ "${{ inputs.remove-dotnet }}" = "true" ]; then
+        if [ "$INPUT_REMOVE_DOTNET" = "true" ]; then
           echo "Removing .NET tools (~17GB)..."
           sudo rm -rf /usr/share/dotnet
         fi
 
-        if [ "${{ inputs.remove-android }}" = "true" ]; then
+        if [ "$INPUT_REMOVE_ANDROID" = "true" ]; then
           echo "Removing Android SDK (~11GB)..."
           sudo rm -rf /usr/local/lib/android
         fi
 
-        if [ "${{ inputs.remove-miniconda }}" = "true" ]; then
+        if [ "$INPUT_REMOVE_MINICONDA" = "true" ]; then
           echo "Removing Miniconda/Python environments (~3GB)..."
           sudo rm -rf /usr/share/miniconda
         fi
 
-        if [ "${{ inputs.remove-swift }}" = "true" ]; then
+        if [ "$INPUT_REMOVE_SWIFT" = "true" ]; then
           echo "Removing Swift toolchain (~1GB)..."
           sudo rm -rf /usr/share/swift
         fi
 
-        if [ "${{ inputs.remove-haskell }}" = "true" ]; then
+        if [ "$INPUT_REMOVE_HASKELL" = "true" ]; then
           echo "Removing Haskell/GHCup (~1GB)..."
           sudo rm -rf /usr/local/.ghcup
         fi

@@ -74,18 +74,28 @@ runs:
     - name: Slack message setup
       id: setup
       shell: bash
+      env:
+        INPUT_EVENT: ${{ inputs.event }}
+        INPUT_ENVIRONMENT: ${{ inputs.environment }}
+        INPUT_TAG: ${{ inputs.tag }}
+        INPUT_PROJECT: ${{ inputs.project }}
+        INPUT_PROJECT_OWNER: ${{ inputs.project_owner }}
+        INPUT_URL: ${{ inputs.url }}
+        INPUT_COMMIT_SHA: ${{ inputs.commit-sha }}
+        INPUT_DB_MIGRATION_DETECTED: ${{ inputs.db_migration_detected }}
+        GITHUB_SERVER_URL: ${{ github.server_url }}
       run: |
         function slack_message_fn () {
-          local event="${{ inputs.event }}"
-          local environment="${{ inputs.environment }}"
-          local tag="${{ inputs.tag }}"
-          local project="${{ inputs.project }}"
-          local project_owner="${{ inputs.project_owner }}"
-          local url="${{ inputs.url }}"
-          local commit_sha="${{ inputs.commit-sha }}"
+          local event="$INPUT_EVENT"
+          local environment="$INPUT_ENVIRONMENT"
+          local tag="$INPUT_TAG"
+          local project="$INPUT_PROJECT"
+          local project_owner="$INPUT_PROJECT_OWNER"
+          local url="$INPUT_URL"
+          local commit_sha="$INPUT_COMMIT_SHA"
 
           # This action can be called from other repositories with external refs/shas, so use the passed in project rather than github.repository
-          local repository_url="${{ github.server_url }}/$project_owner/$project"
+          local repository_url="$GITHUB_SERVER_URL/$project_owner/$project"
 
           local commit_url="$repository_url/commit/$commit_sha"
           local tag_url="$repository_url/tree/$tag"
@@ -128,7 +138,7 @@ runs:
           esac
         }
 
-        if [[ ${{ inputs.db_migration_detected }} == true && ${{ inputs.tag }} != main && ${{ inputs.tag }} != rc && ${{ inputs.tag }} != hotfix-rc ]]; then
+        if [[ "$INPUT_DB_MIGRATION_DETECTED" == true && "$INPUT_TAG" != main && "$INPUT_TAG" != rc && "$INPUT_TAG" != hotfix-rc ]]; then
           slack_message_fn
           SLACK_MESSAGE="$SLACK_MESSAGE\n
           :red_siren: This branch has new database migration changes."

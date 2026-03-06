@@ -1,12 +1,12 @@
 ---
-# Example workflow that runs on pull_request and can also be called from pull_request_target
-# This workflow skips execution on external forks since it won't have access to secrets when invoked via pull_request
+# Example workflow that runs with various triggers.
+# This workflow skips execution on external fork PRs since they won't have access to secrets when invoked via pull_request
 #
-# Key patterns:
+# Example trigger patterns:
 # 1. Triggered by pull_request (for internal PRs)
-# 2. Can be called via workflow_call (from pull_request_target workflow for external PRs)
-# 3. Skips execution on forks using condition when triggered with pull_request
-# 4. Explicit permissions at workflow level
+# 2. Triggered by push to main and workflow_dispatch (for post-merge and manual runs)
+# 3. Can be called via workflow_call (from pull_request_target workflow for external PRs)
+# 4. Skips execution on fork PRs using condition — all other event types are always allowed
 
 name: Example Workflow
 
@@ -18,6 +18,13 @@ on:
     paths:
       - "example/**"
       - ".github/workflows/example-workflow.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "example/**"
+      - ".github/workflows/example-workflow.yml"
+  workflow_dispatch:
   workflow_call:
     inputs:
       custom_parameter:
@@ -33,9 +40,9 @@ jobs:
   check-event-source:
     name: Check event and source
     runs-on: ubuntu-24.04
-    # Only run this job if the event is workflow_call or the PR is from the same repository (not a fork)
-    # This avoid running it twice: once for pull_request from fork and once from pull_request_target
-    if: github.event_name == 'workflow_call' || github.event.pull_request.head.repo.full_name == github.repository
+    # Skip only when a pull_request event comes from a fork — all other events always run
+    # This avoids running twice: once for the fork pull_request and once via pull_request_target → workflow_call
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - name: Check PR event and source
         run: echo "This PR is from the same repository (Not a fork) or called via workflow_call."

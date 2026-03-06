@@ -43,9 +43,11 @@ jobs:
     # Skip only when a pull_request event comes from a fork — all other events always run
     # This avoids running twice: once for the fork pull_request and once via pull_request_target → workflow_call
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    env:
     steps:
       - name: Check PR event and source
-        run: echo "This PR is from the same repository (Not a fork) or called via workflow_call."
+        run: echo "This PR is from the same repository (Not a fork) or not triggered via pull_request"
+
   example-job:
     name: Run example job
     runs-on: ubuntu-24.04

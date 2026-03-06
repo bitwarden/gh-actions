@@ -75,7 +75,7 @@ runs:
             "true")
               LATEST_RELEASE_TAG_VERSION=$(
                 curl -sL https://api.github.com/repos/$REPOSITORY/releases | \
-                jq -r 'first(.[] | select(.tag_name | startswith("${INPUT_MONOREPO_PROJECT}"))).tag_name'
+                jq -r --arg prefix "${INPUT_MONOREPO_PROJECT}" 'first(.[] | select(.tag_name | startswith($prefix))).tag_name'
               )
               ;;
             "false")

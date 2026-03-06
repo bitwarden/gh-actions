@@ -1,0 +1,135 @@
+name: "Upsert Code Review Comment"
+description: "Creates or updates a sticky PR comment identified by a hidden HTML marker"
+author: "Bitwarden"
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  token:
+    description: "GitHub token for API access"
+    required: true
+  pr_number:
+    description: "Pull request number"
+    required: true
+  repository:
+    description: "Repository in owner/repo format"
+    required: true
+  marker_id:
+    description: "HTML comment marker ID for identifying the sticky comment"
+    required: false
+    default: "bitwarden-review-comment"
+  job_url:
+    description: "Override URL for the running job (auto-detected if not provided)"
+    required: false
+    default: ""
+
+outputs:
+  comment_id:
+    description: "Numeric ID of the created or updated comment"
+    value: ${{ steps.upsert-comment.outputs.comment_id }}
+  comment_url:
+    description: "HTML URL of the comment"
+    value: ${{ steps.upsert-comment.outputs.comment_url }}
+  comment_created:
+    description: "Whether a new comment was created (true) or an existing one was updated (false)"
+    value: ${{ steps.upsert-comment.outputs.comment_created }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Upsert code review comment
+      id: upsert-comment
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        PR_NUMBER: ${{ inputs.pr_number }}
+        REPOSITORY: ${{ inputs.repository }}
+        MARKER_ID: ${{ inputs.marker_id }}
+        JOB_URL_INPUT: ${{ inputs.job_url }}
+      run: |
+        set -e
+
+        # =============================================================
+        # Input Validation
+        # =============================================================
+
+        if [[ -z "$PR_NUMBER" ]] || [[ ! "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+          echo "::error::Invalid pr_number: must be a positive integer"
+          exit 1
+        fi
+
+        if [[ -z "$REPOSITORY" ]] || [[ ! "$REPOSITORY" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]]; then
+          echo "::error::Invalid repository format: must be 'owner/repo'"
+          exit 1
+        fi
+
+        if [[ -z "$MARKER_ID" ]] || [[ ! "$MARKER_ID" =~ ^[A-Za-z0-9_-]+$ ]]; then
+          echo "::error::Invalid marker_id: must be alphanumeric with hyphens/underscores"
+          exit 1
+        fi
+
+        MARKER="<!-- ${MARKER_ID} -->"
+
+        # =============================================================
+        # Resolve Job URL
+        # =============================================================
+
+        if [[ -n "$JOB_URL_INPUT" ]]; then
+          JOB_URL="$JOB_URL_INPUT"
+        else
+          JOB_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+        fi
+
+        # =============================================================
+        # Build Comment Body
+        # =============================================================
+
+        BODY="**Claude Code** is executing a Bitwarden Code Review..."
+        BODY="${BODY}"$'\n\n'"_This comment will be updated with the review results._"
+        BODY="${BODY}"$'\n\n'"[View job run](${JOB_URL})"
+        BODY="${BODY}"$'\n\n'"${MARKER}"
+
+        # =============================================================
+        # Search for Existing Comment
+        # =============================================================
+
+        EXISTING_ID=$(gh api "repos/${REPOSITORY}/issues/${PR_NUMBER}/comments" \
+          --paginate \
+          --jq "[.[] | select(.body | contains(\"${MARKER}\")) | .id] | first // empty")
+
+        # =============================================================
+        # Create or Update Comment
+        # =============================================================
+
+        if [[ -z "$EXISTING_ID" ]]; then
+          echo "No existing comment found, creating new comment"
+          RESPONSE=$(gh api "repos/${REPOSITORY}/issues/${PR_NUMBER}/comments" \
+            --method POST \
+            --field body="$BODY")
+
+          COMMENT_ID=$(echo "$RESPONSE" | jq -r '.id')
+          COMMENT_URL=$(echo "$RESPONSE" | jq -r '.html_url')
+          COMMENT_CREATED="true"
+        else
+          echo "Found existing comment: $EXISTING_ID"
+          RESPONSE=$(gh api "repos/${REPOSITORY}/issues/comments/${EXISTING_ID}" \
+            --method PATCH \
+            --field body="$BODY")
+
+          COMMENT_ID=$(echo "$RESPONSE" | jq -r '.id')
+          COMMENT_URL=$(echo "$RESPONSE" | jq -r '.html_url')
+          COMMENT_CREATED="false"
+        fi
+
+        # =============================================================
+        # Set Outputs
+        # =============================================================
+
+        echo "comment_id=$COMMENT_ID" >> "$GITHUB_OUTPUT"
+        echo "comment_url=$COMMENT_URL" >> "$GITHUB_OUTPUT"
+        echo "comment_created=$COMMENT_CREATED" >> "$GITHUB_OUTPUT"
+
+        echo "Comment ID: $COMMENT_ID"
+        echo "Comment URL: $COMMENT_URL"
+        echo "Created: $COMMENT_CREATED"

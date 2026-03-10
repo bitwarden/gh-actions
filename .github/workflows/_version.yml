@@ -30,13 +30,16 @@ jobs:
     steps:
       - name: Setup context
         id: setup
+        env:
+          SIM_BRANCH: ${{ inputs.sim_branch }}
+          GITHUB_REF: ${{ github.ref }}
         run: |
           # Set checkout_ref: use sim_branch if provided, otherwise use current ref
-          if [[ -n "${{ inputs.sim_branch }}" ]]; then
-            echo "checkout_ref=${{ inputs.sim_branch }}" >> $GITHUB_OUTPUT
-            echo "INFO: Test mode - will checkout simulated branch: ${{ inputs.sim_branch }}"
+          if [[ -n "$SIM_BRANCH" ]]; then
+            echo "checkout_ref=$SIM_BRANCH" >> $GITHUB_OUTPUT
+            echo "INFO: Test mode - will checkout simulated branch: $SIM_BRANCH"
           else
-            echo "checkout_ref=${{ github.ref }}" >> $GITHUB_OUTPUT
+            echo "checkout_ref=$GITHUB_REF" >> $GITHUB_OUTPUT
             echo "INFO: Production mode - using current ref"
           fi
 
@@ -49,13 +52,16 @@ jobs:
 
       - name: Determine working SHA
         id: sha
+        env:
+          SIM_BRANCH: ${{ inputs.sim_branch }}
+          GITHUB_SHA: ${{ github.sha }}
         run: |
           # Set working_sha: use latest SHA from sim_branch if provided, otherwise use github.sha
-          if [[ -n "${{ inputs.sim_branch }}" ]]; then
+          if [[ -n "$SIM_BRANCH" ]]; then
             working_sha=$(git rev-parse HEAD)
             echo "INFO: Test mode - using SHA from simulated branch: $working_sha"
           else
-            working_sha="${{ github.sha }}"
+            working_sha="$GITHUB_SHA"
             echo "INFO: Production mode - using github.sha: $working_sha"
           fi
           echo "working_sha=$working_sha" >> $GITHUB_OUTPUT

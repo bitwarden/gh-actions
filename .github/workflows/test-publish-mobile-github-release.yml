@@ -12,8 +12,8 @@ on:
 permissions: {}
 
 jobs:
-  setup-ios-test-release:
-    name: Setup iOS Test Release
+  setup-test-release:
+    name: Setup Test Release
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -27,15 +27,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "workflow-test-ios-${{ github.run_id }}" \
+          gh release create "workflow-test-${{ github.run_id }}" \
             --draft \
             --prerelease \
             --title "Password Manager Workflow Test 1999.3.${{ github.run_number }} (0)" \
             --notes "Test draft release for workflow testing - created by test-publish-mobile-github-release.yml"
 
-  test-ios-publish-workflow:
-    name: Test iOS Publish Workflow
-    needs: setup-ios-test-release
+  test-publish-workflow:
+    name: Test Publish Workflow
+    needs: setup-test-release
     uses: ./.github/workflows/_publish-mobile-github-release.yml
     permissions:
       actions: write
@@ -51,9 +51,9 @@ jobs:
       dry_run: true
     secrets: inherit
 
-  cleanup-ios-test-release:
-    name: Cleanup iOS Test Release
-    needs: [setup-ios-test-release, test-ios-publish-workflow]
+  cleanup-test-release:
+    name: Cleanup Test Release
+    needs: [setup-test-release, test-publish-workflow]
     if: always()
     runs-on: ubuntu-24.04
     permissions:
@@ -64,80 +64,14 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Delete iOS workflow test release
+      - name: Delete workflow test release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="workflow-test-ios-${{ github.run_id }}"
+          TAG="workflow-test-${{ github.run_id }}"
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Deleting workflow test release [$TAG]"
             gh release delete "$TAG" --yes
           else
             echo "Release [$TAG] not found, nothing to clean up"
-          fi
-
-  setup-android-test-release:
-    name: Setup Android Test Release
-    needs: cleanup-ios-test-release
-    if: always()
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
-        with:
-          persist-credentials: false
-
-      - name: Create draft release for testing
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "workflow-test-android-${{ github.run_id }}" \
-            --draft \
-            --prerelease \
-            --title "Password Manager Workflow Test 1999.3.${{ github.run_number }} (0)" \
-            --notes "Test draft release for workflow testing - created by test-publish-mobile-github-release.yml"
-
-  test-android-publish-workflow:
-    name: Test Android Publish Workflow
-    needs: setup-android-test-release
-    uses: ./.github/workflows/_publish-mobile-github-release.yml
-    permissions:
-      actions: write
-      contents: write
-      id-token: write
-    with:
-      release_name: "Password Manager"
-      workflow_name: "test-publish-mobile-github-release.yml"
-      credentials_filename: ""
-      check_release_command: "echo 'version_name: 1999.3.${{ github.run_number }}'; echo 'version_number: 0'"
-      project_type: "android"
-      make_latest: false
-      dry_run: true
-    secrets: inherit
-
-  cleanup-android-test-release:
-    name: Cleanup Android Test Release
-    needs: [setup-android-test-release, test-android-publish-workflow]
-    if: always()
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
-        with:
-          persist-credentials: false
-
-      - name: Delete Android workflow test release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          TAG="workflow-test-android-${{ github.run_id }}"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Deleting workflow test release: $TAG"
-            gh release delete "$TAG" --yes
-          else
-            echo "Release $TAG not found, nothing to clean up"
           fi

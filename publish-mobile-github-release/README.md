@@ -136,6 +136,7 @@ flowchart TB
 ### Azure Requirements
 - Azure Blob Storage account with credentials file
 - OIDC federation configured for GitHub Actions
+- Repository granted access to the necessary Blob Storage
 - Secrets configured:
   - `AZURE_SUBSCRIPTION_ID`
   - `AZURE_TENANT_ID`
@@ -223,3 +224,11 @@ The workflow creates a `release-info.json` artifact to track state across runs:
 - `changed_to_state`: State after workflow finished (`published`, `none`)
 
 This artifact is stored with a name like `release-info-password-manager` (based on the `release_name` input) and is used to prevent duplicate processing.
+
+## Regression Testing
+
+`test-publish-mobile-github-release.yml` runs automatically on PRs that change `_publish-mobile-github-release.yml`. It:
+
+1. Creates a draft release in this repo with a unique tag (`workflow-test-{run_id}`) and a title containing a fixed test version (`1999.3.{run_number} (0)`)
+2. Calls `_publish-mobile-github-release.yml` with `dry_run: true`, an empty `credentials_filename` (skips store credential download but still exercises Azure login/logout), and a fake `check_release_command` that echoes a static version number. In production, this command uses Fastlane to query the App Store or Play Store, which requires store credentials not available in this repo. The fake command just allows the workflow to continue without actually reaching out to the stores.
+3. Cleans up the draft release regardless of whether the test passed or failed

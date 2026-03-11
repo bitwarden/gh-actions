@@ -117,6 +117,7 @@ flowchart TB
         I --> J
 
         L --> C
+        M --> J
 
         style Creation fill:#e1f5ff
         style Publishing fill:#e8f5e9

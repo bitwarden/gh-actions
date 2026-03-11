@@ -28,7 +28,10 @@ This action provides a centralized way to login to Azure.
     - allow_no_subscriptions
         - Description: Provides the allow-no-subscriptions options to Azure
         - Default: false
-        - Example
+        - Example:
+            ```
+                allow_no_subscriptions: true
+            ```
 
 ## Required Permissions
 

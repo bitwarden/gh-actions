@@ -1,15 +1,20 @@
 name: "Azure Login"
 description: "A composite action to login to Azure"
 inputs:
-  subscription_id:
-    description: "Azure Subscription ID"
-    required: true
   tenant_id:
     description: "Azure Tentant ID"
     required: true
   client_id:
     description: "Azure Client ID"
     required: true
+  subscription_id:
+    description: "Azure Subscription ID"
+    required: false
+    default: ""
+  allow_no_subscriptions:
+    description: "Allow login without a subscription"
+    required: false
+    default: "false"
 runs:
   using: "composite"
   steps:
@@ -19,3 +24,4 @@ runs:
         subscription-id: ${{ inputs.subscription_id }}
         tenant-id: ${{ inputs.tenant_id }}
         client-id: ${{ inputs.client_id }}
+        allow-no-subscriptions: ${{ inputs.allow_no_subscriptions }}

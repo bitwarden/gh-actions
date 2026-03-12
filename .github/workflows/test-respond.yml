@@ -1,0 +1,149 @@
+name: Test Respond Workflow
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/_respond.yml
+      - respond/**
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    name: Setup test issue
+    runs-on: ubuntu-24.04
+    permissions:
+      issues: write
+    outputs:
+      issue_number: ${{ steps.create-issue.outputs.issue_number }}
+      posted_at: ${{ steps.post-comment.outputs.posted_at }}
+
+    steps:
+      - name: Create test issue
+        id: create-issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          TIMESTAMP: ${{ github.run_id }}
+        run: |
+          ISSUE_NUMBER=$(gh api "repos/$REPOSITORY/issues" \
+            --method POST \
+            -f title="[test-respond] Automated test issue $TIMESTAMP" \
+            -f body="This issue was created by the test-respond workflow to verify the respond workflow integration. It will be closed automatically." \
+            --jq '.number')
+          echo "issue_number=$ISSUE_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "Created test issue #$ISSUE_NUMBER"
+
+      - name: Post @claude comment
+        id: post-comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ steps.create-issue.outputs.issue_number }}
+        run: |
+          POSTED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          echo "posted_at=$POSTED_AT" >> "$GITHUB_OUTPUT"
+
+          gh api "repos/$REPOSITORY/issues/$ISSUE_NUMBER/comments" \
+            --method POST \
+            -f body="@claude Please respond with 'hello' to confirm you are working."
+
+          echo "Posted @claude comment at $POSTED_AT"
+
+  verify:
+    name: Verify respond workflow ran
+    runs-on: ubuntu-24.04
+    needs: setup
+    permissions:
+      actions: read
+    steps:
+      - name: Wait for respond workflow run
+        id: find-run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          POSTED_AT: ${{ needs.setup.outputs.posted_at }}
+        run: |
+          echo "Polling for respond.yml run triggered after $POSTED_AT..."
+
+          RUN_ID=""
+          MAX_ATTEMPTS=30
+          ATTEMPT=0
+
+          while [[ -z "$RUN_ID" && $ATTEMPT -lt $MAX_ATTEMPTS ]]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS..."
+
+            RUN_ID=$(gh api "repos/$REPOSITORY/actions/workflows/respond.yml/runs" \
+              --jq --arg since "$POSTED_AT" \
+              '[.workflow_runs[] | select(.created_at >= $since and (.event == "issue_comment" or .event == "issues"))] | first | .id // empty')
+
+            if [[ -z "$RUN_ID" ]]; then
+              sleep 10
+            fi
+          done
+
+          if [[ -z "$RUN_ID" ]]; then
+            echo "::error::No respond.yml run found within timeout (${MAX_ATTEMPTS}x10s = $((MAX_ATTEMPTS * 10))s)"
+            exit 1
+          fi
+
+          echo "Found run ID: $RUN_ID"
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for run to complete
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ steps.find-run.outputs.run_id }}
+        run: |
+          echo "Waiting for run $RUN_ID to complete..."
+          gh run watch "$RUN_ID" --exit-status
+          echo "Run $RUN_ID completed successfully"
+
+      - name: Verify respond workflow outcome
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ steps.find-run.outputs.run_id }}
+        run: |
+          CONCLUSION=$(gh api "repos/$REPOSITORY/actions/runs/$RUN_ID" --jq '.conclusion')
+          STATUS=$(gh api "repos/$REPOSITORY/actions/runs/$RUN_ID" --jq '.status')
+          echo "Run status: $STATUS, conclusion: $CONCLUSION"
+
+          if [[ "$CONCLUSION" != "success" ]]; then
+            echo "::error::respond.yml run $RUN_ID did not succeed (conclusion=$CONCLUSION)"
+            exit 1
+          fi
+
+          echo "respond.yml run verified as successful"
+
+  cleanup:
+    name: Cleanup test issue
+    runs-on: ubuntu-24.04
+    needs: [setup, verify]
+    if: always()
+    permissions:
+      issues: write
+    steps:
+      - name: Close test issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ needs.setup.outputs.issue_number }}
+        run: |
+          if [[ -z "$ISSUE_NUMBER" ]]; then
+            echo "No issue number available, skipping cleanup"
+            exit 0
+          fi
+
+          gh api "repos/$REPOSITORY/issues/$ISSUE_NUMBER" \
+            --method PATCH \
+            -f state="closed"
+
+          gh api "repos/$REPOSITORY/issues/$ISSUE_NUMBER/comments" \
+            --method POST \
+            -f body="Automated test complete. Closing this issue."
+
+          echo "Closed test issue #$ISSUE_NUMBER"

@@ -71,15 +71,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WORKING_SHA: ${{ steps.sha.outputs.working_sha }}
+          GITHUB_REPO: ${{ github.repository }}
         run: |
-          commit_message=$(
-            curl -s -L \
-              -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer $GH_TOKEN" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              "https://api.github.com/repos/${{ github.repository }}/commits/$WORKING_SHA" | \
-            jq -r ".commit.message"
-          )
+          commit_message=$(gh api "repos/$GITHUB_REPO/commits/$WORKING_SHA" --jq '.commit.message')
           ID=$(echo "$commit_message" | head -1 | grep -o "(#.*)" | grep -o "[0-9]*")
           echo "id=$ID" >> "$GITHUB_OUTPUT"
 

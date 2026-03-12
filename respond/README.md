@@ -37,6 +37,18 @@ None
 - The calling repository must have access to the `gh-org-bitwarden` Azure Key Vault, which contains the `ANTHROPIC-RESPONSE-API-KEY` secret used to authenticate with the Anthropic API.
 - Only users with **write** permission on the repository can trigger a Claude response. Mentions from users without write access are silently skipped.
 
+### GitHub Permissions
+
+The calling workflow must grant the following GitHub permissions to the `_respond.yml` action:
+
+| Permission | Access | Reason |
+|---|---|---|
+| `actions` | `read` | Read workflow run status for progress tracking |
+| `contents` | `write` | Check out repo and commit changes if requested |
+| `id-token` | `write` | Authenticate with Azure via OIDC |
+| `issues` | `write` | Post and update comments on issues |
+| `pull-requests` | `write` | Post and update comments on pull requests |
+
 ## Features
 
 - Supports `@claude` mentions in issue comments, PR review comments, PR reviews, and issue bodies

@@ -77,7 +77,7 @@ jobs:
             echo "Attempt $ATTEMPT/$MAX_ATTEMPTS..."
 
             RUN_ID=$(gh api "repos/$REPOSITORY/actions/workflows/respond.yml/runs" \
-              --jq --arg since "$POSTED_AT" \
+              | jq -r --arg since "$POSTED_AT" \
               '[.workflow_runs[] | select(.created_at >= $since and (.event == "issue_comment" or .event == "issues"))] | first | .id // empty')
 
             if [[ -z "$RUN_ID" ]]; then

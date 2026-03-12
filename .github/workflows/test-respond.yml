@@ -96,10 +96,11 @@ jobs:
       - name: Wait for run to complete
         env:
           GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
           RUN_ID: ${{ steps.find-run.outputs.run_id }}
         run: |
           echo "Waiting for run $RUN_ID to complete..."
-          gh run watch "$RUN_ID" --exit-status
+          gh run watch "$RUN_ID" --repo "$REPOSITORY" --exit-status
           echo "Run $RUN_ID completed successfully"
 
       - name: Verify respond workflow outcome

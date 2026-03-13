@@ -26,7 +26,7 @@ on:
         description: 'Type of the project (e.g. "android" or "ios")'
         type: string
         required: true
-      make_latest: 
+      make_latest:
         description: "Whether to mark the release as latest and non-prerelease"
         type: boolean
         required: true
@@ -235,7 +235,12 @@ jobs:
           echo "Running custom release check command..."
           echo "Command: $CHECK_RELEASE_COMMAND"
 
-          OUTPUT=$(eval "$CHECK_RELEASE_COMMAND")
+          # Expand only $CREDENTIALS_PATH — envsubst with explicit variable list prevents all other substitutions
+          export CREDENTIALS_PATH
+          EXPANDED_CMD=$(envsubst '$CREDENTIALS_PATH' <<< "$CHECK_RELEASE_COMMAND")
+          # Parse into array (word-splitting only, no shell operator interpretation)
+          read -ra CMD_ARRAY <<< "$EXPANDED_CMD"
+          OUTPUT=$("${CMD_ARRAY[@]}")
 
           version_name=$(echo "$OUTPUT" | grep 'version_name: ' | cut -d' ' -f3)
           version_number=$(echo "$OUTPUT" | grep 'version_number: ' | cut -d' ' -f3)

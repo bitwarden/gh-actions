@@ -1,4 +1,4 @@
-name: "Upsert Code Review Comment"
+name: "Update PR Comment"
 description: "Creates or updates a sticky PR comment identified by a hidden HTML marker"
 author: "Bitwarden"
 branding:
@@ -18,7 +18,7 @@ inputs:
   marker_id:
     description: "HTML comment marker ID for identifying the sticky comment"
     required: false
-    default: "bitwarden-review-comment"
+    default: "bitwarden-pr-comment"
   body:
     description: "Comment body string. Mutually exclusive with body_file. One of body or body_file must be provided."
     required: false
@@ -46,7 +46,7 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Upsert code review comment
+    - name: Update PR comment
       id: upsert-comment
       shell: bash
       env:

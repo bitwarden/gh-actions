@@ -1,10 +1,10 @@
-name: Test Upsert Code Review Comment Action
+name: Test Update PR Comment Action
 
 on:
   pull_request:
     paths:
-      - "upsert-code-review-comment/**"
-      - ".github/workflows/test-upsert-code-review-comment.yml"
+      - "update-pr-comment/**"
+      - ".github/workflows/test-update-pr-comment.yml"
   workflow_dispatch:
 
 permissions:
@@ -39,7 +39,7 @@ jobs:
 
       - name: Create comment
         id: upsert
-        uses: ./upsert-code-review-comment
+        uses: ./update-pr-comment
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           pr_number: ${{ steps.pr.outputs.number }}
@@ -96,7 +96,7 @@ jobs:
 
       - name: Update existing comment
         id: upsert
-        uses: ./upsert-code-review-comment
+        uses: ./update-pr-comment
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           pr_number: ${{ steps.pr.outputs.number }}

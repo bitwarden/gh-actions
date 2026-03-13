@@ -40,16 +40,17 @@ None
 ## Requirements
 
 - The calling repository must have access to the `gh-org-bitwarden` Azure Key Vault, which contains the `ANTHROPIC-CODE-REVIEW-API-KEY` secret used to authenticate with the Anthropic API.
-- Only users with **write** permission on the repository can trigger a Claude response. Mentions from users without write access are silently skipped.
+- Only users with **write** permission on the repository can trigger a review. Requests from users without write access are silently skipped.
+- The `ai-review` label must exist in the calling repository.
 
 ### GitHub Permissions
 
-The calling workflow must grant the following GitHub permissions to the `_respond.yml` action:
+The calling workflow must grant the following GitHub permissions to the `_review-code.yml` action:
 
 | Permission | Access | Reason |
 |---|---|---|
 | `actions` | `read` | Read workflow run status for progress tracking |
-| `contents` | `read` | Check out repo and commit changes if requested |
+| `contents` | `read` | Check out repo to read code for review |
 | `id-token` | `write` | Authenticate with Azure via OIDC |
 | `pull-requests` | `write` | Post and update comments on pull requests |
 

@@ -19,6 +19,14 @@ inputs:
     description: "HTML comment marker ID for identifying the sticky comment"
     required: false
     default: "bitwarden-review-comment"
+  body:
+    description: "Custom comment body string. The marker is always appended. Mutually exclusive with body_file."
+    required: false
+    default: ""
+  body_file:
+    description: "Path to a file containing the comment body. The marker is always appended. Mutually exclusive with body."
+    required: false
+    default: ""
   job_url:
     description: "Override URL for the running job (auto-detected if not provided)"
     required: false
@@ -46,6 +54,8 @@ runs:
         PR_NUMBER: ${{ inputs.pr_number }}
         REPOSITORY: ${{ inputs.repository }}
         MARKER_ID: ${{ inputs.marker_id }}
+        BODY_INPUT: ${{ inputs.body }}
+        BODY_FILE_INPUT: ${{ inputs.body_file }}
         JOB_URL_INPUT: ${{ inputs.job_url }}
       run: |
         set -e
@@ -85,10 +95,28 @@ runs:
         # Build Comment Body
         # =============================================================
 
-        BODY="**Claude Code** is executing a Bitwarden Code Review..."
-        BODY="${BODY}"$'\n\n'"_This comment will be updated with the review results._"
-        BODY="${BODY}"$'\n\n'"[View job run](${JOB_URL})"
-        BODY="${BODY}"$'\n\n'"${MARKER}"
+        if [[ -n "$BODY_INPUT" && -n "$BODY_FILE_INPUT" ]]; then
+          echo "::error::Cannot specify both 'body' and 'body_file' inputs"
+          exit 1
+        fi
+
+        if [[ -n "$BODY_FILE_INPUT" ]]; then
+          if [[ ! -f "$BODY_FILE_INPUT" ]]; then
+            echo "::warning::body_file not found at ${BODY_FILE_INPUT}, using default placeholder"
+            BODY_INPUT=""
+          else
+            BODY_INPUT=$(cat "$BODY_FILE_INPUT")
+          fi
+        fi
+
+        if [[ -n "$BODY_INPUT" ]]; then
+          BODY="${BODY_INPUT}"$'\n\n'"${MARKER}"
+        else
+          BODY="**Claude Code** is executing a Bitwarden Code Review..."
+          BODY="${BODY}"$'\n\n'"_This comment will be updated with the review results._"
+          BODY="${BODY}"$'\n\n'"[View job run](${JOB_URL})"
+          BODY="${BODY}"$'\n\n'"${MARKER}"
+        fi
 
         # =============================================================
         # Search for Existing Comment

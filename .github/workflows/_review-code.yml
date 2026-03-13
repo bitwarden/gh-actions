@@ -102,9 +102,8 @@ jobs:
       pull-requests: write
 
     steps:
-      - name: Run current review
-        if: needs.validation.outputs.review_variant == 'current'
-        uses: bitwarden/gh-actions/review-code@main
+      - name: Run code review
+        uses: bitwarden/gh-actions/run-code-review@main
         with:
           azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
@@ -113,15 +112,4 @@ jobs:
           repository: ${{ github.repository }}
           checkout_ref: ${{ github.event.pull_request.head.sha }}
           github_token: ${{ github.token }}
-
-      - name: Run vNext review
-        if: needs.validation.outputs.review_variant == 'vnext'
-        uses: bitwarden/gh-actions/review-code-vnext@main
-        with:
-          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
-          azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
-          pr_number: ${{ github.event.pull_request.number }}
-          repository: ${{ github.repository }}
-          checkout_ref: ${{ github.event.pull_request.head.sha }}
-          github_token: ${{ github.token }}
+          mode: ${{ needs.validation.outputs.review_variant }}

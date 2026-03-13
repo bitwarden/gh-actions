@@ -20,15 +20,15 @@ inputs:
     required: false
     default: "bitwarden-review-comment"
   body:
-    description: "Custom comment body string. The marker is always appended. Mutually exclusive with body_file."
+    description: "Comment body string. Mutually exclusive with body_file. One of body or body_file must be provided."
     required: false
     default: ""
   body_file:
-    description: "Path to a file containing the comment body. The marker is always appended. Mutually exclusive with body."
+    description: "Path to a file containing the comment body. Mutually exclusive with body. One of body or body_file must be provided."
     required: false
     default: ""
-  job_url:
-    description: "Override URL for the running job (auto-detected if not provided)"
+  comment_id:
+    description: "Known comment ID to update directly, skipping the marker search. Returned from a previous upsert call."
     required: false
     default: ""
 
@@ -56,7 +56,7 @@ runs:
         MARKER_ID: ${{ inputs.marker_id }}
         BODY_INPUT: ${{ inputs.body }}
         BODY_FILE_INPUT: ${{ inputs.body_file }}
-        JOB_URL_INPUT: ${{ inputs.job_url }}
+        COMMENT_ID_INPUT: ${{ inputs.comment_id }}
       run: |
         set -e
 
@@ -79,52 +79,44 @@ runs:
           exit 1
         fi
 
-        MARKER="<!-- ${MARKER_ID} -->"
-
-        # =============================================================
-        # Resolve Job URL
-        # =============================================================
-
-        if [[ -n "$JOB_URL_INPUT" ]]; then
-          JOB_URL="$JOB_URL_INPUT"
-        else
-          JOB_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-        fi
-
-        # =============================================================
-        # Build Comment Body
-        # =============================================================
-
         if [[ -n "$BODY_INPUT" && -n "$BODY_FILE_INPUT" ]]; then
           echo "::error::Cannot specify both 'body' and 'body_file' inputs"
           exit 1
         fi
 
+        MARKER="<!-- ${MARKER_ID} -->"
+
+        # =============================================================
+        # Resolve Comment Body
+        # =============================================================
+
         if [[ -n "$BODY_FILE_INPUT" ]]; then
           if [[ ! -f "$BODY_FILE_INPUT" ]]; then
-            echo "::warning::body_file not found at ${BODY_FILE_INPUT}, using default placeholder"
-            BODY_INPUT=""
-          else
-            BODY_INPUT=$(cat "$BODY_FILE_INPUT")
+            echo "::warning::body_file not found at ${BODY_FILE_INPUT}, skipping upsert"
+            exit 0
           fi
+          BODY_INPUT=$(cat "$BODY_FILE_INPUT")
         fi
 
-        if [[ -n "$BODY_INPUT" ]]; then
-          BODY="${BODY_INPUT}"$'\n\n'"${MARKER}"
+        if [[ -z "$BODY_INPUT" ]]; then
+          echo "::warning::No body or body_file provided, skipping upsert"
+          exit 0
+        fi
+
+        BODY="${BODY_INPUT}"$'\n\n'"${MARKER}"
+
+        # =============================================================
+        # Find or Use Known Comment ID
+        # =============================================================
+
+        if [[ -n "$COMMENT_ID_INPUT" ]]; then
+          EXISTING_ID="$COMMENT_ID_INPUT"
+          echo "Using provided comment ID: $EXISTING_ID"
         else
-          BODY="**Claude Code** is executing a Bitwarden Code Review..."
-          BODY="${BODY}"$'\n\n'"_This comment will be updated with the review results._"
-          BODY="${BODY}"$'\n\n'"[View job run](${JOB_URL})"
-          BODY="${BODY}"$'\n\n'"${MARKER}"
+          EXISTING_ID=$(gh api "repos/${REPOSITORY}/issues/${PR_NUMBER}/comments" \
+            --paginate \
+            --jq "[.[] | select(.body | contains(\"${MARKER}\")) | .id] | first // empty")
         fi
-
-        # =============================================================
-        # Search for Existing Comment
-        # =============================================================
-
-        EXISTING_ID=$(gh api "repos/${REPOSITORY}/issues/${PR_NUMBER}/comments" \
-          --paginate \
-          --jq "[.[] | select(.body | contains(\"${MARKER}\")) | .id] | first // empty")
 
         # =============================================================
         # Create or Update Comment
@@ -140,7 +132,7 @@ runs:
           COMMENT_URL=$(echo "$RESPONSE" | jq -r '.html_url')
           COMMENT_CREATED="true"
         else
-          echo "Found existing comment: $EXISTING_ID"
+          echo "Updating comment: $EXISTING_ID"
           RESPONSE=$(gh api "repos/${REPOSITORY}/issues/comments/${EXISTING_ID}" \
             --method PATCH \
             --field body="$BODY")

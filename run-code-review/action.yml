@@ -30,6 +30,16 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Validate mode input
+      shell: bash
+      env:
+        MODE: ${{ inputs.mode }}
+      run: |
+        if [[ "$MODE" != "current" && "$MODE" != "vnext" ]]; then
+          echo "::error::Invalid mode '${MODE}'. Must be 'current' or 'vnext'."
+          exit 1
+        fi
+
     - name: Check out repo
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
@@ -81,14 +91,18 @@ runs:
           --model opus
           --allowedTools "Task,Skill,Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(gh pr checks:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr review:--comment*),Bash(gh pr comment:*),mcp__github_comment__update_claude_comment,mcp__github_inline_comment__create_inline_comment"
 
-    - name: Upsert code review comment
-      id: upsert-comment
+    - name: Create code review comment (vnext)
+      id: create-comment
       if: inputs.mode == 'vnext'
       uses: bitwarden/gh-actions/upsert-code-review-comment@main
       with:
         token: ${{ inputs.github_token }}
         pr_number: ${{ inputs.pr_number }}
         repository: ${{ inputs.repository }}
+        body: |
+          **Claude Code** is reviewing this pull request...
+
+          If this comment does not update with results, check the [Actions log](${{ github.server_url }}/${{ inputs.repository }}/actions/runs/${{ github.run_id }}).
 
     - name: Review with Claude Code (vnext)
       if: inputs.mode == 'vnext'
@@ -103,7 +117,7 @@ runs:
         prompt: |
           REPO: ${{ inputs.repository }}
           PR NUMBER: ${{ inputs.pr_number }}
-          STICKY COMMENT ID: ${{ steps.upsert-comment.outputs.comment_id }}
+          STICKY COMMENT ID: ${{ steps.create-comment.outputs.comment_id }}
 
           # RULES
 
@@ -119,10 +133,11 @@ runs:
           --allowedTools "Task,Skill,Read,Write,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(gh pr checks:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr review:--comment*),Bash(gh pr comment:*),mcp__github_inline_comment__create_inline_comment"
 
     - name: Update sticky comment with review summary (vnext)
-      if: inputs.mode == 'vnext'
+      if: always() && inputs.mode == 'vnext'
       uses: bitwarden/gh-actions/upsert-code-review-comment@main
       with:
         token: ${{ inputs.github_token }}
         pr_number: ${{ inputs.pr_number }}
         repository: ${{ inputs.repository }}
+        comment_id: ${{ steps.create-comment.outputs.comment_id }}
         body_file: /tmp/review-summary.md

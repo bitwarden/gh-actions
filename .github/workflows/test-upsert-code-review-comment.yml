@@ -45,6 +45,7 @@ jobs:
           pr_number: ${{ steps.pr.outputs.number }}
           repository: ${{ github.repository }}
           marker_id: test-upsert-comment
+          body: "Test comment created by test-create job."
 
       - name: Verify comment was created
         env:
@@ -101,6 +102,7 @@ jobs:
           pr_number: ${{ steps.pr.outputs.number }}
           repository: ${{ github.repository }}
           marker_id: test-upsert-comment
+          body: "Test comment updated by test-update job."
 
       - name: Verify comment was updated
         env:

@@ -17,7 +17,7 @@ Creates a placeholder PR comment via `update-pr-comment`, then passes the commen
 ## Development Lifecycle
 
 1. **Understand** -- Read `action.yml` and this README. Steps are gated by `if: inputs.mode == 'current'` or `if: inputs.mode == 'vnext'`. The caller workflow (`_review-code.yml`) maps PR labels to the `mode` input; this action only sees the mode value.
-2. **Plan** -- Define what you want to change and why. Current-mode steps are production; vnext-mode steps are the experiment. Know which you are targeting before editing.
+2. **Plan** -- Define what you want to change and why. Know which mode you are targeting before editing.
 3. **Modify** -- Add or edit vnext-gated steps in `action.yml`. Do not change current-mode steps.
 4. **Test** -- Apply the `ai-review-vnext` label to PRs in downstream repos and compare against current-mode reviews.
 5. **Iterate** -- Repeat steps 3-4 until satisfied.

@@ -1,0 +1,45 @@
+name: Validate Version Workflow Changes
+run-name: Testing _version.yml modifications
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - bre-1706/update-version-workflow
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+
+jobs:
+  test-production-mode:
+    name: Test Production Mode (no sim_branch)
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Call _version.yml in production mode
+        id: version
+        uses: ./.github/workflows/_version.yml
+        with:
+          is-release: false
+
+      - name: Display calculated version
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          echo "=========================================="
+          echo "Calculated version: $VERSION"
+          echo "=========================================="
+
+          if [[ -z "$VERSION" ]]; then
+            echo "ERROR: Version output is empty!"
+            exit 1
+          fi
+
+          echo "SUCCESS: Version workflow completed without errors"

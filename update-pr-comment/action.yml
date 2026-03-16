@@ -1,0 +1,155 @@
+name: "Update PR Comment"
+description: "Creates or updates a sticky PR comment identified by a hidden HTML marker"
+author: "Bitwarden"
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  token:
+    description: "GitHub token for API access"
+    required: true
+  pr_number:
+    description: "Pull request number"
+    required: true
+  repository:
+    description: "Repository in owner/repo format"
+    required: true
+  marker_id:
+    description: "HTML comment marker ID for identifying the sticky comment"
+    required: false
+    default: "bitwarden-pr-comment"
+  body:
+    description: "Comment body string. Mutually exclusive with body_file. One of body or body_file must be provided."
+    required: false
+    default: ""
+  body_file:
+    description: "Path to a file containing the comment body. Mutually exclusive with body. One of body or body_file must be provided."
+    required: false
+    default: ""
+  comment_id:
+    description: "Known comment ID to update directly, skipping the marker search. Returned from a previous upsert call."
+    required: false
+    default: ""
+
+outputs:
+  comment_id:
+    description: "Numeric ID of the created or updated comment"
+    value: ${{ steps.upsert-comment.outputs.comment_id }}
+  comment_url:
+    description: "HTML URL of the comment"
+    value: ${{ steps.upsert-comment.outputs.comment_url }}
+  comment_created:
+    description: "Whether a new comment was created (true) or an existing one was updated (false)"
+    value: ${{ steps.upsert-comment.outputs.comment_created }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Update PR comment
+      id: upsert-comment
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        PR_NUMBER: ${{ inputs.pr_number }}
+        REPOSITORY: ${{ inputs.repository }}
+        MARKER_ID: ${{ inputs.marker_id }}
+        BODY_INPUT: ${{ inputs.body }}
+        BODY_FILE_INPUT: ${{ inputs.body_file }}
+        COMMENT_ID_INPUT: ${{ inputs.comment_id }}
+      run: |
+        set -e
+
+        # =============================================================
+        # Input Validation
+        # =============================================================
+
+        if [[ -z "$PR_NUMBER" ]] || [[ ! "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+          echo "::error::Invalid pr_number: must be a positive integer"
+          exit 1
+        fi
+
+        if [[ -z "$REPOSITORY" ]] || [[ ! "$REPOSITORY" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]]; then
+          echo "::error::Invalid repository format: must be 'owner/repo'"
+          exit 1
+        fi
+
+        if [[ -z "$MARKER_ID" ]] || [[ ! "$MARKER_ID" =~ ^[A-Za-z0-9_-]+$ ]]; then
+          echo "::error::Invalid marker_id: must be alphanumeric with hyphens/underscores"
+          exit 1
+        fi
+
+        if [[ -n "$BODY_INPUT" && -n "$BODY_FILE_INPUT" ]]; then
+          echo "::error::Cannot specify both 'body' and 'body_file' inputs"
+          exit 1
+        fi
+
+        MARKER="<!-- ${MARKER_ID} -->"
+
+        # =============================================================
+        # Resolve Comment Body
+        # =============================================================
+
+        if [[ -n "$BODY_FILE_INPUT" ]]; then
+          if [[ ! -f "$BODY_FILE_INPUT" ]]; then
+            echo "::warning::body_file not found at ${BODY_FILE_INPUT}, skipping upsert"
+            exit 0
+          fi
+          BODY_INPUT=$(cat "$BODY_FILE_INPUT")
+        fi
+
+        if [[ -z "$BODY_INPUT" ]]; then
+          echo "::warning::No body or body_file provided, skipping upsert"
+          exit 0
+        fi
+
+        BODY="${BODY_INPUT}"$'\n\n'"${MARKER}"
+
+        # =============================================================
+        # Find or Use Known Comment ID
+        # =============================================================
+
+        if [[ -n "$COMMENT_ID_INPUT" ]]; then
+          EXISTING_ID="$COMMENT_ID_INPUT"
+          echo "Using provided comment ID: $EXISTING_ID"
+        else
+          EXISTING_ID=$(gh api "repos/${REPOSITORY}/issues/${PR_NUMBER}/comments" \
+            --paginate \
+            --jq "[.[] | select(.body | contains(\"${MARKER}\")) | .id] | first // empty")
+        fi
+
+        # =============================================================
+        # Create or Update Comment
+        # =============================================================
+
+        if [[ -z "$EXISTING_ID" ]]; then
+          echo "No existing comment found, creating new comment"
+          RESPONSE=$(gh api "repos/${REPOSITORY}/issues/${PR_NUMBER}/comments" \
+            --method POST \
+            --field body="$BODY")
+
+          COMMENT_ID=$(echo "$RESPONSE" | jq -r '.id')
+          COMMENT_URL=$(echo "$RESPONSE" | jq -r '.html_url')
+          COMMENT_CREATED="true"
+        else
+          echo "Updating comment: $EXISTING_ID"
+          RESPONSE=$(gh api "repos/${REPOSITORY}/issues/comments/${EXISTING_ID}" \
+            --method PATCH \
+            --field body="$BODY")
+
+          COMMENT_ID=$(echo "$RESPONSE" | jq -r '.id')
+          COMMENT_URL=$(echo "$RESPONSE" | jq -r '.html_url')
+          COMMENT_CREATED="false"
+        fi
+
+        # =============================================================
+        # Set Outputs
+        # =============================================================
+
+        echo "comment_id=$COMMENT_ID" >> "$GITHUB_OUTPUT"
+        echo "comment_url=$COMMENT_URL" >> "$GITHUB_OUTPUT"
+        echo "comment_created=$COMMENT_CREATED" >> "$GITHUB_OUTPUT"
+
+        echo "Comment ID: $COMMENT_ID"
+        echo "Comment URL: $COMMENT_URL"
+        echo "Created: $COMMENT_CREATED"

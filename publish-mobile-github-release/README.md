@@ -19,8 +19,8 @@ The `_publish-mobile-github-release.yml` provides an automated way to publish Gi
 2. Configure the required inputs:
    - `release_name`: Name prefix to search for in draft releases (e.g., "Password Manager")
    - `workflow_name`: Name of the caller workflow file (for self-disabling functionality)
-   - `credentials_filename`: Name of credentials file in Azure Blob Storage
-   - `check_release_command`: Shell command to verify store version (must use `$CREDENTIALS_PATH` variable)
+   - `credentials_filename`: Name of credentials file in Azure Blob Storage (pass empty string to skip credential download)
+   - `check_release_command`: Shell command to verify store version (may use `$CREDENTIALS_PATH` for the path to the credentials file)
    - `project_type`: Either "ios" or "android"
    - `make_latest`: Whether to mark the release as the latest release
 3. Set up required Azure secrets for credential retrieval:
@@ -34,7 +34,7 @@ The `_publish-mobile-github-release.yml` provides an automated way to publish Gi
 #### Automated (Scheduled)
 The workflow runs automatically on its configured schedule:
 1. Checks for draft releases matching the `release_name` prefix
-2. If a draft is found, downloads credentials from Azure Blob Storage
+2. If a draft is found and `credentials_filename` is set, downloads credentials from Azure Blob Storage
 3. Runs the `check_release_command` to verify the version is live in the store
 4. Compares the draft release version with the store version
 5. If versions match, publishes the GitHub release (makes it non-draft and non-prerelease)
@@ -130,7 +130,7 @@ flowchart TB
 ## Requirements
 
 ### Repository Requirements
-- Draft GitHub releases must follow a naming pattern that includes the `release_name` (e.g., "Password Manager v2024.1.0 (123)")
+- Draft GitHub releases must follow a naming pattern that includes the `release_name` (e.g., "Password Manager 2024.1.0 (123)")
 - Workflow must have `contents: write`, `id-token: write`, and `actions: write` permissions
 
 ### Azure Requirements

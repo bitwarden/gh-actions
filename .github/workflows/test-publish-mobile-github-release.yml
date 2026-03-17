@@ -4,8 +4,6 @@ on:
   pull_request:
     paths:
       - .github/workflows/_publish-mobile-github-release.yml
-  push:
-    paths:
       - .github/workflows/test-publish-mobile-github-release.yml
   workflow_dispatch:
 

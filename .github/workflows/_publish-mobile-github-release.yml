@@ -2,6 +2,13 @@ name: _publish-mobile-github-release
 
 on:
   workflow_call:
+    secrets:
+      AZURE_SUBSCRIPTION_ID:
+        required: true
+      AZURE_TENANT_ID:
+        required: true
+      AZURE_CLIENT_ID:
+        required: true
     inputs:
       release_name:
         description: 'Name prefix of the release to publish (e.g. "Password Manager")'

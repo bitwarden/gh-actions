@@ -2,21 +2,18 @@
   "name": "get-keyvault-secret",
   "version": "1.0.0",
   "description": "Github action for Azure Key Vault Operations",
-  "main": "index.js",
+  "main": "dist/main.js",
   "scripts": {
-    "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "ncc build src/main.ts -o dist --license licenses.txt"
   },
-  "author": "Romil Goyal",
   "license": "ISC",
   "devDependencies": {
     "@types/node": "24.10.3",
+    "@vercel/ncc": "0.38.3",
     "typescript": "5.9.2"
   },
   "dependencies": {
-    "@actions/core": "2.0.1",
-    "@actions/exec": "3.0.0",
-    "azure-actions-webclient": "1.1.1"
+    "@actions/core": "2.0.1"
   },
   "repository": {
     "type": "git",

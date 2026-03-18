@@ -110,6 +110,7 @@ jobs:
     uses: ./.github/workflows/_version.yml
     with:
       is-release: true
+      sim_branch: ${{ needs.setup.outputs.simulated_main_branch }}
     permissions:
       contents: read
       pull-requests: read
@@ -121,6 +122,7 @@ jobs:
     uses: ./.github/workflows/_version.yml
     with:
       is-release: false
+      sim_branch: ${{ needs.setup.outputs.simulated_main_branch }}
     permissions:
       contents: read
       pull-requests: read

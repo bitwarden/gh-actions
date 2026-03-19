@@ -3,6 +3,7 @@ import { execFileSync } from "child_process";
 
 const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 3000;
+const AZ_TIMEOUT_MS = 30000;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -26,7 +27,7 @@ async function getSecret(keyvault: string, secretName: string): Promise<string> 
           "-o",
           "tsv",
         ],
-        { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] },
+        { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], timeout: AZ_TIMEOUT_MS },
       ).trim();
     } catch (error) {
       if (attempt === MAX_RETRY_ATTEMPTS) {
@@ -38,6 +39,7 @@ async function getSecret(keyvault: string, secretName: string): Promise<string> 
       await sleep(RETRY_DELAY_MS);
     }
   }
+  throw new Error(`Failed to retrieve secret "${secretName}" after ${MAX_RETRY_ATTEMPTS} attempts`);
 }
 
 async function run(): Promise<void> {

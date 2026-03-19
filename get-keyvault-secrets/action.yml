@@ -8,7 +8,7 @@ inputs:
     description: "Name of the secret to be fetched" #Comma separated list of secret keys can be specified
     required: true
 branding:
-  icon: "akv.svg"
+  icon: "key"
   color: "blue"
 runs:
   using: "node24"

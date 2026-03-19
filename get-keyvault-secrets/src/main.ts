@@ -1,5 +1,5 @@
 import * as core from "@actions/core";
-import { execFileSync } from "child_process";
+import { execFileSync } from "node:child_process";
 
 const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 3000;
@@ -33,9 +33,7 @@ async function getSecret(keyvault: string, secretName: string): Promise<string> 
       if (attempt === MAX_RETRY_ATTEMPTS) {
         throw error;
       }
-      core.debug(
-        `Attempt ${attempt} failed for secret "${secretName}", retrying in ${RETRY_DELAY_MS}ms...`,
-      );
+      core.debug(`Attempt ${attempt} failed for secret "${secretName}", retrying in ${RETRY_DELAY_MS}ms...`);
       await sleep(RETRY_DELAY_MS);
     }
   }

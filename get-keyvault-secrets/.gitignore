@@ -3,3 +3,4 @@ lib/
 dist/*
 !dist/index.js
 !dist/licenses.txt
+!dist/package.json

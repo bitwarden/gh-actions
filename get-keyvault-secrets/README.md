@@ -55,3 +55,19 @@ jobs:
       - name: Use Secrets
         run: echo "Do something with ${{ steps.get-secrets.outputs.secret-one }}"
 ```
+
+## Development
+
+After making changes to `src/main.ts` or any dependencies, rebuild the bundle and commit the output:
+
+```bash
+npm install
+npm run build
+```
+
+Commit the following files:
+- `src/main.ts` — source changes
+- `package.json` and `package-lock.json` — dependency changes
+- `dist/index.js` — compiled bundle (required for the action to run)
+- `dist/licenses.txt` — bundled dependency licenses
+- `dist/package.json` — ESM module declaration

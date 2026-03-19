@@ -72,10 +72,16 @@ jobs:
             git commit -m "test: simulated main branch for $version_type"
             git push origin "$simulated_main_branch"
 
-            # Create and push test tag on this simulated main
-            echo "INFO: Creating test tag [$test_tag] on [$simulated_main_branch]"
-            git tag "$test_tag"
-            git push origin "$test_tag"
+            # Create and push test tag on this simulated main (only if it doesn't exist yet)
+            if ! git ls-remote --tags origin "$test_tag" | grep -q "$test_tag"; then
+              echo "INFO: Creating test tag [$test_tag] on [$simulated_main_branch]"
+              git tag "$test_tag"
+              git push origin "$test_tag"
+            else
+              echo "INFO: Test tag [$test_tag] already exists, skipping creation"
+              # Still create the tag locally so we can reference it
+              git tag "$test_tag" 2>/dev/null || true
+            fi
 
             # Create feature branch
             echo "INFO: Creating feature branch [$feature_branch]"
@@ -113,10 +119,6 @@ jobs:
 
             # Switch back to main for next iteration
             git checkout main
-
-            # Delete the tag so we can reuse it for the next branch
-            git tag -d "$test_tag"
-            git push origin --delete "$test_tag" || true
           done
 
   test-patch-release:

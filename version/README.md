@@ -14,7 +14,7 @@ The `_version.yml` workflow determines the next version number and returns it to
 
 ### Setup
 
-1. Copy the `version.yml` workflow template into your repository's `.github/workflows/` directory
+1. Copy the `version.yml` workflow template into your repository's `.github/workflows/` directory, or insert the usage example below into an existing workflow.
 2. Ensure your repository uses semantic versioning with git tags (format: `vX.Y.Z`)
 3. Create these labels in your repository:
    - `version:major` - For breaking changes

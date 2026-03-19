@@ -14,7 +14,9 @@ jobs:
     name: Setup
     runs-on: ubuntu-24.04
     outputs:
-      simulated_main_branch: ${{ steps.create-simulated-branches.outputs.simulated_main_branch }}
+      simulated_main_branch_patch: ${{ steps.create-simulated-branches.outputs.simulated_main_branch_patch }}
+      simulated_main_branch_minor: ${{ steps.create-simulated-branches.outputs.simulated_main_branch_minor }}
+      simulated_main_branch_major: ${{ steps.create-simulated-branches.outputs.simulated_main_branch_major }}
       simulated_pr_number_patch: ${{ steps.create-simulated-branches.outputs.simulated_pr_number_patch }}
       simulated_pr_number_minor: ${{ steps.create-simulated-branches.outputs.simulated_pr_number_minor }}
       simulated_pr_number_major: ${{ steps.create-simulated-branches.outputs.simulated_pr_number_major }}
@@ -41,25 +43,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           timestamp=$(date +%s)
-          simulated_main_branch="version-sim-main-$timestamp"
-
-          # Output main branch early so cleanup can use it if this step fails
-          echo "simulated_main_branch=$simulated_main_branch" >> $GITHUB_OUTPUT
-
-          # Create simulated main branch with a test tag
-          echo "INFO: Creating simulated main branch [$simulated_main_branch]"
-          git switch -c "$simulated_main_branch"
-          echo 'test main branch' > "version-sim-main-$timestamp.txt"
-          git add "version-sim-main-$timestamp.txt"
-          git commit -m 'test: simulated main branch'
-          git push origin "$simulated_main_branch"
-
-          # Create and push test tag on simulated main
-          test_tag="v99.88.${timestamp:0:4}"
-          echo "test_tag=$test_tag" >> $GITHUB_OUTPUT
-          echo "INFO: Creating test tag [$test_tag] on [$simulated_main_branch]"
-          git tag "$test_tag"
-          git push origin "$test_tag"
 
           # Create version labels if they don't exist
           for label_type in patch minor major; do
@@ -69,10 +52,32 @@ jobs:
             fi
           done
 
-          # Create PRs for each version type
+          # Create test tag (will be shared across all branches)
+          test_tag="v99.88.${timestamp:0:4}"
+          echo "test_tag=$test_tag" >> $GITHUB_OUTPUT
+
+          # Create separate simulated branches for each version type
           for version_type in patch minor major; do
+            simulated_main_branch="version-sim-main-${version_type}-$timestamp"
             feature_branch="version-sim-feature-${version_type}-$timestamp"
 
+            # Output branches so cleanup can use them if this step fails
+            echo "simulated_main_branch_${version_type}=$simulated_main_branch" >> $GITHUB_OUTPUT
+
+            # Create simulated main branch with test tag
+            echo "INFO: Creating simulated main branch [$simulated_main_branch] for $version_type"
+            git switch -c "$simulated_main_branch"
+            echo "test main branch for $version_type" > "version-sim-main-${version_type}-$timestamp.txt"
+            git add "version-sim-main-${version_type}-$timestamp.txt"
+            git commit -m "test: simulated main branch for $version_type"
+            git push origin "$simulated_main_branch"
+
+            # Create and push test tag on this simulated main
+            echo "INFO: Creating test tag [$test_tag] on [$simulated_main_branch]"
+            git tag "$test_tag"
+            git push origin "$test_tag"
+
+            # Create feature branch
             echo "INFO: Creating feature branch [$feature_branch]"
             git switch -c "$feature_branch"
             echo "test $version_type feature" > "version-sim-feature-${version_type}-$timestamp.txt"
@@ -99,15 +104,19 @@ jobs:
             echo "simulated_pr_number_${version_type}=$pr_number" >> $GITHUB_OUTPUT
             echo "INFO: Created PR #$pr_number for $version_type"
 
-            # Switch back to simulated main for next iteration
-            git switch "$simulated_main_branch"
-
             # Merge the PR
             echo "INFO: Merging PR #$pr_number into [$simulated_main_branch]"
             if ! gh pr merge "$pr_number" --squash; then
               echo "ERROR: Failed to merge PR #$pr_number"
               exit 1
             fi
+
+            # Switch back to main for next iteration
+            git checkout main
+
+            # Delete the tag so we can reuse it for the next branch
+            git tag -d "$test_tag"
+            git push origin --delete "$test_tag" || true
           done
 
   test-patch-release:
@@ -116,7 +125,7 @@ jobs:
     uses: ./.github/workflows/_version.yml
     with:
       is-release: true
-      sim_branch: ${{ needs.setup.outputs.simulated_main_branch }}
+      sim_branch: ${{ needs.setup.outputs.simulated_main_branch_patch }}
     permissions:
       contents: read
       pull-requests: read
@@ -128,7 +137,7 @@ jobs:
     uses: ./.github/workflows/_version.yml
     with:
       is-release: true
-      sim_branch: ${{ needs.setup.outputs.simulated_main_branch }}
+      sim_branch: ${{ needs.setup.outputs.simulated_main_branch_minor }}
     permissions:
       contents: read
       pull-requests: read
@@ -140,7 +149,7 @@ jobs:
     uses: ./.github/workflows/_version.yml
     with:
       is-release: true
-      sim_branch: ${{ needs.setup.outputs.simulated_main_branch }}
+      sim_branch: ${{ needs.setup.outputs.simulated_main_branch_major }}
     permissions:
       contents: read
       pull-requests: read
@@ -152,7 +161,7 @@ jobs:
     uses: ./.github/workflows/_version.yml
     with:
       is-release: false
-      sim_branch: ${{ needs.setup.outputs.simulated_main_branch }}
+      sim_branch: ${{ needs.setup.outputs.simulated_main_branch_major }}
     permissions:
       contents: read
       pull-requests: read
@@ -273,7 +282,7 @@ jobs:
           # Extract version from test tag (remove 'v' prefix)
           base_version="${TEST_TAG:1}"
 
-          # Should be base_version+PR_NUMBER (using the last merged PR which is major)
+          # Should be base_version+PR_NUMBER (using the major PR)
           expected="${base_version}+${PR_NUMBER}"
           echo "Expected version: $expected"
 
@@ -290,7 +299,9 @@ jobs:
     needs: [setup, test-patch-release, test-minor-release, test-major-release, test-non-release-version, validate]
     if: always()
     env:
-      _SIMULATED_MAIN_BRANCH: ${{ needs.setup.outputs.simulated_main_branch }}
+      _SIMULATED_MAIN_BRANCH_PATCH: ${{ needs.setup.outputs.simulated_main_branch_patch }}
+      _SIMULATED_MAIN_BRANCH_MINOR: ${{ needs.setup.outputs.simulated_main_branch_minor }}
+      _SIMULATED_MAIN_BRANCH_MAJOR: ${{ needs.setup.outputs.simulated_main_branch_major }}
       _SIMULATED_PR_NUMBER_PATCH: ${{ needs.setup.outputs.simulated_pr_number_patch }}
       _SIMULATED_PR_NUMBER_MINOR: ${{ needs.setup.outputs.simulated_pr_number_minor }}
       _SIMULATED_PR_NUMBER_MAJOR: ${{ needs.setup.outputs.simulated_pr_number_major }}
@@ -319,27 +330,29 @@ jobs:
             fi
           done
 
-          # Delete feature branches
-          if [[ -n $_SIMULATED_MAIN_BRANCH ]]; then
-            timestamp=$(echo "$_SIMULATED_MAIN_BRANCH" | grep -o '[0-9]*$')
-            for version_type in patch minor major; do
+          # Delete all branches (both feature and main simulated branches)
+          for main_branch in $_SIMULATED_MAIN_BRANCH_PATCH $_SIMULATED_MAIN_BRANCH_MINOR $_SIMULATED_MAIN_BRANCH_MAJOR; do
+            if [[ -n $main_branch ]]; then
+              # Extract timestamp from main branch name
+              timestamp=$(echo "$main_branch" | grep -o '[0-9]*$')
+              version_type=$(echo "$main_branch" | sed 's/version-sim-main-\(.*\)-[0-9]*/\1/')
+
+              # Delete feature branch
               feature_branch="version-sim-feature-${version_type}-$timestamp"
               if git ls-remote --exit-code --heads origin "$feature_branch" >/dev/null 2>&1; then
                 echo "INFO: Deleting branch [$feature_branch]"
                 git push origin --delete "$feature_branch" || echo "WARN: Failed to delete branch"
               fi
-            done
-          fi
 
-          # Delete simulated main branch
-          if [[ -n $_SIMULATED_MAIN_BRANCH ]]; then
-            if git ls-remote --exit-code --heads origin "$_SIMULATED_MAIN_BRANCH" >/dev/null 2>&1; then
-              echo "INFO: Deleting branch [$_SIMULATED_MAIN_BRANCH]"
-              git push origin --delete "$_SIMULATED_MAIN_BRANCH" || echo "WARN: Failed to delete branch"
+              # Delete main simulated branch
+              if git ls-remote --exit-code --heads origin "$main_branch" >/dev/null 2>&1; then
+                echo "INFO: Deleting branch [$main_branch]"
+                git push origin --delete "$main_branch" || echo "WARN: Failed to delete branch"
+              fi
             fi
-          fi
+          done
 
-          # Delete test tag
+          # Delete test tag (only exists on the last branch created)
           if [[ -n $_TEST_TAG ]]; then
             if git ls-remote --exit-code --tags origin "$_TEST_TAG" >/dev/null 2>&1; then
               echo "INFO: Deleting tag [$_TEST_TAG]"

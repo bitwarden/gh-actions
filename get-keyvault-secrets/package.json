@@ -1,7 +1,7 @@
 {
   "name": "get-keyvault-secret",
-  "version": "1.0.0",
-  "description": "Github action for Azure Key Vault Operations",
+  "version": "2.0.0",
+  "description": "Github action for reading Azure Key Vault secrets",
   "main": "dist/index.js",
   "scripts": {
     "build": "ncc build src/main.ts -o dist --license licenses.txt"

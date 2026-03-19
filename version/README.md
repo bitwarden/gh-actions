@@ -2,7 +2,7 @@
 
 ## Description
 
-The `_version.yml` workflow calculates version numbers for release and non-release builds based on PR labels and git tags.
+The `_version.yml` workflow determines the next version number and returns it to the calling workflow. For releases, it increments the latest git tag version based on the commit's PR label (version:major, version:minor, or version:patch). For non-release builds, it appends the PR number as a build identifier to the current git tag version.
 
 ## Key Features
 

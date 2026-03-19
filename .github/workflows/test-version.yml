@@ -2,7 +2,6 @@ name: Test Version workflow
 
 on:
   workflow_dispatch:
-  push:
   pull_request:
     paths:
       - ".github/workflows/_version.yml"

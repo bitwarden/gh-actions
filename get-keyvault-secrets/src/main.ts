@@ -12,11 +12,11 @@ function sleep(ms: number): Promise<void> {
 async function getSecret(keyvault: string, secretName: string): Promise<string> {
   for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
     try {
-      // NOSONAR: resolving "az" via PATH is intentional. GitHub-hosted runners control the base PATH,
+      // resolving "az" via PATH is intentional — GitHub-hosted runners control the base PATH,
       // all workflow actions are pinned to commit hashes (limiting supply chain attacks), and
       // hardcoding an absolute path would be brittle across runner configurations.
-      return execFileSync(
-        "az", // NOSONAR
+      return execFileSync( // NOSONAR
+        "az",
         [
           "keyvault",
           "secret",

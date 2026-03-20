@@ -30876,7 +30876,11 @@ function sleep(ms) {
 async function getSecret(keyvault, secretName) {
     for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
         try {
-            return (0,external_node_child_process_namespaceObject.execFileSync)("az", [
+            // resolving "az" via PATH is intentional — GitHub-hosted runners control the base PATH,
+            // all workflow actions are pinned to commit hashes (limiting supply chain attacks), and
+            // hardcoding an absolute path would be brittle across runner configurations.
+            return (0,external_node_child_process_namespaceObject.execFileSync)("az", // NOSONAR
+            [
                 "keyvault",
                 "secret",
                 "show",

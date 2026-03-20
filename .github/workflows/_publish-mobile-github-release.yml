@@ -2,6 +2,13 @@ name: _publish-mobile-github-release
 
 on:
   workflow_call:
+    secrets:
+      AZURE_SUBSCRIPTION_ID:
+        required: true
+      AZURE_TENANT_ID:
+        required: true
+      AZURE_CLIENT_ID:
+        required: true
     inputs:
       release_name:
         description: 'Name prefix of the release to publish (e.g. "Password Manager")'
@@ -191,10 +198,21 @@ jobs:
 
           echo "should_skip=$should_skip" >> "$GITHUB_OUTPUT"
 
+      - name: Determine Ruby version
+        id: ruby_version
+        if: steps.check_already_processed.outputs.should_skip == 'false'
+        run: |
+          if [ -f .ruby-version ]; then
+            echo "version=$(cat .ruby-version)" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=3.2" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Configure Ruby
         if: steps.check_already_processed.outputs.should_skip == 'false'
         uses: ruby/setup-ruby@90be1154f987f4dc0fe0dd0feedac9e473aa4ba8 # v1.286.0
         with:
+          ruby-version: ${{ steps.ruby_version.outputs.version }}
           bundler-cache: true
 
       - name: Install Fastlane
@@ -211,7 +229,7 @@ jobs:
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Download Store credentials
-        if: steps.check_already_processed.outputs.should_skip == 'false'
+        if: steps.check_already_processed.outputs.should_skip == 'false' && inputs.credentials_filename != ''
         env:
           ACCOUNT_NAME: bitwardenci
           CONTAINER_NAME: mobile

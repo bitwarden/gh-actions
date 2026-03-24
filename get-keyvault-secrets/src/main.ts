@@ -1,67 +1,65 @@
-import * as core from '@actions/core';
-import * as crypto from "crypto";
-import { AuthorizerFactory } from 'azure-actions-webclient/AuthorizerFactory';
-import { IAuthorizer } from 'azure-actions-webclient/Authorizer/IAuthorizer';
-import { KeyVaultActionParameters } from './KeyVaultActionParameters';
-import { KeyVaultHelper } from './KeyVaultHelper';
-import * as exec from '@actions/exec';
-import * as io from '@actions/io';
+import * as core from "@actions/core";
+import { execFileSync } from "node:child_process";
 
-var azPath: string;
-var prefix = !!process.env.AZURE_HTTP_USER_AGENT ? `${process.env.AZURE_HTTP_USER_AGENT}` : "";
-async function run() {
-    try {
-        let usrAgentRepo = crypto.createHash('sha256').update(`${process.env.GITHUB_REPOSITORY}`).digest('hex');
-        let actionName = 'GetKeyVaultSecrets';
-        let userAgentString = (!!prefix ? `${prefix}+` : '') + `GITHUBACTIONS_${actionName}_${usrAgentRepo}`;
-        core.exportVariable('AZURE_HTTP_USER_AGENT', userAgentString);
+const MAX_RETRY_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 3000;
+const AZ_TIMEOUT_MS = 30000;
 
-        let handler: IAuthorizer = null;
-
-        try {
-            handler = await AuthorizerFactory.getAuthorizer();
-        }
-        catch (error) {
-            core.setFailed("Could not login to Azure.")
-        }
-
-        if (handler != null) {
-            var actionParameters = new KeyVaultActionParameters().getKeyVaultActionParameters(handler);
-            var keyVaultHelper = new KeyVaultHelper(handler, 100, actionParameters);  
-            azPath = await io.which("az", true);
-            var environment = await executeAzCliCommand("cloud show --query name");
-            environment = environment.replace(/"|\s/g, '');
-            console.log('Running keyvault action against ' + environment);
-            if (environment.toLowerCase() == "azurestack") {
-                await keyVaultHelper.initKeyVaultClient();
-            }    
-            keyVaultHelper.downloadSecrets();
-        }        
-    } catch (error) {
-        core.debug("Get secret failed with error: " + error);
-        core.setFailed(!!error.message ? error.message : "Error occurred in fetching the secrets.");
-    }
-    finally {
-        core.exportVariable('AZURE_HTTP_USER_AGENT', prefix);
-    }
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function executeAzCliCommand(command: string) {
-    let stdout = '';
-    let stderr = '';
+async function getSecret(keyvault: string, secretName: string): Promise<string> {
+  for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
     try {
-        core.debug(`"${azPath}" ${command}`);
-        await exec.exec(`"${azPath}" ${command}`, [], {
-            silent: true, // this will prevent priniting access token to console output
-            listeners: {
-                stdout: (data: Buffer) => { stdout += data.toString(); },
-                stderr: (data: Buffer) => { stderr += data.toString(); }
-            }
-        });
+      // resolving "az" via PATH is intentional — GitHub-hosted runners control the base PATH,
+      // all workflow actions are pinned to commit hashes (limiting supply chain attacks), and
+      // hardcoding an absolute path would be brittle across runner configurations.
+      return execFileSync(
+        "az", // NOSONAR
+        [
+          "keyvault",
+          "secret",
+          "show",
+          "--vault-name",
+          keyvault,
+          "--name",
+          secretName,
+          "--query",
+          "value",
+          "-o",
+          "tsv",
+        ],
+        { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], timeout: AZ_TIMEOUT_MS },
+      ).trim();
     } catch (error) {
-        throw new Error(stderr);
+      if (attempt === MAX_RETRY_ATTEMPTS) {
+        throw error;
+      }
+      core.debug(`Attempt ${attempt} failed for secret "${secretName}", retrying in ${RETRY_DELAY_MS}ms...`);
+      await sleep(RETRY_DELAY_MS);
     }
-    return stdout;
+  }
+  throw new Error(`Failed to retrieve secret "${secretName}" after ${MAX_RETRY_ATTEMPTS} attempts`);
+}
+
+async function run(): Promise<void> {
+  try {
+    const keyvault = core.getInput("keyvault", { required: true });
+    const secretsInput = core.getInput("secrets", { required: true });
+    const secretNames = secretsInput
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    for (const secretName of secretNames) {
+      const value = await getSecret(keyvault, secretName);
+      core.setSecret(value);
+      core.setOutput(secretName, value);
+    }
+  } catch (error) {
+    core.setFailed(error instanceof Error ? error.message : String(error));
+  }
 }
 
 run();

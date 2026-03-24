@@ -70352,10 +70352,10 @@ class SecretClient {
 
 async function run() {
     try {
-        const keyvault = getInput("keyvault", { required: true });
-        const secretsInput = getInput("secrets", { required: true });
+        const keyvault = getInput('keyvault', { required: true });
+        const secretsInput = getInput('secrets', { required: true });
         const secretNames = secretsInput
-            .split(",")
+            .split(',')
             .map((s) => s.trim())
             .filter(Boolean);
         const credential = new defaultAzureCredential_DefaultAzureCredential();

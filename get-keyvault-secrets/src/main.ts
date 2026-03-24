@@ -1,18 +1,21 @@
-import * as core from "@actions/core";
-import { DefaultAzureCredential } from "@azure/identity";
-import { SecretClient } from "@azure/keyvault-secrets";
+import * as core from '@actions/core';
+import { DefaultAzureCredential } from '@azure/identity';
+import { SecretClient } from '@azure/keyvault-secrets';
 
 async function run(): Promise<void> {
   try {
-    const keyvault = core.getInput("keyvault", { required: true });
-    const secretsInput = core.getInput("secrets", { required: true });
+    const keyvault = core.getInput('keyvault', { required: true });
+    const secretsInput = core.getInput('secrets', { required: true });
     const secretNames = secretsInput
-      .split(",")
+      .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
 
     const credential = new DefaultAzureCredential();
-    const client = new SecretClient(`https://${keyvault}.vault.azure.net`, credential);
+    const client = new SecretClient(
+      `https://${keyvault}.vault.azure.net`,
+      credential,
+    );
 
     for (const secretName of secretNames) {
       const secret = await client.getSecret(secretName);

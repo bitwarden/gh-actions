@@ -30873,13 +30873,16 @@ const AZ_TIMEOUT_MS = 30000;
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
+// On Windows, the Azure CLI is installed as az.cmd (a batch file), not a plain binary.
+// execFileSync does not invoke a shell to resolve .cmd extensions, so we must use az.cmd explicitly.
+const AZ_CMD = process.platform === "win32" ? "az.cmd" : "az";
 async function getSecret(keyvault, secretName) {
     for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
         try {
             // resolving "az" via PATH is intentional — GitHub-hosted runners control the base PATH,
             // all workflow actions are pinned to commit hashes (limiting supply chain attacks), and
             // hardcoding an absolute path would be brittle across runner configurations.
-            return (0,external_node_child_process_namespaceObject.execFileSync)("az", // NOSONAR
+            return (0,external_node_child_process_namespaceObject.execFileSync)(AZ_CMD, // NOSONAR
             [
                 "keyvault",
                 "secret",

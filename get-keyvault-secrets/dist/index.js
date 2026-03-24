@@ -30873,12 +30873,18 @@ const AZ_TIMEOUT_MS = 30000;
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
+// Azure Key Vault names and secret names are restricted to alphanumerics and hyphens by Azure.
+// We validate inputs before passing them to execFileSync with shell: true on Windows, ensuring
+// no shell metacharacters can be injected via crafted input values.
+const AZURE_NAME_PATTERN = /^[0-9a-zA-Z-]+$/;
 async function getSecret(keyvault, secretName) {
     for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
         try {
             // resolving "az" via PATH is intentional — GitHub-hosted runners control the base PATH,
             // all workflow actions are pinned to commit hashes (limiting supply chain attacks), and
             // hardcoding an absolute path would be brittle across runner configurations.
+            // shell: true is required on Windows because az is a .cmd batch file and cannot be
+            // executed directly by execFileSync without a shell to invoke it.
             return (0,external_node_child_process_namespaceObject.execFileSync)("az", // NOSONAR
             [
                 "keyvault",
@@ -30892,7 +30898,7 @@ async function getSecret(keyvault, secretName) {
                 "value",
                 "-o",
                 "tsv",
-            ], { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], timeout: AZ_TIMEOUT_MS }).trim();
+            ], { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], timeout: AZ_TIMEOUT_MS, shell: process.platform === "win32" }).trim();
         }
         catch (error) {
             if (attempt === MAX_RETRY_ATTEMPTS) {
@@ -30912,6 +30918,16 @@ async function run() {
             .split(",")
             .map((s) => s.trim())
             .filter(Boolean);
+        if (process.platform === "win32") {
+            if (!AZURE_NAME_PATTERN.test(keyvault)) {
+                throw new Error(`Invalid keyvault "${keyvault}": must only contain alphanumerics and hyphens`);
+            }
+            for (const secretName of secretNames) {
+                if (!AZURE_NAME_PATTERN.test(secretName)) {
+                    throw new Error(`Invalid secret name "${secretName}": must only contain alphanumerics and hyphens`);
+                }
+            }
+        }
         for (const secretName of secretNames) {
             const value = await getSecret(keyvault, secretName);
             core_setSecret(value);

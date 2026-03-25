@@ -1,10 +1,9 @@
 ---
-
 name: "Get GitHub Latest Release Version"
 description: "Retrieves the lasted release tag from a GitHub repository."
 inputs:
   repository:
-    description: 'This is the repository that we get the latest release version from'
+    description: "This is the repository that we get the latest release version from"
     required: true
   trim:
     description: "Trims the returned value of all letter characters: ('true', 'false')"
@@ -20,7 +19,7 @@ inputs:
     default: ""
 outputs:
   version:
-    description: 'GitHub Latest Release version from specified repository'
+    description: "GitHub Latest Release version from specified repository"
     value: ${{ steps.get-release.outputs.version }}
 runs:
   using: "composite"
@@ -28,23 +27,27 @@ runs:
     - name: Input validation
       id: validation
       shell: bash
+      env:
+        INPUT_TRIM: ${{ inputs.trim }}
+        INPUT_MONOREPO: ${{ inputs.monorepo }}
+        INPUT_MONOREPO_PROJECT: ${{ inputs.monorepo-project }}
       run: |
         trim_valid_inputs=("true" "false")
-        if [[ ! "${trim_valid_inputs[@]}" =~ "${{ inputs.trim }}" ]]; then
+        if [[ ! "${trim_valid_inputs[@]}" =~ "${INPUT_TRIM}" ]]; then
           echo "[!] 'trim' option only supports the following values: (${trim_valid_inputs})"
           exit 1
         fi
         monorepo_valid_inputs=("true" "false")
-        if [[ ! "${monorepo_valid_inputs[@]}" =~ "${{ inputs.monorepo }}" ]]; then
+        if [[ ! "${monorepo_valid_inputs[@]}" =~ "${INPUT_MONOREPO}" ]]; then
           echo "[!] 'monorepo' option only supports the following values: (${monorepo_valid_inputs})"
           exit 1
         fi
-        if [ "${{ inputs.monorepo }}" == "true" ] && [ "${{ inputs.monorepo-project }}" == "" ]; then
+        if [ "${INPUT_MONOREPO}" == "true" ] && [ "${INPUT_MONOREPO_PROJECT}" == "" ]; then
           echo "[!] using the 'monorepo' option requires the use of 'monorepo-project'"
           exit 1
         fi
         monorepo_project_valid_inputs=("" "browser" "cli" "desktop" "web")
-        if [[ ! "${monorepo_project_valid_inputs[@]}" =~ "${{ inputs.monorepo-project }}" ]]; then
+        if [[ ! "${monorepo_project_valid_inputs[@]}" =~ "${INPUT_MONOREPO_PROJECT}" ]]; then
           echo "[!] 'monorepo-project' option only supports the following values: (${monorepo_project_valid_inputs})"
           exit 1
         fi
@@ -64,12 +67,15 @@ runs:
       shell: bash
       env:
         REPOSITORY: ${{ inputs.repository }}
+        INPUT_TRIM: ${{ inputs.trim }}
+        INPUT_MONOREPO: ${{ inputs.monorepo }}
+        INPUT_MONOREPO_PROJECT: ${{ inputs.monorepo-project }}
       run: |
-        case "${{ inputs.monorepo }}" in
+        case "${INPUT_MONOREPO}" in
             "true")
               LATEST_RELEASE_TAG_VERSION=$(
                 curl -sL https://api.github.com/repos/$REPOSITORY/releases | \
-                jq -r 'first(.[] | select(.tag_name | startswith("${{ inputs.monorepo-project }}"))).tag_name'
+                jq -r --arg prefix "${INPUT_MONOREPO_PROJECT}" 'first(.[] | select(.tag_name | startswith($prefix))).tag_name'
               )
               ;;
             "false")
@@ -79,7 +85,7 @@ runs:
               ;;
           esac
 
-        case "${{ inputs.trim }}" in
+        case "${INPUT_TRIM}" in
             "true")
               LATEST_RELEASE_TAG_VERSION=$(echo "${LATEST_RELEASE_TAG_VERSION//[a-z-]}")
                 echo "version=$LATEST_RELEASE_TAG_VERSION" >> $GITHUB_OUTPUT

@@ -15,9 +15,9 @@ Secrets are automatically masked in logs and available to subsequent steps via `
 
 Each secret is set as an output using its name as the key.
 
-| Output          | Description                        |
-| --------------- | ---------------------------------- |
-| `<secret-name>` | The value of the retrieved secret  |
+| Output          | Description                       |
+| --------------- | --------------------------------- |
+| `<secret-name>` | The value of the retrieved secret |
 
 ## Prerequisites
 
@@ -47,7 +47,7 @@ jobs:
         uses: bitwarden/gh-actions/get-keyvault-secrets@main
         with:
           keyvault: my-key-vault
-          secrets: "secret-one,secret-two"
+          secrets: 'secret-one,secret-two'
 
       - name: Azure Logout
         uses: bitwarden/gh-actions/azure-logout@main
@@ -66,6 +66,7 @@ npm run build
 ```
 
 Commit the following files:
+
 - `src/main.ts` — source changes
 - `package.json` and `package-lock.json` — dependency changes
 - `dist/index.js` — compiled bundle (required for the action to run)

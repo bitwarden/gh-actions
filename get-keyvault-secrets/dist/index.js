@@ -70358,7 +70358,7 @@ async function run() {
             .split(',')
             .map((s) => s.trim())
             .filter(Boolean);
-        const credential = new defaultAzureCredential_DefaultAzureCredential();
+        const credential = new AzureCliCredential();
         const client = new SecretClient(`https://${keyvault}.vault.azure.net`, credential);
         for (const secretName of secretNames) {
             const secret = await client.getSecret(secretName);

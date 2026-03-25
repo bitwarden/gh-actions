@@ -1,5 +1,5 @@
 import * as core from '@actions/core';
-import { DefaultAzureCredential } from '@azure/identity';
+import { AzureCliCredential } from '@azure/identity';
 import { SecretClient } from '@azure/keyvault-secrets';
 
 async function run(): Promise<void> {
@@ -11,7 +11,7 @@ async function run(): Promise<void> {
       .map((s) => s.trim())
       .filter(Boolean);
 
-    const credential = new DefaultAzureCredential();
+    const credential = new AzureCliCredential();
     const client = new SecretClient(
       `https://${keyvault}.vault.azure.net`,
       credential,

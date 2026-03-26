@@ -43,6 +43,15 @@ jobs:
         if: inputs.repository != ''
         uses: bitwarden/gh-actions/azure-logout@main
 
+      - name: Parse repository owner
+        if: inputs.repository != ''
+        id: parse-repo
+        env:
+          REPOSITORY: ${{ inputs.repository }}
+        run: |
+          echo "owner=${REPOSITORY%%/*}" >> "$GITHUB_OUTPUT"
+          echo "repo=${REPOSITORY##*/}" >> "$GITHUB_OUTPUT"
+
       - name: Generate GH App token
         if: inputs.repository != ''
         id: app-token
@@ -50,7 +59,8 @@ jobs:
         with:
           app-id: ${{ steps.get-kv-secrets.outputs.BW-GHAPP-ID }}
           private-key: ${{ steps.get-kv-secrets.outputs.BW-GHAPP-KEY }}
-          repositories: ${{ inputs.repository }}
+          owner: ${{ steps.parse-repo.outputs.owner }}
+          repositories: ${{ steps.parse-repo.outputs.repo }}
 
       - name: Check out branch
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1

@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       repository:
-        description: "Repository to lint (defaults to the current repository)"
+        description: "Repository to lint in org/repo format (e.g. bitwarden/server). Defaults to the current repository."
         required: false
         type: string
 

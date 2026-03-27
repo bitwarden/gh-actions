@@ -1,38 +1,61 @@
 ---
 name: scaffold-action
-description: "Phase 2: Generate boilerplate directory structure, action.yml, README.md, test workflow, and type-specific files based on SPEC.md."
+description: "Generate boilerplate directory structure, action.yml, README.md, test workflow, and type-specific files for a new GitHub Action from its SPEC.md."
+argument-hint: "<action-name>"
+allowed-tools:
+  - Read
+  - Write
+  - Glob
+  - Bash(ls:*)
+  - Bash(mkdir:*)
 ---
 
-# Scaffold Action - Phase 2: Boilerplate Generation
+# Scaffold Action - Boilerplate Generation
 
-You are generating the boilerplate file structure for a new GitHub Action in the Bitwarden `gh-actions` repository. You will read the SPEC.md produced by Phase 1 and create all skeleton files.
+Generate the complete file structure for a new GitHub Action in the Bitwarden `gh-actions` repository. Read the SPEC.md produced by the define-action skill and create all skeleton files with TODO placeholders -- no implementation logic.
+
+## Input
+
+This skill accepts a single required argument: the action directory name (e.g., `my-new-action`).
+
+The action directory must already contain a `SPEC.md` file produced by the `define-action` skill.
+
+**Examples:**
+- `scaffold-action my-new-action`
+- `scaffold-action report-deployment-status-to-slack`
 
 ## Procedure
 
-### Step 1: Read the Specification
+### Step 1: Validate Prerequisites
 
-Read `{action-name}/SPEC.md` to understand the action's type, inputs, outputs, and integrations.
+1. Confirm `{action-name}/SPEC.md` exists using `ls`.
+2. If SPEC.md does not exist, stop and report: "No SPEC.md found in {action-name}/. Run the define-action skill first to generate a specification."
+3. Read `{action-name}/SPEC.md` to understand the action's type, inputs, outputs, and integrations.
 
 ### Step 2: Read Reference Files
 
-Read the appropriate reference files from the repository to ensure generated code matches current conventions:
+Read the appropriate reference files from the repository to ensure generated code matches current conventions.
 
 **For ALL action types, read:**
-- `check-permission/action.yml` — reference for action.yml structure, input validation, output setting
-- `.github/workflows/test-check-permission.yml` — reference for test workflow structure
+- `check-permission/action.yml` -- reference for action.yml structure, input validation, output setting
+- `.github/workflows/test-check-permission.yml` -- reference for test workflow structure
 
 **For TypeScript actions, also read:**
-- `get-keyvault-secrets/action.yml` — node24 action.yml pattern
-- `get-keyvault-secrets/package.json` — dependency and build script pattern
-- `get-keyvault-secrets/tsconfig.json` — TypeScript configuration
-- `get-keyvault-secrets/src/main.ts` — implementation skeleton pattern
+- `get-keyvault-secrets/action.yml` -- node24 action.yml pattern
+- `get-keyvault-secrets/package.json` -- dependency and build script pattern
+- `get-keyvault-secrets/tsconfig.json` -- TypeScript configuration
+- `get-keyvault-secrets/src/main.ts` -- implementation skeleton pattern
 
 **For Docker actions, also read:**
-- `version-bump/action.yml` — Docker action.yml pattern
-- `version-bump/Dockerfile` — multi-stage build pattern
-- `version-bump/main.py` — Python entry point pattern
+- `version-bump/action.yml` -- Docker action.yml pattern
+- `version-bump/Dockerfile` -- multi-stage build pattern
+- `version-bump/main.py` -- Python entry point pattern
 
-### Step 3: Generate action.yml
+### Step 3: Create Directory
+
+Run `mkdir -p {action-name}` to ensure the action directory exists (it should already exist from define-action, but ensure it).
+
+### Step 4: Generate action.yml
 
 Create `{action-name}/action.yml` with:
 
@@ -60,7 +83,7 @@ runs:
 
 **Docker**: `using: "docker"`, `image: "Dockerfile"`
 
-### Step 4: Generate Type-Specific Files
+### Step 5: Generate Type-Specific Files
 
 **For TypeScript actions:**
 
@@ -178,7 +201,7 @@ if __name__ == "__main__":
     main()
 ```
 
-### Step 5: Generate Test Workflow
+### Step 6: Generate Test Workflow
 
 Create `.github/workflows/test-{action-name}.yml` following the exact pattern from the reference:
 
@@ -218,9 +241,9 @@ jobs:
           echo "TODO: Verify action outputs"
 ```
 
-**Important**: Use the exact checkout action SHA and version comment from the reference file. Check the current pinned version in an existing test workflow.
+**Important**: Use the exact checkout action SHA and version comment from the reference file. Read an existing test workflow to get the currently pinned version.
 
-### Step 6: Generate README.md
+### Step 7: Generate README.md
 
 Create `{action-name}/README.md`:
 
@@ -252,11 +275,36 @@ Create `{action-name}/README.md`:
 | ... | ... |
 ```
 
+### Step 8: Report Results
+
+List all files created with their paths. Example:
+
+```
+Scaffolded files for {action-name}:
+  - {action-name}/action.yml
+  - {action-name}/src/main.ts
+  - {action-name}/package.json
+  - {action-name}/tsconfig.json
+  - {action-name}/.gitignore
+  - {action-name}/README.md
+  - .github/workflows/test-{action-name}.yml
+
+Next step: Run the implement-action skill to replace TODO placeholders with working code:
+  implement-action {action-name}
+```
+
 ## Important Rules
 
 - Do NOT implement any logic. Only generate skeletons with TODO comments.
 - Always read the reference files first to match current conventions exactly.
 - For the test workflow, use the exact pinned SHA for `actions/checkout` from an existing test workflow.
-- All input references in composite `run:` blocks MUST go through `env:` — never use `${{ inputs.* }}` directly in shell commands.
+- All input references in composite `run:` blocks MUST go through `env:` -- never use `${{ inputs.* }}` directly in shell commands.
 - Output names must use underscores, not hyphens.
 - Runner must be pinned to `ubuntu-24.04` (not `ubuntu-latest`).
+- This skill only creates files. It never runs `npm install`, `npm run build`, or any build commands.
+
+## Related Skills
+
+- **define-action**: Run first to produce the SPEC.md this skill consumes. Example: `define-action {action-name}`
+- **implement-action**: Run after scaffolding to replace TODO placeholders with working code. Example: `implement-action {action-name}`
+- **validate-action**: Run after implementation to check formatting, structure, and linter compliance. Example: `validate-action {action-name}`

@@ -132,6 +132,8 @@ The `SPEC.md` file must follow this exact structure:
 
 ## Related Skills
 
-After producing SPEC.md, recommend the user run:
-- `scaffold-action {action-name}` to generate boilerplate files from the specification.
-- Then `implement-action {action-name}` to write the working implementation.
+After producing SPEC.md, the next steps in the pipeline are:
+- **scaffold-action**: Generate boilerplate files from the specification. Example: `scaffold-action {action-name}`
+- **implement-action**: Write the working implementation. Example: `implement-action {action-name}`
+- **evaluate-action**: Review implementation completeness. Example: `evaluate-action {action-name}`
+- **validate-action**: Check formatting and linter compliance. Example: `validate-action {action-name}`

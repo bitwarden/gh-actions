@@ -190,4 +190,3 @@ All formatting, structural, and linter compliance checks passed.
 - **scaffold-action**: Generates skeleton files from SPEC.md. Example: `scaffold-action {action-name}`
 - **implement-action**: Replaces TODO placeholders with working code. Run before this skill. Example: `implement-action {action-name}`
 - **evaluate-action**: Reviews implementation completeness against SPEC.md. Example: `evaluate-action {action-name}`
-- **secure-action**: Security assessment and final quality gate. Run after this skill. Example: `secure-action {action-name}`

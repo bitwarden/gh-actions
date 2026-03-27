@@ -163,4 +163,3 @@ If any TODOs remain that could not be resolved (e.g., require external credentia
 - **scaffold-action**: Generates the skeleton files this skill fills in. Run it after define-action. Example: `scaffold-action {action-name}`
 - **evaluate-action**: Reviews completeness of the implementation. Run after this skill. Example: `evaluate-action {action-name}`
 - **validate-action**: Checks formatting, structure, and linter compliance. Example: `validate-action {action-name}`
-- **secure-action**: Security assessment and final quality gate. Example: `secure-action {action-name}`

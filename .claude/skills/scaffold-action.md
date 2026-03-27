@@ -307,4 +307,5 @@ Next step: Run the implement-action skill to replace TODO placeholders with work
 
 - **define-action**: Run first to produce the SPEC.md this skill consumes. Example: `define-action {action-name}`
 - **implement-action**: Run after scaffolding to replace TODO placeholders with working code. Example: `implement-action {action-name}`
+- **evaluate-action**: Reviews implementation completeness against SPEC.md. Example: `evaluate-action {action-name}`
 - **validate-action**: Run after implementation to check formatting, structure, and linter compliance. Example: `validate-action {action-name}`

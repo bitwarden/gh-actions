@@ -186,4 +186,3 @@ After appending the report, print a summary to the user listing files modified a
 - **scaffold-action**: Generates skeleton files from SPEC.md. Example: `scaffold-action {action-name}`
 - **implement-action**: Replaces TODO placeholders with working code. Run before this skill. Example: `implement-action {action-name}`
 - **validate-action**: Checks formatting, structure, and linter compliance. Run after this skill. Example: `validate-action {action-name}`
-- **secure-action**: Security assessment and final quality gate. Run last. Example: `secure-action {action-name}`

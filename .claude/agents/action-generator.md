@@ -124,7 +124,7 @@ If Critical or High issues were flagged but not fixed, loop back to Phase 3 (Imp
 
 Invoke the `validate-action` skill.
 
-**Verification**: Check the validation results. If Prettier or linter issues remain unfixed, re-invoke the skill once. If issues persist, flag to the user.
+**Verification**: The skill reports results directly (it does not write to SPEC.md). Check the reported status: PASS, PASS WITH NOTES, or FAIL. If FAIL (unfixed Critical/High issues), re-invoke the skill once. If issues persist, flag to the user.
 
 ### Phase 6: Secure
 

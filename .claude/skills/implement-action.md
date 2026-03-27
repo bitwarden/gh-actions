@@ -103,7 +103,22 @@ fi
 - Provide actionable error messages (not just "failed" -- explain what went wrong and suggest a fix).
 - Never expose sensitive data in error messages (tokens, secrets, internal URLs).
 
-### Step 6: Update Test Workflow
+### Step 6: Populate README.md
+
+Read `{action-name}/README.md` (scaffolded with section headings and TODO placeholders), then edit it:
+
+1. **Inputs table**: Populate from the final `action.yml` inputs — name, description, required, default. Use the actual implemented values, not the spec.
+2. **Outputs table**: Populate from the final `action.yml` outputs — name, description.
+3. **Usage section**: Write a basic usage example showing the action invoked with all required inputs and realistic values. If the action has multiple modes or configurations (per SPEC.md), add an additional example for each.
+4. **Features section** (if present): Write 2-4 bullet points describing the action's key capabilities.
+5. **Prerequisites section** (if present): Document any required setup (Azure credentials, tool installation, etc.).
+6. **Permissions section** (if present): Document the GitHub token permissions the action requires.
+7. **Development section** (if present, TypeScript only): Document `npm install` and `npm run build` commands.
+8. Remove all remaining TODO/placeholder comments from the README.
+
+Reference existing READMEs for style — read `check-permission/README.md` or `api-commit/README.md` for well-structured examples.
+
+### Step 7: Update Test Workflow
 
 Read `.github/workflows/test-{action-name}.yml`, then edit it:
 1. Replace TODO comments with actual test scenarios from SPEC.md.
@@ -113,7 +128,7 @@ Read `.github/workflows/test-{action-name}.yml`, then edit it:
 5. Ensure each test job has a descriptive, capitalized name (workflow linter requirement).
 6. Reference the multi-job pattern from `.github/workflows/test-check-permission.yml` if needed.
 
-### Step 7: Build (TypeScript Only)
+### Step 8: Build (TypeScript Only)
 
 For TypeScript actions only:
 1. Run `cd {action-name} && npm install` to install dependencies.
@@ -123,7 +138,7 @@ For TypeScript actions only:
 
 Skip this step for Composite and Docker actions.
 
-### Step 8: Report Results
+### Step 9: Report Results
 
 List all files modified and summarize what was implemented:
 
@@ -132,6 +147,7 @@ Implementation complete for {action-name}:
 
 Modified files:
   - {action-name}/action.yml -- core logic, input validation, output setting
+  - {action-name}/README.md -- inputs, outputs, usage examples, documentation
   - {action-name}/src/main.ts -- (TypeScript only) full implementation
   - {action-name}/main.py -- (Docker only) full implementation
   - .github/workflows/test-{action-name}.yml -- test scenarios and assertions

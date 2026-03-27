@@ -245,35 +245,52 @@ jobs:
 
 ### Step 7: Generate README.md
 
-Create `{action-name}/README.md`:
+Create `{action-name}/README.md` with section headings and TODO placeholders. The scaffold defines the structure; `implement-action` populates it later.
+
+**Required sections** (always include):
 
 ```markdown
 # {Action Name}
 
 {description from SPEC.md}
 
-## Usage
-
-\`\`\`yaml
-- name: {Action Name}
-  uses: bitwarden/gh-actions/{action-name}@main
-  with:
-    # Required inputs
-    input_name: "value"
-\`\`\`
-
 ## Inputs
 
 | Name | Description | Required | Default |
 |------|-------------|----------|---------|
-| ... | ... | ... | ... |
+<!-- TODO: Populate from action.yml inputs -->
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| ... | ... |
+<!-- TODO: Populate from action.yml outputs -->
+
+## Usage
+
+<!-- TODO: Add basic usage example -->
+<!-- TODO: Add additional examples for different configurations if applicable -->
 ```
+
+**Conditional sections** (include based on SPEC.md):
+
+```markdown
+## Features
+<!-- Include if action has 2+ distinct capabilities. TODO: List key features as bullet points -->
+
+## Prerequisites
+<!-- Include if action requires external setup (Azure credentials, installed tools, etc.). TODO: Document setup requirements -->
+
+## Permissions
+<!-- Include if action requires specific GitHub token permissions. TODO: Document required permissions -->
+
+## Development
+<!-- Include for TypeScript actions only. TODO: Document build and test instructions -->
+```
+
+**Section ordering**: Title → Description → Features (if applicable) → Inputs → Outputs → Prerequisites (if applicable) → Usage → Permissions (if applicable) → Development (if applicable)
+
+Only include conditional sections whose TODO markers will be fulfillable based on SPEC.md. Do not include empty conditional sections.
 
 ### Step 8: Report Results
 

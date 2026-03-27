@@ -1,90 +1,166 @@
 ---
 name: implement-action
-description: "Phase 3: Implement the core logic of a GitHub Action based on SPEC.md and scaffolded files. Writes working code, not skeletons."
+description: "Replace TODO placeholders in a scaffolded GitHub Action with working implementation code, input validation, error handling, and test scenarios."
+argument-hint: "<action-name>"
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Glob
+  - Grep
+  - Bash(ls:*)
+  - Bash(cd * && npm install)
+  - Bash(cd * && npm run build)
 ---
 
-# Implement Action - Phase 3: Core Logic Development
+# Implement Action - Core Logic Development
 
-You are implementing the core logic for a new GitHub Action in the Bitwarden `gh-actions` repository. The action has already been defined (Phase 1) and scaffolded (Phase 2). Your job is to replace TODO placeholders with working code.
+Replace TODO placeholders in a scaffolded GitHub Action with working code. The action must already have a `SPEC.md` (from define-action) and scaffolded skeleton files (from scaffold-action). The deliverable is a fully functional action with no remaining TODOs.
+
+## Input
+
+This skill accepts a single required argument: the action directory name.
+
+The directory must already contain `SPEC.md` and scaffolded files with TODO placeholders.
+
+**Examples:**
+- `implement-action report-deployment-status-to-slack`
+- `implement-action check-permission`
 
 ## Procedure
 
-### Step 1: Understand Requirements
+### Step 1: Validate Prerequisites
 
-1. Read `{action-name}/SPEC.md` for the full requirements specification
-2. Read all scaffolded files in the `{action-name}/` directory
-3. Identify similar existing actions in the repo that solve related problems — read their implementations for patterns
+1. Run `ls /Users/tyler/dev/gh-actions/{action-name}/` to confirm the directory exists.
+2. If the directory does not exist, stop and report: "Directory {action-name}/ not found. Run define-action and scaffold-action first."
+3. Read `{action-name}/SPEC.md` for the full requirements specification.
+4. If SPEC.md does not exist, stop and report: "No SPEC.md found in {action-name}/. Run define-action first."
+5. Read all scaffolded files in the `{action-name}/` directory to understand what was generated.
+6. If scaffolded files contain no TODO placeholders, stop and report: "Scaffolded files appear to already be implemented. Run evaluate-action to review completeness instead."
 
-### Step 2: Implement Core Logic
+### Step 2: Read Reference Implementations
 
-**For Composite actions** — edit `{action-name}/action.yml`:
-1. Replace placeholder steps with real implementation
-2. Use `env:` blocks to pass all inputs to shell scripts (never inline `${{ inputs.* }}` in `run:`)
-3. Use `set -e` at the top of bash scripts
-4. Write outputs to `$GITHUB_OUTPUT` using `echo "name=value" >> "$GITHUB_OUTPUT"`
-5. Use `::error::`, `::warning::`, `::notice::` annotations for user-facing messages
-6. Validate all required inputs at the start of the script
-7. Reference pattern: read `check-permission/action.yml` for input validation and output setting
+Use `Glob` with pattern `*/action.yml` to list existing actions. Identify 1-2 similar actions based on the SPEC.md requirements (same type, similar integrations). Read their implementation files to learn current patterns.
 
-**For TypeScript actions** — edit `{action-name}/src/main.ts`:
-1. Import `@actions/core` and any needed packages
-2. Read inputs with `core.getInput('name', { required: true/false })`
-3. Mask sensitive values with `core.setSecret(value)`
-4. Set outputs with `core.setOutput('name', value)`
-5. Wrap everything in try/catch with `core.setFailed()` in the catch block
-6. Reference pattern: read `get-keyvault-secrets/src/main.ts`
+**Minimum required references by type:**
 
-**For Docker/Python actions** — edit `{action-name}/main.py`:
-1. Read inputs from environment: `os.getenv("INPUT_NAME")` (GitHub uppercases and prefixes with `INPUT_`)
-2. Write outputs: append to `os.getenv("GITHUB_OUTPUT")` file
-3. Exit with non-zero status on failure: `sys.exit(1)`
-4. Reference pattern: read `version-bump/main.py`
+- **Composite**: Read `check-permission/action.yml` for input validation, env block usage, and output setting.
+- **TypeScript**: Read `get-keyvault-secrets/src/main.ts` for input reading, secret masking, error handling, and output setting.
+- **Docker/Python**: Read `version-bump/main.py` for environment variable input reading, output writing, and error handling.
 
-### Step 3: Implement Input Validation
+### Step 3: Implement Core Logic
 
-For every action type, validate inputs at the entry point:
-- Check required inputs are non-empty
-- Validate format constraints (e.g., regex for version strings, allowed enum values)
-- Provide clear error messages indicating what was wrong and what's expected
-- For composite actions, use pattern from `check-permission/action.yml`:
-  ```bash
-  if [[ ! "$INPUT" =~ ^(allowed|values)$ ]]; then
-    echo "::error::Invalid input; must be 'allowed' or 'values'"
-    exit 1
-  fi
-  ```
+**For Composite actions** -- edit `{action-name}/action.yml`:
+1. Replace placeholder steps with real implementation.
+2. Use `env:` blocks to pass all inputs to shell scripts (never inline `${{ inputs.* }}` in `run:` -- this is a command injection vector).
+3. Use `set -e` at the top of every bash `run:` block.
+4. Write outputs using `echo "name=value" >> "$GITHUB_OUTPUT"`.
+5. Use `::error::`, `::warning::`, `::notice::` annotations for user-facing messages.
+6. Always quote shell variables: `"$VAR"` not `$VAR`.
 
-### Step 4: Implement Error Handling
+**For TypeScript actions** -- edit `{action-name}/src/main.ts`:
+1. Import `@actions/core` and any packages needed per SPEC.md integrations.
+2. Read inputs with `core.getInput('name', { required: true/false })`.
+3. Mask sensitive values with `core.setSecret(value)` before any logging.
+4. Set outputs with `core.setOutput('name', value)`.
+5. Wrap the entire `run()` body in try/catch with `core.setFailed()` in the catch block.
 
-- Handle all expected failure modes described in SPEC.md
-- Provide actionable error messages (not just "failed" — explain what went wrong and how to fix)
-- For API calls, handle network errors, auth failures, and unexpected responses
-- For file operations, handle missing files and permission errors
+**For Docker/Python actions** -- edit `{action-name}/main.py`:
+1. Read inputs from environment: `os.getenv("INPUT_NAME")` (GitHub uppercases and prefixes with `INPUT_`).
+2. Write outputs by appending to the file at `os.getenv("GITHUB_OUTPUT")`.
+3. Exit with non-zero status on failure: `sys.exit(1)`.
+4. Use `subprocess.run()` with argument lists, never `shell=True` with untrusted input.
 
-### Step 5: Update Test Workflow
+### Step 4: Implement Input Validation
 
-Edit `.github/workflows/test-{action-name}.yml`:
-1. Replace TODO comments with actual test scenarios
-2. Provide realistic test inputs
-3. Add output verification steps that check expected values
-4. Add multiple test jobs if the action has different modes or configurations
-5. Follow the multi-job pattern from `test-check-permission.yml` for actions with multiple modes
+At the entry point of every action, validate all inputs before any business logic runs:
+- Check required inputs are non-empty.
+- Validate format constraints (e.g., regex for version strings, allowed enum values).
+- Validate file path inputs against directory traversal (`../`, absolute paths where relative expected).
+- Provide clear error messages: what was wrong, what format is expected.
 
-### Step 6: Build (TypeScript only)
+**Composite pattern** (from `check-permission/action.yml`):
+```bash
+if [[ -z "$INPUT_NAME" ]]; then
+  echo "::error::Input 'input_name' is required but was empty."
+  exit 1
+fi
+if [[ ! "$INPUT_VALUE" =~ ^(allowed|values)$ ]]; then
+  echo "::error::Input 'input_value' must be 'allowed' or 'values', got '$INPUT_VALUE'"
+  exit 1
+fi
+```
 
-For TypeScript actions:
-1. Run `cd {action-name} && npm install`
-2. Run `npm run build`
-3. Verify `dist/index.js` was created
-4. These files must be committed alongside the source
+**TypeScript pattern**: Validate after `core.getInput()`, throw descriptive errors.
+
+**Python pattern**: Validate after `os.getenv()`, call `sys.exit(1)` with a printed error.
+
+### Step 5: Implement Error Handling
+
+- Handle all expected failure modes described in SPEC.md.
+- For API calls: handle network errors, auth failures, rate limits, and unexpected response shapes.
+- For file operations: handle missing files, permission errors, and malformed content.
+- Provide actionable error messages (not just "failed" -- explain what went wrong and suggest a fix).
+- Never expose sensitive data in error messages (tokens, secrets, internal URLs).
+
+### Step 6: Update Test Workflow
+
+Read `.github/workflows/test-{action-name}.yml`, then edit it:
+1. Replace TODO comments with actual test scenarios from SPEC.md.
+2. Provide realistic test inputs (not "test" or "foo").
+3. Add output verification steps that assert expected values using `env:` blocks.
+4. Add multiple test jobs if the action has distinct modes or configurations.
+5. Ensure each test job has a descriptive, capitalized name (workflow linter requirement).
+6. Reference the multi-job pattern from `.github/workflows/test-check-permission.yml` if needed.
+
+### Step 7: Build (TypeScript Only)
+
+For TypeScript actions only:
+1. Run `cd {action-name} && npm install` to install dependencies.
+2. Run `cd {action-name} && npm run build` to compile.
+3. Verify `dist/index.js` was created with `ls {action-name}/dist/index.js`.
+4. The compiled `dist/` files must be committed alongside the source.
+
+Skip this step for Composite and Docker actions.
+
+### Step 8: Report Results
+
+List all files modified and summarize what was implemented:
+
+```
+Implementation complete for {action-name}:
+
+Modified files:
+  - {action-name}/action.yml -- core logic, input validation, output setting
+  - {action-name}/src/main.ts -- (TypeScript only) full implementation
+  - {action-name}/main.py -- (Docker only) full implementation
+  - .github/workflows/test-{action-name}.yml -- test scenarios and assertions
+
+Remaining TODOs: {count, should be 0}
+
+Next step: Run evaluate-action to review completeness:
+  evaluate-action {action-name}
+```
+
+If any TODOs remain that could not be resolved (e.g., require external credentials or infrastructure not available locally), list them explicitly with the reason.
 
 ## Important Rules
 
 - Write real, working code. No stubs, no TODOs, no placeholder comments in the final output.
-- Follow the existing code style in the repository (Prettier will enforce formatting).
+- Do NOT add features beyond what SPEC.md describes. Implement exactly the specification.
 - Do NOT add unnecessary dependencies. Use the standard library where possible.
-- Do NOT add features beyond what SPEC.md describes.
+- Follow the existing code style in the repository (Prettier will enforce formatting on commit).
+- Pass inputs through `env:` blocks in composite actions -- never inline `${{ inputs.* }}` in `run:` commands.
 - For bash: always quote variables, use `set -e`, prefer `[[ ]]` over `[ ]`.
 - For TypeScript: use strict types, handle undefined/null explicitly.
 - For Python: use type hints where helpful, handle exceptions explicitly.
-- Pass inputs through environment variables in composite actions, never inline in shell.
+- Never log, echo, or print sensitive values. Mask them before any output.
+- Output names must use underscores, not hyphens (workflow linter requirement).
+
+## Related Skills
+
+- **define-action**: Produces the SPEC.md this skill consumes. Run it first if no SPEC.md exists. Example: `define-action {action-name}`
+- **scaffold-action**: Generates the skeleton files this skill fills in. Run it after define-action. Example: `scaffold-action {action-name}`
+- **evaluate-action**: Reviews completeness of the implementation. Run after this skill. Example: `evaluate-action {action-name}`
+- **validate-action**: Checks formatting, structure, and linter compliance. Example: `validate-action {action-name}`
+- **secure-action**: Security assessment and final quality gate. Example: `secure-action {action-name}`

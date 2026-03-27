@@ -1,65 +1,88 @@
 ---
 name: define-action
-description: "Phase 1: Interactive requirements gathering for a new GitHub Action. Collects action type, name, inputs/outputs, integrations, and produces a structured SPEC.md."
+description: "Gather requirements for a new GitHub Action through interactive questions and produce a SPEC.md specification file."
+argument-hint: "[action-name]"
+allowed-tools:
+  - Bash(ls:*)
+  - Bash(mkdir:*)
+  - Write
+  - Glob
 ---
 
-# Define Action - Phase 1: Requirements Gathering
+# Define Action - Requirements Gathering
 
-You are gathering requirements for a new custom GitHub Action in the Bitwarden `gh-actions` repository. Your goal is to produce a complete, structured specification that downstream phases will use to scaffold, implement, and validate the action.
+Gather requirements for a new custom GitHub Action in the Bitwarden `gh-actions` repository. The deliverable is a `SPEC.md` file in the new action's directory that downstream skills (scaffold-action, implement-action) consume.
 
 ## Context
 
-This repository contains ~33 custom GitHub Actions used across Bitwarden's CI/CD pipelines. Actions come in three types:
-- **Composite** (Shell/YAML): Most common (~25 actions). Single `action.yml` with shell steps. Best for wrapping other actions or simple bash logic.
+This repository contains ~33 custom GitHub Actions. Actions come in three types:
+- **Composite** (Shell/YAML): Most common. Single `action.yml` with shell steps. Best for wrapping other actions or simple bash logic.
 - **TypeScript/Node.js**: For complex logic needing npm packages. Uses `@actions/core`, compiled with `ncc`. Example: `get-keyvault-secrets/`.
 - **Docker/Python**: For isolated environments or Python-heavy logic. Multi-stage Dockerfile. Example: `version-bump/`.
 
+## Input
+
+The skill accepts an optional action name as an argument. If provided, it pre-fills the name and skips the naming question.
+
+**Examples:**
+- `define-action` -- start from scratch, ask all questions
+- `define-action report-deploy-status` -- pre-fill name as `report-deploy-status`
+
 ## Procedure
 
-### Step 1: Determine Action Type
+### Step 1: Validate Name (if provided)
 
-Use AskUserQuestion to ask the user what type of action they want to create. Provide guidance:
-- **Composite**: Best for shell scripts, wrapping existing actions, simple orchestration. No build step needed.
-- **TypeScript**: Best for complex logic, API integrations needing typed SDKs, or when `@actions/core` features are needed extensively.
-- **Docker/Python**: Best for Python-based tools, complex file processing, or when isolation from the runner environment is important.
+If an action name was provided as an argument:
+1. Use `ls /Users/tyler/dev/gh-actions/` to verify the name does not conflict with an existing directory.
+2. Validate the name is kebab-case (lowercase letters, numbers, hyphens only).
+3. If the name conflicts or is invalid, report the issue and ask for a corrected name.
 
-### Step 2: Collect Core Identity
+If no name was provided, proceed to Step 2.
 
-Ask the user for:
-- **Action name**: Must be kebab-case (e.g., `check-permission`, `get-keyvault-secrets`). Validate format.
-- **Description**: One-line description of what the action does (used in `action.yml` description field).
+### Step 2: Collect Requirements
+
+Gather all of the following in as few rounds as possible. Present the full list of questions upfront so the user can answer in one or two responses rather than six rounds of back-and-forth.
+
+**Core identity:**
+- **Action name**: Must be kebab-case (e.g., `check-permission`, `get-keyvault-secrets`). Skip if already provided.
+- **Action type**: Composite, TypeScript, or Docker/Python. Provide guidance:
+  - Composite: Best for shell scripts, wrapping existing actions, simple orchestration. No build step.
+  - TypeScript: Best for complex logic, API integrations needing typed SDKs, extensive `@actions/core` usage.
+  - Docker/Python: Best for Python-based tools, complex file processing, or runner isolation.
+- **Description**: One-line description for the `action.yml` description field.
 - **Purpose**: Why does this action need to exist? What problem does it solve? Which Bitwarden repos will consume it?
 
-### Step 3: Collect Inputs and Outputs
+**Inputs and outputs:**
+- **Inputs**: For each: name (underscore_case), description, required (true/false), default value, whether it contains sensitive data.
+- **Outputs**: For each: name (underscore_case), description, whether it contains sensitive data.
+- Remind the user: multi-word input/output names MUST use underscores (workflow linter requirement). Sensitive inputs should use `env:` blocks, not inline in `run:`. Sensitive outputs must be masked.
 
-Ask the user to describe:
-- **Inputs**: For each input, collect: name (underscore_case), description, required (true/false), default value (if any), whether it contains sensitive data.
-- **Outputs**: For each output, collect: name (underscore_case), description, whether it contains sensitive data.
+**Integrations:**
+- Azure (login, Key Vault, other services)?
+- GitHub API (which endpoints)?
+- External services (Slack, Crowdin, Docker Hub)?
+- Other Bitwarden actions in this repo?
 
-Remind the user:
-- Input/output names with multiple words MUST use underscores (enforced by workflow linter)
-- Sensitive inputs should be passed via `env:` blocks, never inline in `run:` commands
-- Sensitive outputs must be masked with `core.setSecret()` or equivalent
+**Behavior:**
+- Error handling strategy (fail fast, skip, degrade)?
+- Idempotent (safe to re-run)?
+- Platform requirements (Ubuntu only, or also macOS/Windows)?
+- Required GitHub token permissions?
 
-### Step 4: Collect Integration Details
+### Step 3: Confirm and Validate
 
-Ask about:
-- **Azure integration**: Does the action need Azure login, Key Vault access, or other Azure services?
-- **GitHub API**: Does the action call GitHub APIs? Which endpoints?
-- **External services**: Slack, Crowdin, Docker Hub, etc.?
-- **Other Bitwarden actions**: Does it depend on or compose with other actions in this repo?
+1. Use `ls /Users/tyler/dev/gh-actions/` to verify the action name does not conflict with an existing directory.
+2. Use `Glob` with pattern `*/action.yml` to list existing actions for reference.
+3. Summarize all collected requirements back to the user in a structured format. Ask the user to confirm or correct before writing.
 
-### Step 5: Collect Behavioral Details
+### Step 4: Write SPEC.md
 
-Ask about:
-- **Error handling**: How should failures be handled? Fail fast, skip, continue with degraded output?
-- **Idempotency**: Can the action be safely re-run?
-- **Platform requirements**: Ubuntu only, or also macOS/Windows runners?
-- **Permissions needed**: What GitHub token permissions does the action require?
+1. Run `mkdir -p /Users/tyler/dev/gh-actions/{action-name}` to create the action directory.
+2. Write `SPEC.md` to `/Users/tyler/dev/gh-actions/{action-name}/SPEC.md` using the template below.
 
-### Step 6: Produce SPEC.md
+## Output Format
 
-Create the action directory and write `{action-name}/SPEC.md` with this structure:
+The `SPEC.md` file must follow this exact structure:
 
 ```markdown
 # {Action Name} - Specification
@@ -74,12 +97,12 @@ Create the action directory and write `{action-name}/SPEC.md` with this structur
 ## Inputs
 | Name | Description | Required | Default | Sensitive |
 |------|-------------|----------|---------|-----------|
-| ... | ... | ... | ... | ... |
+| {name} | {description} | {yes/no} | {value or N/A} | {yes/no} |
 
 ## Outputs
 | Name | Description | Sensitive |
 |------|-------------|-----------|
-| ... | ... | ... |
+| {name} | {description} | {yes/no} |
 
 ## Integrations
 - **Azure**: {details or "None"}
@@ -94,13 +117,21 @@ Create the action directory and write `{action-name}/SPEC.md` with this structur
 - **Permissions**: {required GitHub token permissions}
 
 ## Implementation Notes
-{Any additional context from the user about expected behavior, edge cases, etc.}
+{Any additional context about expected behavior, edge cases, etc.}
 ```
 
-## Important Rules
+**Zero-inputs case:** If the action has no inputs, write the Inputs table with a single row: `| N/A | No inputs required | N/A | N/A | N/A |`. Same pattern for Outputs.
 
-- Do NOT proceed to scaffolding. Your only job is to produce SPEC.md.
-- Do NOT make assumptions about inputs/outputs. Ask the user explicitly.
-- Validate that the action name doesn't conflict with existing directories in the repo. Check with `ls` first.
-- If the user is vague about inputs/outputs, propose reasonable defaults based on similar actions in the repo, but confirm with the user.
+## Important Notes
+
+- This skill ONLY produces SPEC.md. It does not scaffold files or write implementation code.
+- Do not make assumptions about inputs/outputs. Ask the user explicitly. If the user is vague, propose reasonable defaults based on similar actions in the repo, but confirm before writing.
 - Always use underscore_case for input/output names (Bitwarden workflow linter requirement).
+- Never include example secrets, credentials, or real Key Vault names in the SPEC.md.
+- If the user abandons the process before all requirements are collected, do not write SPEC.md. Inform the user that the specification is incomplete.
+
+## Related Skills
+
+After producing SPEC.md, recommend the user run:
+- `scaffold-action {action-name}` to generate boilerplate files from the specification.
+- Then `implement-action {action-name}` to write the working implementation.

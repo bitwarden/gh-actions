@@ -78,7 +78,14 @@ Gather all of the following in as few rounds as possible. Present the full list 
 ### Step 4: Write SPEC.md
 
 1. Run `mkdir -p /Users/tyler/dev/gh-actions/{action-name}` to create the action directory.
-2. Write `SPEC.md` to `/Users/tyler/dev/gh-actions/{action-name}/SPEC.md` using the template below.
+2. Generate an ASCII architecture diagram for the `## Architecture Diagram` section. The diagram should show:
+   - All inputs flowing into the action (mark sensitive inputs)
+   - Processing steps in execution order (validation → core logic → output setting)
+   - Integration points (Azure, GitHub API, external services) as callouts
+   - All outputs flowing out
+   - Error/failure paths where applicable
+   - Use box-drawing characters (`┌ ─ ┐ │ └ ┘ ├ ┤ ┬ ┴ ┼ ▼ ▶`) for clean rendering
+3. Write `SPEC.md` to `/Users/tyler/dev/gh-actions/{action-name}/SPEC.md` using the template below.
 
 ## Output Format
 
@@ -115,6 +122,12 @@ The `SPEC.md` file must follow this exact structure:
 - **Idempotent**: {yes/no}
 - **Platforms**: {ubuntu-only / cross-platform}
 - **Permissions**: {required GitHub token permissions}
+
+## Architecture Diagram
+
+\`\`\`
+{ASCII diagram showing: inputs → processing steps → outputs, with integrations and error paths}
+\`\`\`
 
 ## Implementation Notes
 {Any additional context about expected behavior, edge cases, etc.}

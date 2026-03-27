@@ -146,8 +146,11 @@ After all 5 phases complete successfully:
 
 1. **Clean up**: Delete `{action-name}/SPEC.md` — it is an internal artifact that has served its purpose. The action's authoritative documentation is action.yml, README.md, and the code itself.
 
-2. **Summary**: Provide a final report:
+2. **Final architecture diagram**: Read the implemented action files (action.yml, implementation code) and generate a final ASCII architecture diagram reflecting what was actually built. This replaces the draft diagram from SPEC.md — it should show actual step names, real integration calls, and implemented error handling paths. Use box-drawing characters (`┌ ─ ┐ │ └ ┘ ├ ┤ ┬ ┴ ┼ ▼ ▶`) for clean rendering.
+
+3. **Summary**: Provide a final report:
    - Action name and type
+   - Final architecture diagram
    - Files created (list all)
    - Key implementation details
    - Any recommendations for manual follow-up (e.g., "add secrets to test repo", "submit for action approval")

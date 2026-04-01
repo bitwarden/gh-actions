@@ -33,7 +33,7 @@ The skill accepts an optional action name as an argument. If provided, it pre-fi
 ### Step 1: Validate Name (if provided)
 
 If an action name was provided as an argument:
-1. Use `ls /Users/tyler/dev/gh-actions/` to verify the name does not conflict with an existing directory.
+1. Use `ls` in the repository root to verify the name does not conflict with an existing directory.
 2. Validate the name is kebab-case (lowercase letters, numbers, hyphens only).
 3. If the name conflicts or is invalid, report the issue and ask for a corrected name.
 
@@ -71,13 +71,13 @@ Gather all of the following in as few rounds as possible. Present the full list 
 
 ### Step 3: Confirm and Validate
 
-1. Use `ls /Users/tyler/dev/gh-actions/` to verify the action name does not conflict with an existing directory.
+1. Use `ls` in the repository root to verify the action name does not conflict with an existing directory.
 2. Use `Glob` with pattern `*/action.yml` to list existing actions for reference.
 3. Summarize all collected requirements back to the user in a structured format. Ask the user to confirm or correct before writing.
 
 ### Step 4: Write SPEC.md
 
-1. Run `mkdir -p /Users/tyler/dev/gh-actions/{action-name}` to create the action directory.
+1. Run `mkdir -p {action-name}` to create the action directory.
 2. Generate an ASCII architecture diagram for the `## Architecture Diagram` section. The diagram should show:
    - All inputs flowing into the action (mark sensitive inputs)
    - Processing steps in execution order (validation → core logic → output setting)
@@ -85,7 +85,7 @@ Gather all of the following in as few rounds as possible. Present the full list 
    - All outputs flowing out
    - Error/failure paths where applicable
    - Use box-drawing characters (`┌ ─ ┐ │ └ ┘ ├ ┤ ┬ ┴ ┼ ▼ ▶`) for clean rendering
-3. Write `SPEC.md` to `/Users/tyler/dev/gh-actions/{action-name}/SPEC.md` using the template below.
+3. Write `SPEC.md` to `{action-name}/SPEC.md` using the template below.
 
 ## Output Format
 

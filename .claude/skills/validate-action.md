@@ -30,7 +30,7 @@ The directory must contain `action.yml` and implementation files. A test workflo
 
 ### Step 1: Validate Prerequisites
 
-1. Run `ls /Users/tyler/dev/gh-actions/{action-name}/` to confirm the directory exists.
+1. Run `ls {action-name}/` to confirm the directory exists.
 2. If the directory does not exist, stop and report: "Directory {action-name}/ not found."
 3. Read `{action-name}/action.yml`. If it does not exist, stop and report: "No action.yml found in {action-name}/. Run scaffold-action first."
 4. Determine the action type from the `runs.using` field in action.yml (composite, node24, docker).
@@ -40,14 +40,14 @@ The directory must contain `action.yml` and implementation files. A test workflo
 
 Run Prettier to check all action files and the test workflow:
 ```bash
-npx prettier --check "/Users/tyler/dev/gh-actions/{action-name}/**"
-npx prettier --check "/Users/tyler/dev/gh-actions/.github/workflows/test-{action-name}.yml"
+npx prettier --check "{action-name}/**"
+npx prettier --check ".github/workflows/test-{action-name}.yml"
 ```
 
 If any files fail the check, fix them:
 ```bash
-npx prettier --write "/Users/tyler/dev/gh-actions/{action-name}/**"
-npx prettier --write "/Users/tyler/dev/gh-actions/.github/workflows/test-{action-name}.yml"
+npx prettier --write "{action-name}/**"
+npx prettier --write ".github/workflows/test-{action-name}.yml"
 ```
 
 Record each file that required formatting as a Low finding.
@@ -133,8 +133,8 @@ Process all findings from Steps 2-5:
 3. **Low** issues: Do not fix. Set status to "Noted."
 4. After all fixes, re-run Prettier to ensure fixed files are properly formatted:
    ```bash
-   npx prettier --write "/Users/tyler/dev/gh-actions/{action-name}/**"
-   npx prettier --write "/Users/tyler/dev/gh-actions/.github/workflows/test-{action-name}.yml"
+   npx prettier --write "{action-name}/**"
+   npx prettier --write ".github/workflows/test-{action-name}.yml"
    ```
 
 ### Step 7: Report Results

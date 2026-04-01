@@ -31,7 +31,7 @@ The directory must already contain `SPEC.md` and scaffolded files with TODO plac
 
 ### Step 1: Validate Prerequisites
 
-1. Run `ls /Users/tyler/dev/gh-actions/{action-name}/` to confirm the directory exists.
+1. Run `ls {action-name}/` to confirm the directory exists.
 2. If the directory does not exist, stop and report: "Directory {action-name}/ not found. Run define-action and scaffold-action first."
 3. Read `{action-name}/SPEC.md` for the full requirements specification.
 4. If SPEC.md does not exist, stop and report: "No SPEC.md found in {action-name}/. Run define-action first."

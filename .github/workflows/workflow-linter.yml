@@ -108,3 +108,12 @@ jobs:
         run: |
           echo "$files"
           bwwl lint -f $files
+
+      - name: Test
+        if: always()
+        run: |
+          echo "Current Directory: $(pwd)"
+          echo "========================="
+          ls -alh
+          echo "========================="
+          ls -alh gh-actions

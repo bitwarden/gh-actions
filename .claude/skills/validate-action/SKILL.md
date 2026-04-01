@@ -10,6 +10,7 @@ allowed-tools:
   - Grep
   - Bash(ls:*)
   - Bash(npx prettier:*)
+  - Bash(bwwl lint:*)
 ---
 
 # Validate Action - Correctness and Compliance Checks
@@ -73,50 +74,32 @@ Read `{action-name}/action.yml` and verify all required fields. Use `Grep` to se
 
 ### Step 4: Bitwarden Workflow Linter Compliance
 
-Read `.github/workflows/test-{action-name}.yml` and check it against each linter rule. Use `Grep` to search for specific patterns. Also read one existing test workflow (e.g., `.github/workflows/test-check-permission.yml`) as a reference for expected conventions and pinned SHAs.
+Run the Bitwarden Workflow Linter (`bwwl`) against the test workflow. This is the authoritative source for linting rules — do not reimplement its checks manually.
 
-**name_exists** -- every workflow and job must have a `name` field.
-- [ ] Workflow has top-level `name:`
-- [ ] Every job has a `name:` field
-- Missing name: **High**
+```bash
+bwwl lint -f .github/workflows/test-{action-name}.yml
+```
 
-**name_capitalized** -- names must begin with a capital letter.
-- [ ] Workflow name starts with uppercase
-- [ ] All job names start with uppercase
-- [ ] All step names start with uppercase
-- Lowercase name: **Medium**
+If `bwwl` is available:
+1. Run it and capture the output.
+2. Record each reported violation as a finding. Map severity from the linter output:
+   - Violations that would block PR merge: **High**
+   - Warnings: **Medium**
+3. Fix each violation directly using `Edit`, then re-run `bwwl lint` to confirm the fix.
 
-**permissions_exist** -- `permissions` key must be explicitly set.
-- [ ] Workflow-level `permissions:` is present, OR every job has a `permissions:` key
-- Missing permissions: **High**
+If `bwwl` is not available (command not found):
+1. Report to the user: "`bwwl` is not installed. Install with `pip install bitwarden_workflow_linter`. Falling back to manual checks."
+2. Read `.github/workflows/test-{action-name}.yml` and manually check the following rules. Also read one existing test workflow (e.g., `.github/workflows/test-check-permission.yml`) as a reference for expected conventions and pinned SHAs.
 
-**pinned_job_runner** -- runners must be pinned to specific versions.
-- [ ] All `runs-on` values use pinned versions (e.g., `ubuntu-24.04`, NOT `ubuntu-latest`)
-- Unpinned runner: **High**
-
-**step_pinned** -- external actions must be pinned to commit SHA.
-- [ ] All `uses:` references to external actions use `owner/repo@SHA # vX.Y.Z` format
-- [ ] Local actions (`./action-name`) are exempt from pinning
-- Use `Grep` with pattern `uses:` in the test workflow to find all action references
-- Unpinned external action: **High**
-
-**step_approved** -- only approved actions are used.
-- [ ] Check all external `uses:` references against commonly approved actions: `actions/checkout`, `actions/upload-artifact`, `actions/download-artifact`
-- [ ] If an unapproved action is found, record it as **High** and suggest alternatives
-- Use `Grep` across existing test workflows to see which actions are commonly used in this repo
-
-**underscore_outputs** -- multi-word output names must use underscores.
-- [ ] All output names in `action.yml` use underscores (not hyphens)
-- [ ] All output references in the test workflow use underscore format
-- Hyphenated output name: **High**
-
-**job_environment_prefix** -- environment variable naming conventions.
-- [ ] Job-level environment variables follow Bitwarden naming conventions
-- Non-conforming env var: **Medium**
-
-**check_pr_target** -- if `pull_request_target` trigger is used, it must only run on the default branch.
-- [ ] If present, verify it targets `main`
-- Unrestricted pull_request_target: **Critical**
+   - **name_exists**: Workflow and every job must have a `name` field. Missing: **High**
+   - **name_capitalized**: Workflow, job, and step names must start with a capital letter. Lowercase: **Medium**
+   - **permissions_exist**: `permissions` key must be set at workflow level or on every job. Missing: **High**
+   - **pinned_job_runner**: `runs-on` must use pinned versions (e.g., `ubuntu-24.04`, not `ubuntu-latest`). Unpinned: **High**
+   - **step_pinned**: External `uses:` must be pinned to SHA with version comment (`owner/repo@SHA # vX.Y.Z`). Local actions exempt. Unpinned: **High**
+   - **step_approved**: Only approved external actions are used. Unapproved: **High**
+   - **underscore_outputs**: Multi-word output names must use underscores, not hyphens. Hyphenated: **High**
+   - **job_environment_prefix**: Job-level env vars follow Bitwarden naming conventions. Non-conforming: **Medium**
+   - **check_pr_target**: `pull_request_target` trigger must only run on default branch. Unrestricted: **Critical**
 
 ### Step 5: File Naming Conventions
 

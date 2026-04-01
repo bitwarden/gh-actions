@@ -88,7 +88,7 @@ jobs:
           curl \
           --fail \
           --create-dirs \
-          --output .github/actionlint.yml \
+          --output gh-actions/.github/actionlint.yml \
           https://raw.githubusercontent.com/bitwarden/workflow-linter/refs/heads/main/.github/actionlint.yml
 
       - name: Set up Python 3.13

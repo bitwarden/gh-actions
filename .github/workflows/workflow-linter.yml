@@ -89,10 +89,7 @@ jobs:
 
       - name: Install bwwl binary
         if: steps.changed-workflows.outputs.changed_files_count != '0'
-        run: |
-          pipenv install --dev
-          pipenv shell
-          pip install -e .
+        run: pip install -e .
 
       - name: Lint
         env:

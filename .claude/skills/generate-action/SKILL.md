@@ -1,6 +1,10 @@
 ---
-description: Generate a new custom GitHub Action with full compliance and security checks
+name: generate-action
+description: "Generate a new custom GitHub Action with full compliance and security checks. Orchestrates define, scaffold, implement, evaluate, and validate phases via the action-generator agent."
+argument-hint: "[action-name-or-description]"
 ---
+
+# Generate Action
 
 You are creating a new custom GitHub Action for the Bitwarden `gh-actions` repository.
 

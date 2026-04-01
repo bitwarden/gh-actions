@@ -100,6 +100,7 @@ jobs:
       - name: Install bwwl binary
         if: steps.changed-workflows.outputs.changed_files_count != '0'
         run: pip install -e .
+        working-directory: workflow-linter
 
       - name: Lint
         env:

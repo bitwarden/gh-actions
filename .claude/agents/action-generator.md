@@ -10,7 +10,7 @@ tools:
   - Grep
   - Read
   - Write
-  - Skills
+  - Skill
   - AskUserQuestion
 ---
 

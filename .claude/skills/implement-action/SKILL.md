@@ -116,7 +116,7 @@ Read `{action-name}/README.md` (scaffolded with section headings and TODO placeh
 7. **Development section** (if present, TypeScript only): Document `npm install` and `npm run build` commands.
 8. Remove all remaining TODO/placeholder comments from the README.
 
-Reference existing READMEs for style — read `check-permission/README.md` or `api-commit/README.md` for well-structured examples.
+Follow the structure defined in `references/readme-specfication.md` for section ordering, table format, and formatting rules. Read `check-permission/README.md` or `api-commit/README.md` as live examples of that structure.
 
 ### Step 7: Update Test Workflow
 

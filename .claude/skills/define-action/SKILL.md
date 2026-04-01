@@ -3,6 +3,7 @@ name: define-action
 description: "Gather requirements for a new GitHub Action through interactive questions and produce a SPEC.md specification file."
 argument-hint: "[action-name]"
 allowed-tools:
+  - Read
   - Bash(ls:*)
   - Bash(mkdir:*)
   - Write

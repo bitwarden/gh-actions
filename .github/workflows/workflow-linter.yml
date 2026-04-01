@@ -90,7 +90,6 @@ jobs:
       - name: Install bwwl binary
         if: steps.changed-workflows.outputs.changed_files_count != '0'
         run: |
-          which bwwl
           pipenv install --dev
           pipenv shell
           pip install -e .

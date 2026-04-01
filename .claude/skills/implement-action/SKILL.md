@@ -129,7 +129,7 @@ Read `{action-name}/README.md` (scaffolded with section headings and TODO placeh
 7. **Development section** (if present, TypeScript only): Document `npm install` and `npm run build` commands.
 8. Remove all remaining TODO/placeholder comments from the README.
 
-Populate the sections as scaffolded — the structure was established by scaffold-action. Read `check-permission/README.md` or `api-commit/README.md` as live examples for content style.
+Populate the sections as scaffolded — the structure was established by scaffold-action. Read the README specification at `.claude/skills/scaffold-action/references/readme-specification.md` for formatting rules (column order, backtick formatting, ordering, line limits). Read `check-permission/README.md` or `api-commit/README.md` as live examples for content style.
 
 ### Step 7: Update Test Workflow
 

@@ -56,11 +56,11 @@ Record each file that required formatting as a Low finding.
 
 Read `{action-name}/action.yml` and verify all required fields. Use `Grep` to search for specific keys if needed.
 
-- [ ] `name` -- present and descriptive
+- [ ] `name` -- present, descriptive, and starts with a capital letter
 - [ ] `description` -- present and descriptive
 - [ ] `author` -- set to `"Bitwarden"`
-- [ ] `inputs` -- each input has `description` and `required` fields
-- [ ] `outputs` -- each output has `description`; for composite actions, each also has `value`
+- [ ] `inputs` -- each input has `description` and `required` fields; multi-word names use underscores (not hyphens)
+- [ ] `outputs` -- each output has `description`; for composite actions, each also has `value`; multi-word names use underscores (not hyphens)
 - [ ] `runs` -- has correct `using` value for the action type (`composite`, `node24`, or `docker`)
 
 **Severity for missing fields:**
@@ -68,6 +68,8 @@ Read `{action-name}/action.yml` and verify all required fields. Use `Grep` to se
 - Missing `author`: **Medium**
 - Input/output missing `description` or `required`: **High**
 - Composite output missing `value` reference: **Critical**
+- `name` does not start with a capital letter: **Medium**
+- Input or output name uses hyphens instead of underscores: **High**
 
 ### Step 4: Bitwarden Workflow Linter Compliance
 

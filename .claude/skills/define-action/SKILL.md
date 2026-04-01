@@ -70,13 +70,27 @@ Gather all of the following in as few rounds as possible. Present the full list 
 - Platform requirements (Ubuntu only, or also macOS/Windows)?
 - Required GitHub token permissions?
 
-### Step 3: Validate
+### Step 3: Reference Existing Actions (Optional)
+
+If the user describes the new action in terms of an existing one (e.g., "like check-permission but for...", "similar to container-tag"), or if the inputs/outputs/integrations closely resemble an action already in the repo:
+
+1. Propose reading the existing action's `action.yml` and `README.md` to seed the specification:
+   ```
+   This sounds similar to {existing-action}. Want me to read its action.yml and README
+   to use as a starting point for inputs/outputs/structure?
+   ```
+2. Only read the files after the user approves.
+3. Use the existing action as context to suggest analogous inputs, outputs, and integration patterns — but confirm each with the user rather than copying blindly.
+
+Skip this step if the user's description does not reference or resemble any existing action.
+
+### Step 4: Validate
 
 1. Use `ls` in the repository root to verify the action name does not conflict with an existing directory.
 2. Use `Glob` with pattern `*/action.yml` to list existing actions for reference.
 3. If either check reveals a conflict, report it and ask for a corrected name before proceeding.
 
-### Step 4: Write SPEC.md
+### Step 5: Write SPEC.md
 
 1. Run `mkdir -p {action-name}` to create the action directory.
 2. Generate an ASCII architecture diagram for the `## Architecture Diagram` section. The diagram should show:

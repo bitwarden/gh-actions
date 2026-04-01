@@ -41,6 +41,43 @@ After Phase 1 completes, extract the action name from the SPEC.md `Overview` sec
 
 All file paths use this name: `{action-name}/action.yml`, `.github/workflows/test-{action-name}.yml`, etc.
 
+## Pipeline Re-entry
+
+Before starting Phase 1, check if the user provided an action name (via arguments or initial request). If so, check for existing artifacts to determine whether to resume a previous run.
+
+**Detection steps:**
+
+1. If no action name was provided, skip re-entry detection and start Phase 1 normally.
+2. If an action name was provided, run `ls {action-name}/` to check if the directory exists.
+3. If the directory does not exist, start Phase 1 normally.
+4. If the directory exists, check for artifacts using `ls`:
+   - Does `{action-name}/SPEC.md` exist?
+   - Does `{action-name}/action.yml` exist?
+   - Does `.github/workflows/test-{action-name}.yml` exist?
+
+**Present findings and ask:**
+
+If any artifacts exist, present what was found to the user:
+
+```
+Found existing artifacts for {action-name}:
+  - SPEC.md: {yes/no}
+  - action.yml: {yes/no}
+  - Test workflow: {yes/no}
+  - Implementation files: {list any .ts, .py, or shell steps}
+
+Resume from where you left off, or start fresh?
+```
+
+- **If resume**: Determine the starting phase from the artifact state:
+  - SPEC.md only → present SPEC.md at the review gate, then Phase 2
+  - SPEC.md + scaffolded files with TODOs → Phase 3
+  - SPEC.md + implemented files (no TODOs) → Phase 4
+  - SPEC.md + evaluation results in SPEC.md → Phase 5
+- **If start fresh**: Proceed from Phase 1. Existing files will be overwritten by each phase.
+
+**Keep it simple:** This is a single check at startup, not a state machine. If the artifact state is ambiguous, ask the user rather than guessing.
+
 ## Review Gates
 
 Review gates are flow control checkpoints where you present an artifact to the user and collect approval before proceeding. Gates are your responsibility as the orchestrator — no skill handles them.
@@ -68,6 +105,8 @@ Review gates are flow control checkpoints where you present an artifact to the u
 Execute phases in order. After each phase, verify the phase completed successfully before moving on.
 
 ### Phase 1: Define Requirements
+
+Skip this phase if re-entry detection determined a later starting phase.
 
 Invoke the `define-action` skill.
 

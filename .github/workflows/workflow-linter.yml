@@ -117,4 +117,4 @@ jobs:
           echo "========================="
           ls -alh
           echo "========================="
-          ls -alh gh-actions
+          ls -alh workflow-linter

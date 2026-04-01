@@ -53,15 +53,25 @@ jobs:
           fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 0 }}
           persist-credentials: false
 
+      - name: Check out branch
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          ref: main
+          repository: bitwarden/gh-actions
+          token: ${{ github.token }}
+          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 0 }}
+          persist-credentials: false
+          path: gh-actions
+
       - name: Check changed files for workflow changes
         id: changed-workflows
         run: |
-          changed_files=$(find .github/workflows -name "*.yml" | xargs)
+          changed_files=$(find gh-actions/.github/workflows -name "*.yml" | xargs)
 
           count=$(( 0 ))
           files_to_lint=""
           for file in $changed_files; do
-            if [[ "$file" == ".github/workflows/"* ]]; then
+            if [[ "$file" == "gh-actions/.github/workflows/"* ]]; then
               count=$((count + 1 ))
               files_to_lint="$files_to_lint $file"
             fi

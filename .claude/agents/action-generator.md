@@ -211,3 +211,6 @@ After all 5 phases complete successfully:
      - Submit the action for approval in the workflow linter's approved actions list if other workflows will reference it
      - Run the test workflow after merging
      - Security review will occur during the PR process via existing review tooling
+   - Optional local validation (not required, but can catch issues before pushing):
+     - `yamllint` — validates generic YAML syntax. Install: `pip install yamllint`. Run: `yamllint {action-name}/action.yml`
+     - `bwwl` (Bitwarden Workflow Linter) — validates workflow syntax, expressions, and Bitwarden-specific rules (includes actionlint). Install: `pip install bitwarden_workflow_linter`. Run: `bwwl lint -f .github/workflows/test-{action-name}.yml`

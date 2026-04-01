@@ -39,72 +39,83 @@ runs:
     - name: Input validation
       id: validation
       shell: bash
+      env:
+        INPUT_RELEASE_TYPE: ${{ inputs.release-type }}
+        INPUT_PROJECT_TYPE: ${{ inputs.project-type }}
+        INPUT_FILE: ${{ inputs.file }}
+        INPUT_MONOREPO: ${{ inputs.monorepo }}
+        INPUT_MONOREPO_PROJECT: ${{ inputs.monorepo-project }}
       run: |
         release_valid_inputs=("Initial Release" "Redeploy" "Dry Run")
-        if [[ ! "${release_valid_inputs[@]}" =~ "${{ inputs.release-type }}" ]]; then
+        if [[ ! "${release_valid_inputs[@]}" =~ "$INPUT_RELEASE_TYPE" ]]; then
           echo "[!] 'release-type' option only supports the following values: (${release_valid_inputs})"
           echo "step-failed=true" >> $GITHUB_OUTPUT
         fi
 
         project_type_valid_inputs=("ts" "dotnet" "xamarin")
-        if [[ ! "${project_type_valid_inputs[@]}" =~ "${{ inputs.project-type }}" ]]; then
+        if [[ ! "${project_type_valid_inputs[@]}" =~ "$INPUT_PROJECT_TYPE" ]]; then
           echo "[!] 'project-type' option only supports the following values: (${project_type_valid_inputs})"
           echo "step-failed=true" >> $GITHUB_OUTPUT
         fi
 
-        if [ ! -f "${{ inputs.file }}" ]; then
-          echo "[!] The relative path '${{ inputs.file}}' doesn't exist"
+        if [ ! -f "$INPUT_FILE" ]; then
+          echo "[!] The relative path '$INPUT_FILE' doesn't exist"
           echo "step-failed=true" >> $GITHUB_OUTPUT
         fi
 
         monorepo_valid_inputs=("true" "false")
-        if [[ ! "${monorepo_valid_inputs[@]}" =~ "${{ inputs.monorepo }}" ]]; then
+        if [[ ! "${monorepo_valid_inputs[@]}" =~ "$INPUT_MONOREPO" ]]; then
           echo "[!] 'monorepo' option only supports the following values: (${monorepo_valid_inputs})"
           echo "step-failed=true" >> $GITHUB_OUTPUT
         fi
 
-        if [ "${{ inputs.monorepo }}" == "true" ] && [ "${{ inputs.monorepo-project }}" == "" ]; then
+        if [ "$INPUT_MONOREPO" == "true" ] && [ "$INPUT_MONOREPO_PROJECT" == "" ]; then
           echo "[!] using the 'monorepo' option requires the use of 'monorepo-project'"
           echo "step-failed=true" >> $GITHUB_OUTPUT
         fi
 
         monorepo_project_valid_inputs=("" "browser" "cli" "desktop" "web")
-        if [[ ! "${monorepo_project_valid_inputs[@]}" =~ "${{ inputs.monorepo-project }}" ]]; then
+        if [[ ! "${monorepo_project_valid_inputs[@]}" =~ "$INPUT_MONOREPO_PROJECT" ]]; then
           echo "[!] 'monorepo-project' option only supports the following values: (${monorepo_project_valid_inputs})"
           echo "step-failed=true" >> $GITHUB_OUTPUT
         fi
 
-
     - name: Get project new version
       shell: bash
       id: new-version
+      env:
+        INPUT_PROJECT_TYPE: ${{ inputs.project-type }}
+        INPUT_FILE: ${{ inputs.file }}
       run: |
         # Get version from file depending on project type
-        case "${{ inputs.project-type }}" in
+        case "$INPUT_PROJECT_TYPE" in
           "ts")
-            version=$( jq -r ".version" ${{ inputs.file }} )
+            version=$( jq -r ".version" "$INPUT_FILE" )
             ;;
           "dotnet")
-            version=$( grep -o "<Version>.*</Version>" ${{ inputs.file }} | grep -Eo "[0-9]{4}\.[0-9]+\.[0-9]+" )
+            version=$( grep -o "<Version>.*</Version>" "$INPUT_FILE" | grep -Eo "[0-9]{4}\.[0-9]+\.[0-9]+" )
             ;;
           "xamarin")
-            version=$(sed -E -n '/^<manifest/s/^.*[ ]android:versionName="([^"]+)".*$/\1/p' ${{ inputs.file }} | tr -d '"')
+            version=$(sed -E -n '/^<manifest/s/^.*[ ]android:versionName="([^"]+)".*$/\1/p' "$INPUT_FILE" | tr -d '"')
             ;;
         esac
         echo "version=$version" >> $GITHUB_OUTPUT
 
-
     - name: Get current released version
       shell: bash
       id: current-version
+      env:
+        INPUT_OVERRIDE_VERSION: ${{ inputs.override-version }}
+        INPUT_MONOREPO: ${{ inputs.monorepo }}
+        INPUT_MONOREPO_PROJECT: ${{ inputs.monorepo-project }}
       run: |
-        if [ "${{ inputs.override-version }}" == "" ]; then
+        if [ "$INPUT_OVERRIDE_VERSION" == "" ]; then
           # Pull the latest
-          case "${{ inputs.monorepo }}" in
+          case "$INPUT_MONOREPO" in
             "true")
               previous_release_tag_version=$(
                 curl -sL https://api.github.com/repos/$GITHUB_REPOSITORY/releases | \
-                jq -r 'first(.[] | select(.tag_name | startswith("${{ inputs.monorepo-project }}"))).tag_name'
+                jq -r --arg prefix "$INPUT_MONOREPO_PROJECT" 'first(.[] | select(.tag_name | startswith($prefix))).tag_name'
               )
               ;;
             "false")
@@ -115,19 +126,22 @@ runs:
           esac
           previous_release_version=${previous_release_tag_version:1}
         else
-          previous_release_version=${{ inputs.override-version }}
+          previous_release_version=$INPUT_OVERRIDE_VERSION
         fi
         echo "version=$previous_release_version" >> $GITHUB_OUTPUT
-
 
     - name: Check versions
       id: check
       shell: bash
+      env:
+        NEW_VERSION: ${{ steps.new-version.outputs.version }}
+        CURRENT_VERSION: ${{ steps.current-version.outputs.version }}
+        INPUT_RELEASE_TYPE: ${{ inputs.release-type }}
       run: |
-        new_version=${{ steps.new-version.outputs.version }}
-        current_version=${{ steps.current-version.outputs.version }}
+        new_version=$NEW_VERSION
+        current_version=$CURRENT_VERSION
         if [ "$new_version" == "$current_version" ] && \
-        [ "${{ inputs.release-type }}" == "Initial Release" ]; then
+        [ "$INPUT_RELEASE_TYPE" == "Initial Release" ]; then
           echo "[!] Already released $new_version. Please bump version to continue"
           echo "step-failed=true" >> $GITHUB_OUTPUT
         fi
@@ -135,10 +149,13 @@ runs:
     - name: Set status
       id: status
       shell: bash
+      env:
+        VALIDATION_STEP_FAILED: ${{ steps.validation.outputs.step-failed }}
+        CHECK_STEP_FAILED: ${{ steps.check.outputs.step-failed }}
       run: |
         failed_statuses=(\
-        '${{ steps.validation.outputs.step-failed }}' \
-          '${{ steps.check.outputs.step-failed }}' \
+        "$VALIDATION_STEP_FAILED" \
+          "$CHECK_STEP_FAILED" \
         )
 
         echo $failed_statuses

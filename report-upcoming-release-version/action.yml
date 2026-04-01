@@ -47,10 +47,13 @@ runs:
     - name: Slack message setup
       id: setup
       shell: bash
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
+        INPUT_PROJECT: ${{ inputs.project }}
       run: |
         function slack_message_fn () {
-          local version="${{ inputs.version }}"
-          local project="${{ inputs.project }}"
+          local version="$INPUT_VERSION"
+          local project="$INPUT_PROJECT"
           SLACK_MESSAGE=":meow_attention: Upcoming release \`$version\` for \`$project\`."
         }
 

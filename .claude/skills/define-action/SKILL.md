@@ -70,69 +70,11 @@ Gather all of the following in as few rounds as possible. Present the full list 
 - Platform requirements (Ubuntu only, or also macOS/Windows)?
 - Required GitHub token permissions?
 
-### Step 3: Confirm and Validate
+### Step 3: Validate
 
 1. Use `ls` in the repository root to verify the action name does not conflict with an existing directory.
 2. Use `Glob` with pattern `*/action.yml` to list existing actions for reference.
-3. Present all collected requirements using the format below. Ask the user to confirm or correct before writing.
-
-**Presentation format** — display exactly this structure, filling in collected values:
-
-```
-─────────────────────────────────────────
-  {action-name} — Specification Summary
-─────────────────────────────────────────
-
-  Type:         {composite | typescript | docker}
-  Description:  {one-line description}
-  Purpose:      {why this action exists}
-  Consumers:    {which repos will use this}
-  Platforms:    {ubuntu-only | cross-platform}
-  Idempotent:   {yes | no}
-  Error mode:   {fail fast | skip | degrade}
-  Permissions:  {required GitHub token permissions}
-
-  ┌─ Inputs ──────────────────────────────
-  │
-  │  {name}  (required, sensitive)
-  │    {description}
-  │    Default: {value}
-  │
-  │  {name}  (optional)
-  │    {description}
-  │    Default: {value}
-  │
-  └───────────────────────────────────────
-
-  ┌─ Outputs ─────────────────────────────
-  │
-  │  {name}  (sensitive)
-  │    {description}
-  │
-  │  {name}
-  │    {description}
-  │
-  └───────────────────────────────────────
-
-  ┌─ Integrations ────────────────────────
-  │
-  │  Azure:             {details or "None"}
-  │  GitHub API:        {details or "None"}
-  │  External Services: {details or "None"}
-  │  Bitwarden Actions: {details or "None"}
-  │
-  └───────────────────────────────────────
-
-  Notes: {any additional context, edge cases, or blank if none}
-
-─────────────────────────────────────────
-```
-
-**Presentation rules:**
-- For each input, show parenthetical tags: `(required)`, `(optional)`, `(sensitive)` — combine as needed (e.g., `(required, sensitive)`).
-- Omit the `Default:` line for required inputs with no default.
-- If there are no inputs, show `│  (none)` inside the Inputs box. Same for Outputs and Integrations.
-- After presenting, ask: "Does this look correct? Reply with any changes, or confirm to proceed."
+3. If either check reveals a conflict, report it and ask for a corrected name before proceeding.
 
 ### Step 4: Write SPEC.md
 

@@ -32,24 +32,32 @@ The action directory must already contain a `SPEC.md` file produced by the `defi
 2. If SPEC.md does not exist, stop and report: "No SPEC.md found in {action-name}/. Run the define-action skill first to generate a specification."
 3. Read `{action-name}/SPEC.md` to understand the action's type, inputs, outputs, and integrations.
 
-### Step 2: Read Reference Files
+### Step 2: Read Structural Templates
 
-Read the appropriate reference files from the repository to ensure generated code matches current conventions.
+Read the structural templates from `references/` (co-located with this skill). These are the primary baseline for file structure, field ordering, and skeleton content.
 
 **For ALL action types, read:**
-- `check-permission/action.yml` -- reference for action.yml structure, input validation, output setting
-- `.github/workflows/test-check-permission.yml` -- reference for test workflow structure
+- `references/test-workflow-structure.md` — test workflow triggers, permissions, pinning, job structure
+- `references/readme-specification.md` — README section definitions and formatting rules
 
-**For TypeScript actions, also read:**
-- `get-keyvault-secrets/action.yml` -- node24 action.yml pattern
-- `get-keyvault-secrets/package.json` -- dependency and build script pattern
-- `get-keyvault-secrets/tsconfig.json` -- TypeScript configuration
-- `get-keyvault-secrets/src/main.ts` -- implementation skeleton pattern
+**Per action type, also read:**
+- **Composite**: `references/composite-structure.md`
+- **TypeScript**: `references/typescript-structure.md`
+- **Docker/Python**: `references/docker-structure.md`
 
-**For Docker actions, also read:**
-- `version-bump/action.yml` -- Docker action.yml pattern
-- `version-bump/Dockerfile` -- multi-stage build pattern
-- `version-bump/main.py` -- Python entry point pattern
+Use these templates as the authoritative source for generating skeleton files. The inline examples in Steps 4-7 below are summaries — the templates have the full detail.
+
+**Discovery fallback**: If the SPEC.md describes integrations or structural needs not covered by the templates (e.g., wrapping an unfamiliar external action, unusual multi-file layout), propose specific actions from the repository to use as additional references. Present them to the user before reading:
+
+```
+The structural templates do not cover {specific need}.
+Proposed additional references from the repository:
+  - {action-name}/{file} — {why this is relevant}
+
+Proceed with these references?
+```
+
+Only read repository files after the user approves. Do not scan the repository speculatively.
 
 ### Step 3: Create Directory
 
@@ -90,6 +98,7 @@ Create `{action-name}/package.json`:
   "name": "@bitwarden/{action-name}",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "ncc build src/main.ts -o dist --license licenses.txt",
     "postbuild": "node -e \"const fs=require('fs'); const f='dist/index.js'; fs.writeFileSync(f, fs.readFileSync(f,'utf8').replace(/\\r\\n/g,'\\n'))\""
@@ -238,56 +247,20 @@ jobs:
           echo "TODO: Verify action outputs"
 ```
 
-**Important**: Use the exact checkout action SHA and version comment from the reference file. Read an existing test workflow to get the currently pinned version.
+**Important**: Use the exact checkout action SHA from `references/test-workflow-structure.md`. That template is kept current — do not scan the repository for a different SHA.
 
 ### Step 7: Generate README.md
 
 Create `{action-name}/README.md` with section headings and TODO placeholders. The scaffold defines the structure; `implement-action` populates it later.
 
-**Required sections** (always include):
+Read `references/readme-specification.md` (already loaded in Step 2) for the canonical section definitions, table formats, ordering rules, and formatting constraints.
 
-```markdown
-# {Action Name}
-
-{description from SPEC.md}
-
-## Inputs
-
-| Name | Description | Required | Default |
-|------|-------------|----------|---------|
-<!-- TODO: Populate from action.yml inputs -->
-
-## Outputs
-
-| Name | Description |
-|------|-------------|
-<!-- TODO: Populate from action.yml outputs -->
-
-## Usage
-
-<!-- TODO: Add basic usage example -->
-<!-- TODO: Add additional examples for different configurations if applicable -->
-```
-
-**Conditional sections** (include based on SPEC.md):
-
-```markdown
-## Features
-<!-- Include if action has 2+ distinct capabilities. TODO: List key features as bullet points -->
-
-## Prerequisites
-<!-- Include if action requires external setup (Azure credentials, installed tools, etc.). TODO: Document setup requirements -->
-
-## Permissions
-<!-- Include if action requires specific GitHub token permissions. TODO: Document required permissions -->
-
-## Development
-<!-- Include for TypeScript actions only. TODO: Document build and test instructions -->
-```
-
-**Section ordering**: Title → Description → Features (if applicable) → Inputs → Outputs → Prerequisites (if applicable) → Usage → Permissions (if applicable) → Development (if applicable)
-
-Only include conditional sections whose TODO markers will be fulfillable based on SPEC.md. Do not include empty conditional sections.
+**Scaffolding rules:**
+- Include all sections from the specification that apply based on SPEC.md (Title, Description, Features, Inputs, Outputs, Usage, and any relevant supplementary sections).
+- Use `<!-- TODO: ... -->` comments as placeholders for content that implement-action will fill in.
+- Only include conditional/supplementary sections whose TODOs will be fulfillable based on SPEC.md. Do not include empty sections.
+- Pre-fill table headers and column structure exactly as the specification defines (column order, backtick formatting).
+- Pre-fill the title and description from SPEC.md — these are known at scaffold time.
 
 ### Step 8: Report Results
 
@@ -310,8 +283,9 @@ Next step: Run the implement-action skill to replace TODO placeholders with work
 ## Important Rules
 
 - Do NOT implement any logic. Only generate skeletons with TODO comments.
-- Always read the reference files first to match current conventions exactly.
-- For the test workflow, use the exact pinned SHA for `actions/checkout` from an existing test workflow.
+- Always read the structural templates in `references/` first. They are the primary baseline.
+- For the test workflow, use the exact pinned SHA for `actions/checkout` from `references/test-workflow-structure.md`.
+- Do not scan the repository for patterns unless the templates are insufficient for the SPEC.md requirements. If discovery is needed, propose references to the user first.
 - All input references in composite `run:` blocks MUST go through `env:` -- never use `${{ inputs.* }}` directly in shell commands.
 - Output names must use underscores, not hyphens.
 - Runner must be pinned to `ubuntu-24.04` (not `ubuntu-latest`).

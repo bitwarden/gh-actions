@@ -123,15 +123,33 @@ Read `.github/workflows/test-{action-name}.yml` and verify test coverage:
 - Only success path tested, no failure path: **Medium** severity.
 - Placeholder test inputs: **Low** severity.
 
-### Step 7: Fix Issues
+### Step 7: README Completeness Review
 
-Process all findings collected in Steps 2-6:
+Read `{action-name}/README.md` and verify it is a complete, accurate artifact:
+
+- [ ] README exists and is not empty.
+- [ ] Every input declared in `action.yml` appears in the Inputs table.
+- [ ] Every output declared in `action.yml` appears in the Outputs table.
+- [ ] At least one usage example exists with realistic values (not placeholders).
+- [ ] No TODO comments or placeholder text remains.
+- [ ] Section ordering follows the structure established by scaffold-action (Title, Description, Features, Inputs, Outputs, Usage, supplementary sections).
+
+**Flag as findings:**
+- Missing README or empty file: **Critical** severity.
+- Input or output in action.yml but missing from README table: **High** severity.
+- No usage examples: **High** severity.
+- Remaining TODO or placeholder text: **Medium** severity.
+- Section ordering does not match scaffold structure: **Low** severity.
+
+### Step 8: Fix Issues
+
+Process all findings collected in Steps 2-7:
 
 1. **Critical** and **High** issues: Fix directly using `Edit` or `Write`. After fixing, update the finding status to "Fixed."
 2. **Medium** issues: Fix directly unless the fix requires a design decision that should be made by the user. If so, set status to "Flagged" with an explanation.
 3. **Low** issues: Do not fix. Report to the user for consideration. Set status to "Noted."
 
-### Step 8: Report Results
+### Step 9: Report Results
 
 Append a summary to `{action-name}/SPEC.md` under a `## Phase 4: Evaluation Results` heading using this exact format:
 

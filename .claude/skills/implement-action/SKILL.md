@@ -38,15 +38,28 @@ The directory must already contain `SPEC.md` and scaffolded files with TODO plac
 5. Read all scaffolded files in the `{action-name}/` directory to understand what was generated.
 6. If scaffolded files contain no TODO placeholders, stop and report: "Scaffolded files appear to already be implemented. Run evaluate-action to review completeness instead."
 
-### Step 2: Read Reference Implementations
+### Step 2: Read Implementation Pattern Templates
 
-Use `Glob` with pattern `*/action.yml` to list existing actions. Identify 1-2 similar actions based on the SPEC.md requirements (same type, similar integrations). Read their implementation files to learn current patterns.
+Read the pattern template that matches the action type from `references/` (co-located with this skill):
 
-**Minimum required references by type:**
+- **Composite**: Read `references/composite-patterns.md`
+- **TypeScript**: Read `references/typescript-patterns.md`
+- **Docker/Python**: Read `references/docker-patterns.md`
 
-- **Composite**: Read `check-permission/action.yml` for input validation, env block usage, and output setting.
-- **TypeScript**: Read `get-keyvault-secrets/src/main.ts` for input reading, secret masking, error handling, and output setting.
-- **Docker/Python**: Read `version-bump/main.py` for environment variable input reading, output writing, and error handling.
+These templates are the primary baseline for implementation patterns — input validation, output setting, error handling, API calls, and type-specific conventions. Use them as the authoritative reference.
+
+**Discovery fallback**: If the SPEC.md describes integrations or patterns not covered by the templates (e.g., a novel external service, an unusual multi-action orchestration), propose specific actions from the repository to use as additional references. Present them to the user before reading:
+
+```
+The pattern templates do not cover {specific integration/pattern}.
+Proposed additional references from the repository:
+  - {action-name}/action.yml — {why this is relevant}
+  - {action-name}/src/main.ts — {why this is relevant}
+
+Proceed with these references?
+```
+
+Only read repository actions after the user approves. Do not scan the repository speculatively.
 
 ### Step 3: Implement Core Logic
 
@@ -116,7 +129,7 @@ Read `{action-name}/README.md` (scaffolded with section headings and TODO placeh
 7. **Development section** (if present, TypeScript only): Document `npm install` and `npm run build` commands.
 8. Remove all remaining TODO/placeholder comments from the README.
 
-Follow the structure defined in `references/readme-specfication.md` for section ordering, table format, and formatting rules. Read `check-permission/README.md` or `api-commit/README.md` as live examples of that structure.
+Populate the sections as scaffolded — the structure was established by scaffold-action. Read `check-permission/README.md` or `api-commit/README.md` as live examples for content style.
 
 ### Step 7: Update Test Workflow
 

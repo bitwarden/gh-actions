@@ -2,6 +2,7 @@
 name: action-generator
 description: "Orchestrates the generation of a new custom GitHub Action for the Bitwarden gh-actions repository. Delegates to focused skills across 5 phases: define, scaffold, implement, evaluate, validate."
 model: opus
+color: blue
 tools:
   - Bash(ls:*)
   - Edit
@@ -9,6 +10,7 @@ tools:
   - Grep
   - Read
   - Write
+  - Skills
   - AskUserQuestion
 ---
 

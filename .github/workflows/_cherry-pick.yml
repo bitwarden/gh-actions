@@ -16,13 +16,18 @@ on:
         required: false
         type: string
         default: ''
+      test_mode:
+        description: 'Run in test mode (skips Azure auth and GPG signing)'
+        required: false
+        type: boolean
+        default: false
     secrets:
       AZURE_SUBSCRIPTION_ID:
-        required: true
+        required: false
       AZURE_TENANT_ID:
-        required: true
+        required: false
       AZURE_CLIENT_ID:
-        required: true
+        required: false
 
 permissions: {}
 
@@ -35,7 +40,8 @@ jobs:
       _DEST_BRANCH_ALLOWED: ${{ inputs.dest_branch_allowed }}
     runs-on: ubuntu-24.04
     permissions:
-      contents: read
+      contents: write
+      pull-requests: write
       id-token: write
     steps:
       - name: Validate destination branch pattern
@@ -48,6 +54,7 @@ jobs:
           echo "INFO: Destination branch matches allowed pattern"
 
       - name: Log in to Azure
+        if: ${{ !inputs.test_mode }}
         uses: bitwarden/gh-actions/azure-login@main
         with:
           subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
@@ -55,13 +62,15 @@ jobs:
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Get Azure Key Vault secrets
+        if: ${{ !inputs.test_mode }}
         id: get-kv-secrets
         uses: bitwarden/gh-actions/get-keyvault-secrets@main
         with:
           keyvault: gh-org-bitwarden
           secrets: "BW-GHAPP-ID,BW-GHAPP-KEY"
-      
+
       - name: Retrieve GPG secrets
+        if: ${{ !inputs.test_mode }}
         id: retrieve-gpg-secrets
         uses: bitwarden/gh-actions/get-keyvault-secrets@main
         with:
@@ -69,9 +78,11 @@ jobs:
           secrets: "github-gpg-private-key, github-gpg-private-key-passphrase"
 
       - name: Log out from Azure
+        if: ${{ !inputs.test_mode }}
         uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Generate GH App token
+        if: ${{ !inputs.test_mode }}
         uses: actions/create-github-app-token@67018539274d69449ef7c02e8e71183d1719ab42 # v2.1.4
         id: app-token
         with:
@@ -117,8 +128,7 @@ jobs:
           echo "INFO: Calling workflow: [$WORKFLOW_REF]"
 
           # if this is being run by the test-cherry-pick workflow, allow picking from the simulated main branch
-          #if [[ $WORKFLOW_REF == "bitwarden/gh-actions/.github/workflows/test-cherry-pick.yml@refs/heads/main" ]]; then ## PRODUCTION
-          if [[ $WORKFLOW_REF == "bitwarden/gh-actions/.github/workflows/test-cherry-pick.yml@refs/pull/555/merge" ]]; then  ## NEEDED FOR TESTING
+          if [[ $WORKFLOW_REF == bitwarden/gh-actions/.github/workflows/test-cherry-pick.yml@* ]]; then
               echo "INFO: This workflow is being run by the [test-cherry-pick.yml] workflow."
               if [[ ${pr_base_ref:0:21} != "cherry-pick-sim-main-" ]]; then
                 echo "ERROR: Invalid test base ref: [$pr_base_ref]. Test ref/branch must match [cherry-pick-sim-main-*]"
@@ -147,7 +157,7 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           ref: ${{ inputs.dest_branch }}
-          token: ${{ steps.app-token.outputs.token }}
+          token: ${{ inputs.test_mode && github.token || steps.app-token.outputs.token }}
           persist-credentials: true
           fetch-depth: 0
 
@@ -157,6 +167,7 @@ jobs:
           git config --local user.email "106330231+bitwarden-devops-bot@users.noreply.github.com"
 
       - name: Setup GPG signing
+        if: ${{ !inputs.test_mode }}
         env:
           GPG_PRIVATE_KEY: ${{ steps.retrieve-gpg-secrets.outputs.github-gpg-private-key }}
           GPG_PASSPHRASE: ${{ steps.retrieve-gpg-secrets.outputs.github-gpg-private-key-passphrase }}
@@ -171,7 +182,7 @@ jobs:
       - name: Cherry pick
         env:
           PR_COMMIT: ${{ steps.validate-pr.outputs.pr_commit }}
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ inputs.test_mode && github.token || steps.app-token.outputs.token }}
         run: |
           echo "INFO: Cherry-picking commit [$PR_COMMIT] from PR [#$_SOURCE_PR] to branch [$_DEST_BRANCH]"
           if ! git cherry-pick -x "$PR_COMMIT"; then

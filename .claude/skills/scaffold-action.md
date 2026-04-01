@@ -63,9 +63,6 @@ Create `{action-name}/action.yml` with:
 name: "{Action Name}"
 description: "{description from SPEC.md}"
 author: "Bitwarden"
-branding:
-  icon: shield
-  color: blue
 
 inputs:
   # From SPEC.md - each input with description, required, and default

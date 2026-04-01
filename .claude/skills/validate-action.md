@@ -59,14 +59,13 @@ Read `{action-name}/action.yml` and verify all required fields. Use `Grep` to se
 - [ ] `name` -- present and descriptive
 - [ ] `description` -- present and descriptive
 - [ ] `author` -- set to `"Bitwarden"`
-- [ ] `branding` -- has both `icon` and `color` properties
 - [ ] `inputs` -- each input has `description` and `required` fields
 - [ ] `outputs` -- each output has `description`; for composite actions, each also has `value`
 - [ ] `runs` -- has correct `using` value for the action type (`composite`, `node24`, or `docker`)
 
 **Severity for missing fields:**
 - Missing `name`, `description`, or `runs`: **Critical**
-- Missing `author` or `branding`: **Medium**
+- Missing `author`: **Medium**
 - Input/output missing `description` or `required`: **High**
 - Composite output missing `value` reference: **Critical**
 

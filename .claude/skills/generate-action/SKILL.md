@@ -1,6 +1,6 @@
 ---
 name: generate-action
-description: "Generate a new custom GitHub Action with full compliance and security checks. Orchestrates define, scaffold, implement, evaluate, and validate phases via the action-generator agent."
+description: "Generate a new custom GitHub Action with full compliance checks. Orchestrates define, scaffold, implement, evaluate, and validate phases via the action-generator agent."
 argument-hint: "[action-name-or-description]"
 ---
 

@@ -8,9 +8,9 @@ allowed-tools:
   - Write
   - Glob
   - Grep
-  - Bash(ls:*)
-  - Bash(cd * && npm install)
-  - Bash(cd * && npm run build)
+  - Bash(ls:./*)
+  - Bash(cd ./* && npm install)
+  - Bash(cd ./* && npm run build)
 ---
 
 # Implement Action - Core Logic Development

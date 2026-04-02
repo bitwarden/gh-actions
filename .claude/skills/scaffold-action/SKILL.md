@@ -6,8 +6,8 @@ allowed-tools:
   - Read
   - Write
   - Glob
-  - Bash(ls:*)
-  - Bash(mkdir:*)
+  - Bash(ls:./*)
+  - Bash(mkdir:./*)
 ---
 
 # Scaffold Action - Boilerplate Generation

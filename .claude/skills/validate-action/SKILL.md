@@ -8,7 +8,7 @@ allowed-tools:
   - Write
   - Glob
   - Grep
-  - Bash(ls:*)
+  - Bash(ls:./*)
   - Bash(npx prettier:*)
   - Bash(bwwl lint:*)
 ---

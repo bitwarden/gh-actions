@@ -4,7 +4,7 @@ description: "Orchestrates the generation of a new custom GitHub Action for the 
 model: opus
 color: blue
 tools:
-  - Bash(ls:*)
+  - Bash(ls:./*)
   - Edit
   - Glob
   - Grep

@@ -8,7 +8,7 @@ allowed-tools:
   - Write
   - Glob
   - Grep
-  - Bash(ls:*)
+  - Bash(ls:./*)
 ---
 
 # Evaluate Action - Completeness Review

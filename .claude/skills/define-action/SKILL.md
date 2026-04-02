@@ -4,8 +4,8 @@ description: "Gather requirements for a new GitHub Action through interactive qu
 argument-hint: "[action-name]"
 allowed-tools:
   - Read
-  - Bash(ls:*)
-  - Bash(mkdir:*)
+  - Bash(ls:./*)
+  - Bash(mkdir:./*)
   - Write
   - Glob
 ---

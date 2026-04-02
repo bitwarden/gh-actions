@@ -12,7 +12,7 @@ A composite action directory contains:
 {action-name}/
 ├── action.yml
 ├── README.md
-└── SPEC.md        (internal, delete manually after pipeline completes)
+└── SPEC.md        (internal, removed automatically by the agent at pipeline completion)
 ```
 
 No additional files are needed — all logic lives in `action.yml`.

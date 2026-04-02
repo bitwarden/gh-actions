@@ -5,6 +5,7 @@ model: opus
 color: blue
 tools:
   - Bash(ls:./*)
+  - Bash(rm:./*/SPEC.md)
   - Edit
   - Glob
   - Grep
@@ -203,12 +204,13 @@ Keep updates concise — one or two sentences per transition. Do not repeat info
 
 After all 5 phases complete successfully:
 
-1. **Summary**: Provide a final report:
+1. **Clean up**: Run `rm {action-name}/SPEC.md` to remove the internal specification artifact.
+
+2. **Summary**: Provide a final report:
    - Action name and type
    - Files created (list all)
    - Key implementation details
    - Recommendations for manual follow-up:
-     - Delete `{action-name}/SPEC.md` — internal artifact, no longer needed
      - Add any required secrets to the test repository
      - Submit the action for approval in the workflow linter's approved actions list if other workflows will reference it
      - Run the test workflow after merging

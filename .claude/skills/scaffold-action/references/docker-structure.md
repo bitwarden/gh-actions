@@ -14,7 +14,7 @@ A Docker action directory contains:
 ├── Dockerfile
 ├── main.py
 ├── README.md
-└── SPEC.md          (internal, delete manually after pipeline completes)
+└── SPEC.md          (internal, removed automatically by the agent at pipeline completion)
 ```
 
 ---

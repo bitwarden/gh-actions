@@ -98,13 +98,11 @@ jobs:
       source_pr: ${{ needs.setup.outputs.simulated_pr_number }}
       dest_branch: ${{ needs.setup.outputs.simulated_dest_branch }}
       dest_branch_allowed: '^cherry-pick-sim-dest-[0-9]{10}$'
+      test_mode: true
     permissions:
-      contents: read
+      contents: write
+      pull-requests: write
       id-token: write
-    secrets:
-      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
 
   cleanup:
     # Cleanup all the simulated resources

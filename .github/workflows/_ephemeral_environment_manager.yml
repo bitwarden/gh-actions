@@ -31,7 +31,7 @@ on:
         type: number
 
 env:
-  _KEY_VAULT: bitwarden-ci
+  _KEY_VAULT: gh-org-bitwarden
   _BOT_NAME: bitwarden-devops-bot
 
 jobs:
@@ -57,20 +57,28 @@ jobs:
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Retrieve secrets
-        id: retrieve-secrets
+        id: retrieve-secret
         uses: bitwarden/gh-actions/get-keyvault-secrets@main
         with:
           keyvault: ${{ env._KEY_VAULT }}
-          secrets: "github-pat-bitwarden-devops-bot-repo-scope,github-bitwarden-devops-bot-email"
+          secrets: "BW-GHAPP-ID,BW-GHAPP-KEY,github-bitwarden-devops-bot-email"
 
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
+
+      - name: Generate GH App token
+        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+        id: app-token
+        with:
+          app-id: ${{ steps.retrieve-secret.outputs.BW-GHAPP-ID }}
+          private-key: ${{ steps.retrieve-secret.outputs.BW-GHAPP-KEY }}
+          owner: ${{ github.repository_owner }}
 
       - name: Checkout Ephemeral Environment Charts
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           repository: bitwarden/ephemeral-environment-charts
-          token: "${{ steps.retrieve-secrets.outputs.github-pat-bitwarden-devops-bot-repo-scope }}"
+          token: "${{ steps.retrieve-secret.outputs.BW-GHAPP-KEY }}"
           persist-credentials: true
 
       - name: Create Branch
@@ -99,21 +107,29 @@ jobs:
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Retrieve secrets
-        id: retrieve-secrets
+        id: retrieve-secret
         uses: bitwarden/gh-actions/get-keyvault-secrets@main
         with:
-          keyvault: ${{ env._KEY_VAULT }}
-          secrets: "github-pat-bitwarden-devops-bot-repo-scope,github-bitwarden-devops-bot-email"
+          keyvault: gh-org-bitwarden
+          secrets: "BW-GHAPP-ID,BW-GHAPP-KEY"
 
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
+
+      - name: Generate GH App token
+        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+        id: app-token
+        with:
+          app-id: ${{ steps.retrieve-secret.outputs.BW-GHAPP-ID }}
+          private-key: ${{ steps.retrieve-secret.outputs.BW-GHAPP-KEY }}
+          owner: ${{ github.repository_owner }}
 
       - name: Checkout ${{ inputs.project }}
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           repository: bitwarden/${{ inputs.project }}
           ref: ${{ inputs.ephemeral_env_branch }}
-          token: "${{ steps.retrieve-secrets.outputs.github-pat-bitwarden-devops-bot-repo-scope }}"
+          token: ${{ steps.app-token.outputs.token }}
           persist-credentials: true
 
       - name: Remove config
@@ -125,7 +141,7 @@ jobs:
       - name: Commit changes to ${{ inputs.ephemeral_env_branch }}
         working-directory: ephemeral-environments
         env:
-          BOT_EMAIL: ${{ steps.retrieve-secrets.outputs.github-bitwarden-devops-bot-email }}
+          BOT_EMAIL: ${{ steps.retrieve-secret.outputs.github-bitwarden-devops-bot-email }}
           BRANCH_NAME: ${{ inputs.ephemeral_env_branch }}
         run: |
           git config --local user.email "$BOT_EMAIL"
@@ -154,7 +170,7 @@ jobs:
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Retrieve secrets
-        id: retrieve-secrets
+        id: retrieve-secret
         uses: bitwarden/gh-actions/get-keyvault-secrets@main
         with:
           keyvault: ${{ env._KEY_VAULT }}
@@ -177,9 +193,9 @@ jobs:
 
       - name: Log into Argo CD cluster
         env:
-          ARGOCD_CLUSTER_URL: ${{ steps.retrieve-secrets.outputs.ephemeral-environment-argocd-cluster-url }}
-          ARGOCD_CLUSTER_API_USER: ${{ steps.retrieve-secrets.outputs.ephemeral-environment-argocd-cluster-api-user }}
-          ARGOCD_CLUSTER_API_SECRET: ${{ steps.retrieve-secrets.outputs.ephemeral-environment-argocd-cluster-api-secret }}
+          ARGOCD_CLUSTER_URL: ${{ steps.retrieve-secret.outputs.ephemeral-environment-argocd-cluster-url }}
+          ARGOCD_CLUSTER_API_USER: ${{ steps.retrieve-secret.outputs.ephemeral-environment-argocd-cluster-api-user }}
+          ARGOCD_CLUSTER_API_SECRET: ${{ steps.retrieve-secret.outputs.ephemeral-environment-argocd-cluster-api-secret }}
         run: |
           argocd login "${ARGOCD_CLUSTER_URL}" \
             --username "${ARGOCD_CLUSTER_API_USER}" \

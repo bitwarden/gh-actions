@@ -78,7 +78,7 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           repository: bitwarden/ephemeral-environment-charts
-          token: "${{ steps.retrieve-secret.outputs.BW-GHAPP-KEY }}"
+          token: ${{ steps.app-token.outputs.token }}
           persist-credentials: true
 
       - name: Create Branch
@@ -110,7 +110,7 @@ jobs:
         id: retrieve-secret
         uses: bitwarden/gh-actions/get-keyvault-secrets@main
         with:
-          keyvault: gh-org-bitwarden
+          keyvault: ${{ env._KEY_VAULT }}
           secrets: "BW-GHAPP-ID,BW-GHAPP-KEY"
 
       - name: Log out from Azure

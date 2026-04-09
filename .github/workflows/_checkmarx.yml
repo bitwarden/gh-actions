@@ -60,22 +60,23 @@ jobs:
         uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Scan with Checkmarx
-        uses: checkmarx/ast-github-action@21c9298d915983b05efce689a157dbfb826fca53 # 2.3.30
+        uses: checkmarx/ast-github-action@c52fa63dbd4916520882e10456d66ff4dd7bf754 # 2.3.33
         with:
           project_name: ${{ github.repository }}
           cx_tenant: ${{ steps.get-kv-secrets.outputs.CHECKMARX-TENANT }}
           base_uri: https://ast.checkmarx.net/
           cx_client_id: ${{ steps.get-kv-secrets.outputs.CHECKMARX-CLIENT-ID }}
           cx_client_secret: ${{ steps.get-kv-secrets.outputs.CHECKMARX-SECRET  }}
-          additional_params: |
-            --report-format sarif \
-            --filter "state=TO_VERIFY;PROPOSED_NOT_EXPLOITABLE;CONFIRMED;URGENT" \
-            --output-path . ${{ inputs.incremental && '--sast-incremental' || '' }} \
+          additional_params: >-
+            --report-format sarif
+            --filter "state=TO_VERIFY;PROPOSED_NOT_EXPLOITABLE;CONFIRMED;URGENT"
+            --output-path .
+            ${{ case(inputs.incremental, '--sast-incremental', '') }}
 
       - name: Upload Checkmarx results to GitHub
         if: inputs.upload-sarif
         uses: github/codeql-action/upload-sarif@19b2f06db2b6f5108140aeb04014ef02b648f789 # v4.31.11
         with:
           sarif_file: cx_result.sarif
-          sha: ${{ contains(github.event_name, 'pull_request') && github.event.pull_request.head.sha || github.sha }}
-          ref: ${{ contains(github.event_name, 'pull_request') && format('refs/pull/{0}/head', github.event.pull_request.number) || github.ref }}
+          sha: ${{ case(contains(github.event_name, 'pull_request'), github.event.pull_request.head.sha, github.sha) }}
+          ref: ${{ case(contains(github.event_name, 'pull_request'), format('refs/pull/{0}/head', github.event.pull_request.number), github.ref) }}

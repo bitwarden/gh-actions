@@ -1,0 +1,257 @@
+name: 'API Commit'
+description: 'Create a verified commit via the GitHub API'
+author: 'Bitwarden'
+branding:
+  icon: git-commit
+  color: blue
+
+inputs:
+  files:
+    description: 'Newline-delimited list of files to commit (relative to repository root). If omitted, all files modified relative to HEAD are committed.'
+    required: false
+    default: ''
+  message:
+    description: 'Commit message'
+    required: true
+  branch:
+    description: 'Branch to commit to'
+    required: false
+    default: ${{ github.ref }}
+  token:
+    description: 'GitHub token for API access. Use a GitHub App token for verified commits.'
+    required: true
+  tag_name:
+    description: 'Tag to create pointing at the commit. If omitted, no tag is created. If no commit is made, the tag is skipped.'
+    required: false
+    default: ''
+  owner:
+    description: 'Repository owner (org or user). Defaults to the current workflow repository owner.'
+    required: false
+    default: ''
+  repo:
+    description: 'Repository name. Defaults to the current workflow repository.'
+    required: false
+    default: ''
+
+outputs:
+  commit_sha:
+    description: 'SHA of the created commit, or empty if no changed files were detected and no commit was made'
+    value: ${{ steps.api-commit.outputs.commit_sha }}
+
+runs:
+  using: composite
+  steps:
+    - name: Create verified commit via GitHub API
+      id: api-commit
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+      env:
+        INPUT_FILES: ${{ inputs.files }}
+        INPUT_MESSAGE: ${{ inputs.message }}
+        INPUT_BRANCH: ${{ inputs.branch }}
+        INPUT_TAG_NAME: ${{ inputs.tag_name }}
+        INPUT_OWNER: ${{ inputs.owner }}
+        INPUT_REPO: ${{ inputs.repo }}
+      with:
+        github-token: ${{ inputs.token }}
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          const owner = process.env.INPUT_OWNER.trim() || context.repo.owner;
+          const repo = process.env.INPUT_REPO.trim() || context.repo.repo;
+          const message = process.env.INPUT_MESSAGE;
+
+          // Validate message
+          if (!message.trim().length) {
+            core.setFailed('message input must not be empty');
+            return;
+          }
+
+          // Resolve branch — strip full ref prefix if provided, reject non-branch refs
+          let branch = process.env.INPUT_BRANCH.trim();
+          if (branch.startsWith('refs/heads/')) {
+            branch = branch.slice('refs/heads/'.length);
+          } else if (branch.startsWith('refs/tags/')) {
+            core.setFailed(`branch resolves to a tag ref (${branch}); the target must be a branch`);
+            return;
+          } else if (branch.startsWith('refs/pull/')) {
+            core.setFailed(`branch resolves to a pull request ref (${branch}); the target must be a branch`);
+            return;
+          } else if (branch.startsWith('refs/')) {
+            core.setFailed(`branch resolves to an unsupported ref (${branch}); the target must be a branch`);
+            return;
+          }
+
+          if (!branch.length) {
+            core.setFailed('branch input must not be empty');
+            return;
+          }
+
+          // Resolve file list — explicit input or auto-detect via git diff
+          let files;
+          if (process.env.INPUT_FILES.trim().length > 0) {
+            files = process.env.INPUT_FILES.split('\n')
+              .map(f => f.trim())
+              .filter(f => f.length > 0)
+              .map(f => path.normalize(f).split(path.sep).join('/'));
+          } else {
+            // Verify the local git remote matches the target repository to ensure
+            // auto-detected files correspond to the correct repository.
+            const remoteUrl = (await exec.getExecOutput('git', ['remote', 'get-url', 'origin'])).stdout.trim();
+            let remoteOwner, remoteRepo;
+            try {
+              // HTTPS: https://github.com/owner/repo.git
+              const url = new URL(remoteUrl);
+              const parts = url.pathname.replace(/^\//, '').replace(/\.git$/, '').split('/');
+              remoteOwner = parts[0];
+              remoteRepo = parts[1];
+            } catch {
+              // SSH: git@github.com:owner/repo.git
+              const match = remoteUrl.match(/[^:]+:([^/]+)\/(.+?)(?:\.git)?$/);
+              if (match) {
+                remoteOwner = match[1];
+                remoteRepo = match[2];
+              }
+            }
+            if (!remoteOwner || !remoteRepo) {
+              core.setFailed(`Could not parse git remote URL to validate repository: ${remoteUrl}`);
+              return;
+            }
+            if (remoteOwner.toLowerCase() !== owner.toLowerCase() || remoteRepo.toLowerCase() !== repo.toLowerCase()) {
+              core.setFailed(`Auto-detect requires the local git remote to match the target repository. Remote is ${remoteOwner}/${remoteRepo} but targeting ${owner}/${repo}. Use explicit \`files\` input when targeting a different repository.`);
+              return;
+            }
+
+            // Combine working tree and staged changes so that staged-only changes are included
+            const [workingTree, staged] = await Promise.all([
+              exec.getExecOutput('git', ['diff', '--diff-filter=d', '--name-only', 'HEAD']),
+              exec.getExecOutput('git', ['diff', '--diff-filter=d', '--cached', '--name-only', 'HEAD']),
+            ]);
+            files = [...new Set([
+              ...workingTree.stdout.split('\n'),
+              ...staged.stdout.split('\n'),
+            ].map(f => f.trim()).filter(f => f.length > 0).map(f => path.normalize(f).split(path.sep).join('/')))];
+            if (files.length === 0) {
+              core.info('No changed files detected, skipping commit');
+              core.setOutput('commit_sha', '');
+              return;
+            }
+          }
+
+          // Deduplicate while preserving order
+          const unique = [...new Set(files)];
+          if (unique.length !== files.length) {
+            core.warning(`Removed ${files.length - unique.length} duplicate file path(s)`);
+          }
+          files = unique;
+
+          // Validate files before making any API calls
+          for (const file of files) {
+            if (path.isAbsolute(file)) {
+              core.setFailed(`File path must be relative to the repository root: ${file}`);
+              return;
+            }
+            if (file.startsWith('..')) {
+              core.setFailed(`File path must not escape the repository root: ${file}`);
+              return;
+            }
+            let stat;
+            try {
+              stat = fs.lstatSync(file);
+            } catch {
+              core.setFailed(`File not found: ${file}`);
+              return;
+            }
+            if (stat.isDirectory()) {
+              core.setFailed(`File path is a directory, not a file: ${file}`);
+              return;
+            }
+          }
+
+          core.info(`Committing ${files.length} file(s):\n${files.join('\n')}`);
+
+          // Create blobs first — no dependency on the branch ref, so doing this
+          // before getRef minimises the window between reading and updating the ref.
+          const tree = await Promise.all(files.map(async (file) => {
+            const stat = fs.lstatSync(file);
+            let content;
+            let mode;
+            if (stat.isSymbolicLink()) {
+              // Store the symlink target path as the blob content, as git does.
+              content = Buffer.from(fs.readlinkSync(file));
+              mode = '120000';
+            } else {
+              content = fs.readFileSync(file);
+              mode = (stat.mode & 0o111) ? '100755' : '100644';
+            }
+            const { data: blob } = await github.rest.git.createBlob({
+              owner,
+              repo,
+              content: content.toString('base64'),
+              encoding: 'base64'
+            });
+            return { path: file, mode, type: 'blob', sha: blob.sha };
+          }));
+
+          // Get current branch HEAD as late as possible to reduce the race window
+          const { data: ref } = await github.rest.git.getRef({
+            owner,
+            repo,
+            ref: `heads/${branch}`
+          });
+
+          const { data: commit } = await github.rest.git.getCommit({
+            owner,
+            repo,
+            commit_sha: ref.object.sha
+          });
+
+          // Create tree, commit, and update the branch ref
+          const { data: newTree } = await github.rest.git.createTree({
+            owner,
+            repo,
+            base_tree: commit.tree.sha,
+            tree
+          });
+
+          // Skip commit if the tree is unchanged (files already match the branch)
+          if (newTree.sha === commit.tree.sha) {
+            core.info('Tree unchanged — specified files already match the branch, skipping commit');
+            core.setOutput('commit_sha', '');
+            return;
+          }
+
+          const { data: newCommit } = await github.rest.git.createCommit({
+            owner,
+            repo,
+            message,
+            tree: newTree.sha,
+            parents: [ref.object.sha]
+          });
+
+          try {
+            await github.rest.git.updateRef({
+              owner,
+              repo,
+              ref: `heads/${branch}`,
+              sha: newCommit.sha
+            });
+          } catch (err) {
+            if (err.status === 422) {
+              core.setFailed(`Failed to update branch — the branch may have received new commits during this run. Re-run the workflow to retry.`);
+              return;
+            }
+            throw err;
+          }
+
+          const tagName = process.env.INPUT_TAG_NAME.trim();
+          if (tagName.length) {
+            await github.rest.git.createRef({
+              owner,
+              repo,
+              ref: `refs/tags/${tagName}`,
+              sha: newCommit.sha
+            });
+            core.info(`Created tag ${tagName} at ${newCommit.sha}`);
+          }
+
+          core.setOutput('commit_sha', newCommit.sha);

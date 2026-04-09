@@ -1,0 +1,33 @@
+---
+name: Checkmarx SAST
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+      - "rc"
+      - "hotfix-rc"
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - "main"
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    branches:
+      - "main"
+
+permissions: {}
+
+jobs:
+  sast:
+    uses: bitwarden/gh-actions/.github/workflows/_checkmarx.yml@main
+    secrets:
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+    permissions:
+      contents: read
+      pull-requests: write
+      security-events: write
+      id-token: write

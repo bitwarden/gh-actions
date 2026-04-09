@@ -32,7 +32,7 @@ on:
 
 env:
   _KEY_VAULT: gh-org-bitwarden
-  _BOT_NAME: bitwarden-devops-bot
+  _BOT_NAME: "bw-ghapp[bot]"
 
 jobs:
   check-run:

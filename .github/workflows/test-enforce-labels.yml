@@ -1,0 +1,60 @@
+name: Test Enforce Labels
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/test-enforce-labels.yml"
+      - ".github/workflows/_enforce-labels.yml"
+
+permissions: {}
+
+jobs:
+  test-with-hold-label:
+    name: Test with hold label (should fail)
+    uses: ./.github/workflows/_enforce-labels.yml
+    with:
+      test_mode: true
+      test_has_hold_label: true
+    permissions: {}
+    continue-on-error: true
+
+  test-without-hold-label:
+    name: Test without hold label (should pass)
+    uses: ./.github/workflows/_enforce-labels.yml
+    with:
+      test_mode: true
+      test_has_hold_label: false
+    permissions: {}
+
+  validate:
+    name: Validate test results
+    runs-on: ubuntu-24.04
+    needs: [test-with-hold-label, test-without-hold-label]
+    if: always()
+    permissions:
+      contents: read
+    steps:
+      - name: Check test with hold label failed
+        env:
+          HOLD_TEST_RESULT: ${{ needs.test-with-hold-label.result }}
+        run: |
+          echo "Test with hold label result: $HOLD_TEST_RESULT"
+          if [[ "$HOLD_TEST_RESULT" == "failure" ]]; then
+            echo "SUCCESS: Test with hold label correctly failed"
+          else
+            echo "ERROR: Test with hold label should have failed but got: $HOLD_TEST_RESULT"
+            exit 1
+          fi
+
+      - name: Check test without hold label passed
+        env:
+          NO_HOLD_TEST_RESULT: ${{ needs.test-without-hold-label.result }}
+        run: |
+          echo "Test without hold label result: $NO_HOLD_TEST_RESULT"
+          if [[ "$NO_HOLD_TEST_RESULT" == "success" ]]; then
+            echo "SUCCESS: Test without hold label correctly passed"
+          else
+            echo "ERROR: Test without hold label should have passed but got: $NO_HOLD_TEST_RESULT"
+            exit 1
+          fi

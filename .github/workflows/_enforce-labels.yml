@@ -2,16 +2,26 @@ name: Enforce PR labels
 
 on:
   workflow_call:
+    inputs:
+      test_mode:
+        description: "Enable test mode for testing workflow logic"
+        type: boolean
+        default: false
+      test_has_hold_label:
+        description: "Simulate hold label presence (only used when test_mode is true)"
+        type: boolean
+        default: false
 
 permissions: {}
 
 jobs:
   enforce-label:
-    if: ${{ contains(github.event.*.labels.*.name, 'hold') }}
+    if: ${{ inputs.test_mode || contains(github.event.*.labels.*.name, 'hold') }}
     name: Enforce label
     runs-on: ubuntu-22.04
     steps:
       - name: Check for label
+        if: ${{ (inputs.test_mode && inputs.test_has_hold_label) || (!inputs.test_mode && contains(github.event.*.labels.*.name, 'hold')) }}
         run: |
           echo "PRs with the hold label cannot be merged"
           echo "### :x: PRs with the hold label cannot be merged" >> "$GITHUB_STEP_SUMMARY"

@@ -86,5 +86,5 @@ jobs:
           echo "🔍 Labeling PR #$_PR_NUMBER with mode: \"$_LABEL_MODE\" and dry-run: \"$_DRY_RUN\" and current PR labels: \"$_PR_LABELS\"..."
           echo "🐍 Running label-pr.py script..."
           echo ""
-          python3 .github/scripts/label-pr.py "$_PR_NUMBER" "$_PR_LABELS" "$_LABEL_MODE" "$_DRY_RUN"
+          python3 label-pr.py "$_PR_NUMBER" "$_PR_LABELS" "$_LABEL_MODE" "$_DRY_RUN"
 

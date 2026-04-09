@@ -17,7 +17,6 @@ jobs:
       test_mode: true
       test_has_hold_label: true
     permissions: {}
-    continue-on-error: true
 
   test-without-hold-label:
     name: Test without hold label (should pass)

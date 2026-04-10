@@ -53,7 +53,7 @@ jobs:
 
       - name: Check user permission
         id: check
-        uses: bitwarden/gh-actions/check-permission@main
+        uses: ./check-permission
         with:
           require: ${{ inputs.require_permission }}
           username: ${{ github.triggering_actor }}

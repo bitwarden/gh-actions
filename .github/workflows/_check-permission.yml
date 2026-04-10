@@ -13,16 +13,6 @@ on:
         type: string
         default: "write"
         required: false
-      test_mode:
-        description: "Enable test mode for testing workflow logic"
-        type: boolean
-        default: false
-        required: false
-      test_user_permission:
-        description: "Simulated user permission for testing (admin, write, read, none)"
-        type: string
-        default: "none"
-        required: false
     outputs:
       has_permission:
         description: "Whether the user has the required permission"
@@ -53,14 +43,12 @@ jobs:
 
       - name: Check user permission
         id: check
-        uses: ./check-permission
+        uses: bitwarden/gh-actions/check-permission@main
         with:
           require: ${{ inputs.require_permission }}
           username: ${{ github.triggering_actor }}
           token: ${{ secrets.GITHUB_TOKEN }}
           failure_mode: ${{ inputs.failure_mode }}
-          test_mode: ${{ inputs.test_mode }}
-          test_user_permission: ${{ inputs.test_user_permission }}
 
       - name: Report results
         env:

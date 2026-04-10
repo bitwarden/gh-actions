@@ -19,14 +19,6 @@ inputs:
     description: "How to handle permission failures: 'fail' (exit 1), 'skip' (exit 0 with skip output), 'continue' (exit 0 always, use outputs for branching)"
     required: false
     default: "fail"
-  test_mode:
-    description: "Enable test mode (skips GitHub API call)"
-    required: false
-    default: "false"
-  test_user_permission:
-    description: "Simulated user permission level for testing (admin, write, read, none)"
-    required: false
-    default: "none"
 
 outputs:
   has_permission:
@@ -50,8 +42,6 @@ runs:
         REQUIRE: ${{ inputs.require }}
         USERNAME: ${{ inputs.username }}
         FAILURE_MODE: ${{ inputs.failure_mode }}
-        TEST_MODE: ${{ inputs.test_mode }}
-        TEST_USER_PERMISSION: ${{ inputs.test_user_permission }}
         GITHUB_REPOSITORY: ${{ github.repository }}
       run: |
         set -e
@@ -71,25 +61,19 @@ runs:
           exit 1
         fi
 
-        # Test mode: use simulated permission instead of API call
-        if [[ "$TEST_MODE" == "true" ]]; then
-          echo "::notice::Test mode enabled - using simulated permission: $TEST_USER_PERMISSION"
-          USER_PERMISSION="$TEST_USER_PERMISSION"
-        else
-          if ! USER_PERMISSION=$(gh api \
-            "repos/$GITHUB_REPOSITORY/collaborators/$USERNAME/permission" \
-            --jq '.permission // "none"' 2>&1); then
+        if ! USER_PERMISSION=$(gh api \
+          "repos/$GITHUB_REPOSITORY/collaborators/$USERNAME/permission" \
+          --jq '.permission // "none"' 2>&1); then
 
-            echo "::warning::Failed to check user permission: $USER_PERMISSION"
+          echo "::warning::Failed to check user permission: $USER_PERMISSION"
 
-            if [[ "$FAILURE_MODE" == "fail" ]]; then
-              echo "::error::Permission check failed and failure_mode is 'fail'"
-              exit 1
-            else
-              # Treat API failure as "no permission" for skip/continue modes
-              echo "::notice::Treating API failure as 'none' permission due to failure_mode='$FAILURE_MODE'"
-              USER_PERMISSION="none"
-            fi
+          if [[ "$FAILURE_MODE" == "fail" ]]; then
+            echo "::error::Permission check failed and failure_mode is 'fail'"
+            exit 1
+          else
+            # Treat API failure as "no permission" for skip/continue modes
+            echo "::notice::Treating API failure as 'none' permission due to failure_mode='$FAILURE_MODE'"
+            USER_PERMISSION="none"
           fi
         fi
 

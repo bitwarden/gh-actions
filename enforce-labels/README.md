@@ -15,6 +15,19 @@ Reusable workflow that blocks PRs with specific labels from being merged. Curren
 
 1. Ensure the `hold` label exists in your repository
 2. Copy the `enforce-labels.yml` workflow template into your repository's `.github/workflows/` directory
+3. **Configure as a [required status check](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks)** (required for blocking merges):
+
+   Access to branch protection rules is managed by the Security team. You have two options:
+
+   **Option 1: Request access to configure it yourself**
+   - Submit a [TSD ticket](https://bitwarden.atlassian.net/servicedesk/customer/portal/5) requesting "Request temporary elevated access"
+   - Specify you need access to Rulesets and branch protection rules
+   - List the repositories where you plan to use this workflow
+   - Once granted access: Settings → Branches → (select branch rule) → Enable "Require status checks to pass before merging" → Select "Enforce label"
+
+   **Option 2: Request IT to configure it**
+   - Submit a [TSD ticket](https://bitwarden.atlassian.net/servicedesk/customer/portal/5) requesting IT to add "Enforce label" as a required status check
+   - Specify the repositories and branches where it should be required
 
 ### Usage
 

@@ -35,16 +35,20 @@ env:
   _BOT_NAME: bitwarden-devops-bot
 
 jobs:
-  check-run:
-    name: Check PR run
-    uses: ./.github/workflows/check-run.yml
+  check-permission:
+    name: Check permission
+    uses: bitwarden/gh-actions/.github/workflows/_check-permission.yml@main
+    with:
+      failure_mode: "skip"
+      require_permission: "write"
     permissions:
       contents: read
 
   create-branch:
     name: Create Branch
+    if: needs.check-permission.outputs.should_proceed == 'true'
     runs-on: ubuntu-24.04
-    needs: check-run
+    needs: check-permission
     permissions:
       contents: read
       id-token: write
@@ -84,9 +88,9 @@ jobs:
 
   cleanup:
     name: Cleanup config
-    if: ${{ inputs.cleanup_config }}
+    if: needs.check-permission.outputs.should_proceed == 'true' && inputs.cleanup_config
     runs-on: ubuntu-24.04
-    needs: check-run
+    needs: check-permission
     permissions:
       contents: read
       id-token: write
@@ -137,10 +141,10 @@ jobs:
 
   sync-env:
     name: Sync Ephemeral Environment
-    if: ${{ inputs.sync_environment }}
+    if: needs.check-permission.outputs.should_proceed == 'true' && inputs.sync_environment
     runs-on: ubuntu-24.04
     needs:
-      - check-run
+      - check-permission
       - create-branch
     permissions:
       contents: read

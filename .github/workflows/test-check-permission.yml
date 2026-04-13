@@ -7,7 +7,7 @@ on:
       - ".github/workflows/test-check-permission.yml"
       - ".github/workflows/_check-permission.yml"
       - "check-permission/action.yml"
-      - "check-permission/test-action.yml"
+      - "check-permission-test/action.yml"
 
 permissions: {}
 
@@ -29,7 +29,7 @@ jobs:
 
       - name: Check permission
         id: check
-        uses: ./check-permission/test-action.yml
+        uses: ./check-permission-test
         with:
           require: write
           username: ${{ github.triggering_actor }}
@@ -55,7 +55,7 @@ jobs:
 
       - name: Check permission
         id: check
-        uses: ./check-permission/test-action.yml
+        uses: ./check-permission-test
         continue-on-error: true
         with:
           require: admin
@@ -82,7 +82,7 @@ jobs:
 
       - name: Check permission
         id: check
-        uses: ./check-permission/test-action.yml
+        uses: ./check-permission-test
         with:
           require: admin
           username: ${{ github.triggering_actor }}
@@ -108,7 +108,7 @@ jobs:
 
       - name: Check permission
         id: check
-        uses: ./check-permission/test-action.yml
+        uses: ./check-permission-test
         with:
           require: admin
           username: ${{ github.triggering_actor }}

@@ -211,9 +211,9 @@ The workflow includes a test workflow at `.github/workflows/test-check-permissio
 
 **Test Implementation:**
 
-Tests use `check-permission/test-action.yml`, a test-only version of the action that includes a `test_mode` bypass for simulating permission levels. This allows testing without requiring actual GitHub API calls or multiple user accounts.
+Tests use `check-permission-test/action.yml`, a test-only action that includes a `test_mode` bypass for simulating permission levels. This allows testing without requiring actual GitHub API calls or multiple user accounts.
 
-**Important:** `test-action.yml` is for internal testing only and is not part of the public API. External repositories should only use the reusable workflow at `.github/workflows/_check-permission.yml`, which calls the production action without any bypass mechanism.
+**Important:** The `check-permission-test/` directory is for internal testing only and is not part of the public API. External repositories should only use the reusable workflow at `.github/workflows/_check-permission.yml`, which calls the production action without any bypass mechanism.
 
 ## Permission Levels Hierarchy
 

@@ -56,7 +56,6 @@ jobs:
       - name: Check permission
         id: check
         uses: ./check-permission-test
-        continue-on-error: true
         with:
           require: admin
           username: ${{ github.triggering_actor }}

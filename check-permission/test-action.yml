@@ -56,6 +56,10 @@ runs:
       run: |
         set -e
 
+        # WARNING: This action includes test_mode for testing purposes only.
+        # Production workflows use check-permission/action.yml which has no bypass mechanism.
+        # test_mode is NOT available through the public reusable workflow API.
+
         if [[ ! "$FAILURE_MODE" =~ ^(fail|skip|continue)$ ]]; then
           echo "::error::Invalid failure_mode; it must be 'fail', 'skip', or 'continue'"
           exit 1
@@ -73,6 +77,10 @@ runs:
 
         # Test mode: use simulated permission instead of API call
         if [[ "$TEST_MODE" == "true" ]]; then
+          if [[ ! "$TEST_USER_PERMISSION" =~ ^(admin|write|read|none)$ ]]; then
+            echo "::error::Invalid test_user_permission; it must be 'admin', 'write', 'read', or 'none'"
+            exit 1
+          fi
           echo "::notice::Test mode enabled - using simulated permission: $TEST_USER_PERMISSION"
           USER_PERMISSION="$TEST_USER_PERMISSION"
         else

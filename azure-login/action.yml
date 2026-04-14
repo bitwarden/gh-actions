@@ -1,21 +1,27 @@
 name: "Azure Login"
 description: "A composite action to login to Azure"
 inputs:
-  subscription_id:
-    description: "Azure Subscription ID"
-    required: true
   tenant_id:
     description: "Azure Tentant ID"
     required: true
   client_id:
     description: "Azure Client ID"
     required: true
+  subscription_id:
+    description: "Azure Subscription ID"
+    required: false
+    default: ""
+  allow_no_subscriptions:
+    description: "Allow login without a subscription"
+    required: false
+    default: "false"
 runs:
   using: "composite"
   steps:
     - name: Login to Azure using OIDC
-      uses: Azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
+      uses: Azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
       with:
         subscription-id: ${{ inputs.subscription_id }}
         tenant-id: ${{ inputs.tenant_id }}
         client-id: ${{ inputs.client_id }}
+        allow-no-subscriptions: ${{ inputs.allow_no_subscriptions }}

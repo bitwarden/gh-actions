@@ -1,0 +1,364 @@
+name: Test Version workflow
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/_version.yml"
+
+permissions: {}
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-24.04
+    outputs:
+      simulated_main_branch_patch: ${{ steps.create-simulated-branches.outputs.simulated_main_branch_patch }}
+      simulated_main_branch_minor: ${{ steps.create-simulated-branches.outputs.simulated_main_branch_minor }}
+      simulated_main_branch_major: ${{ steps.create-simulated-branches.outputs.simulated_main_branch_major }}
+      simulated_pr_number_patch: ${{ steps.create-simulated-branches.outputs.simulated_pr_number_patch }}
+      simulated_pr_number_minor: ${{ steps.create-simulated-branches.outputs.simulated_pr_number_minor }}
+      simulated_pr_number_major: ${{ steps.create-simulated-branches.outputs.simulated_pr_number_major }}
+      test_tag: ${{ steps.create-simulated-branches.outputs.test_tag }}
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Configure git
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+
+      - name: Create simulated branches
+        id: create-simulated-branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          timestamp=$(date +%s)
+
+          # Create version labels if they don't exist
+          for label_type in patch minor major; do
+            if ! gh label list | grep -q "version:$label_type"; then
+              echo "INFO: Creating version:$label_type label"
+              gh label create "version:$label_type" --description "${label_type^} version increment" --color "0075ca"
+            fi
+          done
+
+          # Create test tag (will be shared across all branches)
+          test_tag="v99.88.${timestamp:0:4}"
+          echo "test_tag=$test_tag" >> $GITHUB_OUTPUT
+
+          # Create separate simulated branches for each version type
+          for version_type in patch minor major; do
+            simulated_main_branch="version-sim-main-${version_type}-$timestamp"
+            feature_branch="version-sim-feature-${version_type}-$timestamp"
+
+            # Output branches so cleanup can use them if this step fails
+            echo "simulated_main_branch_${version_type}=$simulated_main_branch" >> $GITHUB_OUTPUT
+
+            # Create simulated main branch with test tag
+            echo "INFO: Creating simulated main branch [$simulated_main_branch] for $version_type"
+            git switch -c "$simulated_main_branch"
+            echo "test main branch for $version_type" > "version-sim-main-${version_type}-$timestamp.txt"
+            git add "version-sim-main-${version_type}-$timestamp.txt"
+            git commit -m "test: simulated main branch for $version_type"
+            git push origin "$simulated_main_branch"
+
+            # Create and push test tag on this simulated main (only if it doesn't exist yet)
+            if ! git ls-remote --tags origin "$test_tag" | grep -q "$test_tag"; then
+              echo "INFO: Creating test tag [$test_tag] on [$simulated_main_branch]"
+              git tag "$test_tag"
+              git push origin "$test_tag"
+            else
+              echo "INFO: Test tag [$test_tag] already exists, skipping creation"
+              # Still create the tag locally so we can reference it
+              git tag "$test_tag" 2>/dev/null || true
+            fi
+
+            # Create feature branch
+            echo "INFO: Creating feature branch [$feature_branch]"
+            git switch -c "$feature_branch"
+            echo "test $version_type feature" > "version-sim-feature-${version_type}-$timestamp.txt"
+            git add "version-sim-feature-${version_type}-$timestamp.txt"
+            git commit -m "test: version calculation for $version_type"
+            git push origin "$feature_branch"
+
+            # Create PR with appropriate label
+            pr_title="Test version workflow - $version_type"
+            echo "INFO: Creating PR [$pr_title] with version:$version_type label"
+            gh pr create \
+              --base "$simulated_main_branch" \
+              --head "$feature_branch" \
+              --title "$pr_title" \
+              --body "Automated test PR for $version_type version testing. This should be cleaned up automatically." \
+              --label "version:$version_type"
+
+            if [[ $? -ne 0 ]]; then
+              echo "ERROR: Failed to create PR for $version_type"
+              exit 1
+            fi
+
+            pr_number=$(gh pr view "$feature_branch" --json number --jq '.number')
+            echo "simulated_pr_number_${version_type}=$pr_number" >> $GITHUB_OUTPUT
+            echo "INFO: Created PR #$pr_number for $version_type"
+
+            # Merge the PR
+            echo "INFO: Merging PR #$pr_number into [$simulated_main_branch]"
+            if ! gh pr merge "$pr_number" --squash; then
+              echo "ERROR: Failed to merge PR #$pr_number"
+              exit 1
+            fi
+
+            # Switch back to main for next iteration
+            git checkout main
+          done
+
+  test-patch-release:
+    name: Test Patch Release
+    needs: setup
+    uses: ./.github/workflows/_version.yml
+    with:
+      is-release: true
+      sim_branch: ${{ needs.setup.outputs.simulated_main_branch_patch }}
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+
+  test-minor-release:
+    name: Test Minor Release
+    needs: setup
+    uses: ./.github/workflows/_version.yml
+    with:
+      is-release: true
+      sim_branch: ${{ needs.setup.outputs.simulated_main_branch_minor }}
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+
+  test-major-release:
+    name: Test Major Release
+    needs: setup
+    uses: ./.github/workflows/_version.yml
+    with:
+      is-release: true
+      sim_branch: ${{ needs.setup.outputs.simulated_main_branch_major }}
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+
+  test-non-release-version:
+    name: Test Non-Release Version
+    needs: setup
+    uses: ./.github/workflows/_version.yml
+    with:
+      is-release: false
+      sim_branch: ${{ needs.setup.outputs.simulated_main_branch_major }}
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+
+  validate:
+    name: Validate Outputs
+    runs-on: ubuntu-24.04
+    needs: [setup, test-patch-release, test-minor-release, test-major-release, test-non-release-version]
+    permissions:
+      contents: read
+    steps:
+      - name: Validate patch version
+        env:
+          PATCH_VERSION: ${{ needs.test-patch-release.outputs.version }}
+          TEST_TAG: ${{ needs.setup.outputs.test_tag }}
+        run: |
+          echo "Patch version: $PATCH_VERSION"
+          echo "Test tag: $TEST_TAG"
+
+          if [[ -z "$PATCH_VERSION" ]]; then
+            echo "ERROR: Patch version is empty"
+            exit 1
+          fi
+
+          # Extract version from test tag (remove 'v' prefix)
+          base_version="${TEST_TAG:1}"
+          IFS='.' read -ra VERSION_PARTS <<< "$base_version"
+          major=${VERSION_PARTS[0]}
+          minor=${VERSION_PARTS[1]}
+          patch=${VERSION_PARTS[2]}
+
+          # For patch: increment patch number
+          expected_version="$major.$minor.$((patch + 1))"
+          echo "Expected version: $expected_version"
+
+          if [[ "$PATCH_VERSION" == "$expected_version" ]]; then
+            echo "SUCCESS: Patch version is correct"
+          else
+            echo "ERROR: Expected $expected_version, got $PATCH_VERSION"
+            exit 1
+          fi
+
+      - name: Validate minor version
+        env:
+          MINOR_VERSION: ${{ needs.test-minor-release.outputs.version }}
+          TEST_TAG: ${{ needs.setup.outputs.test_tag }}
+        run: |
+          echo "Minor version: $MINOR_VERSION"
+          echo "Test tag: $TEST_TAG"
+
+          if [[ -z "$MINOR_VERSION" ]]; then
+            echo "ERROR: Minor version is empty"
+            exit 1
+          fi
+
+          # Extract version from test tag (remove 'v' prefix)
+          base_version="${TEST_TAG:1}"
+          IFS='.' read -ra VERSION_PARTS <<< "$base_version"
+          major=${VERSION_PARTS[0]}
+          minor=${VERSION_PARTS[1]}
+
+          # For minor: increment minor, reset patch
+          expected_version="$major.$((minor + 1)).0"
+          echo "Expected version: $expected_version"
+
+          if [[ "$MINOR_VERSION" == "$expected_version" ]]; then
+            echo "SUCCESS: Minor version is correct"
+          else
+            echo "ERROR: Expected $expected_version, got $MINOR_VERSION"
+            exit 1
+          fi
+
+      - name: Validate major version
+        env:
+          MAJOR_VERSION: ${{ needs.test-major-release.outputs.version }}
+          TEST_TAG: ${{ needs.setup.outputs.test_tag }}
+        run: |
+          echo "Major version: $MAJOR_VERSION"
+          echo "Test tag: $TEST_TAG"
+
+          if [[ -z "$MAJOR_VERSION" ]]; then
+            echo "ERROR: Major version is empty"
+            exit 1
+          fi
+
+          # Extract version from test tag (remove 'v' prefix)
+          base_version="${TEST_TAG:1}"
+          IFS='.' read -ra VERSION_PARTS <<< "$base_version"
+          major=${VERSION_PARTS[0]}
+
+          # For major: increment major, reset minor and patch
+          expected_version="$((major + 1)).0.0"
+          echo "Expected version: $expected_version"
+
+          if [[ "$MAJOR_VERSION" == "$expected_version" ]]; then
+            echo "SUCCESS: Major version is correct"
+          else
+            echo "ERROR: Expected $expected_version, got $MAJOR_VERSION"
+            exit 1
+          fi
+
+      - name: Validate non-release version
+        env:
+          NON_RELEASE_VERSION: ${{ needs.test-non-release-version.outputs.version }}
+          PR_NUMBER: ${{ needs.setup.outputs.simulated_pr_number_major }}
+          TEST_TAG: ${{ needs.setup.outputs.test_tag }}
+        run: |
+          echo "Non-release version: $NON_RELEASE_VERSION"
+          echo "PR number: $PR_NUMBER"
+          echo "Test tag: $TEST_TAG"
+
+          if [[ -z "$NON_RELEASE_VERSION" ]]; then
+            echo "ERROR: Non-release version is empty"
+            exit 1
+          fi
+
+          # Extract version from test tag (remove 'v' prefix)
+          base_version="${TEST_TAG:1}"
+
+          # Should be base_version+PR_NUMBER (using the major PR)
+          expected="${base_version}+${PR_NUMBER}"
+          echo "Expected version: $expected"
+
+          if [[ "$NON_RELEASE_VERSION" == "$expected" ]]; then
+            echo "SUCCESS: Non-release version is correct"
+          else
+            echo "ERROR: Expected $expected, got $NON_RELEASE_VERSION"
+            exit 1
+          fi
+
+  cleanup:
+    name: Cleanup Test Resources
+    runs-on: ubuntu-24.04
+    needs: [setup, test-patch-release, test-minor-release, test-major-release, test-non-release-version, validate]
+    if: always()
+    env:
+      _SIMULATED_MAIN_BRANCH_PATCH: ${{ needs.setup.outputs.simulated_main_branch_patch }}
+      _SIMULATED_MAIN_BRANCH_MINOR: ${{ needs.setup.outputs.simulated_main_branch_minor }}
+      _SIMULATED_MAIN_BRANCH_MAJOR: ${{ needs.setup.outputs.simulated_main_branch_major }}
+      _SIMULATED_PR_NUMBER_PATCH: ${{ needs.setup.outputs.simulated_pr_number_patch }}
+      _SIMULATED_PR_NUMBER_MINOR: ${{ needs.setup.outputs.simulated_pr_number_minor }}
+      _SIMULATED_PR_NUMBER_MAJOR: ${{ needs.setup.outputs.simulated_pr_number_major }}
+      _TEST_TAG: ${{ needs.setup.outputs.test_tag }}
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: true
+
+      - name: Cleanup
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Close PRs if still open
+          for pr_num in $_SIMULATED_PR_NUMBER_PATCH $_SIMULATED_PR_NUMBER_MINOR $_SIMULATED_PR_NUMBER_MAJOR; do
+            if [[ -n $pr_num ]]; then
+              pr_state=$(gh pr view "$pr_num" --json state --jq '.state' 2>/dev/null || echo "NOT_FOUND")
+              if [[ $pr_state == 'OPEN' ]]; then
+                echo "INFO: Closing PR #$pr_num"
+                gh pr close "$pr_num" || echo "WARN: Failed to close PR"
+              fi
+            fi
+          done
+
+          # Delete all branches (both feature and main simulated branches)
+          for main_branch in $_SIMULATED_MAIN_BRANCH_PATCH $_SIMULATED_MAIN_BRANCH_MINOR $_SIMULATED_MAIN_BRANCH_MAJOR; do
+            if [[ -n $main_branch ]]; then
+              # Extract timestamp from main branch name
+              timestamp=$(echo "$main_branch" | grep -o '[0-9]*$')
+              version_type=$(echo "$main_branch" | sed 's/version-sim-main-\(.*\)-[0-9]*/\1/')
+
+              # Delete feature branch
+              feature_branch="version-sim-feature-${version_type}-$timestamp"
+              if git ls-remote --exit-code --heads origin "$feature_branch" >/dev/null 2>&1; then
+                echo "INFO: Deleting branch [$feature_branch]"
+                git push origin --delete "$feature_branch" || echo "WARN: Failed to delete branch"
+              fi
+
+              # Delete main simulated branch
+              if git ls-remote --exit-code --heads origin "$main_branch" >/dev/null 2>&1; then
+                echo "INFO: Deleting branch [$main_branch]"
+                git push origin --delete "$main_branch" || echo "WARN: Failed to delete branch"
+              fi
+            fi
+          done
+
+          # Delete test tag (only exists on the last branch created)
+          if [[ -n $_TEST_TAG ]]; then
+            if git ls-remote --exit-code --tags origin "$_TEST_TAG" >/dev/null 2>&1; then
+              echo "INFO: Deleting tag [$_TEST_TAG]"
+              git push origin --delete "$_TEST_TAG" || echo "WARN: Failed to delete tag"
+            fi
+          fi
+
+          echo 'INFO: Cleanup complete'

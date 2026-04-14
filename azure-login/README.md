@@ -5,12 +5,6 @@ This action provides a centralized way to login to Azure.
 ## Inputs
 
 - Required
-    - subscription_id
-        - Description: Provides the Azure subscription ID.
-        - Example:
-            ```
-                subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-            ```
     - tenant_id
         - Description: Provides the Azure tenant ID.
         - Example:
@@ -22,6 +16,21 @@ This action provides a centralized way to login to Azure.
         - Example:
             ```
                 client_id: ${{ secrets.AZURE_CLIENT_ID }}
+            ```
+- Optional
+    - subscription_id
+        - Description: Provides the Azure subscription ID.
+        - Default: Empty
+        - Example:
+            ```
+                subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+            ```
+    - allow_no_subscriptions
+        - Description: Provides the allow-no-subscriptions options to Azure
+        - Default: false
+        - Example:
+            ```
+                allow_no_subscriptions: true
             ```
 
 ## Required Permissions

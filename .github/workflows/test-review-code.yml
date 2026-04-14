@@ -1,0 +1,118 @@
+name: Test Code Review Workflow
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/_review-code.yml"
+      - ".github/workflows/test-review-code.yml"
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to test review on (optional, will use event PR if not provided)'
+        required: false
+        default: ''
+
+permissions: {}
+
+jobs:
+  add-label:
+    name: Add label
+    runs-on: ubuntu-24.04
+    permissions:
+      pull-requests: write
+    outputs:
+      pr_number: ${{ steps.set-pr.outputs.pr_number }}
+      timestamp: ${{ steps.set-pr.outputs.timestamp }}
+    steps:
+      - name: Determine PR number and add label
+        id: set-pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          INPUT_PR: ${{ inputs.pr_number }}
+          EVENT_PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          if [[ -n "${INPUT_PR:-}" ]]; then
+            PR_NUMBER="$INPUT_PR"
+          elif [[ -n "${EVENT_PR:-}" ]]; then
+            PR_NUMBER="$EVENT_PR"
+          else
+            echo "pr_number=" >> "$GITHUB_OUTPUT"
+            echo "timestamp=" >> "$GITHUB_OUTPUT"
+            echo "⚠️ No PR context available - skipping label add"
+            exit 0
+          fi
+
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+          gh pr edit "$PR_NUMBER" --repo "$GH_REPO" --add-label "ai-review"
+          echo "✅ Added 'ai-review' label to PR #$PR_NUMBER"
+
+  test-review:
+    name: Test review
+    needs: add-label
+    if: needs.add-label.outputs.pr_number != ''
+    uses: ./.github/workflows/_review-code.yml
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      pull-requests: write
+    secrets:
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+
+  verify:
+    name: Verify
+    needs:
+      - add-label
+      - test-review
+    if: needs.add-label.outputs.pr_number != ''
+    runs-on: ubuntu-24.04
+    permissions:
+      pull-requests: read
+    steps:
+      - name: Check for new PR comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ needs.add-label.outputs.pr_number }}
+          TIMESTAMP: ${{ needs.add-label.outputs.timestamp }}
+        run: |
+          set -euo pipefail
+
+          NEW_COMMENTS=$(gh api "repos/$GH_REPO/issues/$PR_NUMBER/comments" \
+            --jq "[.[] | select(.created_at > \"$TIMESTAMP\")] | length")
+
+          if [[ "$NEW_COMMENTS" -gt 0 ]]; then
+            echo "✅ Verify: $NEW_COMMENTS new comment(s) found on PR #$PR_NUMBER after $TIMESTAMP"
+          else
+            echo "::error::No new comments found on PR #$PR_NUMBER after $TIMESTAMP"
+            exit 1
+          fi
+
+  cleanup:
+    name: Cleanup
+    needs:
+      - add-label
+      - test-review
+      - verify
+    if: always() && needs.add-label.outputs.pr_number != ''
+    runs-on: ubuntu-24.04
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Remove label
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ needs.add-label.outputs.pr_number }}
+        run: |
+          set -euo pipefail
+          gh pr edit "$PR_NUMBER" --repo "$GH_REPO" --remove-label "ai-review" \
+            || echo "⚠️ Label may have already been removed or was not present"
+          echo "✅ Cleanup complete for PR #$PR_NUMBER"

@@ -1,0 +1,70 @@
+---
+# Example workflow that runs with various triggers.
+# This workflow skips execution on external fork PRs since they won't have access to secrets when invoked via pull_request
+#
+# Example trigger patterns:
+# 1. Triggered by pull_request (for internal PRs)
+# 2. Triggered by push to main and workflow_dispatch (for post-merge and manual runs)
+# 3. Can be called via workflow_call (from pull_request_target workflow for external PRs)
+# 4. Skips execution on fork PRs using condition — all other event types are always allowed
+
+name: Example Workflow
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches:
+      - main
+    paths:
+      - "example/**"
+      - ".github/workflows/example-workflow.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "example/**"
+      - ".github/workflows/example-workflow.yml"
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      custom_parameter:
+        description: "Optional custom parameter from calling workflow"
+        required: false
+        type: string
+        default: "default-value"
+
+permissions:
+  contents: read
+
+jobs:
+  check-event-source:
+    name: Check event and source
+    runs-on: ubuntu-24.04
+    # Skip only when a pull_request event comes from a fork — all other events always run
+    # This avoids running twice: once for the fork pull_request and once via pull_request_target → workflow_call
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Check PR event and source
+        run: echo "This PR is from the same repository (Not a fork) or not triggered via pull_request"
+
+  example-job:
+    name: Run example job
+    runs-on: ubuntu-24.04
+    needs: check-event-source # Only run if intended, otherwise skip
+    permissions:
+      contents: read
+      id-token: write # Required if you need to authenticate to external services
+    steps:
+      - name: Get secrets
+        run: echo "Series of steps that would retrieve secrets"
+
+      - name: Check out repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Run some code
+        run: |
+          echo "Running workflow on branch: ${{ github.head_ref }}"
+          echo "Custom parameter: ${{ inputs.custom_parameter }}"
+          echo "This step could build, test, or deploy your code"

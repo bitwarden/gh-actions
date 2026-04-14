@@ -78,7 +78,7 @@ For TypeScript-based actions (e.g., `get-keyvault-secrets`):
 
 ### Docker-based Actions
 
-For containerized actions (e.g., `version-bump`, `get-checksum`):
+For containerized actions (e.g., `version-bump`):
 
 - Use `Dockerfile` in action directory
 - Python scripts use `main.py` as entry point
@@ -119,7 +119,6 @@ For containerized actions (e.g., `version-bump`, `get-checksum`):
 **Python/Docker Actions:**
 
 - `version-bump/` - File version updating (JSON, XML, PLIST, YAML)
-- `get-checksum/` - SHA256 checksum generation
 - `crowdin/` - Translation management
 
 **Shell/YAML Actions:**

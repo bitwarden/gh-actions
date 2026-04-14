@@ -1,0 +1,27 @@
+name: Calculate Version
+run-name: Calculate Version - ${{ github.repository }}
+
+on:
+  workflow_call:
+    inputs:
+      is-release:
+        description: "Whether this is a release build (true) or non-release build (false)"
+        required: true
+        type: boolean
+    outputs:
+      version:
+        description: "Calculated version number"
+        value: ${{ jobs.version.outputs.version }}
+
+permissions: {}
+
+jobs:
+  version:
+    name: Calculate Version
+    uses: bitwarden/gh-actions/.github/workflows/_version.yml@main
+    with:
+      is-release: ${{ inputs.is-release }}
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read

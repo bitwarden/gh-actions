@@ -32,7 +32,6 @@ on:
 
 env:
   _KEY_VAULT: gh-org-bitwarden
-  _BOT_NAME: "bw-ghapp[bot]"
 
 jobs:
   check-run:
@@ -61,7 +60,7 @@ jobs:
         uses: bitwarden/gh-actions/get-keyvault-secrets@main
         with:
           keyvault: ${{ env._KEY_VAULT }}
-          secrets: "BW-GHAPP-ID,BW-GHAPP-KEY,github-bitwarden-devops-bot-email"
+          secrets: "BW-GHAPP-ID,BW-GHAPP-KEY"
 
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
@@ -111,7 +110,7 @@ jobs:
         uses: bitwarden/gh-actions/get-keyvault-secrets@main
         with:
           keyvault: ${{ env._KEY_VAULT }}
-          secrets: "BW-GHAPP-ID,BW-GHAPP-KEY,github-bitwarden-devops-bot-email"
+          secrets: "BW-GHAPP-ID,BW-GHAPP-KEY"
 
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
@@ -130,26 +129,18 @@ jobs:
           repository: bitwarden/${{ inputs.project }}
           ref: ${{ inputs.ephemeral_env_branch }}
           token: ${{ steps.app-token.outputs.token }}
-          persist-credentials: true
 
       - name: Remove config
-        working-directory: ephemeral-environments
         env:
           BRANCH_NAME: ${{ inputs.ephemeral_env_branch }}
-        run: rm -f "$BRANCH_NAME.yaml"
+        run: rm -f "ephemeral-environments/$BRANCH_NAME.yaml"
 
       - name: Commit changes to ${{ inputs.ephemeral_env_branch }}
-        working-directory: ephemeral-environments
-        env:
-          BOT_EMAIL: ${{ steps.retrieve-secret.outputs.github-bitwarden-devops-bot-email }}
-          BRANCH_NAME: ${{ inputs.ephemeral_env_branch }}
-        run: |
-          git config --local user.email "$BOT_EMAIL"
-          git config --local user.name "$_BOT_NAME"
-
-          git add "$BRANCH_NAME.yaml"
-          git commit -m "Removed $BRANCH_NAME.yaml config."
-          git push
+        uses: bitwarden/gh-actions/api-commit@main
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: ${{ inputs.ephemeral_env_branch }}
+          message: "Removed ${{ inputs.ephemeral_env_branch }}.yaml config."
 
   sync-env:
     name: Sync Ephemeral Environment

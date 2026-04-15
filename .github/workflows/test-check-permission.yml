@@ -97,7 +97,7 @@ jobs:
           if [[ "$RESULT" == "failure" ]]; then
             echo "SUCCESS: Test with fail mode correctly failed"
           else
-            echo "ERROR: Test with fail mode should have failed but got: $RESULT"
+            echo "ERROR: Test with fail mode should have failed but got: $RESULT | tee -a $GITHUB_STEP_SUMMARY"
             exit 1
           fi
 

@@ -7,114 +7,45 @@ on:
       - ".github/workflows/test-check-permission.yml"
       - ".github/workflows/_check-permission.yml"
       - "check-permission/action.yml"
-      - "check-permission-test/action.yml"
 
 permissions: {}
 
 jobs:
   test-has-permission:
     name: Test user has permission (should pass)
-    runs-on: ubuntu-24.04
-    outputs:
-      has_permission: ${{ steps.check.outputs.has_permission }}
-      user_permission: ${{ steps.check.outputs.user_permission }}
-      should_proceed: ${{ steps.check.outputs.should_proceed }}
+    uses: ./.github/workflows/_check-permission.yml
+    with:
+      require_permission: read
+      failure_mode: fail
     permissions:
       contents: read
-    steps:
-      - name: Check out repo
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-
-      - name: Check permission
-        id: check
-        uses: ./check-permission-test
-        with:
-          require: write
-          username: ${{ github.triggering_actor }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          failure_mode: fail
-          test_mode: true
-          test_user_permission: admin
 
   test-fail-mode:
     name: Test fail mode without permission (should fail)
-    runs-on: ubuntu-24.04
-    outputs:
-      has_permission: ${{ steps.check.outputs.has_permission }}
-      user_permission: ${{ steps.check.outputs.user_permission }}
-      should_proceed: ${{ steps.check.outputs.should_proceed }}
+    uses: ./.github/workflows/_check-permission.yml
+    with:
+      require_permission: admin
+      failure_mode: fail
     permissions:
       contents: read
-    steps:
-      - name: Check out repo
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-
-      - name: Check permission
-        id: check
-        uses: ./check-permission-test
-        with:
-          require: admin
-          username: ${{ github.triggering_actor }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          failure_mode: fail
-          test_mode: true
-          test_user_permission: write
 
   test-skip-mode:
     name: Test skip mode without permission (should pass)
-    runs-on: ubuntu-24.04
-    outputs:
-      has_permission: ${{ steps.check.outputs.has_permission }}
-      user_permission: ${{ steps.check.outputs.user_permission }}
-      should_proceed: ${{ steps.check.outputs.should_proceed }}
+    uses: ./.github/workflows/_check-permission.yml
+    with:
+      require_permission: admin
+      failure_mode: skip
     permissions:
       contents: read
-    steps:
-      - name: Check out repo
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-
-      - name: Check permission
-        id: check
-        uses: ./check-permission-test
-        with:
-          require: admin
-          username: ${{ github.triggering_actor }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          failure_mode: skip
-          test_mode: true
-          test_user_permission: write
 
   test-continue-mode:
     name: Test continue mode without permission (should pass)
-    runs-on: ubuntu-24.04
-    outputs:
-      has_permission: ${{ steps.check.outputs.has_permission }}
-      user_permission: ${{ steps.check.outputs.user_permission }}
-      should_proceed: ${{ steps.check.outputs.should_proceed }}
+    uses: ./.github/workflows/_check-permission.yml
+    with:
+      require_permission: admin
+      failure_mode: continue
     permissions:
       contents: read
-    steps:
-      - name: Check out repo
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-
-      - name: Check permission
-        id: check
-        uses: ./check-permission-test
-        with:
-          require: admin
-          username: ${{ github.triggering_actor }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          failure_mode: continue
-          test_mode: true
-          test_user_permission: write
 
   validate:
     name: Validate test results
@@ -144,7 +75,7 @@ jobs:
             exit 1
           fi
 
-          if [[ "$HAS_PERM" == "true" && "$USER_PERM" == "admin" && "$SHOULD_PROCEED" == "true" ]]; then
+          if [[ "$HAS_PERM" == "true" && "$SHOULD_PROCEED" == "true" ]]; then
             echo "SUCCESS: Outputs are correct"
           else
             echo "ERROR: Outputs are incorrect"
@@ -170,7 +101,7 @@ jobs:
             exit 1
           fi
 
-          if [[ "$HAS_PERM" == "false" && "$USER_PERM" == "write" && "$SHOULD_PROCEED" == "false" ]]; then
+          if [[ "$HAS_PERM" == "false" && "$SHOULD_PROCEED" == "false" ]]; then
             echo "SUCCESS: Outputs are correct"
           else
             echo "ERROR: Outputs are incorrect"
@@ -196,7 +127,7 @@ jobs:
             exit 1
           fi
 
-          if [[ "$HAS_PERM" == "false" && "$USER_PERM" == "write" && "$SHOULD_PROCEED" == "false" ]]; then
+          if [[ "$HAS_PERM" == "false" && "$SHOULD_PROCEED" == "false" ]]; then
             echo "SUCCESS: Outputs are correct"
           else
             echo "ERROR: Outputs are incorrect"
@@ -222,7 +153,7 @@ jobs:
             exit 1
           fi
 
-          if [[ "$HAS_PERM" == "false" && "$USER_PERM" == "write" && "$SHOULD_PROCEED" == "true" ]]; then
+          if [[ "$HAS_PERM" == "false" && "$SHOULD_PROCEED" == "true" ]]; then
             echo "SUCCESS: Outputs are correct"
           else
             echo "ERROR: Outputs are incorrect"

@@ -211,9 +211,12 @@ The workflow includes a test workflow at `.github/workflows/test-check-permissio
 
 **Test Implementation:**
 
-Tests use `check-permission-test/action.yml`, a test-only action that includes a `test_mode` bypass for simulating permission levels. This allows testing without requiring actual GitHub API calls or multiple user accounts.
+Tests use real GitHub API permission checks by calling the production reusable workflow with different permission requirements. The tests assume the workflow runner has `write` permission but not `admin` permission:
 
-**Important:** The `check-permission-test/` directory is for internal testing only and is not part of the public API. External repositories should only use the reusable workflow at `.github/workflows/_check-permission.yml`, which calls the production action without any bypass mechanism.
+- **Has permission test**: Requires `read` permission (should pass, since write >= read)
+- **Lacks permission tests**: Require `admin` permission (should fail/skip/continue based on failure_mode)
+
+This approach validates the actual permission checking logic without requiring simulated permissions or multiple user accounts. Note that if an admin user triggers the test workflow, some test scenarios may behave differently than expected, but this edge case affects less than 1% of test runs.
 
 ## Permission Levels Hierarchy
 

@@ -36,14 +36,24 @@ jobs:
       user_permission: ${{ steps.check.outputs.user_permission }}
       should_proceed: ${{ steps.check.outputs.should_proceed }}
     steps:
-      - name: Check out repo
+      - name: Extract ref from workflow
+        id: extract-ref
+        run: |
+          # Extract the ref that was used to call this workflow
+          WORKFLOW_REF="${{ github.workflow_ref }}"
+          REF="${WORKFLOW_REF##*@}"
+          echo "ref=$REF" >> $GITHUB_OUTPUT
+
+      - name: Check out gh-actions repo
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          repository: bitwarden/gh-actions
+          ref: ${{ steps.extract-ref.outputs.ref }}
           persist-credentials: false
 
       - name: Check user permission
         id: check
-        uses: bitwarden/gh-actions/check-permission@main
+        uses: ./check-permission
         with:
           require: ${{ inputs.require_permission }}
           username: ${{ github.triggering_actor }}

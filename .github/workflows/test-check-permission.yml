@@ -104,7 +104,7 @@ jobs:
           if [[ "$HAS_PERM" == "false" && "$SHOULD_PROCEED" == "false" ]]; then
             echo "SUCCESS: Outputs are correct"
           else
-            echo "ERROR: Outputs are incorrect"
+            echo "ERROR: Outputs are incorrect | tee -a $GITHUB_STEP_SUMMARY"
             exit 1
           fi
 

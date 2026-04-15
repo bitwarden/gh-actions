@@ -71,7 +71,7 @@ jobs:
           if [[ "$RESULT" == "success" ]]; then
             echo "SUCCESS: Test with sufficient permission passed"
           else
-            echo "ERROR: Test with sufficient permission should have passed but got: $RESULT"
+            echo "ERROR: Test with sufficient permission should have passed but got: $RESULT | tee -a $GITHUB_STEP_SUMMARY"
             exit 1
           fi
 

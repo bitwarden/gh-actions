@@ -123,7 +123,7 @@ jobs:
           if [[ "$RESULT" == "success" ]]; then
             echo "SUCCESS: Test with skip mode passed"
           else
-            echo "ERROR: Test with skip mode should have passed but got: $RESULT"
+            echo "ERROR: Test with skip mode should have passed but got: $RESULT | tee -a $GITHUB_STEP_SUMMARY"
             exit 1
           fi
 

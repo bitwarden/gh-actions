@@ -71,14 +71,14 @@ jobs:
           if [[ "$RESULT" == "success" ]]; then
             echo "SUCCESS: Test with sufficient permission passed"
           else
-            echo "ERROR: Test with sufficient permission should have passed but got: $RESULT | tee -a $GITHUB_STEP_SUMMARY"
+            echo "ERROR: Test with sufficient permission should have passed but got: $RESULT" | tee -a $GITHUB_STEP_SUMMARY
             exit 1
           fi
 
           if [[ "$HAS_PERM" == "true" && "$SHOULD_PROCEED" == "true" ]]; then
             echo "SUCCESS: Outputs are correct"
           else
-            echo "ERROR: Outputs are incorrect | tee -a $GITHUB_STEP_SUMMARY"
+            echo "ERROR: Outputs are incorrect" | tee -a $GITHUB_STEP_SUMMARY
             exit 1
           fi
 
@@ -97,14 +97,14 @@ jobs:
           if [[ "$RESULT" == "failure" ]]; then
             echo "SUCCESS: Test with fail mode correctly failed"
           else
-            echo "ERROR: Test with fail mode should have failed but got: $RESULT | tee -a $GITHUB_STEP_SUMMARY"
+            echo "ERROR: Test with fail mode should have failed but got: $RESULT" | tee -a $GITHUB_STEP_SUMMARY
             exit 1
           fi
 
           if [[ "$HAS_PERM" == "false" && "$SHOULD_PROCEED" == "false" ]]; then
             echo "SUCCESS: Outputs are correct"
           else
-            echo "ERROR: Outputs are incorrect | tee -a $GITHUB_STEP_SUMMARY"
+            echo "ERROR: Outputs are incorrect" | tee -a $GITHUB_STEP_SUMMARY
             exit 1
           fi
 
@@ -123,14 +123,14 @@ jobs:
           if [[ "$RESULT" == "success" ]]; then
             echo "SUCCESS: Test with skip mode passed"
           else
-            echo "ERROR: Test with skip mode should have passed but got: $RESULT | tee -a $GITHUB_STEP_SUMMARY"
+            echo "ERROR: Test with skip mode should have passed but got: $RESULT" | tee -a $GITHUB_STEP_SUMMARY
             exit 1
           fi
 
           if [[ "$HAS_PERM" == "false" && "$SHOULD_PROCEED" == "false" ]]; then
             echo "SUCCESS: Outputs are correct"
           else
-            echo "ERROR: Outputs are incorrect | tee -a $GITHUB_STEP_SUMMARY"
+            echo "ERROR: Outputs are incorrect" | tee -a $GITHUB_STEP_SUMMARY
             exit 1
           fi
 
@@ -149,13 +149,13 @@ jobs:
           if [[ "$RESULT" == "success" ]]; then
             echo "SUCCESS: Test with continue mode passed"
           else
-            echo "ERROR: Test with continue mode should have passed but got: $RESULT | tee -a $GITHUB_STEP_SUMMARY"
+            echo "ERROR: Test with continue mode should have passed but got: $RESULT" | tee -a $GITHUB_STEP_SUMMARY
             exit 1
           fi
 
           if [[ "$HAS_PERM" == "false" && "$SHOULD_PROCEED" == "true" ]]; then
             echo "SUCCESS: Outputs are correct"
           else
-            echo "ERROR: Outputs are incorrect | tee -a $GITHUB_STEP_SUMMARY"
+            echo "ERROR: Outputs are incorrect" | tee -a $GITHUB_STEP_SUMMARY
             exit 1
           fi

@@ -207,10 +207,10 @@ runs:
           );
 
           // Create deletion entries for deleted files. The GitHub API requires an explicit
-          // entry with mode: '000000' and sha: null to remove a path from the tree.
+          // entry with sha: null to remove a path from the tree. Use the standard file mode.
           const deletionEntries = [...deletedFiles].map(file => ({
             path: file,
-            mode: '000000',
+            mode: '100644',
             sha: null,
           }));
 

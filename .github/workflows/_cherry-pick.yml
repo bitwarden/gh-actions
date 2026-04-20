@@ -16,6 +16,11 @@ on:
         required: false
         type: string
         default: ''
+      create_pr:
+        description: 'Create a PR to dest_branch instead of pushing directly'
+        required: false
+        type: boolean
+        default: false
       test_mode:
         description: 'Run in test mode (skips Azure auth and GPG signing)'
         required: false
@@ -38,6 +43,7 @@ jobs:
       _SOURCE_PR: ${{ inputs.source_pr }}
       _DEST_BRANCH: ${{ inputs.dest_branch }}
       _DEST_BRANCH_ALLOWED: ${{ inputs.dest_branch_allowed }}
+      _CHERRY_PICK_BRANCH: cherry-pick/${{ inputs.source_pr }}-to-${{ inputs.dest_branch }}
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -113,7 +119,7 @@ jobs:
           WORKFLOW_REF: ${{ github.workflow_ref }}
         run: |
           # get PR info
-          if ! pr_info=$(gh pr view "$_SOURCE_PR" --json state,baseRefName,mergeCommit); then
+          if ! pr_info=$(gh pr view "$_SOURCE_PR" --json state,baseRefName,mergeCommit,title); then
             echo "ERROR: Could not gather data for PR [#$_SOURCE_PR]. Please verify the number."
             exit 1
           fi
@@ -121,10 +127,12 @@ jobs:
           pr_state=$(echo "$pr_info" | jq -r .state)
           pr_base_ref=$(echo "$pr_info" | jq -r .baseRefName)
           pr_commit=$(echo "$pr_info" | jq -r .mergeCommit.oid)
+          pr_title=$(echo "$pr_info" | jq -r .title)
 
           echo "INFO: PR state: [$pr_state]"
           echo "INFO: PR base ref: [$pr_base_ref]"
           echo "INFO: PR commit: [$pr_commit]"
+          echo "INFO: PR title: [$pr_title]"
           echo "INFO: Calling workflow: [$WORKFLOW_REF]"
 
           # if this is being run by the test-cherry-pick workflow, allow picking from the simulated main branch
@@ -152,6 +160,7 @@ jobs:
           fi
 
           echo "pr_commit=$pr_commit" >> $GITHUB_OUTPUT
+          echo "pr_title=$pr_title" >> $GITHUB_OUTPUT
 
       - name: Checkout dest branch
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -160,6 +169,12 @@ jobs:
           token: ${{ inputs.test_mode && github.token || steps.app-token.outputs.token }}
           persist-credentials: true
           fetch-depth: 0
+
+      - name: Create cherry-pick branch
+        if: inputs.create_pr
+        run: |
+          git checkout -b "$_CHERRY_PICK_BRANCH"
+          echo "INFO: Created branch [$_CHERRY_PICK_BRANCH] from [$_DEST_BRANCH]"
 
       - name: Configure git
         run: |
@@ -182,9 +197,8 @@ jobs:
       - name: Cherry pick
         env:
           PR_COMMIT: ${{ steps.validate-pr.outputs.pr_commit }}
-          GH_TOKEN: ${{ inputs.test_mode && github.token || steps.app-token.outputs.token }}
         run: |
-          echo "INFO: Cherry-picking commit [$PR_COMMIT] from PR [#$_SOURCE_PR] to branch [$_DEST_BRANCH]"
+          echo "INFO: Cherry-picking commit [$PR_COMMIT] from PR [#$_SOURCE_PR]"
           if ! git cherry-pick -x "$PR_COMMIT"; then
             echo "ERROR: Cherry-pick failed for commit [$PR_COMMIT]"
             git cherry-pick --abort
@@ -192,6 +206,11 @@ jobs:
           fi
           echo 'INFO: Cherry pick successful!'
 
+      - name: Push to destination branch
+        if: ${{ !inputs.create_pr }}
+        env:
+          GH_TOKEN: ${{ inputs.test_mode && github.token || steps.app-token.outputs.token }}
+        run: |
           echo "INFO: Pushing local [$_DEST_BRANCH] branch to origin"
           if ! git push origin "$_DEST_BRANCH"; then
             echo "ERROR: Failed to push to origin."
@@ -205,7 +224,38 @@ jobs:
 
           run_url="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           echo "INFO: Adding comment to PR [#$_SOURCE_PR]"
-          if ! gh pr comment "$_SOURCE_PR" --body "✅ Successfully cherry-picked to \`$_DEST_BRANCH\`. [View run]($run_url)"; then
+          if ! gh pr comment "$_SOURCE_PR" --body "✅ Successfully cherry-picked to [$_DEST_BRANCH]. [View run]($run_url)"; then
+            echo "WARN: Failed to add comment to PR [#$_SOURCE_PR]"
+          fi
+
+      - name: Push branch and open PR
+        if: inputs.create_pr
+        env:
+          GH_TOKEN: ${{ inputs.test_mode && github.token || steps.app-token.outputs.token }}
+          PR_TITLE: ${{ steps.validate-pr.outputs.pr_title }}
+        run: |
+          echo "INFO: Pushing branch [$_CHERRY_PICK_BRANCH] to origin"
+          if ! git push origin "$_CHERRY_PICK_BRANCH"; then
+            echo "ERROR: Failed to push branch [$_CHERRY_PICK_BRANCH]."
+            exit 1
+          fi
+
+          run_url="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+          PR_BODY="🍒 Automated cherry-pick of PR [#$_SOURCE_PR] to [$_DEST_BRANCH]. [View run]($run_url)"
+
+          if ! new_pr_url=$(gh pr create \
+            --base "$_DEST_BRANCH" \
+            --head "$_CHERRY_PICK_BRANCH" \
+            --title "Cherry pick: $PR_TITLE" \
+            --body "$PR_BODY"); then
+            echo "ERROR: Failed to create PR."
+            exit 1
+          fi
+
+          echo "INFO: Cherry-pick PR created: [$new_pr_url]"
+
+          if ! gh pr comment "$_SOURCE_PR" --body "🍒 Cherry-pick PR created targeting [$_DEST_BRANCH]: $new_pr_url. [View run]($run_url)"; then
             echo "WARN: Failed to add comment to PR [#$_SOURCE_PR]"
           fi
 

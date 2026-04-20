@@ -206,16 +206,6 @@ runs:
               })
           );
 
-          // Create deletion entries for deleted files. The GitHub API requires an explicit
-          // entry with sha: null to remove a path from the tree. Use the standard file mode.
-          const deletionEntries = [...deletedFiles].map(file => ({
-            path: file,
-            mode: '100644',
-            sha: null,
-          }));
-
-          const tree = [...blobEntries, ...deletionEntries];
-
           // Get current branch HEAD as late as possible to reduce the race window
           const { data: ref } = await github.rest.git.getRef({
             owner,
@@ -229,13 +219,51 @@ runs:
             commit_sha: ref.object.sha
           });
 
+          // When there are deletions, fetch the base tree and build a complete tree
+          // instead of using base_tree (which doesn't support sha: null deletions).
+          let treeParam, baseTreeSha;
+          if (deletedFiles.size > 0) {
+            // Fetch the base tree recursively to get all entries
+            const { data: baseTree } = await github.rest.git.getTree({
+              owner,
+              repo,
+              tree_sha: commit.tree.sha,
+              recursive: 'true'
+            });
+            
+            // Build a map of all files in the base tree, excluding deleted files
+            const treeMap = new Map();
+            for (const entry of baseTree.tree) {
+              if (!deletedFiles.has(entry.path)) {
+                treeMap.set(entry.path, entry);
+              }
+            }
+            
+            // Add/update with new blob entries
+            for (const entry of blobEntries) {
+              treeMap.set(entry.path, entry);
+            }
+            
+            // Convert back to array, sorted by path
+            treeParam = Array.from(treeMap.values()).sort((a, b) => a.path.localeCompare(b.path));
+            // Don't use base_tree when we have deletions
+            baseTreeSha = undefined;
+          } else {
+            // No deletions: use base_tree for efficiency
+            treeParam = blobEntries;
+            baseTreeSha = commit.tree.sha;
+          }
+
           // Create tree, commit, and update the branch ref
-          const { data: newTree } = await github.rest.git.createTree({
+          const createTreeParams = {
             owner,
             repo,
-            base_tree: commit.tree.sha,
-            tree
-          });
+            tree: treeParam
+          };
+          if (baseTreeSha) {
+            createTreeParams.base_tree = baseTreeSha;
+          }
+          const { data: newTree } = await github.rest.git.createTree(createTreeParams);
 
           // Skip commit if the tree is unchanged, unless we have deletions (which are always a tree change)
           if (newTree.sha === commit.tree.sha && deletionEntries.length === 0) {

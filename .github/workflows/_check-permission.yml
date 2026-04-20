@@ -32,20 +32,41 @@ jobs:
     name: Check permission
     runs-on: ubuntu-24.04
     outputs:
-      has_permission: ${{ steps.check.outputs.has_permission }}
-      user_permission: ${{ steps.check.outputs.user_permission }}
-      should_proceed: ${{ steps.check.outputs.should_proceed }}
+      has_permission: ${{ steps.check.outputs.has_permission || steps.check-test.outputs.has_permission }}
+      user_permission: ${{ steps.check.outputs.user_permission || steps.check-test.outputs.user_permission }}
+      should_proceed: ${{ steps.check.outputs.should_proceed || steps.check-test.outputs.should_proceed }}
     steps:
       - name: Check out gh-actions repo
+        # if this is being run by the test workflow, check out gh-actions from this commit
+        if: contains(github.workflow_ref, 'test-check-permission.yml')
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: bitwarden/gh-actions
           ref: ${{ github.workflow_sha }}
           persist-credentials: false
+      
+      - name: Check out repo
+        if: "!contains(github.workflow_ref, 'test-check-permission.yml')"
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Check user permission
-        id: check
+        # if this is being run by the test workflow, call the locally checked out version of check-permission
+        if: contains(github.workflow_ref, 'test-check-permission.yml')
+        id: check-test
         uses: ./check-permission
+        with:
+          require: ${{ inputs.require_permission }}
+          username: ${{ github.triggering_actor }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          failure_mode: ${{ inputs.failure_mode }}
+
+      - name: Check user permission
+        # if this isn't being run by the test workflow, call check-permission from main
+        if: "!contains(github.workflow_ref, 'test-check-permission.yml')"
+        id: check
+        uses: bitwarden/gh-actions/check-permission@main
         with:
           require: ${{ inputs.require_permission }}
           username: ${{ github.triggering_actor }}
@@ -56,9 +77,9 @@ jobs:
         env:
           ACTOR: ${{ github.triggering_actor }}
           REQUIRED: ${{ inputs.require_permission }}
-          ACTUAL: ${{ steps.check.outputs.user_permission }}
-          HAS_PERM: ${{ steps.check.outputs.has_permission }}
-          SHOULD_PROCEED: ${{ steps.check.outputs.should_proceed }}
+          ACTUAL: ${{ steps.check.outputs.user_permission || steps.check-test.outputs.user_permission }}
+          HAS_PERM: ${{ steps.check.outputs.has_permission || steps.check-test.outputs.has_permission }}
+          SHOULD_PROCEED: ${{ steps.check.outputs.should_proceed || steps.check-test.outputs.should_proceed }}
         run: |
           echo "🤖 Permission Check"
           echo "================================"

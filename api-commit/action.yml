@@ -123,7 +123,7 @@ runs:
 
             // Combine working tree and staged changes so that staged-only changes are included
             const [workingTree, staged] = await Promise.all([
-              exec.getExecOutput('git', ['diff', '--diff-filter=d', '--name-only', 'HEAD']),
+              exec.getExecOutput('git', ['diff', '--name-only', 'HEAD']),
               exec.getExecOutput('git', ['diff', '--diff-filter=d', '--cached', '--name-only', 'HEAD']),
             ]);
             files = [...new Set([
@@ -135,6 +135,14 @@ runs:
               core.setOutput('commit_sha', '');
               return;
             }
+          }
+
+          let deletedFiles = new Set();
+          if (process.env.INPUT_FILES.trim().length === 0) {
+            const deletedOutput = await exec.getExecOutput('git', ['diff', '--diff-filter=D', '--name-only', 'HEAD']);
+            deletedFiles = new Set(
+              deletedOutput.stdout.split('\n').map(f => f.trim()).filter(f => f.length > 0)
+            );
           }
 
           // Deduplicate while preserving order
@@ -154,43 +162,59 @@ runs:
               core.setFailed(`File path must not escape the repository root: ${file}`);
               return;
             }
-            let stat;
-            try {
-              stat = fs.lstatSync(file);
-            } catch {
-              core.setFailed(`File not found: ${file}`);
-              return;
-            }
-            if (stat.isDirectory()) {
-              core.setFailed(`File path is a directory, not a file: ${file}`);
-              return;
+            if (!deletedFiles.has(file)) {
+              let stat;
+              try {
+                stat = fs.lstatSync(file);
+              } catch {
+                core.setFailed(`File not found: ${file}`);
+                return;
+              }
+              if (stat.isDirectory()) {
+                core.setFailed(`File path is a directory, not a file: ${file}`);
+                return;
+              }
             }
           }
 
           core.info(`Committing ${files.length} file(s):\n${files.join('\n')}`);
 
-          // Create blobs first — no dependency on the branch ref, so doing this
+          // Create blobs for non-deleted files — no dependency on the branch ref, so doing this
           // before getRef minimises the window between reading and updating the ref.
-          const tree = await Promise.all(files.map(async (file) => {
-            const stat = fs.lstatSync(file);
-            let content;
-            let mode;
-            if (stat.isSymbolicLink()) {
-              // Store the symlink target path as the blob content, as git does.
-              content = Buffer.from(fs.readlinkSync(file));
-              mode = '120000';
-            } else {
-              content = fs.readFileSync(file);
-              mode = (stat.mode & 0o111) ? '100755' : '100644';
-            }
-            const { data: blob } = await github.rest.git.createBlob({
-              owner,
-              repo,
-              content: content.toString('base64'),
-              encoding: 'base64'
-            });
-            return { path: file, mode, type: 'blob', sha: blob.sha };
+          const blobEntries = await Promise.all(
+            files
+              .filter(file => !deletedFiles.has(file))
+              .map(async (file) => {
+                const stat = fs.lstatSync(file);
+                let content;
+                let mode;
+                if (stat.isSymbolicLink()) {
+                  // Store the symlink target path as the blob content, as git does.
+                  content = Buffer.from(fs.readlinkSync(file));
+                  mode = '120000';
+                } else {
+                  content = fs.readFileSync(file);
+                  mode = (stat.mode & 0o111) ? '100755' : '100644';
+                }
+                const { data: blob } = await github.rest.git.createBlob({
+                  owner,
+                  repo,
+                  content: content.toString('base64'),
+                  encoding: 'base64'
+                });
+                return { path: file, mode, type: 'blob', sha: blob.sha };
+              })
+          );
+
+          // Create deletion entries for deleted files. The GitHub API requires an explicit
+          // entry with mode: '000000' and sha: null to remove a path from the tree.
+          const deletionEntries = [...deletedFiles].map(file => ({
+            path: file,
+            mode: '000000',
+            sha: null,
           }));
+
+          const tree = [...blobEntries, ...deletionEntries];
 
           // Get current branch HEAD as late as possible to reduce the race window
           const { data: ref } = await github.rest.git.getRef({
@@ -213,8 +237,8 @@ runs:
             tree
           });
 
-          // Skip commit if the tree is unchanged (files already match the branch)
-          if (newTree.sha === commit.tree.sha) {
+          // Skip commit if the tree is unchanged, unless we have deletions (which are always a tree change)
+          if (newTree.sha === commit.tree.sha && deletionEntries.length === 0) {
             core.info('Tree unchanged — specified files already match the branch, skipping commit');
             core.setOutput('commit_sha', '');
             return;

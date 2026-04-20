@@ -22,6 +22,7 @@ jobs:
         mode:
           - explicit-files
           - auto-detect-files
+          - auto-detect-with-deletion
           - no-changes
           - tag
     steps:
@@ -80,6 +81,36 @@ jobs:
           branch: ${{ steps.setup.outputs.test_branch }}
           token: ${{ github.token }}
 
+      - name: Configure git user (auto-detect with deletion)
+        if: matrix.mode == 'auto-detect-with-deletion'
+        run: |
+          git config user.email "178206702+bw-ghapp[bot]@users.noreply.github.com"
+          git config user.name "bw-ghapp[bot]"
+
+      - name: Create and commit files (auto-detect with deletion)
+        if: matrix.mode == 'auto-detect-with-deletion'
+        run: |
+          echo "content $(date +%s)" > api-commit-deletion-test-file.txt
+          echo "content to delete" > api-commit-file-to-delete.txt
+          git add api-commit-deletion-test-file.txt api-commit-file-to-delete.txt
+          git commit -m "temp: setup for deletion test"
+
+      - name: Delete file and create new file (auto-detect with deletion)
+        if: matrix.mode == 'auto-detect-with-deletion'
+        run: |
+          rm api-commit-file-to-delete.txt
+          echo "new content $(date +%s)" > api-commit-new-file.txt
+          git add api-commit-new-file.txt
+
+      - name: Run API Commit action (auto-detect with deletion)
+        id: api-commit-auto-delete
+        if: matrix.mode == 'auto-detect-with-deletion'
+        uses: ./api-commit
+        with:
+          message: "chore: test API commit with deletion"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
       - name: Run API Commit action (no changes)
         id: api-commit-no-changes
         if: matrix.mode == 'no-changes'
@@ -112,6 +143,8 @@ jobs:
           EXPECTED_EXPLICIT_FILES: "api-commit-test-file-1.txt,api-commit-test-file-2.txt"
           AUTO_DETECT_FILES_SHA: ${{ steps.api-commit-auto.outputs.commit_sha }}
           EXPECTED_AUTO_DETECT_FILES: "api-commit-auto-test-file.txt"
+          AUTO_DETECT_DELETE_SHA: ${{ steps.api-commit-auto-delete.outputs.commit_sha }}
+          EXPECTED_AUTO_DETECT_DELETE_FILES: "api-commit-new-file.txt"
           NO_CHANGES_OUTCOME: ${{ steps.api-commit-no-changes.outcome }}
           TAG_SHA: ${{ steps.api-commit-tag.outputs.commit_sha }}
           EXPECTED_TAG_FILES: "api-commit-tag-test-file.txt"
@@ -124,6 +157,10 @@ jobs:
           elif [[ -n "$AUTO_DETECT_FILES_SHA" ]]; then
             echo "sha=$AUTO_DETECT_FILES_SHA" >> "$GITHUB_OUTPUT"
             echo "expected_files=$EXPECTED_AUTO_DETECT_FILES" >> "$GITHUB_OUTPUT"
+            echo "tag_name=" >> "$GITHUB_OUTPUT"
+          elif [[ -n "$AUTO_DETECT_DELETE_SHA" ]]; then
+            echo "sha=$AUTO_DETECT_DELETE_SHA" >> "$GITHUB_OUTPUT"
+            echo "expected_files=$EXPECTED_AUTO_DETECT_DELETE_FILES" >> "$GITHUB_OUTPUT"
             echo "tag_name=" >> "$GITHUB_OUTPUT"
           elif [[ "$NO_CHANGES_OUTCOME" == "success" ]]; then
             echo "sha=" >> "$GITHUB_OUTPUT"

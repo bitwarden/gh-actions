@@ -129,6 +129,7 @@ jobs:
           repository: bitwarden/${{ inputs.project }}
           ref: ${{ inputs.ephemeral_env_branch }}
           token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
 
       - name: Remove config
         env:
@@ -141,6 +142,8 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
           branch: ${{ inputs.ephemeral_env_branch }}
           message: "Removed ${{ inputs.ephemeral_env_branch }}.yaml config."
+          repo: ${{ inputs.project }}
+          owner: bitwarden
 
   sync-env:
     name: Sync Ephemeral Environment

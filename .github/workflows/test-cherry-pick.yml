@@ -128,6 +128,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          sleep 120
           if [[ -n $_SIMULATED_PR_NUMBER ]]; then
             pr_state=$(gh pr view "$_SIMULATED_PR_NUMBER" --json state --jq '.state')
             if [[ $pr_state == 'OPEN' ]]; then

@@ -26,6 +26,10 @@ on:
         required: false
         type: boolean
         default: false
+    outputs:
+      cherry_pick_branch:
+        description: 'The cherry-pick branch created when create_pr is true, empty otherwise'
+        value: ${{ jobs.cherry-pick.outputs.cherry_pick_branch }}
     secrets:
       AZURE_SUBSCRIPTION_ID:
         required: false
@@ -39,6 +43,8 @@ permissions: {}
 jobs:
   cherry-pick:
     name: Cherry Pick Commit
+    outputs:
+      cherry_pick_branch: ${{ steps.create-cherry-pick-branch.outputs.cherry_pick_branch }}
     env:
       _SOURCE_PR: ${{ inputs.source_pr }}
       _DEST_BRANCH: ${{ inputs.dest_branch }}
@@ -172,9 +178,11 @@ jobs:
 
       - name: Create cherry-pick branch
         if: inputs.create_pr
+        id: create-cherry-pick-branch
         run: |
           git checkout -b "$_CHERRY_PICK_BRANCH"
           echo "INFO: Created branch [$_CHERRY_PICK_BRANCH] from [$_DEST_BRANCH]"
+          echo "cherry_pick_branch=$_CHERRY_PICK_BRANCH" >> $GITHUB_OUTPUT
 
       - name: Configure git
         run: |

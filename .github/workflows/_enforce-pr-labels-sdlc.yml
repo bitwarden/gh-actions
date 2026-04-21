@@ -27,11 +27,11 @@ jobs:
           _NEEDS_QA_LABEL: ${{ inputs.test_pr_labels_json != '' && contains(fromJSON(inputs.test_pr_labels_json).*.name, 'needs-qa') || contains(github.event.pull_request.labels.*.name, 'needs-qa') }}
         run: |
           if [ "$_HOLD_LABEL" = "true" ]; then
-            echo "::error::PR has banned label: hold" | tee -a $GITHUB_STEP_SUMMARY
+            echo ":x: PR has banned label: hold" | tee -a $GITHUB_STEP_SUMMARY
             exit 1
           fi
           if [ "$_NEEDS_QA_LABEL" = "true" ]; then
-            echo "::error::PR has banned label: needs-qa" | tee -a $GITHUB_STEP_SUMMARY
+            echo ":x: PR has banned label: needs-qa" | tee -a $GITHUB_STEP_SUMMARY
             exit 1
           fi
           echo "✅ No banned labels found." | tee -a $GITHUB_STEP_SUMMARY
@@ -61,11 +61,11 @@ jobs:
               echo "✅ PR has exactly one Change Type (t:*) label" | tee -a $GITHUB_STEP_SUMMARY
               ;;
             0)
-              echo "::error::PR is missing a Change Type (t:*) label. PRs must have exactly one Change Type (t:*) label" | tee -a $GITHUB_STEP_SUMMARY
+              echo ":error: PR is missing a Change Type (t:*) label. PRs must have exactly one Change Type (t:*) label" | tee -a $GITHUB_STEP_SUMMARY
               exit 1
               ;;
             *)
-              echo "::error::PR has $_T_LABEL_COUNT Change Type (t:*) labels. PRs must have exactly one Change Type (t:*) label" | tee -a $GITHUB_STEP_SUMMARY
+              echo ":error: PR has $_T_LABEL_COUNT Change Type (t:*) labels. PRs must have exactly one Change Type (t:*) label" | tee -a $GITHUB_STEP_SUMMARY
               exit 1
               ;;
           esac

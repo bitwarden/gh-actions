@@ -88,9 +88,9 @@ jobs:
             local result="$2"
             local expected="$3"
             if [[ "$result" == "$expected" ]]; then
-              echo "SUCCESS: [$name] correctly got [$result]" | tee -a $GITHUB_STEP_SUMMARY
+              echo "✅ [$name] correctly got [$result]" | tee -a $GITHUB_STEP_SUMMARY
             else
-              echo "ERROR: [$name] expected [$expected] but got [$result]" | tee -a $GITHUB_STEP_SUMMARY
+              echo ":x: [$name] expected [$expected] but got [$result]" | tee -a $GITHUB_STEP_SUMMARY
               failed=true
             fi
           }
@@ -103,7 +103,7 @@ jobs:
           check_result "test-invalid-needs-qa-label"    "$_INVALID_NEEDS_QA_LABEL"    "failure"
 
           if [[ "$failed" == "true" ]]; then
-            echo "::error::One or more test results were unexpected. See above for details." | tee -a $GITHUB_STEP_SUMMARY
+            echo ":x: One or more test results were unexpected. See above for details." | tee -a $GITHUB_STEP_SUMMARY
             exit 1
           fi
 

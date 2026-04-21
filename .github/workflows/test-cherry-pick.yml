@@ -89,25 +89,10 @@ jobs:
           fi
 
 
-  cherry-pick:
-    # Call the cherry-pick.yml workflow and pass in the simulated branches and PR.
-    name: Cherry-pick
-    needs: setup
-    uses: ./.github/workflows/_cherry-pick.yml
-    with:
-      source_pr: ${{ needs.setup.outputs.simulated_pr_number }}
-      dest_branch: ${{ needs.setup.outputs.simulated_dest_branch }}
-      dest_branch_allowed: '^cherry-pick-sim-dest-[0-9]{10}$'
-      test_mode: true
-    permissions:
-      contents: write
-      pull-requests: write
-      id-token: write
-  
   cherry-pick-pr:
     # Call the cherry-pick.yml workflow in PR mode and pass in the simulated branches and PR.
     name: Cherry-pick-pr
-    needs: [setup, cherry-pick]
+    needs: setup
     uses: ./.github/workflows/_cherry-pick.yml
     with:
       source_pr: ${{ needs.setup.outputs.simulated_pr_number }}
@@ -120,11 +105,26 @@ jobs:
       pull-requests: write
       id-token: write
 
+  cherry-pick:
+    # Call the cherry-pick.yml workflow and pass in the simulated branches and PR.
+    name: Cherry-pick
+    needs: [setup, cherry-pick-pr]
+    uses: ./.github/workflows/_cherry-pick.yml
+    with:
+      source_pr: ${{ needs.setup.outputs.simulated_pr_number }}
+      dest_branch: ${{ needs.setup.outputs.simulated_dest_branch }}
+      dest_branch_allowed: '^cherry-pick-sim-dest-[0-9]{10}$'
+      test_mode: true
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+
   cleanup:
     # Cleanup all the simulated resources
     name: Cleanup Simulated Resources
     runs-on: ubuntu-24.04
-    needs: [setup, cherry-pick-pr]
+    needs: [setup, cherry-pick]
     if: always()
     env:
       _SIMULATED_MAIN_BRANCH: ${{ needs.setup.outputs.simulated_main_branch }}

@@ -103,6 +103,22 @@ jobs:
       contents: write
       pull-requests: write
       id-token: write
+  
+  cherry-pick-pr:
+    # Call the cherry-pick.yml workflow in PR mode and pass in the simulated branches and PR.
+    name: Cherry-pick
+    needs: setup
+    uses: ./.github/workflows/_cherry-pick.yml
+    with:
+      source_pr: ${{ needs.setup.outputs.simulated_pr_number }}
+      dest_branch: ${{ needs.setup.outputs.simulated_dest_branch }}
+      dest_branch_allowed: '^cherry-pick-sim-dest-[0-9]{10}$'
+      test_mode: true
+      create_pr: true
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
 
   cleanup:
     # Cleanup all the simulated resources

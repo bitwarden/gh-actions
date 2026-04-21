@@ -124,7 +124,7 @@ jobs:
     # Cleanup all the simulated resources
     name: Cleanup Simulated Resources
     runs-on: ubuntu-24.04
-    needs: [setup, cherry-pick]
+    needs: [setup, cherry-pick-pr, cherry-pick]
     if: always()
     env:
       _SIMULATED_MAIN_BRANCH: ${{ needs.setup.outputs.simulated_main_branch }}

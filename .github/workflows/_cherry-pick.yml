@@ -259,4 +259,4 @@ jobs:
             echo "WARN: Failed to add comment to PR [#$_SOURCE_PR]"
           fi
 
-
+          echo "🍒 Cherry-pick PR created: $new_pr_url." >> $GITHUB_STEP_SUMMARY

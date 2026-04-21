@@ -4,6 +4,13 @@ run-name: Enforce labels for PR ${{ github.event.pull_request.number }}
 on:
   pull_request:
     types: [labeled, unlabeled, opened, reopened, edited, synchronize]
+  workflow_call:
+    inputs:
+      test_pr_labels_json:
+        description: 'JSON label array for testing (e.g. [{"name":"t:bug"}]). Skips event context when provided.'
+        required: false
+        type: string
+        default: ''
 
 permissions: {}
 
@@ -16,23 +23,23 @@ jobs:
     steps:
       - name: Enforce banned labels (e.g. hold, needs-qa)
         env:
-          _HOLD_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'hold') }}
-          _NEEDS_QA_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'needs-qa') }}
+          _HOLD_LABEL: ${{ inputs.test_pr_labels_json != '' && contains(fromJSON(inputs.test_pr_labels_json).*.name, 'hold') || contains(github.event.pull_request.labels.*.name, 'hold') }}
+          _NEEDS_QA_LABEL: ${{ inputs.test_pr_labels_json != '' && contains(fromJSON(inputs.test_pr_labels_json).*.name, 'needs-qa') || contains(github.event.pull_request.labels.*.name, 'needs-qa') }}
         run: |
           if [ "$_HOLD_LABEL" = "true" ]; then
-            echo "::error::PR has banned label: hold"
+            echo "::error::PR has banned label: hold" | tee -a $GITHUB_STEP_SUMMARY
             exit 1
           fi
           if [ "$_NEEDS_QA_LABEL" = "true" ]; then
-            echo "::error::PR has banned label: needs-qa"
+            echo "::error::PR has banned label: needs-qa" | tee -a $GITHUB_STEP_SUMMARY
             exit 1
           fi
-          echo "✅ No banned labels found."
+          echo "✅ No banned labels found." | tee -a $GITHUB_STEP_SUMMARY
 
       - name: Enforce exactly one Change Type (t:*) label
         env:
-          _PR_ACTION: ${{ github.event.action }}
-          _PR_LABELS: ${{ toJSON(github.event.pull_request.labels) }}
+          _PR_ACTION: ${{ inputs.test_pr_labels_json != '' && 'labeled' || github.event.action }}
+          _PR_LABELS: ${{ inputs.test_pr_labels_json != '' && inputs.test_pr_labels_json || toJSON(github.event.pull_request.labels) }}
           _REPO: ${{ github.repository }}
           _PR_NUMBER: ${{ github.event.pull_request.number }}
           GH_TOKEN: ${{ github.token }}
@@ -45,21 +52,20 @@ jobs:
           fi
           _IGNORE_FOR_RELEASE_LABEL=$(echo "$_PR_LABELS" | jq 'any(.[]; .name == "ignore-for-release")')
           if [ "$_IGNORE_FOR_RELEASE_LABEL" = "true" ]; then
-            echo "⏭️ Skipping type label check - 'ignore-for-release' label present"
+            echo "⏭️ Skipping type label check - \`ignore-for-release\` label present" | tee -a $GITHUB_STEP_SUMMARY
             exit 0
           fi
           _T_LABEL_COUNT=$(echo "$_PR_LABELS" | jq '[.[] | select(.name | startswith("t:"))] | length')
           case "$_T_LABEL_COUNT" in
             1)
-              echo "✅ PR has exactly one Change Type (t:*) label"
+              echo "✅ PR has exactly one Change Type (t:*) label" | tee -a $GITHUB_STEP_SUMMARY
               ;;
             0)
-              echo "::error::PR is missing a Change Type (t:*) label. PRs must have exactly one Change Type (t:*) label"
+              echo "::error::PR is missing a Change Type (t:*) label. PRs must have exactly one Change Type (t:*) label" | tee -a $GITHUB_STEP_SUMMARY
               exit 1
               ;;
             *)
-              echo "::error::PR has $_T_LABEL_COUNT Change Type (t:*) labels. PRs must have exactly one Change Type (t:*) label"
+              echo "::error::PR has $_T_LABEL_COUNT Change Type (t:*) labels. PRs must have exactly one Change Type (t:*) label" | tee -a $GITHUB_STEP_SUMMARY
               exit 1
               ;;
           esac
-

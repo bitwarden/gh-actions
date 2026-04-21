@@ -27,6 +27,7 @@ permissions: {}
 
 jobs:
   enforce-label:
+    name: Enforce Label
     uses: bitwarden/gh-actions/.github/workflows/_enforce-pr-labels-sdlc.yml@main
     permissions:
       pull-requests: read

@@ -50,6 +50,8 @@ jobs:
           app-id: ${{ steps.retrieve-api-secret.outputs.BW-GHAPP-ID }}
           private-key: ${{ steps.retrieve-api-secret.outputs.BW-GHAPP-KEY }}
           owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
 
       - name: Configure git
         run: |

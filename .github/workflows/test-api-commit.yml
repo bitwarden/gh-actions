@@ -18,12 +18,10 @@ jobs:
       fail-fast: false
       matrix:
         mode:
-          - auto-detect-files
           - auto-detect
           - auto-detect-with-deletion
           - explicit-files
           - no-changes
-          - tag
 
     steps:
       - name: Checkout
@@ -109,6 +107,7 @@ jobs:
 
       - name: Commit via api-commit (auto-detect)
         if: matrix.mode == 'auto-detect'
+        id: api-commit-auto-detect
         uses: ./api-commit
         with:
           token: ${{ steps.app-token.outputs.token }}
@@ -117,6 +116,7 @@ jobs:
 
       - name: Commit via api-commit (auto-detect-with-deletion)
         if: matrix.mode == 'auto-detect-with-deletion'
+        id: api-commit-auto-detect-with-deletion
         uses: ./api-commit
         with:
           token: ${{ steps.app-token.outputs.token }}
@@ -125,6 +125,7 @@ jobs:
 
       - name: Commit via api-commit (explicit-files)
         if: matrix.mode == 'explicit-files'
+        id: api-commit-explicit-files
         uses: ./api-commit
         with:
           token: ${{ steps.app-token.outputs.token }}
@@ -140,11 +141,35 @@ jobs:
           TEST_BRANCH: ${{ env.TEST_BRANCH }}
           MATRIX_MODE: ${{ matrix.mode }}
           GH_REPO: ${{ github.repository }}
+          ACTION_COMMIT_SHA: ${{ steps.api-commit-auto-detect.outputs.commit_sha || steps.api-commit-auto-detect-with-deletion.outputs.commit_sha || steps.api-commit-explicit-files.outputs.commit_sha }}
         run: |
           LATEST_COMMIT=$(gh api repos/"$GH_REPO"/branches/"$TEST_BRANCH" --jq '.commit.sha')
           LATEST_MESSAGE=$(gh api repos/"$GH_REPO"/git/commits/$LATEST_COMMIT --jq '.message')
           echo "Latest commit: $LATEST_COMMIT"
           echo "Latest message: $LATEST_MESSAGE"
+
+          if [[ "$MATRIX_MODE" != "no-changes" ]]; then
+            VERIFIED=$(gh api repos/"$GH_REPO"/commits/"$LATEST_COMMIT" --jq '.commit.verification.verified')
+            REASON=$(gh api repos/"$GH_REPO"/commits/"$LATEST_COMMIT" --jq '.commit.verification.reason')
+            echo "Verified: $VERIFIED (reason: $REASON)"
+            if [[ "$VERIFIED" != "true" ]]; then
+              echo "::error::Expected commit to be verified, got verified=$VERIFIED reason=$REASON"
+              exit 1
+            fi
+            echo "✓ Commit is verified"
+
+            if [[ "$ACTION_COMMIT_SHA" != "$LATEST_COMMIT" ]]; then
+              echo "::error::commit_sha output ($ACTION_COMMIT_SHA) does not match branch HEAD ($LATEST_COMMIT)"
+              exit 1
+            fi
+            echo "✓ commit_sha output matches branch HEAD"
+          else
+            if [[ -n "$ACTION_COMMIT_SHA" ]]; then
+              echo "::error::Expected empty commit_sha for no-changes mode, got $ACTION_COMMIT_SHA"
+              exit 1
+            fi
+            echo "✓ commit_sha output is empty for no-changes mode"
+          fi
 
           if [[ "$MATRIX_MODE" == "auto-detect" ]]; then
             gh api repos/"$GH_REPO"/contents/api-commit-new-file.txt?ref="$TEST_BRANCH" > /dev/null

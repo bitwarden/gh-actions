@@ -54,6 +54,7 @@ runs:
       with:
         github-token: ${{ inputs.token }}
         script: |
+          try {
           const fs = require('fs');
           const path = require('path');
           const owner = process.env.INPUT_OWNER.trim() || context.repo.owner;
@@ -228,24 +229,12 @@ runs:
             parents: [ref.object.sha]
           });
 
-          try {
-            await github.rest.git.updateRef({
-              owner,
-              repo,
-              ref: `heads/${branch}`,
-              sha: newCommit.sha
-            });
-          } catch (err) {
-            if (err.status === 422) {
-              const body = err.response?.data;
-              const detail = body ? JSON.stringify(body) : '(no response body)';
-              core.setFailed(
-                `updateRef failed with 422. message="${err.message}" response=${detail}`
-              );
-              return;
-            }
-            throw err;
-          }
+          await github.rest.git.updateRef({
+            owner,
+            repo,
+            ref: `heads/${branch}`,
+            sha: newCommit.sha
+          });
 
           const tagName = process.env.INPUT_TAG_NAME.trim();
           if (tagName.length) {
@@ -259,3 +248,10 @@ runs:
           }
 
           core.setOutput('commit_sha', newCommit.sha);
+          } catch (err) {
+            const body = err.response?.data;
+            const detail = body ? JSON.stringify(body) : '(no response body)';
+            core.setFailed(
+              `API call failed: status=${err.status ?? 'unknown'} message="${err.message}" response=${detail}`
+            );
+          }

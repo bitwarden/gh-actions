@@ -284,11 +284,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           LATEST: ${{ inputs.make_latest }}
         run: |
-          if [ "$LATEST" ]; then
-            gh release edit "$TAG" --prerelease=false --latest --draft=false
-          else
-            gh release edit "$TAG" --prerelease=false --draft=false
-          fi
+          gh release edit "$TAG" --prerelease=false --latest="$LATEST" --draft=false
 
       - name: Disable workflow if published
         if: ${{ steps.make_release_latest.conclusion == 'success' }}

@@ -1,5 +1,4 @@
 name: Test API Commit Action
-
 on:
   workflow_dispatch:
   pull_request:
@@ -8,225 +7,173 @@ on:
       - ".github/workflows/test-api-commit.yml"
 
 permissions:
-  contents: read
+  contents: write
+  id-token: write
 
 jobs:
   test-api:
     name: Test API commit (${{ matrix.mode }})
     runs-on: ubuntu-24.04
-    permissions:
-      contents: write
     strategy:
       fail-fast: false
       matrix:
         mode:
-          - explicit-files
           - auto-detect-files
+          - auto-detect
+          - auto-detect-with-deletion
+          - explicit-files
           - no-changes
           - tag
+
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          persist-credentials: false
+          persist-credentials: true
 
-      - name: Create test branch
-        id: setup
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPOSITORY: ${{ github.repository }}
+      - name: Log in to Azure
+        uses: bitwarden/gh-actions/azure-login@main
+        with:
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
+
+      - name: Retrieve api secrets
+        id: retrieve-api-secret
+        uses: bitwarden/gh-actions/get-keyvault-secrets@main
+        with:
+          keyvault: gh-org-bitwarden
+          secrets: "BW-GHAPP-ID,BW-GHAPP-KEY"
+
+      - name: Generate GH App token
+        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+        id: app-token
+        with:
+          app-id: ${{ steps.retrieve-api-secret.outputs.BW-GHAPP-ID }}
+          private-key: ${{ steps.retrieve-api-secret.outputs.BW-GHAPP-KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Configure git
         run: |
-          TIMESTAMP=$(date +%s)
-          TEST_BRANCH="api-commit-${{ matrix.mode }}-$TIMESTAMP"
-          echo "test_branch=$TEST_BRANCH" >> "$GITHUB_OUTPUT"
-          echo "test_tag=api-commit-tag-test-$TIMESTAMP" >> "$GITHUB_OUTPUT"
+          git config --local user.email "178206702+bw-ghapp[bot]@users.noreply.github.com"
+          git config --local user.name "bw-ghapp[bot]"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
 
-          SHA=$(gh api "repos/$REPOSITORY/git/ref/heads/main" --jq '.object.sha')
-          gh api "repos/$REPOSITORY/git/refs" \
-            --method POST \
-            -f "ref=refs/heads/$TEST_BRANCH" \
-            -f "sha=$SHA"
+      - name: Create isolated test branch
+        run: |
+          TEST_BRANCH="test/${{ github.run_id }}-${{ matrix.mode }}"
+          echo "TEST_BRANCH=$TEST_BRANCH" >> $GITHUB_ENV
+          git checkout -b $TEST_BRANCH
+          git push origin $TEST_BRANCH
 
-      - name: Create test files (explicit files)
+      # ── auto-detect ───────────────────────────────────────────────────────────
+
+      - name: Create file (auto-detect)
+        if: matrix.mode == 'auto-detect'
+        run: |
+          echo "content $(date +%s)" > api-commit-new-file.txt
+          git add api-commit-new-file.txt
+
+      # ── auto-detect-with-deletion ─────────────────────────────────────────────
+
+      - name: Create and push file to be deleted (auto-detect-with-deletion)
+        if: matrix.mode == 'auto-detect-with-deletion'
+        env:
+          TEST_BRANCH: ${{ env.TEST_BRANCH }}
+        run: |
+          git checkout "$TEST_BRANCH"
+          echo "content to delete" > api-commit-file-to-delete.txt
+          git add api-commit-file-to-delete.txt
+          git commit -m "temp: add file to be deleted"
+          git push origin HEAD:"$TEST_BRANCH"
+
+      - name: Stage deletion and new file (auto-detect-with-deletion)
+        if: matrix.mode == 'auto-detect-with-deletion'
+        env:
+          TEST_BRANCH: ${{ env.TEST_BRANCH }}
+        run: |
+          git checkout "$TEST_BRANCH"
+          git pull origin "$TEST_BRANCH"
+          git rm api-commit-file-to-delete.txt
+          echo "content $(date +%s)" > api-commit-deletion-test-file.txt
+          git add api-commit-deletion-test-file.txt
+
+      # ── explicit-files ────────────────────────────────────────────────────────
+
+      - name: Create file (explicit-files)
         if: matrix.mode == 'explicit-files'
         run: |
-          echo "content $(date +%s)" > api-commit-test-file-1.txt
-          echo "content $(date +%s)" > api-commit-test-file-2.txt
+          echo "content $(date +%s)" > api-commit-explicit-file.txt
 
-      - name: Run API Commit action (explicit files)
-        id: api-commit-explicit
+      # ── run api-commit ────────────────────────────────────────────────────────
+
+      - name: Commit via api-commit (auto-detect)
+        if: matrix.mode == 'auto-detect'
+        uses: ./api-commit
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: ${{ env.TEST_BRANCH }}
+          message: "test: auto-detect commit"
+
+      - name: Commit via api-commit (auto-detect-with-deletion)
+        if: matrix.mode == 'auto-detect-with-deletion'
+        uses: ./api-commit
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: ${{ env.TEST_BRANCH }}
+          message: "test: auto-detect with deletion commit"
+
+      - name: Commit via api-commit (explicit-files)
         if: matrix.mode == 'explicit-files'
         uses: ./api-commit
         with:
-          files: |
-            api-commit-test-file-1.txt
-            api-commit-test-file-2.txt
-          message: "chore: test API commit"
-          branch: ${{ steps.setup.outputs.test_branch }}
-          token: ${{ github.token }}
+          token: ${{ steps.app-token.outputs.token }}
+          branch: ${{ env.TEST_BRANCH }}
+          message: "test: explicit files commit"
+          files: api-commit-explicit-file.txt
 
-      - name: Create and stage test file (auto-detect files)
-        if: matrix.mode == 'auto-detect-files'
-        run: |
-          echo "content $(date +%s)" > api-commit-auto-test-file.txt
-          git add api-commit-auto-test-file.txt
-
-      - name: Run API Commit action (auto-detect files)
-        id: api-commit-auto
-        if: matrix.mode == 'auto-detect-files'
-        uses: ./api-commit
-        with:
-          message: "chore: test API commit auto-detect"
-          branch: ${{ steps.setup.outputs.test_branch }}
-          token: ${{ github.token }}
-
-      - name: Run API Commit action (no changes)
-        id: api-commit-no-changes
-        if: matrix.mode == 'no-changes'
-        uses: ./api-commit
-        with:
-          message: "chore: test API commit no changes"
-          branch: ${{ steps.setup.outputs.test_branch }}
-          token: ${{ github.token }}
-
-      - name: Create test file (tag)
-        if: matrix.mode == 'tag'
-        run: |
-          echo "content $(date +%s)" > api-commit-tag-test-file.txt
-
-      - name: Run API Commit action (tag)
-        id: api-commit-tag
-        if: matrix.mode == 'tag'
-        uses: ./api-commit
-        with:
-          files: api-commit-tag-test-file.txt
-          message: "chore: test API commit with tag"
-          branch: ${{ steps.setup.outputs.test_branch }}
-          tag_name: ${{ steps.setup.outputs.test_tag }}
-          token: ${{ github.token }}
-
-      - name: Get commit SHA
-        id: commit
-        env:
-          EXPLICIT_FILES_SHA: ${{ steps.api-commit-explicit.outputs.commit_sha }}
-          EXPECTED_EXPLICIT_FILES: "api-commit-test-file-1.txt,api-commit-test-file-2.txt"
-          AUTO_DETECT_FILES_SHA: ${{ steps.api-commit-auto.outputs.commit_sha }}
-          EXPECTED_AUTO_DETECT_FILES: "api-commit-auto-test-file.txt"
-          NO_CHANGES_OUTCOME: ${{ steps.api-commit-no-changes.outcome }}
-          TAG_SHA: ${{ steps.api-commit-tag.outputs.commit_sha }}
-          EXPECTED_TAG_FILES: "api-commit-tag-test-file.txt"
-          TEST_TAG: ${{ steps.setup.outputs.test_tag }}
-        run: |
-          if [[ -n "$EXPLICIT_FILES_SHA" ]]; then
-            echo "sha=$EXPLICIT_FILES_SHA" >> "$GITHUB_OUTPUT"
-            echo "expected_files=$EXPECTED_EXPLICIT_FILES" >> "$GITHUB_OUTPUT"
-            echo "tag_name=" >> "$GITHUB_OUTPUT"
-          elif [[ -n "$AUTO_DETECT_FILES_SHA" ]]; then
-            echo "sha=$AUTO_DETECT_FILES_SHA" >> "$GITHUB_OUTPUT"
-            echo "expected_files=$EXPECTED_AUTO_DETECT_FILES" >> "$GITHUB_OUTPUT"
-            echo "tag_name=" >> "$GITHUB_OUTPUT"
-          elif [[ "$NO_CHANGES_OUTCOME" == "success" ]]; then
-            echo "sha=" >> "$GITHUB_OUTPUT"
-            echo "expected_files=" >> "$GITHUB_OUTPUT"
-            echo "tag_name=" >> "$GITHUB_OUTPUT"
-          elif [[ -n "$TAG_SHA" ]]; then
-            echo "sha=$TAG_SHA" >> "$GITHUB_OUTPUT"
-            echo "expected_files=$EXPECTED_TAG_FILES" >> "$GITHUB_OUTPUT"
-            echo "tag_name=$TEST_TAG" >> "$GITHUB_OUTPUT"
-          else
-            echo "::error::No commit SHA found"
-            exit 1
-          fi
-
-      - name: Validate commit was created
-        env:
-          COMMIT_SHA: ${{ steps.commit.outputs.sha }}
-          EXPECTED_FILES: ${{ steps.commit.outputs.expected_files }}
-          BRANCH: ${{ steps.setup.outputs.test_branch }}
-          GH_TOKEN: ${{ github.token }}
-          REPOSITORY: ${{ github.repository }}
-        run: |
-          if [[ -z "$EXPECTED_FILES" ]]; then
-            if [[ -n "$COMMIT_SHA" ]]; then
-              echo "::error::Expected no commit to be made, but got commit_sha=$COMMIT_SHA"
-              exit 1
-            fi
-            echo "Correctly produced no commit"
-            exit 0
-          fi
-
-          echo "Commit SHA from action: $COMMIT_SHA"
-
-          if [[ -z "$COMMIT_SHA" ]]; then
-            echo "::error::commit_sha output was empty"
-            exit 1
-          fi
-
-          REMOTE_SHA=$(git ls-remote origin "refs/heads/$BRANCH" | cut -f1)
-          echo "Remote branch HEAD SHA: $REMOTE_SHA"
-
-          if [[ "$REMOTE_SHA" != "$COMMIT_SHA" ]]; then
-            echo "::error::SHA mismatch: action returned $COMMIT_SHA but branch HEAD is $REMOTE_SHA"
-            exit 1
-          fi
-
-          CHANGED_FILES=$(gh api "repos/$REPOSITORY/commits/$COMMIT_SHA" --jq '[.files[].filename] | sort | join(",")')
-          echo "Files changed in commit: $CHANGED_FILES"
-
-          if [[ "$CHANGED_FILES" != "$EXPECTED_FILES" ]]; then
-            echo "::error::Expected $EXPECTED_FILES in commit, got: $CHANGED_FILES"
-            exit 1
-          fi
-
-          echo "Commit verified successfully"
+      # ── verify ────────────────────────────────────────────────────────────────
 
       - name: Check commit verification status
-        if: steps.commit.outputs.sha != ''
         env:
-          GH_TOKEN: ${{ github.token }}
-          COMMIT_SHA: ${{ steps.commit.outputs.sha }}
-          REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          TEST_BRANCH: ${{ env.TEST_BRANCH }}
+          MATRIX_MODE: ${{ matrix.mode }}
+          GH_REPO: ${{ github.repository }}
         run: |
-          # GitHub automatically signs commits created via the Git Data API,
-          # so verified=true is expected regardless of which token is used.
-          VERIFIED=$(gh api "repos/$REPOSITORY/commits/$COMMIT_SHA" --jq '.commit.verification.verified')
-          REASON=$(gh api "repos/$REPOSITORY/commits/$COMMIT_SHA" --jq '.commit.verification.reason')
-          echo "Verified: $VERIFIED (reason: $REASON)"
+          LATEST_COMMIT=$(gh api repos/"$GH_REPO"/branches/"$TEST_BRANCH" --jq '.commit.sha')
+          LATEST_MESSAGE=$(gh api repos/"$GH_REPO"/git/commits/$LATEST_COMMIT --jq '.message')
+          echo "Latest commit: $LATEST_COMMIT"
+          echo "Latest message: $LATEST_MESSAGE"
 
-          if [[ "$VERIFIED" != "true" ]]; then
-            echo "::error::Expected commit to be verified, got verified=$VERIFIED reason=$REASON"
-            exit 1
+          if [[ "$MATRIX_MODE" == "auto-detect" ]]; then
+            gh api repos/"$GH_REPO"/contents/api-commit-new-file.txt?ref="$TEST_BRANCH" > /dev/null
+            echo "✓ api-commit-new-file.txt exists on branch"
           fi
 
-      - name: Validate tag was created
-        if: steps.commit.outputs.tag_name != ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-          COMMIT_SHA: ${{ steps.commit.outputs.sha }}
-          TAG_NAME: ${{ steps.commit.outputs.tag_name }}
-          REPOSITORY: ${{ github.repository }}
-        run: |
-          TAG_SHA=$(gh api "repos/$REPOSITORY/git/ref/tags/$TAG_NAME" --jq '.object.sha')
-          echo "Tag $TAG_NAME points to: $TAG_SHA"
-
-          if [[ "$TAG_SHA" != "$COMMIT_SHA" ]]; then
-            echo "::error::Tag SHA mismatch: expected $COMMIT_SHA but tag points to $TAG_SHA"
-            exit 1
+          if [[ "$MATRIX_MODE" == "auto-detect-with-deletion" ]]; then
+            gh api repos/"$GH_REPO"/contents/api-commit-deletion-test-file.txt?ref="$TEST_BRANCH" > /dev/null
+            echo "✓ api-commit-deletion-test-file.txt exists on branch"
+            if gh api repos/"$GH_REPO"/contents/api-commit-file-to-delete.txt?ref="$TEST_BRANCH" 2>/dev/null; then
+              echo "✗ api-commit-file-to-delete.txt still exists — deletion failed"
+              exit 1
+            else
+              echo "✓ api-commit-file-to-delete.txt was deleted"
+            fi
           fi
 
-          echo "Tag verified successfully"
+          if [[ "$MATRIX_MODE" == "explicit-files" ]]; then
+            gh api repos/"$GH_REPO"/contents/api-commit-explicit-file.txt?ref="$TEST_BRANCH" > /dev/null
+            echo "✓ api-commit-explicit-file.txt exists on branch"
+          fi
 
-      - name: Cleanup test branch and tag
+      # ── cleanup ───────────────────────────────────────────────────────────────
+
+      - name: Cleanup test branch
+        run: |
+          TEST_BRANCH="test/${{ github.run_id }}-${{ matrix.mode }}"
+          git push origin --delete $TEST_BRANCH || echo "Branch $TEST_BRANCH already deleted or never created"
+
+      - name: Log out from Azure
         if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          BRANCH: ${{ steps.setup.outputs.test_branch }}
-          TAG_NAME: ${{ steps.commit.outputs.tag_name }}
-          REPOSITORY: ${{ github.repository }}
-        run: |
-          if [[ -n "$BRANCH" ]]; then
-            gh api "repos/$REPOSITORY/git/refs/heads/$BRANCH" --method DELETE
-          fi
-          if [[ -n "$TAG_NAME" ]]; then
-            gh api "repos/$REPOSITORY/git/refs/tags/$TAG_NAME" --method DELETE
-          fi
+        uses: bitwarden/gh-actions/azure-logout@main

@@ -133,6 +133,15 @@ jobs:
           message: "test: explicit files commit"
           files: api-commit-explicit-file.txt
 
+      - name: Commit via api-commit (no-changes)
+        if: matrix.mode == 'no-changes'
+        id: api-commit-no-changes
+        uses: ./api-commit
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: ${{ env.TEST_BRANCH }}
+          message: "test: no-changes commit"
+
       # ── verify ────────────────────────────────────────────────────────────────
 
       - name: Check commit verification status
@@ -141,7 +150,7 @@ jobs:
           TEST_BRANCH: ${{ env.TEST_BRANCH }}
           MATRIX_MODE: ${{ matrix.mode }}
           GH_REPO: ${{ github.repository }}
-          ACTION_COMMIT_SHA: ${{ steps.api-commit-auto-detect.outputs.commit_sha || steps.api-commit-auto-detect-with-deletion.outputs.commit_sha || steps.api-commit-explicit-files.outputs.commit_sha }}
+          ACTION_COMMIT_SHA: ${{ steps.api-commit-auto-detect.outputs.commit_sha || steps.api-commit-auto-detect-with-deletion.outputs.commit_sha || steps.api-commit-explicit-files.outputs.commit_sha || steps.api-commit-no-changes.outputs.commit_sha }}
         run: |
           LATEST_COMMIT=$(gh api repos/"$GH_REPO"/branches/"$TEST_BRANCH" --jq '.commit.sha')
           LATEST_MESSAGE=$(gh api repos/"$GH_REPO"/git/commits/$LATEST_COMMIT --jq '.message')

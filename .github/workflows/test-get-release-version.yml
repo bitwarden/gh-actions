@@ -18,8 +18,6 @@ jobs:
   test-get-release-version:
     name: Test Get Release Version
     runs-on: ubuntu-22.04
-    env:
-      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
@@ -30,6 +28,8 @@ jobs:
 
       - name: Non-monorepo, trim=false
         id: non_monorepo_no_trim
+        env:
+          GH_TOKEN: ${{ github.token }}
         continue-on-error: true
         uses: ./get-release-version
         with:
@@ -37,6 +37,8 @@ jobs:
 
       - name: Non-monorepo, trim=true
         id: non_monorepo_trim
+        env:
+          GH_TOKEN: ${{ github.token }}
         continue-on-error: true
         uses: ./get-release-version
         with:
@@ -45,6 +47,8 @@ jobs:
 
       - name: Monorepo browser, trim=false
         id: monorepo_browser_no_trim
+        env:
+          GH_TOKEN: ${{ github.token }}
         continue-on-error: true
         uses: ./get-release-version
         with:
@@ -54,6 +58,8 @@ jobs:
 
       - name: Monorepo browser, trim=true
         id: monorepo_browser_trim
+        env:
+          GH_TOKEN: ${{ github.token }}
         continue-on-error: true
         uses: ./get-release-version
         with:
@@ -64,6 +70,8 @@ jobs:
 
       - name: Monorepo cli, trim=false
         id: monorepo_cli
+        env:
+          GH_TOKEN: ${{ github.token }}
         continue-on-error: true
         uses: ./get-release-version
         with:
@@ -73,6 +81,8 @@ jobs:
 
       - name: Monorepo desktop, trim=false
         id: monorepo_desktop
+        env:
+          GH_TOKEN: ${{ github.token }}
         continue-on-error: true
         uses: ./get-release-version
         with:
@@ -82,6 +92,8 @@ jobs:
 
       - name: Monorepo web, trim=false
         id: monorepo_web
+        env:
+          GH_TOKEN: ${{ github.token }}
         continue-on-error: true
         uses: ./get-release-version
         with:
@@ -93,6 +105,8 @@ jobs:
 
       - name: Invalid trim value
         id: invalid_trim
+        env:
+          GH_TOKEN: ${{ github.token }}
         continue-on-error: true
         uses: ./get-release-version
         with:
@@ -101,6 +115,8 @@ jobs:
 
       - name: Invalid monorepo value
         id: invalid_monorepo
+        env:
+          GH_TOKEN: ${{ github.token }}
         continue-on-error: true
         uses: ./get-release-version
         with:
@@ -109,6 +125,8 @@ jobs:
 
       - name: Monorepo=true without monorepo-project
         id: monorepo_no_project
+        env:
+          GH_TOKEN: ${{ github.token }}
         continue-on-error: true
         uses: ./get-release-version
         with:
@@ -117,6 +135,8 @@ jobs:
 
       - name: Invalid monorepo-project value
         id: invalid_monorepo_project
+        env:
+          GH_TOKEN: ${{ github.token }}
         continue-on-error: true
         uses: ./get-release-version
         with:

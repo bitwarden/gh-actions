@@ -1,0 +1,202 @@
+name: Test Get Release Version Action
+
+on:
+  pull_request:
+    paths:
+      - "get-release-version/**"
+      - ".github/workflows/test-get-release-version.yml"
+  push:
+    branches:
+      - "main"
+  workflow_dispatch:
+    inputs: {}
+
+permissions:
+  contents: read
+
+jobs:
+  test-get-release-version:
+    name: Test Get Release Version
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      ### Valid cases ###
+
+      - name: Non-monorepo, trim=false
+        id: non_monorepo_no_trim
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/server
+
+      - name: Non-monorepo, trim=true
+        id: non_monorepo_trim
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/server
+          trim: "true"
+
+      - name: Monorepo browser, trim=false
+        id: monorepo_browser_no_trim
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/clients
+          monorepo: "true"
+          monorepo-project: browser
+
+      - name: Monorepo browser, trim=true
+        id: monorepo_browser_trim
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/clients
+          trim: "true"
+          monorepo: "true"
+          monorepo-project: browser
+
+      - name: Monorepo cli, trim=false
+        id: monorepo_cli
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/clients
+          monorepo: "true"
+          monorepo-project: cli
+
+      - name: Monorepo desktop, trim=false
+        id: monorepo_desktop
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/clients
+          monorepo: "true"
+          monorepo-project: desktop
+
+      - name: Monorepo web, trim=false
+        id: monorepo_web
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/clients
+          monorepo: "true"
+          monorepo-project: web
+
+      ### Invalid cases ###
+
+      - name: Invalid trim value
+        id: invalid_trim
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/server
+          trim: "maybe"
+
+      - name: Invalid monorepo value
+        id: invalid_monorepo
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/server
+          monorepo: "yes"
+
+      - name: Monorepo=true without monorepo-project
+        id: monorepo_no_project
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/clients
+          monorepo: "true"
+
+      - name: Invalid monorepo-project value
+        id: invalid_monorepo_project
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/clients
+          monorepo: "true"
+          monorepo-project: mobile
+
+      ### Validate ###
+
+      - name: Validate Outputs
+        env:
+          NON_MONOREPO_NO_TRIM_OUTCOME: ${{ steps.non_monorepo_no_trim.outcome }}
+          NON_MONOREPO_NO_TRIM_VERSION: ${{ steps.non_monorepo_no_trim.outputs.version }}
+          NON_MONOREPO_TRIM_OUTCOME: ${{ steps.non_monorepo_trim.outcome }}
+          NON_MONOREPO_TRIM_VERSION: ${{ steps.non_monorepo_trim.outputs.version }}
+          MONOREPO_BROWSER_NO_TRIM_OUTCOME: ${{ steps.monorepo_browser_no_trim.outcome }}
+          MONOREPO_BROWSER_NO_TRIM_VERSION: ${{ steps.monorepo_browser_no_trim.outputs.version }}
+          MONOREPO_BROWSER_TRIM_OUTCOME: ${{ steps.monorepo_browser_trim.outcome }}
+          MONOREPO_BROWSER_TRIM_VERSION: ${{ steps.monorepo_browser_trim.outputs.version }}
+          MONOREPO_CLI_OUTCOME: ${{ steps.monorepo_cli.outcome }}
+          MONOREPO_CLI_VERSION: ${{ steps.monorepo_cli.outputs.version }}
+          MONOREPO_DESKTOP_OUTCOME: ${{ steps.monorepo_desktop.outcome }}
+          MONOREPO_DESKTOP_VERSION: ${{ steps.monorepo_desktop.outputs.version }}
+          MONOREPO_WEB_OUTCOME: ${{ steps.monorepo_web.outcome }}
+          MONOREPO_WEB_VERSION: ${{ steps.monorepo_web.outputs.version }}
+          INVALID_TRIM_OUTCOME: ${{ steps.invalid_trim.outcome }}
+          INVALID_MONOREPO_OUTCOME: ${{ steps.invalid_monorepo.outcome }}
+          MONOREPO_NO_PROJECT_OUTCOME: ${{ steps.monorepo_no_project.outcome }}
+          INVALID_MONOREPO_PROJECT_OUTCOME: ${{ steps.invalid_monorepo_project.outcome }}
+        run: |
+          test_failures=()
+
+          function assert_success() {
+            local name="$1"
+            local outcome="$2"
+            local version="$3"
+            local pattern="$4"
+
+            if [[ "$outcome" != "success" ]]; then
+              echo "${name}: FAIL (expected success, got ${outcome})"
+              test_failures+=("$name")
+            elif [[ -z "$version" ]]; then
+              echo "${name}: FAIL (version is empty)"
+              test_failures+=("$name")
+            elif [[ ! "$version" =~ $pattern ]]; then
+              echo "${name}: FAIL (version '${version}' does not match pattern '${pattern}')"
+              test_failures+=("$name")
+            else
+              echo "${name}: pass (version=${version})"
+            fi
+          }
+
+          function assert_failure() {
+            local name="$1"
+            local outcome="$2"
+
+            if [[ "$outcome" != "failure" ]]; then
+              echo "${name}: FAIL (expected failure, got ${outcome})"
+              test_failures+=("$name")
+            else
+              echo "${name}: pass"
+            fi
+          }
+
+          assert_success "Non-monorepo, trim=false"     "$NON_MONOREPO_NO_TRIM_OUTCOME"     "$NON_MONOREPO_NO_TRIM_VERSION"     '^v[0-9]+\.[0-9]+\.[0-9]+'
+          assert_success "Non-monorepo, trim=true"      "$NON_MONOREPO_TRIM_OUTCOME"        "$NON_MONOREPO_TRIM_VERSION"        '^[0-9]+\.[0-9]+\.[0-9]+'
+          assert_success "Monorepo browser, trim=false" "$MONOREPO_BROWSER_NO_TRIM_OUTCOME" "$MONOREPO_BROWSER_NO_TRIM_VERSION" '^browser-v[0-9]+\.[0-9]+\.[0-9]+'
+          assert_success "Monorepo browser, trim=true"  "$MONOREPO_BROWSER_TRIM_OUTCOME"    "$MONOREPO_BROWSER_TRIM_VERSION"    '^[0-9]+\.[0-9]+\.[0-9]+'
+          assert_success "Monorepo cli, trim=false"     "$MONOREPO_CLI_OUTCOME"             "$MONOREPO_CLI_VERSION"             '^cli-v[0-9]+\.[0-9]+\.[0-9]+'
+          assert_success "Monorepo desktop, trim=false" "$MONOREPO_DESKTOP_OUTCOME"         "$MONOREPO_DESKTOP_VERSION"         '^desktop-v[0-9]+\.[0-9]+\.[0-9]+'
+          assert_success "Monorepo web, trim=false"     "$MONOREPO_WEB_OUTCOME"             "$MONOREPO_WEB_VERSION"             '^web-v[0-9]+\.[0-9]+\.[0-9]+'
+
+          assert_failure "Invalid trim value"                "$INVALID_TRIM_OUTCOME"
+          assert_failure "Invalid monorepo value"            "$INVALID_MONOREPO_OUTCOME"
+          assert_failure "Monorepo=true without project"     "$MONOREPO_NO_PROJECT_OUTCOME"
+          assert_failure "Invalid monorepo-project value"    "$INVALID_MONOREPO_PROJECT_OUTCOME"
+
+          if [[ ${#test_failures[@]} -gt 0 ]]; then
+            echo ""
+            echo "Failed tests: ${test_failures[*]}"
+            exit 1
+          else
+            echo ""
+            echo "All tests passed!"
+          fi

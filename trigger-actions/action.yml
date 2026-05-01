@@ -1,0 +1,79 @@
+name: "Trigger Actions"
+description: "Creates a GitHub deployment event on a target repository to trigger downstream deployment workflows"
+
+inputs:
+  azure_subscription_id:
+    description: "Azure Subscription ID"
+    required: true
+  azure_tenant_id:
+    description: "Azure Tenant ID"
+    required: true
+  azure_client_id:
+    description: "Azure Client ID"
+    required: true
+  repository:
+    description: "Target repository to create the deployment on (e.g., 'deploy', 'devops')"
+    required: false
+    default: deploy
+  task:
+    description: "Deployment task name used for routing in the target repository"
+    required: true
+  description:
+    description: "Human-readable description of the deployment trigger"
+    required: false
+    default: ""
+  test:
+    description: "Skip GitHub App token generation and use the calling workflow's token instead (for testing only)"
+    required: false
+    default: "false"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Log in to Azure
+      uses: bitwarden/gh-actions/azure-login@main
+      with:
+        subscription_id: ${{ inputs.azure_subscription_id }}
+        tenant_id: ${{ inputs.azure_tenant_id }}
+        client_id: ${{ inputs.azure_client_id }}
+
+    - name: Retrieve secrets
+      id: retrieve-secrets
+      uses: bitwarden/gh-actions/get-keyvault-secrets@main
+      with:
+        keyvault: gh-org-bitwarden
+        secrets: "GH-TRIGGER-APP-ID,GH-TRIGGER-APP-KEY"
+
+    - name: Log out from Azure
+      uses: bitwarden/gh-actions/azure-logout@main
+
+    - name: Generate GitHub App token
+      id: app-token
+      if: inputs.test != 'true'
+      uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
+      with:
+        app-id: ${{ steps.retrieve-secrets.outputs.GH-TRIGGER-APP-ID }}
+        private-key: ${{ steps.retrieve-secrets.outputs.GH-TRIGGER-APP-KEY }}
+        owner: bitwarden
+        repositories: ${{ inputs.repository }}
+        permission-deployments: write
+
+    - name: Create deployment
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+      env:
+        _REPOSITORY: ${{ inputs.repository }}
+        _TASK: ${{ inputs.task }}
+        _DESCRIPTION: ${{ inputs.description }}
+      with:
+        github-token: ${{ inputs.test == 'true' && github.token || steps.app-token.outputs.token }}
+        script: |
+          await github.rest.repos.createDeployment({
+            owner: 'bitwarden',
+            repo: process.env._REPOSITORY,
+            ref: 'main',
+            environment: 'trigger-actions',
+            task: process.env._TASK,
+            auto_merge: false,
+            required_contexts: [],
+            description: process.env._DESCRIPTION || process.env._TASK
+          })

@@ -89,10 +89,26 @@ jobs:
           fi
 
 
+  cherry-pick-pr:
+    # Call the cherry-pick.yml workflow in PR mode and pass in the simulated branches and PR.
+    name: Cherry-pick-pr
+    needs: setup
+    uses: ./.github/workflows/_cherry-pick.yml
+    with:
+      source_pr: ${{ needs.setup.outputs.simulated_pr_number }}
+      dest_branch: ${{ needs.setup.outputs.simulated_dest_branch }}
+      dest_branch_allowed: '^cherry-pick-sim-dest-[0-9]{10}$'
+      test_mode: true
+      create_pr: true
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+
   cherry-pick:
     # Call the cherry-pick.yml workflow and pass in the simulated branches and PR.
     name: Cherry-pick
-    needs: setup
+    needs: [setup, cherry-pick-pr]
     uses: ./.github/workflows/_cherry-pick.yml
     with:
       source_pr: ${{ needs.setup.outputs.simulated_pr_number }}
@@ -108,13 +124,14 @@ jobs:
     # Cleanup all the simulated resources
     name: Cleanup Simulated Resources
     runs-on: ubuntu-24.04
-    needs: [setup, cherry-pick]
+    needs: [setup, cherry-pick-pr, cherry-pick]
     if: always()
     env:
       _SIMULATED_MAIN_BRANCH: ${{ needs.setup.outputs.simulated_main_branch }}
       _SIMULATED_FEATURE_BRANCH: ${{ needs.setup.outputs.simulated_feature_branch }}
       _SIMULATED_DEST_BRANCH: ${{ needs.setup.outputs.simulated_dest_branch }}
       _SIMULATED_PR_NUMBER: ${{ needs.setup.outputs.simulated_pr_number }}
+      _CHERRY_PICK_BRANCH: ${{ needs.cherry-pick-pr.outputs.cherry_pick_branch }}
     permissions:
       contents: write
       pull-requests: write
@@ -128,6 +145,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          sleep 120
           if [[ -n $_SIMULATED_PR_NUMBER ]]; then
             pr_state=$(gh pr view "$_SIMULATED_PR_NUMBER" --json state --jq '.state')
             if [[ $pr_state == 'OPEN' ]]; then
@@ -157,6 +175,17 @@ jobs:
               fi
             else
               echo "INFO: Branch [$_SIMULATED_MAIN_BRANCH] does not exist or was already deleted."
+            fi
+          fi
+
+          if [[ -n $_CHERRY_PICK_BRANCH ]]; then
+            if git ls-remote --exit-code --heads origin "$_CHERRY_PICK_BRANCH" >/dev/null 2>&1; then
+              echo "INFO: Deleting cherry-pick branch [$_CHERRY_PICK_BRANCH]"
+              if ! git push origin --delete "$_CHERRY_PICK_BRANCH"; then
+                echo "WARN: Failed to delete [$_CHERRY_PICK_BRANCH] branch. Please manually delete this."
+              fi
+            else
+              echo "INFO: Branch [$_CHERRY_PICK_BRANCH] does not exist or was already deleted."
             fi
           fi
 

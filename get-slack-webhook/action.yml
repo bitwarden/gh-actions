@@ -7,7 +7,6 @@ inputs:
     required: true
   include_bre_alerts:
     description: If 'true', also fetch the slack-webhook-bre-alerts secret in the same KV call.
-    required: false
     default: "false"
   azure_subscription_id:
     description: Azure subscription ID for OIDC login.
@@ -42,7 +41,6 @@ runs:
       uses: bitwarden/gh-actions/get-keyvault-secrets@main
       with:
         keyvault: gh-devops
-        # One KV call covers both secrets when include_bre_alerts is true; saves a round trip vs. two separate fetches.
         secrets: ${{ inputs.include_bre_alerts == 'true' && format('{0},slack-webhook-bre-alerts', inputs.webhook_secret_name) || inputs.webhook_secret_name }}
 
     - name: Log out from Azure

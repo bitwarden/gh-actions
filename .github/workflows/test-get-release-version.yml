@@ -28,8 +28,6 @@ jobs:
 
       - name: Non-monorepo, trim=false
         id: non_monorepo_no_trim
-        env:
-          GH_TOKEN: ${{ github.token }}
         continue-on-error: true
         uses: ./get-release-version
         with:
@@ -37,8 +35,6 @@ jobs:
 
       - name: Non-monorepo, trim=true
         id: non_monorepo_trim
-        env:
-          GH_TOKEN: ${{ github.token }}
         continue-on-error: true
         uses: ./get-release-version
         with:
@@ -47,8 +43,6 @@ jobs:
 
       - name: Monorepo browser, trim=false
         id: monorepo_browser_no_trim
-        env:
-          GH_TOKEN: ${{ github.token }}
         continue-on-error: true
         uses: ./get-release-version
         with:
@@ -58,8 +52,6 @@ jobs:
 
       - name: Monorepo browser, trim=true
         id: monorepo_browser_trim
-        env:
-          GH_TOKEN: ${{ github.token }}
         continue-on-error: true
         uses: ./get-release-version
         with:
@@ -70,8 +62,6 @@ jobs:
 
       - name: Monorepo cli, trim=false
         id: monorepo_cli
-        env:
-          GH_TOKEN: ${{ github.token }}
         continue-on-error: true
         uses: ./get-release-version
         with:
@@ -81,8 +71,6 @@ jobs:
 
       - name: Monorepo desktop, trim=false
         id: monorepo_desktop
-        env:
-          GH_TOKEN: ${{ github.token }}
         continue-on-error: true
         uses: ./get-release-version
         with:
@@ -91,9 +79,7 @@ jobs:
           monorepo-project: desktop
 
       - name: Monorepo web, trim=false
-        id: monorepo_web
-        env:
-          GH_TOKEN: ${{ github.token }}
+        id: monorepo_web_no_trim
         continue-on-error: true
         uses: ./get-release-version
         with:
@@ -101,12 +87,20 @@ jobs:
           monorepo: "true"
           monorepo-project: web
 
+      - name: Monorepo web, trim=true
+        id: monorepo_web_trim
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/clients
+          trim: "true"
+          monorepo: "true"
+          monorepo-project: web
+
       ### Invalid cases ###
 
       - name: Invalid trim value
         id: invalid_trim
-        env:
-          GH_TOKEN: ${{ github.token }}
         continue-on-error: true
         uses: ./get-release-version
         with:
@@ -115,8 +109,6 @@ jobs:
 
       - name: Invalid monorepo value
         id: invalid_monorepo
-        env:
-          GH_TOKEN: ${{ github.token }}
         continue-on-error: true
         uses: ./get-release-version
         with:
@@ -125,8 +117,6 @@ jobs:
 
       - name: Monorepo=true without monorepo-project
         id: monorepo_no_project
-        env:
-          GH_TOKEN: ${{ github.token }}
         continue-on-error: true
         uses: ./get-release-version
         with:
@@ -135,8 +125,6 @@ jobs:
 
       - name: Invalid monorepo-project value
         id: invalid_monorepo_project
-        env:
-          GH_TOKEN: ${{ github.token }}
         continue-on-error: true
         uses: ./get-release-version
         with:
@@ -160,8 +148,10 @@ jobs:
           MONOREPO_CLI_VERSION: ${{ steps.monorepo_cli.outputs.version }}
           MONOREPO_DESKTOP_OUTCOME: ${{ steps.monorepo_desktop.outcome }}
           MONOREPO_DESKTOP_VERSION: ${{ steps.monorepo_desktop.outputs.version }}
-          MONOREPO_WEB_OUTCOME: ${{ steps.monorepo_web.outcome }}
-          MONOREPO_WEB_VERSION: ${{ steps.monorepo_web.outputs.version }}
+          MONOREPO_WEB_NO_TRIM_OUTCOME: ${{ steps.monorepo_web_no_trim.outcome }}
+          MONOREPO_WEB_NO_TRIM_VERSION: ${{ steps.monorepo_web_no_trim.outputs.version }}
+          MONOREPO_WEB_TRIM_OUTCOME: ${{ steps.monorepo_web_trim.outcome }}
+          MONOREPO_WEB_TRIM_VERSION: ${{ steps.monorepo_web_trim.outputs.version }}
           INVALID_TRIM_OUTCOME: ${{ steps.invalid_trim.outcome }}
           INVALID_MONOREPO_OUTCOME: ${{ steps.invalid_monorepo.outcome }}
           MONOREPO_NO_PROJECT_OUTCOME: ${{ steps.monorepo_no_project.outcome }}
@@ -207,7 +197,8 @@ jobs:
           assert_success "Monorepo browser, trim=true"  "$MONOREPO_BROWSER_TRIM_OUTCOME"    "$MONOREPO_BROWSER_TRIM_VERSION"    '^[0-9]+\.[0-9]+\.[0-9]+'
           assert_success "Monorepo cli, trim=false"     "$MONOREPO_CLI_OUTCOME"             "$MONOREPO_CLI_VERSION"             '^cli-v[0-9]+\.[0-9]+\.[0-9]+'
           assert_success "Monorepo desktop, trim=false" "$MONOREPO_DESKTOP_OUTCOME"         "$MONOREPO_DESKTOP_VERSION"         '^desktop-v[0-9]+\.[0-9]+\.[0-9]+'
-          assert_success "Monorepo web, trim=false"     "$MONOREPO_WEB_OUTCOME"             "$MONOREPO_WEB_VERSION"             '^web-v[0-9]+\.[0-9]+\.[0-9]+'
+          assert_success "Monorepo web, trim=false"    "$MONOREPO_WEB_NO_TRIM_OUTCOME"     "$MONOREPO_WEB_NO_TRIM_VERSION"     '^web-v[0-9]+\.[0-9]+\.[0-9]+'
+          assert_success "Monorepo web, trim=true"     "$MONOREPO_WEB_TRIM_OUTCOME"        "$MONOREPO_WEB_TRIM_VERSION"        '^[0-9]+\.[0-9]+\.[0-9]+'
 
           assert_failure "Invalid trim value"                "$INVALID_TRIM_OUTCOME"
           assert_failure "Invalid monorepo value"            "$INVALID_MONOREPO_OUTCOME"

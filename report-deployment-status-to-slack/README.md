@@ -11,17 +11,17 @@ Post a deployment status message to a Slack channel via an incoming webhook.
 
 ## Inputs
 
-| Input                   | Description                                                                                     | Required | Default                                            |
-| ----------------------- | ----------------------------------------------------------------------------------------------- | -------- | -------------------------------------------------- |
-| `project`               | The name of the project (repository name).                                                      | Yes      | -                                                  |
-| `project_owner`         | The owner/org of the project.                                                                   | No       | `bitwarden`                                        |
-| `tag`                   | The name of the branch or tag being deployed.                                                   | Yes      | -                                                  |
-| `commit_sha`            | The full SHA of the branch or tag. Shortened to 7 characters in the message.                    | Yes      | -                                                  |
-| `environment`           | The name of the environment (e.g. `US-QA Cloud`).                                               | Yes      | -                                                  |
-| `event`                 | Deployment event type. One of: `start`, `success`, `failure`, `cancelled`, `no-changes`.        | Yes      | -                                                  |
-| `url`                   | URL of the deployment action run, included in the message body.                                 | No       | `${{ github.event.deployment_status.target_url }}` |
-| `db_migration_detected` | When `true`, appends a database-migration warning unless `tag` is `main`, `rc`, or `hotfix-rc`. | No       | `false`                                            |
-| `slack_webhook_url`     | Slack incoming webhook URL to post the message to.                                              | Yes      | -                                                  |
+| Input                   | Description                                                                                     | Required | Default     |
+| ----------------------- | ----------------------------------------------------------------------------------------------- | -------- | ----------- |
+| `project`               | The name of the project (repository name).                                                      | Yes      | -           |
+| `project_owner`         | The owner/org of the project.                                                                   | No       | `bitwarden` |
+| `tag`                   | The name of the branch or tag being deployed.                                                   | Yes      | -           |
+| `commit_sha`            | The full SHA of the branch or tag. Shortened to 7 characters in the message.                    | Yes      | -           |
+| `environment`           | The name of the environment (e.g. `US-QA Cloud`).                                               | Yes      | -           |
+| `event`                 | Deployment event type. One of: `start`, `success`, `failure`, `cancelled`, `no-changes`.        | Yes      | -           |
+| `url`                   | URL of the deployment action run, included in the message body.                                 | No       | -           |
+| `db_migration_detected` | When `true`, appends a database-migration warning unless `tag` is `main`, `rc`, or `hotfix-rc`. | No       | `false`     |
+| `slack_webhook_url`     | Slack incoming webhook URL to post the message to.                                              | Yes      | -           |
 
 ## Usage
 

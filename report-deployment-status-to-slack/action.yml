@@ -1,5 +1,5 @@
 name: "Report deployment status to Slack"
-description: "Report deployment status to Slack"
+description: "Post a deployment status message to a Slack channel via an incoming webhook."
 branding:
   icon: message-square
   color: blue
@@ -16,9 +16,6 @@ inputs:
   commit_sha:
     description: "The SHA of the branch or tag."
     required: true
-  db_migration_detected:
-    description: "Whether a database migration was detected."
-    default: "false"
   environment:
     description: "The name of the environment."
     required: true
@@ -27,7 +24,9 @@ inputs:
     required: true
   url:
     description: "URL of the deployment action run"
-    default: ${{ github.event.deployment_status.target_url }}
+  db_migration_detected:
+    description: "Whether a database migration was detected."
+    default: "false"
   slack_webhook_url:
     description: "Slack incoming webhook URL to post the message to."
     required: true
@@ -94,7 +93,6 @@ runs:
         echo "payload=$payload" >> "$GITHUB_OUTPUT"
 
     - name: Post message to a Slack channel
-      id: slack-message
       uses: slackapi/slack-github-action@af78098f536edbc4de71162a307590698245be95 # v3.0.1
       with:
         webhook: ${{ inputs.slack_webhook_url }}

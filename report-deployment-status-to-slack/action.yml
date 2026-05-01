@@ -21,12 +21,6 @@ inputs:
   environment:
     description: "The name of the environment."
     required: true
-  slack-channel:
-    description: "The name of the Slack channel."
-    default: team-eng-qa-devops
-  update-ts:
-    description: "Message ID to update in Slack channel."
-    required: false
   event:
     description: "Deployment event type. Possible values are start, success, or failure."
     required: true
@@ -34,43 +28,13 @@ inputs:
     description: "URL of the deployment action run"
     required: false
     default: ${{ github.event.deployment_status.target_url }}
-  AZURE_SUBSCRIPTION_ID:
-    description: "Azure Subscription ID for the service principal."
+  slack-webhook-url:
+    description: "Slack incoming webhook URL to post the message to."
     required: true
-  AZURE_TENANT_ID:
-    description: "Azure Tenant ID for the service principal."
-    required: true
-  AZURE_CLIENT_ID:
-    description: "Azure Client ID for the service principal."
-    required: true
-outputs:
-  channel_id:
-    description: "Channel ID where the Slack message was posted"
-    value: ${{ steps.slack-message.outputs.channel_id }}
-  ts:
-    description: "Message ID of the Slack message"
-    value: ${{ steps.slack-message.outputs.ts }}
 
 runs:
   using: "composite"
   steps:
-    - name: Azure Login
-      uses: bitwarden/gh-actions/azure-login@main
-      with:
-        subscription_id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
-        tenant_id: ${{ inputs.AZURE_TENANT_ID }}
-        client_id: ${{ inputs.AZURE_CLIENT_ID }}
-
-    - name: Retrieve Slack secrets
-      id: retrieve-slack-secrets
-      uses: bitwarden/gh-actions/get-keyvault-secrets@main
-      with:
-        keyvault: bitwarden-ci
-        secrets: "slack-bot-token"
-
-    - name: Azure Logout
-      uses: bitwarden/gh-actions/azure-logout@main
-
     - name: Slack message setup
       id: setup
       shell: bash
@@ -150,13 +114,11 @@ runs:
         echo "$SLACK_MESSAGE" >> $GITHUB_OUTPUT
         echo 'EOF' >> $GITHUB_OUTPUT
 
-    - name: Post/Edit message to a Slack channel
+    - name: Post message to a Slack channel
       id: slack-message
       uses: slackapi/slack-github-action@af78098f536edbc4de71162a307590698245be95 # v3.0.1
       with:
-        method: ${{ inputs.update-ts == null && 'chat.postMessage' || 'chat.update' }}
-        token: ${{ steps.retrieve-slack-secrets.outputs.slack-bot-token }}
+        webhook: ${{ inputs.slack-webhook-url }}
+        webhook-type: incoming-webhook
         payload: |
-          channel: ${{ inputs.slack-channel }}
           text: "${{ steps.setup.outputs.slack_message }}"
-          ts: ${{ inputs.update-ts }}

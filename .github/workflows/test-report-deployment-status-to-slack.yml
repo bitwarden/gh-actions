@@ -15,7 +15,6 @@ jobs:
     runs-on: ubuntu-22.04
     permissions:
       contents: read
-      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
@@ -27,63 +26,50 @@ jobs:
         with:
           project: $TEST_REPORT_PROJECT
           environment: EU-QA Cloud
-          slack-channel: bre-alerts-test
           tag: test-workflow-start
           event: "start"
           commit-sha: $TEST_REPORT_COMMIT_SHA
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: Success
         uses: ./report-deployment-status-to-slack
         with:
           project: $TEST_REPORT_PROJECT
           environment: US-QA Cloud
-          slack-channel: bre-alerts-test
           tag: test-workflow-success
           event: "success"
           commit-sha: $TEST_REPORT_COMMIT_SHA
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: Failure
         uses: ./report-deployment-status-to-slack
         with:
           project: $TEST_REPORT_PROJECT
           environment: US-QA Cloud
-          slack-channel: bre-alerts-test
           tag: test-workflow-failure
           event: "failure"
           commit-sha: $TEST_REPORT_COMMIT_SHA
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: No Changes
         uses: ./report-deployment-status-to-slack
         with:
           project: $TEST_REPORT_PROJECT
           environment: EU-QA Cloud
-          slack-channel: bre-alerts-test
           tag: test-workflow-failure
           event: "no-changes"
           commit-sha: $TEST_REPORT_COMMIT_SHA
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   test-report-db-migration:
     name: Test Slack report with different DB migration scenerios
     runs-on: ubuntu-22.04
     permissions:
       contents: read
-      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
@@ -95,57 +81,45 @@ jobs:
         with:
           project: $TEST_REPORT_PROJECT
           environment: EU-QA Cloud
-          slack-channel: bre-alerts-test
           tag: main
           event: "success"
           commit-sha: $TEST_REPORT_COMMIT_SHA
           db_migration_detected: true
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: With DB migration false on main
         uses: ./report-deployment-status-to-slack
         with:
           project: $TEST_REPORT_PROJECT
           environment: US-QA Cloud
-          slack-channel: bre-alerts-test
           tag: main
           event: "failure"
           commit-sha: $TEST_REPORT_COMMIT_SHA
           db_migration_detected: false
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: With DB migration true on test branch
         uses: ./report-deployment-status-to-slack
         with:
           project: $TEST_REPORT_PROJECT
           environment: EU-QA Cloud
-          slack-channel: bre-alerts-test
           tag: test-branch-failure
           event: "failure"
           commit-sha: $TEST_REPORT_COMMIT_SHA
           db_migration_detected: false
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: With DB migration false on test branch
         uses: ./report-deployment-status-to-slack
         with:
           project: $TEST_REPORT_PROJECT
           environment: US-QA Cloud
-          slack-channel: bre-alerts-test
           tag: test-branch-success
           event: "success"
           commit-sha: $TEST_REPORT_COMMIT_SHA
           db_migration_detected: true
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}

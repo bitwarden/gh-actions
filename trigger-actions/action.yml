@@ -26,21 +26,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Resolve repository
-      id: resolve-repository
-      shell: bash
-      env:
-        _TEST: ${{ inputs.test }}
-        _TASK: ${{ inputs.task }}
-      run: |
-        if [[ "$_TEST" == "true" ]]; then
-          echo "repository=gh-actions" >> "$GITHUB_OUTPUT"
-        elif [[ "$_TASK" == "deploy-server-dev" ]]; then
-          echo "repository=devops" >> "$GITHUB_OUTPUT"
-        else
-          echo "repository=deploy" >> "$GITHUB_OUTPUT"
-        fi
-
     - name: Log in to Azure
       uses: bitwarden/gh-actions/azure-login@main
       with:
@@ -66,13 +51,13 @@ runs:
         app-id: ${{ steps.retrieve-secrets.outputs.GH-TRIGGER-APP-ID }}
         private-key: ${{ steps.retrieve-secrets.outputs.GH-TRIGGER-APP-KEY }}
         owner: bitwarden
-        repositories: ${{ steps.resolve-repository.outputs.repository }}
+        repositories: ${{ inputs.test == 'true' && 'gh-actions' || 'deploy' }}
         permission-deployments: write
 
     - name: Create deployment
       uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
       env:
-        _REPOSITORY: ${{ steps.resolve-repository.outputs.repository }}
+        _REPOSITORY: ${{ inputs.test == 'true' && 'gh-actions' || 'deploy' }}
         _TASK: ${{ inputs.task }}
         _DESCRIPTION: ${{ inputs.description }}
       with:

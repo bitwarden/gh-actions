@@ -1,7 +1,7 @@
 name: "Report deployment status to Slack"
 description: "Report deployment status to Slack"
 branding:
-  icon: message-circle
+  icon: message-square
   color: blue
 inputs:
   project:
@@ -51,57 +51,42 @@ runs:
       run: |
         set -euo pipefail
 
-        function slack_message_fn () {
-          local event="$INPUT_EVENT"
-          local environment="$INPUT_ENVIRONMENT"
-          local tag="$INPUT_TAG"
-          local project="$INPUT_PROJECT"
-          local project_owner="$INPUT_PROJECT_OWNER"
-          local url="$INPUT_URL"
-          local commit_sha="$INPUT_COMMIT_SHA"
-          local short_sha="${commit_sha:0:7}"
+        short_sha="${INPUT_COMMIT_SHA:0:7}"
 
-          # This action can be called from other repositories with external refs/shas, so use the passed in project rather than github.repository
-          local repository_url="$GITHUB_SERVER_URL/$project_owner/$project"
+        # This action can be called from other repositories with external refs/shas, so use the passed in project rather than github.repository
+        repository_url="$GITHUB_SERVER_URL/$INPUT_PROJECT_OWNER/$INPUT_PROJECT"
+        commit_url="$repository_url/commit/$INPUT_COMMIT_SHA"
+        tag_url="$repository_url/tree/$INPUT_TAG"
 
-          local commit_url="$repository_url/commit/$commit_sha"
-          local tag_url="$repository_url/tree/$tag"
+        # Slack link format: https://api.slack.com/reference/surfaces/formatting
+        commit_link="<$commit_url|$short_sha>"
+        tag_link="<$tag_url|$INPUT_TAG>"
 
-          # Slack link format: https://api.slack.com/reference/surfaces/formatting
-          local commit_link="<$commit_url|$short_sha>"
-          local tag_link="<$tag_url|$tag>"
+        suffix=""
+        case "$INPUT_EVENT" in
+          start)      prefix=':loading: Deploying' ;;
+          success)    prefix=':white_check_mark: Deployed' ;;
+          cancelled)  prefix=':hand: Cancelled deploy of' ;;
+          no-changes) prefix=':heavy_minus_sign: No changes to deploy for' ;;
+          failure)
+            prefix=':x: Failed to deploy'
+            suffix=$'\nPlease retry. If the issue persists, share this message in the #team-eng-bre channel for support.'
+            ;;
+          *)
+            echo "::error::Unknown event '$INPUT_EVENT'. Expected one of: start, success, failure, cancelled, no-changes."
+            exit 1
+            ;;
+        esac
 
-          case "$event" in
-            start)
-              SLACK_MESSAGE=$(printf ':loading: Deploying %s to %s on %s.\n%s\nSHA: %s' "$tag_link" "$environment" "$project" "$url" "$commit_link")
-              ;;
+        url_line=""
+        if [[ -n "$INPUT_URL" ]]; then
+          url_line=$(printf '\n%s' "$INPUT_URL")
+        fi
 
-            success)
-              SLACK_MESSAGE=$(printf ':white_check_mark: Deployed %s to %s on %s.\n%s\nSHA: %s' "$tag_link" "$environment" "$project" "$url" "$commit_link")
-              ;;
+        SLACK_MESSAGE=$(printf '%s %s to %s on %s.%s\nSHA: %s%s' \
+          "$prefix" "$tag_link" "$INPUT_ENVIRONMENT" "$INPUT_PROJECT" "$url_line" "$commit_link" "$suffix")
 
-            failure)
-              SLACK_MESSAGE=$(printf ':x: Failed to deploy %s to %s on %s.\n%s\nSHA: %s\nPlease retry. If the issue persists, share this message in the #team-eng-bre channel for support.' "$tag_link" "$environment" "$project" "$url" "$commit_link")
-              ;;
-
-            cancelled)
-              SLACK_MESSAGE=$(printf ':hand: Cancelled deploy of %s to %s on %s.\n%s\nSHA: %s' "$tag_link" "$environment" "$project" "$url" "$commit_link")
-              ;;
-
-            no-changes)
-              SLACK_MESSAGE=$(printf ':heavy_minus_sign: No changes were made for %s deployment to %s on %s.\n%s\nSHA: %s' "$tag_link" "$environment" "$project" "$url" "$commit_link")
-              ;;
-
-            *)
-              echo "::error::Unknown event '$event'. Expected one of: start, success, failure, cancelled, no-changes." >&2
-              exit 1
-              ;;
-          esac
-        }
-
-        slack_message_fn
-
-        if [[ "$INPUT_DB_MIGRATION_DETECTED" == "true" && "$INPUT_TAG" != "main" && "$INPUT_TAG" != "rc" && "$INPUT_TAG" != "hotfix-rc" ]]; then
+        if [[ "${INPUT_DB_MIGRATION_DETECTED,,}" == "true" && "$INPUT_TAG" != "main" && "$INPUT_TAG" != "rc" && "$INPUT_TAG" != "hotfix-rc" ]]; then
           SLACK_MESSAGE=$(printf '%s\n:red_siren: This branch has new database migration changes.' "$SLACK_MESSAGE")
         fi
 

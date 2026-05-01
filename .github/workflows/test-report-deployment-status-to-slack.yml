@@ -66,7 +66,7 @@ jobs:
           slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   test-report-db-migration:
-    name: Test Slack report with different DB migration scenerios
+    name: Test Slack report with different DB migration scenarios
     runs-on: ubuntu-22.04
     permissions:
       contents: read
@@ -108,7 +108,7 @@ jobs:
           tag: test-branch-failure
           event: "failure"
           commit_sha: ${{ env.TEST_REPORT_COMMIT_SHA }}
-          db_migration_detected: false
+          db_migration_detected: true
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
@@ -120,6 +120,6 @@ jobs:
           tag: test-branch-success
           event: "success"
           commit_sha: ${{ env.TEST_REPORT_COMMIT_SHA }}
-          db_migration_detected: true
+          db_migration_detected: false
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
           slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

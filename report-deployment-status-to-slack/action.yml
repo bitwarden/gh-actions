@@ -1,5 +1,8 @@
 name: "Report deployment status to Slack"
 description: "Report deployment status to Slack"
+branding:
+  icon: message-circle
+  color: blue
 inputs:
   project:
     description: "The name of the project."
@@ -46,6 +49,8 @@ runs:
         INPUT_DB_MIGRATION_DETECTED: ${{ inputs.db_migration_detected }}
         GITHUB_SERVER_URL: ${{ github.server_url }}
       run: |
+        set -euo pipefail
+
         function slack_message_fn () {
           local event="$INPUT_EVENT"
           local environment="$INPUT_ENVIRONMENT"
@@ -94,11 +99,10 @@ runs:
           esac
         }
 
+        slack_message_fn
+
         if [[ "$INPUT_DB_MIGRATION_DETECTED" == "true" && "$INPUT_TAG" != "main" && "$INPUT_TAG" != "rc" && "$INPUT_TAG" != "hotfix-rc" ]]; then
-          slack_message_fn
           SLACK_MESSAGE=$(printf '%s\n:red_siren: This branch has new database migration changes.' "$SLACK_MESSAGE")
-        else
-          slack_message_fn
         fi
 
         payload=$(jq -nc --arg text "$SLACK_MESSAGE" '{text: $text}')

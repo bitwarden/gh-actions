@@ -1,0 +1,49 @@
+name: Get Slack webhook URL
+description: Fetch one or two Slack webhook URLs from the gh-devops Azure Key Vault.
+
+inputs:
+  webhook_secret_name:
+    description: Primary Slack webhook secret name in the gh-devops Key Vault.
+    required: true
+  include_bre_alerts:
+    description: If 'true', also fetch the slack-webhook-bre-alerts secret in the same KV call.
+    required: false
+    default: "false"
+  azure_subscription_id:
+    description: Azure subscription ID for OIDC login.
+    required: true
+  azure_tenant_id:
+    description: Azure tenant ID for OIDC login.
+    required: true
+  azure_client_id:
+    description: Azure client ID for OIDC login.
+    required: true
+
+outputs:
+  webhook_url:
+    description: The primary Slack webhook URL.
+    value: ${{ steps.get-secrets.outputs[inputs.webhook_secret_name] }}
+  bre_alerts_webhook_url:
+    description: The slack-webhook-bre-alerts URL (empty when include_bre_alerts is 'false').
+    value: ${{ steps.get-secrets.outputs.slack-webhook-bre-alerts }}
+
+runs:
+  using: composite
+  steps:
+    - name: Log in to Azure
+      uses: bitwarden/gh-actions/azure-login@main
+      with:
+        subscription_id: ${{ inputs.azure_subscription_id }}
+        tenant_id: ${{ inputs.azure_tenant_id }}
+        client_id: ${{ inputs.azure_client_id }}
+
+    - name: Get Slack webhook secrets
+      id: get-secrets
+      uses: bitwarden/gh-actions/get-keyvault-secrets@main
+      with:
+        keyvault: gh-devops
+        # One KV call covers both secrets when include_bre_alerts is true; saves a round trip vs. two separate fetches.
+        secrets: ${{ inputs.include_bre_alerts == 'true' && format('{0},slack-webhook-bre-alerts', inputs.webhook_secret_name) || inputs.webhook_secret_name }}
+
+    - name: Log out from Azure
+      uses: bitwarden/gh-actions/azure-logout@main

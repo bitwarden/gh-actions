@@ -24,46 +24,46 @@ jobs:
       - name: Start
         uses: ./report-deployment-status-to-slack
         with:
-          project: $TEST_REPORT_PROJECT
+          project: ${{ env.TEST_REPORT_PROJECT }}
           environment: EU-QA Cloud
           tag: test-workflow-start
           event: "start"
-          commit-sha: $TEST_REPORT_COMMIT_SHA
+          commit_sha: ${{ env.TEST_REPORT_COMMIT_SHA }}
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: Success
         uses: ./report-deployment-status-to-slack
         with:
-          project: $TEST_REPORT_PROJECT
+          project: ${{ env.TEST_REPORT_PROJECT }}
           environment: US-QA Cloud
           tag: test-workflow-success
           event: "success"
-          commit-sha: $TEST_REPORT_COMMIT_SHA
+          commit_sha: ${{ env.TEST_REPORT_COMMIT_SHA }}
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: Failure
         uses: ./report-deployment-status-to-slack
         with:
-          project: $TEST_REPORT_PROJECT
+          project: ${{ env.TEST_REPORT_PROJECT }}
           environment: US-QA Cloud
           tag: test-workflow-failure
           event: "failure"
-          commit-sha: $TEST_REPORT_COMMIT_SHA
+          commit_sha: ${{ env.TEST_REPORT_COMMIT_SHA }}
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: No Changes
         uses: ./report-deployment-status-to-slack
         with:
-          project: $TEST_REPORT_PROJECT
+          project: ${{ env.TEST_REPORT_PROJECT }}
           environment: EU-QA Cloud
           tag: test-workflow-failure
           event: "no-changes"
-          commit-sha: $TEST_REPORT_COMMIT_SHA
+          commit_sha: ${{ env.TEST_REPORT_COMMIT_SHA }}
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   test-report-db-migration:
     name: Test Slack report with different DB migration scenerios
@@ -79,47 +79,47 @@ jobs:
       - name: With DB migration true on main
         uses: ./report-deployment-status-to-slack
         with:
-          project: $TEST_REPORT_PROJECT
+          project: ${{ env.TEST_REPORT_PROJECT }}
           environment: EU-QA Cloud
           tag: main
           event: "success"
-          commit-sha: $TEST_REPORT_COMMIT_SHA
+          commit_sha: ${{ env.TEST_REPORT_COMMIT_SHA }}
           db_migration_detected: true
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: With DB migration false on main
         uses: ./report-deployment-status-to-slack
         with:
-          project: $TEST_REPORT_PROJECT
+          project: ${{ env.TEST_REPORT_PROJECT }}
           environment: US-QA Cloud
           tag: main
           event: "failure"
-          commit-sha: $TEST_REPORT_COMMIT_SHA
+          commit_sha: ${{ env.TEST_REPORT_COMMIT_SHA }}
           db_migration_detected: false
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: With DB migration true on test branch
         uses: ./report-deployment-status-to-slack
         with:
-          project: $TEST_REPORT_PROJECT
+          project: ${{ env.TEST_REPORT_PROJECT }}
           environment: EU-QA Cloud
           tag: test-branch-failure
           event: "failure"
-          commit-sha: $TEST_REPORT_COMMIT_SHA
+          commit_sha: ${{ env.TEST_REPORT_COMMIT_SHA }}
           db_migration_detected: false
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: With DB migration false on test branch
         uses: ./report-deployment-status-to-slack
         with:
-          project: $TEST_REPORT_PROJECT
+          project: ${{ env.TEST_REPORT_PROJECT }}
           environment: US-QA Cloud
           tag: test-branch-success
           event: "success"
-          commit-sha: $TEST_REPORT_COMMIT_SHA
+          commit_sha: ${{ env.TEST_REPORT_COMMIT_SHA }}
           db_migration_detected: true
           url: https://github.com/bitwarden/gh-actions/actions/runs/${{ github.run_id }}
-          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

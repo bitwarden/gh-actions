@@ -52,16 +52,20 @@ jobs:
           echo "deployment_id=$DEPLOYMENT_ID" >> "$GITHUB_OUTPUT"
           echo "Deployment created successfully with ID: $DEPLOYMENT_ID"
 
-      # - name: Cleanup deployment
-      #   if: always() && steps.verify.outputs.deployment_id != ''
-      #   env:
-      #     GH_TOKEN: ${{ github.token }}
-      #     REPOSITORY: ${{ github.repository }}
-      #     DEPLOYMENT_ID: ${{ steps.verify.outputs.deployment_id }}
-      #   run: |
-      #     gh api "repos/$REPOSITORY/deployments/$DEPLOYMENT_ID/statuses" \
-      #       --method POST \
-      #       -f state=inactive
-      #     gh api "repos/$REPOSITORY/deployments/$DEPLOYMENT_ID" \
-      #       --method DELETE
-      #     echo "Deployment $DEPLOYMENT_ID deleted"
+      - name: Cleanup all trigger-actions deployments
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          DEPLOYMENT_IDS=$(gh api "repos/$REPOSITORY/deployments?environment=trigger-actions&per_page=100" \
+            --jq '.[].id')
+
+          for ID in $DEPLOYMENT_IDS; do
+            gh api "repos/$REPOSITORY/deployments/$ID/statuses" \
+              --method POST \
+              -f state=inactive
+            gh api "repos/$REPOSITORY/deployments/$ID" \
+              --method DELETE
+            echo "Deleted deployment $ID"
+          done

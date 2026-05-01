@@ -206,6 +206,7 @@ jobs:
       # ── cleanup ───────────────────────────────────────────────────────────────
 
       - name: Cleanup test branch
+        if: always()
         run: |
           TEST_BRANCH="test/${{ github.run_id }}-${{ matrix.mode }}"
           git push origin --delete $TEST_BRANCH || echo "Branch $TEST_BRANCH already deleted or never created"

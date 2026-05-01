@@ -23,9 +23,6 @@ inputs:
     required: false
     default: "false"
 
-env:
-  _DEPLOY_REPO: deploy
-
 runs:
   using: "composite"
   steps:
@@ -41,7 +38,7 @@ runs:
       uses: bitwarden/gh-actions/get-keyvault-secrets@main
       with:
         keyvault: gh-org-bitwarden
-        secrets: "GH-TRIGGER-APP-ID,GH-TRIGGER-APP-KEY"
+        secrets: "GH-TRIGGER-APP-ID,GH-TRIGGER-APP-KEY,TRIGGER-REPO-NAME"
 
     - name: Log out from Azure
       uses: bitwarden/gh-actions/azure-logout@main
@@ -54,13 +51,13 @@ runs:
         app-id: ${{ steps.retrieve-secrets.outputs.GH-TRIGGER-APP-ID }}
         private-key: ${{ steps.retrieve-secrets.outputs.GH-TRIGGER-APP-KEY }}
         owner: bitwarden
-        repositories: ${{ env._DEPLOY_REPO }}
+        repositories: ${{ steps.retrieve-secrets.outputs.TRIGGER-REPO-NAME }}
         permission-deployments: write
 
     - name: Create deployment
       uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
       env:
-        _REPOSITORY: ${{ inputs.test == 'true' && 'gh-actions' || env._DEPLOY_REPO }}
+        _REPOSITORY: ${{ inputs.test == 'true' && 'gh-actions' || steps.retrieve-secrets.outputs.TRIGGER-REPO-NAME }}
         _TASK: ${{ inputs.task }}
         _DESCRIPTION: ${{ inputs.description }}
       with:

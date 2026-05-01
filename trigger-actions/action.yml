@@ -43,6 +43,10 @@ runs:
     - name: Log out from Azure
       uses: bitwarden/gh-actions/azure-logout@main
 
+    - name: Set constants
+      shell: bash
+      run: echo "_DEPLOY_REPO=deploy" >> "$GITHUB_ENV"
+
     - name: Generate GitHub App token
       id: app-token
       if: inputs.test != 'true'
@@ -51,13 +55,13 @@ runs:
         app-id: ${{ steps.retrieve-secrets.outputs.GH-TRIGGER-APP-ID }}
         private-key: ${{ steps.retrieve-secrets.outputs.GH-TRIGGER-APP-KEY }}
         owner: bitwarden
-        repositories: ${{ inputs.test == 'true' && 'gh-actions' || 'deploy' }}
+        repositories: ${{ env._DEPLOY_REPO }}
         permission-deployments: write
 
     - name: Create deployment
       uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
       env:
-        _REPOSITORY: ${{ inputs.test == 'true' && 'gh-actions' || 'deploy' }}
+        _REPOSITORY: ${{ inputs.test == 'true' && 'gh-actions' || env._DEPLOY_REPO }}
         _TASK: ${{ inputs.task }}
         _DESCRIPTION: ${{ inputs.description }}
       with:

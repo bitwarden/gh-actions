@@ -23,6 +23,9 @@ inputs:
     required: false
     default: "false"
 
+env:
+  _DEPLOY_REPO: deploy
+
 runs:
   using: "composite"
   steps:
@@ -42,10 +45,6 @@ runs:
 
     - name: Log out from Azure
       uses: bitwarden/gh-actions/azure-logout@main
-
-    - name: Set constants
-      shell: bash
-      run: echo "_DEPLOY_REPO=deploy" >> "$GITHUB_ENV"
 
     - name: Generate GitHub App token
       id: app-token

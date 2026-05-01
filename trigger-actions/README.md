@@ -6,7 +6,7 @@ A composite action that creates a GitHub deployment event on a target repository
 
 This action provides a standardized way to signal that a deployment-related workflow should run in another repository. Rather than calling workflows directly, it creates a GitHub deployment event against the `trigger-actions` environment using a named `task`. Receiving repositories listen for these events via a `deployment` trigger and route to the appropriate workflow based on the `task` value.
 
-This decouples the caller from knowledge of what workflow runs downstream — the caller only needs to know the target repository and the task name.
+This decouples the caller from knowledge of what workflow runs downstream — the caller only needs to know the task name. The target repository is resolved automatically based on the task.
 
 ## How It Works
 
@@ -23,8 +23,7 @@ Receiving repositories should have a workflow triggered on `deployment` that fil
 | `azure_subscription_id` | Yes | | Azure Subscription ID for OIDC login |
 | `azure_tenant_id` | Yes | | Azure Tenant ID for OIDC login |
 | `azure_client_id` | Yes | | Azure Client ID for OIDC login |
-| `repository` | No | `deploy` | Target repository to create the deployment on |
-| `task` | Yes | | Task name used for routing in the target repository |
+| `task` | Yes | | Task name used for routing. Also determines the target repository (`deploy-server-dev` → `devops`, all others → `deploy`) |
 | `description` | No | *(task value)* | Human-readable description of the trigger. Defaults to the `task` value if not provided |
 | `test` | No | `false` | Skip App token generation and use the calling workflow's token instead. For testing only |
 

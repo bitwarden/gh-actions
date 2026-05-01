@@ -11,10 +11,6 @@ inputs:
   azure_client_id:
     description: "Azure Client ID"
     required: true
-  repository:
-    description: "Target repository to create the deployment on (e.g., 'deploy', 'devops')"
-    required: false
-    default: deploy
   task:
     description: "Deployment task name used for routing in the target repository"
     required: true
@@ -30,6 +26,21 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Resolve repository
+      id: resolve-repository
+      shell: bash
+      env:
+        _TEST: ${{ inputs.test }}
+        _TASK: ${{ inputs.task }}
+      run: |
+        if [[ "$_TEST" == "true" ]]; then
+          echo "repository=gh-actions" >> "$GITHUB_OUTPUT"
+        elif [[ "$_TASK" == "deploy-server-dev" ]]; then
+          echo "repository=devops" >> "$GITHUB_OUTPUT"
+        else
+          echo "repository=deploy" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Log in to Azure
       uses: bitwarden/gh-actions/azure-login@main
       with:
@@ -55,13 +66,13 @@ runs:
         app-id: ${{ steps.retrieve-secrets.outputs.GH-TRIGGER-APP-ID }}
         private-key: ${{ steps.retrieve-secrets.outputs.GH-TRIGGER-APP-KEY }}
         owner: bitwarden
-        repositories: ${{ inputs.repository }}
+        repositories: ${{ steps.resolve-repository.outputs.repository }}
         permission-deployments: write
 
     - name: Create deployment
       uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
       env:
-        _REPOSITORY: ${{ inputs.repository }}
+        _REPOSITORY: ${{ steps.resolve-repository.outputs.repository }}
         _TASK: ${{ inputs.task }}
         _DESCRIPTION: ${{ inputs.description }}
       with:

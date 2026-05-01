@@ -30,7 +30,6 @@ jobs:
           azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
           azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
-          repository: gh-actions
           task: test-trigger-actions
           description: "Test deployment from test-trigger-actions.yml"
           test: "true"

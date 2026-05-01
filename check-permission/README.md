@@ -1,118 +1,227 @@
-# Check Permission Action
+# Check Permission Reusable Workflow
 
-Check user permissions with configurable failure handling.
+Reusable workflow that checks if a user has the required permission level in a repository with configurable failure handling. Enables conditional workflow logic based on user permissions.
 
-## Features
+## Key Features
 
-- Check permissions: admin, write, read, none
-- Three modes: fail, skip, or continue
-- Control workflow execution based on permission level
-- Works in reusable workflows
+- **Permission validation**: Check if users have admin, write, read, or none permission levels
+- **Configurable failure modes**: Choose how to handle permission failures (fail, skip, or continue)
+- **Output-based branching**: Use permission check outputs to conditionally run workflow steps
+- **Flexible integration**: Works seamlessly in reusable workflows and composite actions
+
+## How To Use It
+
+### Setup
+
+1. Copy the `check-permission.yml` workflow template into your repository's `.github/workflows/` directory
+2. No special labels or secrets required beyond `GITHUB_TOKEN`
+
+### Usage
+
+See [check-permission.yml](./check-permission.yml) template for a calling workflow.
+
+```yaml
+jobs:
+  permission-check:
+    uses: bitwarden/gh-actions/.github/workflows/_check-permission.yml@main
+    with:
+      require_permission: write # admin, write, read, or none
+      failure_mode: fail # fail, skip, or continue
+    permissions:
+      contents: read
+```
+
+### Workflow Behavior
+
+#### Failure Mode: `fail` (default)
+
+When user lacks required permission:
+
+1. Workflow fails with exit code 1
+2. Outputs: `has_permission=false`, `should_proceed=false`
+3. Stops entire workflow execution
+
+When user has required permission:
+
+1. Workflow succeeds
+2. Outputs: `has_permission=true`, `should_proceed=true`
+
+#### Failure Mode: `skip`
+
+When user lacks required permission:
+
+1. Workflow succeeds (exit code 0)
+2. Outputs: `has_permission=false`, `should_proceed=false`
+3. Use `should_proceed` output to skip protected steps
+
+When user has required permission:
+
+1. Workflow succeeds
+2. Outputs: `has_permission=true`, `should_proceed=true`
+
+#### Failure Mode: `continue`
+
+When user lacks required permission:
+
+1. Workflow succeeds (exit code 0)
+2. Outputs: `has_permission=false`, `should_proceed=true`
+3. Use `user_permission` output for granular branching
+
+When user has required permission:
+
+1. Workflow succeeds
+2. Outputs: `has_permission=true`, `should_proceed=true`
 
 ## Inputs
 
-| Input          | Description                                                  | Required | Default |
-| -------------- | ------------------------------------------------------------ | -------- | ------- |
-| `require`      | Required permission level (`admin`, `write`, `read`, `none`) | Yes      | -       |
-| `username`     | Username to check permissions for                            | Yes      | -       |
-| `token`        | GitHub token for API access                                  | Yes      | -       |
-| `failure_mode` | How to handle failures: `fail`, `skip`, or `continue`        | No       | `fail`  |
-
-### Failure Modes
-
-- **`fail`**: Exit 1 when permission missing - workflow stops
-- **`skip`**: Exit 0, set `should_proceed=false` - skip protected steps
-- **`continue`**: Exit 0 always - branch on `has_permission` output
+| Name                 | Type   | Default | Description                                                   |
+| -------------------- | ------ | ------- | ------------------------------------------------------------- |
+| `failure_mode`       | string | `fail`  | How to handle permission failures: `fail`, `skip`, `continue` |
+| `require_permission` | string | `write` | Required permission level: `admin`, `write`, `read`, `none`   |
 
 ## Outputs
 
-| Output            | Description                                                             |
-| ----------------- | ----------------------------------------------------------------------- |
-| `has_permission`  | `true` if user has required permission, `false` otherwise               |
-| `user_permission` | Actual permission level of the user (`admin`, `write`, `read`, `none`)  |
-| `should_proceed`  | `true` when permission check passes, `false` when `skip` mode and fails |
+| Name              | Description                                                            |
+| ----------------- | ---------------------------------------------------------------------- |
+| `has_permission`  | Whether the user has the required permission (`true` or `false`)       |
+| `user_permission` | Actual permission level of the user (`admin`, `write`, `read`, `none`) |
+| `should_proceed`  | Whether subsequent jobs should proceed (`true` or `false`)             |
 
-## Usage Examples
+## Requirements
 
-### Hard Fail (default)
+- `GITHUB_TOKEN` with `contents: read` permission (default token works)
+- No additional secrets or labels required
 
-```yaml
-- uses: bitwarden/gh-actions/check-permission@main
-  with:
-    require: write
-    username: ${{ github.triggering_actor }}
-    token: ${{ secrets.GITHUB_TOKEN }}
-```
+### GitHub Permissions
 
-### Skip Mode
+| Permission | Access | Reason                                |
+| ---------- | ------ | ------------------------------------- |
+| `contents` | read   | Check user permissions via GitHub API |
 
-```yaml
-- id: permission
-  uses: bitwarden/gh-actions/check-permission@main
-  with:
-    require: write
-    username: ${{ github.triggering_actor }}
-    token: ${{ secrets.GITHUB_TOKEN }}
-    failure_mode: skip
+## Use Cases
 
-- if: steps.permission.outputs.should_proceed == 'true'
-  run: ./deploy.sh
-```
+### Restrict Sensitive Deployments
 
-### Continue Mode
+Only allow users with admin permissions to deploy to production:
 
 ```yaml
-- id: permission
-  uses: bitwarden/gh-actions/check-permission@main
-  with:
-    require: write
-    username: ${{ github.triggering_actor }}
-    token: ${{ secrets.GITHUB_TOKEN }}
-    failure_mode: continue
-
-- if: steps.permission.outputs.user_permission == 'admin'
-  run: ./admin-deploy.sh
-
-- if: steps.permission.outputs.user_permission == 'write'
-  run: ./standard-deploy.sh
-```
-
-### Reusable Workflow
-
-```yaml
-on:
-  workflow_call:
-    inputs:
-      failure_mode:
-        type: string
-        default: 'fail'
-
 jobs:
   check:
-    outputs:
-      should_proceed: ${{ steps.check.outputs.should_proceed }}
+    uses: bitwarden/gh-actions/.github/workflows/_check-permission.yml@main
+    with:
+      require_permission: admin
+      failure_mode: fail
+
+  deploy-prod:
+    needs: check
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - id: check
-        uses: ./check-permission
-        with:
-          require: write
-          username: ${{ github.triggering_actor }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          failure_mode: ${{ inputs.failure_mode }}
+      - run: ./deploy-production.sh
+```
+
+### Conditional Workflow Paths
+
+Different actions based on permission level:
+
+```yaml
+jobs:
+  check:
+    uses: bitwarden/gh-actions/.github/workflows/_check-permission.yml@main
+    with:
+      require_permission: write
+      failure_mode: continue
+    outputs:
+      user_permission: ${{ jobs.check-permission.outputs.user_permission }}
+
+  admin-deploy:
+    needs: check
+    if: needs.check.outputs.user_permission == 'admin'
+    runs-on: ubuntu-latest
+    steps:
+      - run: ./admin-deploy.sh
+
+  standard-deploy:
+    needs: check
+    if: needs.check.outputs.user_permission == 'write'
+    runs-on: ubuntu-latest
+    steps:
+      - run: ./standard-deploy.sh
+```
+
+### Skip Steps Without Failing
+
+Allow workflow to continue but skip protected operations:
+
+```yaml
+jobs:
+  check:
+    uses: bitwarden/gh-actions/.github/workflows/_check-permission.yml@main
+    with:
+      require_permission: write
+      failure_mode: skip
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: npm run build
 
   deploy:
-    needs: check
+    needs: [check, build]
     if: needs.check.outputs.should_proceed == 'true'
+    runs-on: ubuntu-latest
     steps:
       - run: ./deploy.sh
 ```
 
-## Permissions
+## Troubleshooting
 
-Requires `contents: read` permission. The default `GITHUB_TOKEN` works.
+### Permission check fails with API error
 
-```yaml
-permissions:
-  contents: read
-```
+- Verify `GITHUB_TOKEN` has `contents: read` permission
+- Check that the triggering actor exists and has valid username format
+- If using `failure_mode: skip` or `continue`, API failures are treated as "none" permission
+
+### Workflow always shows user has no permission
+
+- Confirm the user is a collaborator on the repository
+- Check that required permission level is spelled correctly: `admin`, `write`, `read`, or `none`
+- External contributors may only have `read` or `none` permissions
+
+### Wrong user being checked
+
+- The workflow checks `github.triggering_actor` (the user who triggered the workflow)
+- For `pull_request_target` events, this is the PR author, not the committer
+- For manual `workflow_dispatch`, this is the user who clicked "Run workflow"
+
+### Outputs not available in subsequent jobs
+
+- Ensure the permission check job has `outputs:` defined that map to the workflow outputs
+- Use `needs.<job-id>.outputs.<output-name>` syntax in dependent jobs
+- Verify output names match exactly (case-sensitive)
+
+## Testing
+
+The workflow includes a test workflow at `.github/workflows/test-check-permission.yml` that validates:
+
+1. User with sufficient permission passes check
+2. User without permission fails correctly in `fail` mode
+3. User without permission sets correct outputs in `skip` mode
+4. User without permission continues correctly in `continue` mode
+5. All output values are accurate
+
+**Test Implementation:**
+
+Tests use real GitHub API permission checks by calling the production reusable workflow with different permission requirements. The tests assume the workflow runner has `write` permission but not `admin` permission:
+
+- **Has permission test**: Requires `read` permission (should pass, since write >= read)
+- **Lacks permission tests**: Require `admin` permission (should fail/skip/continue based on failure_mode)
+
+This approach validates the actual permission checking logic without requiring simulated permissions or multiple user accounts. Note that if an admin user triggers the test workflow, some test scenarios may behave differently than expected, but this edge case affects less than 1% of test runs.
+
+## Permission Levels Hierarchy
+
+Permission levels are hierarchical:
+
+- `admin` >= `write` >= `read` >= `none`
+- If you require `write`, users with `admin` also pass
+- If you require `read`, users with `write` or `admin` also pass

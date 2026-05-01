@@ -1,0 +1,110 @@
+name: Test SDLC / Enforce PR labels workflow
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/_enforce-pr-labels-sdlc.yml"
+      - ".github/workflows/test-enforce-pr-labels-sdlc.yml"
+
+permissions: {}
+
+jobs:
+  test-valid-one-t-label:
+    name: Test valid - one t:* label (should pass)
+    uses: ./.github/workflows/_enforce-pr-labels-sdlc.yml
+    with:
+      test_pr_labels_json: '[{"name":"t:bug"}]'
+    permissions:
+      pull-requests: read
+
+  test-valid-ignore-for-release:
+    name: Test valid - ignore-for-release label (should pass)
+    uses: ./.github/workflows/_enforce-pr-labels-sdlc.yml
+    with:
+      test_pr_labels_json: '[{"name":"ignore-for-release"}]'
+    permissions:
+      pull-requests: read
+
+  test-invalid-no-t-label:
+    name: Test invalid - no t:* label (should fail)
+    uses: ./.github/workflows/_enforce-pr-labels-sdlc.yml
+    with:
+      test_pr_labels_json: '[]'
+    permissions:
+      pull-requests: read
+
+  test-invalid-multiple-t-labels:
+    name: Test invalid - multiple t:* labels (should fail)
+    uses: ./.github/workflows/_enforce-pr-labels-sdlc.yml
+    with:
+      test_pr_labels_json: '[{"name":"t:bug"},{"name":"t:feature"}]'
+    permissions:
+      pull-requests: read
+
+  test-invalid-hold-label:
+    name: Test invalid - hold label (should fail)
+    uses: ./.github/workflows/_enforce-pr-labels-sdlc.yml
+    with:
+      test_pr_labels_json: '[{"name":"hold"},{"name":"t:bug"}]'
+    permissions:
+      pull-requests: read
+
+  test-invalid-needs-qa-label:
+    name: Test invalid - needs-qa label (should fail)
+    uses: ./.github/workflows/_enforce-pr-labels-sdlc.yml
+    with:
+      test_pr_labels_json: '[{"name":"needs-qa"},{"name":"t:bug"}]'
+    permissions:
+      pull-requests: read
+
+  validate:
+    name: Validate Test Results
+    runs-on: ubuntu-24.04
+    needs:
+      - test-valid-one-t-label
+      - test-valid-ignore-for-release
+      - test-invalid-no-t-label
+      - test-invalid-multiple-t-labels
+      - test-invalid-hold-label
+      - test-invalid-needs-qa-label
+    if: always()
+    permissions:
+      contents: read
+    env:
+      _VALID_ONE_T_LABEL: ${{ needs.test-valid-one-t-label.result }}
+      _VALID_IGNORE_FOR_RELEASE: ${{ needs.test-valid-ignore-for-release.result }}
+      _INVALID_NO_T_LABEL: ${{ needs.test-invalid-no-t-label.result }}
+      _INVALID_MULTIPLE_T_LABELS: ${{ needs.test-invalid-multiple-t-labels.result }}
+      _INVALID_HOLD_LABEL: ${{ needs.test-invalid-hold-label.result }}
+      _INVALID_NEEDS_QA_LABEL: ${{ needs.test-invalid-needs-qa-label.result }}
+    steps:
+      - name: Validate results
+        run: |
+          failed=false
+
+          check_result() {
+            local name="$1"
+            local result="$2"
+            local expected="$3"
+            if [[ "$result" == "$expected" ]]; then
+              echo "✅ [$name] correctly got [$result]" | tee -a $GITHUB_STEP_SUMMARY
+            else
+              echo ":x: [$name] expected [$expected] but got [$result]" | tee -a $GITHUB_STEP_SUMMARY
+              failed=true
+            fi
+          }
+
+          check_result "test-valid-one-t-label"         "$_VALID_ONE_T_LABEL"         "success"
+          check_result "test-valid-ignore-for-release"  "$_VALID_IGNORE_FOR_RELEASE"  "success"
+          check_result "test-invalid-no-t-label"        "$_INVALID_NO_T_LABEL"        "failure"
+          check_result "test-invalid-multiple-t-labels" "$_INVALID_MULTIPLE_T_LABELS" "failure"
+          check_result "test-invalid-hold-label"        "$_INVALID_HOLD_LABEL"        "failure"
+          check_result "test-invalid-needs-qa-label"    "$_INVALID_NEEDS_QA_LABEL"    "failure"
+
+          if [[ "$failed" == "true" ]]; then
+            echo ":x: One or more test results were unexpected. See above for details." | tee -a $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          echo "✅ All test results are as expected." | tee -a $GITHUB_STEP_SUMMARY

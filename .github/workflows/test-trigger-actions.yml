@@ -1,0 +1,70 @@
+name: Test Trigger Actions
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "trigger-actions/**"
+      - ".github/workflows/test-trigger-actions.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test Trigger Actions
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      deployments: write
+      id-token: write
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Run trigger-actions
+        uses: ./trigger-actions
+        with:
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+          task: test-trigger-actions
+          description: "Test deployment from test-trigger-actions.yml"
+          test: "true"
+
+      - name: Verify deployment was created
+        id: verify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          DEPLOYMENT_ID=$(gh api "repos/$REPOSITORY/deployments?task=test-trigger-actions&per_page=1" \
+            --jq '.[0].id // empty')
+
+          if [[ -z "$DEPLOYMENT_ID" ]]; then
+            echo "::error::No deployment found with task=test-trigger-actions"
+            exit 1
+          fi
+
+          echo "deployment_id=$DEPLOYMENT_ID" >> "$GITHUB_OUTPUT"
+          echo "Deployment created successfully with ID: $DEPLOYMENT_ID"
+
+      - name: Cleanup all trigger-actions deployments
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          DEPLOYMENT_IDS=$(gh api "repos/$REPOSITORY/deployments?environment=trigger-actions&per_page=100" \
+            --jq '.[].id')
+
+          for ID in $DEPLOYMENT_IDS; do
+            gh api "repos/$REPOSITORY/deployments/$ID/statuses" \
+              --method POST \
+              -f state=inactive
+            gh api "repos/$REPOSITORY/deployments/$ID" \
+              --method DELETE
+            echo "Deleted deployment $ID"
+          done

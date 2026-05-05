@@ -60,6 +60,7 @@ runs:
         _REPOSITORY: ${{ inputs.test == 'true' && 'gh-actions' || steps.retrieve-secrets.outputs.TRIGGER-REPO-NAME }}
         _TASK: ${{ inputs.task }}
         _WORKFLOW_REF: ${{ github.workflow_ref }}
+        _DESCRIPTION: "Triggered by ${{ github.event.repository.name }} ${{ github.workflow }} on ${{ github.ref_name }} @ ${{ github.sha }}"
       with:
         github-token: ${{ inputs.test == 'true' && github.token || steps.app-token.outputs.token }}
         script: |

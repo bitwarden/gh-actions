@@ -15,7 +15,7 @@ inputs:
     description: "Deployment task name used for routing in the target repository"
     required: true
   description:
-    description: "Human-readable description of the deployment trigger"
+    description: "Deprecated: description is now set automatically from the calling repository and SHA"
     required: false
     default: ""
   test:
@@ -59,10 +59,30 @@ runs:
       env:
         _REPOSITORY: ${{ inputs.test == 'true' && 'gh-actions' || steps.retrieve-secrets.outputs.TRIGGER-REPO-NAME }}
         _TASK: ${{ inputs.task }}
-        _DESCRIPTION: ${{ inputs.description }}
+        _WORKFLOW_REF: ${{ github.workflow_ref }}
       with:
         github-token: ${{ inputs.test == 'true' && github.token || steps.app-token.outputs.token }}
         script: |
+          const branch = context.ref.replace('refs/heads/', '');
+          const payload = {
+            run: {
+              id: context.runId,
+              workflow: process.env._WORKFLOW_REF.split('/').pop().split('@')[0],
+            },
+            git: {
+              sha: context.sha,
+              branch: branch,
+              repo: context.repo.repo,
+            },
+            inputs: context.payload.inputs ?? {},
+          };
+
+          const MAX_PAYLOAD_SIZE = 65536;
+          const payloadSize = JSON.stringify(payload).length;
+          if (payloadSize > MAX_PAYLOAD_SIZE) {
+            throw new Error(`Deployment payload size (${payloadSize} chars) exceeds GitHub's limit of ${MAX_PAYLOAD_SIZE} characters`);
+          }
+
           await github.rest.repos.createDeployment({
             owner: 'bitwarden',
             repo: process.env._REPOSITORY,
@@ -71,5 +91,6 @@ runs:
             task: process.env._TASK,
             auto_merge: false,
             required_contexts: [],
-            description: process.env._DESCRIPTION || process.env._TASK
+            description: `Triggered by ${context.repo.repo} ${context.workflow} on ${branch} @ ${context.sha}`,
+            payload: payload,
           })

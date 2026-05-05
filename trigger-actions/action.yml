@@ -92,6 +92,6 @@ runs:
             task: process.env._TASK,
             auto_merge: false,
             required_contexts: [],
-            description: `Triggered by ${context.repo.repo} ${context.workflow} on ${branch} @ ${context.sha}`,
+            description: process.env._DESCRIPTION,
             payload: payload,
           })

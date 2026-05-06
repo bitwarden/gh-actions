@@ -18,7 +18,7 @@ inputs:
     description: "Deprecated: description is now set automatically from the calling repository and SHA"
     required: false
     default: ""
-  custom-data:
+  data:
     description: "Optional JSON object to include in the trigger context artifact under the 'data' key"
     required: false
     default: ""
@@ -62,7 +62,7 @@ runs:
       shell: bash
       env:
         _INPUTS: ${{ toJSON(github.event.inputs) }}
-        _DATA: ${{ inputs.custom-data }}
+        _DATA: ${{ inputs.data }}
         TRIGGER_CONTEXT_FILE: trigger-context.json
         TRIGGER_CONTEXT_ARTIFACT: trigger-context
       run: |

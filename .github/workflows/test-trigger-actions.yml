@@ -32,7 +32,7 @@ jobs:
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
           azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
           task: test-trigger-actions
-          custom-data: '{"test": true}'
+          data: '{"test": true}'
           test: "true"
 
       - name: Verify deployment was created

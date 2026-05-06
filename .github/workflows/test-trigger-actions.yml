@@ -32,6 +32,7 @@ jobs:
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
           azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
           task: test-trigger-actions
+          custom-data: '{"test": true}'
           test: "true"
 
       - name: Verify deployment was created
@@ -109,9 +110,14 @@ jobs:
             echo "::error::trigger-context.json missing 'inputs' key"
             exit 1
           fi
+          echo "context.inputs: ✓"
 
-          echo "trigger-context.json: ✓"
-          cat trigger-context/trigger-context.json
+          DATA_TEST=$(jq -r '.data.test' trigger-context/trigger-context.json)
+          if [[ "$DATA_TEST" != "true" ]]; then
+            echo "::error::context.data.test: expected 'true', got '$DATA_TEST'"
+            exit 1
+          fi
+          echo "context.data: ✓"
 
       - name: Cleanup all trigger-actions deployments
         if: always()

@@ -60,6 +60,8 @@ runs:
         _REPOSITORY: ${{ inputs.test == 'true' && 'gh-actions' || steps.retrieve-secrets.outputs.TRIGGER-REPO-NAME }}
         _TASK: ${{ inputs.task }}
         _DESCRIPTION: ${{ inputs.description }}
+        _RUN_ID: ${{ github.run_id }}
+        _SOURCE_REPOSITORY: ${{ github.repository }}
       with:
         github-token: ${{ inputs.test == 'true' && github.token || steps.app-token.outputs.token }}
         script: |
@@ -69,6 +71,10 @@ runs:
             ref: 'main',
             environment: 'trigger-actions',
             task: process.env._TASK,
+            payload: JSON.stringify({
+              run_id: process.env._RUN_ID,
+              repository: process.env._SOURCE_REPOSITORY
+            }),
             auto_merge: false,
             required_contexts: [],
             description: process.env._DESCRIPTION || process.env._TASK

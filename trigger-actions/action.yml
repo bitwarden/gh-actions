@@ -18,6 +18,10 @@ inputs:
     description: "Deprecated: description is now set automatically from the calling repository and SHA"
     required: false
     default: ""
+  data:
+    description: "Optional JSON object to include in the trigger context artifact under the 'data' key"
+    required: false
+    default: ""
   test:
     description: "Skip GitHub App token generation and use the calling workflow's token instead (for testing only)"
     required: false
@@ -58,12 +62,18 @@ runs:
       shell: bash
       env:
         _INPUTS: ${{ toJSON(github.event.inputs) }}
+        _DATA: ${{ inputs.data }}
         TRIGGER_CONTEXT_FILE: trigger-context.json
         TRIGGER_CONTEXT_ARTIFACT: trigger-context
       run: |
         echo "TRIGGER_CONTEXT_FILE=$TRIGGER_CONTEXT_FILE" >> "$GITHUB_ENV"
         echo "TRIGGER_CONTEXT_ARTIFACT=$TRIGGER_CONTEXT_ARTIFACT" >> "$GITHUB_ENV"
-        jq -n --argjson inputs "${_INPUTS}" '{"inputs": ($inputs // {})}' > "$TRIGGER_CONTEXT_FILE"
+        if [[ -n "$_DATA" ]] && ! echo "$_DATA" | jq empty 2>/dev/null; then
+          echo "::error::custom-data must be a valid JSON value"
+          exit 1
+        fi
+        jq -n --argjson inputs "${_INPUTS}" --argjson data "${_DATA:-null}" \
+          '{"inputs": ($inputs // {}), "data": ($data // {})}' > "$TRIGGER_CONTEXT_FILE"
 
     - name: Upload trigger context
       uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0

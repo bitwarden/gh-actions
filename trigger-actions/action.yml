@@ -15,7 +15,7 @@ inputs:
     description: "Deployment task name used for routing in the target repository"
     required: true
   description:
-    description: "Human-readable description of the deployment trigger"
+    description: "Deprecated: description is now set automatically from the calling repository and SHA"
     required: false
     default: ""
   test:
@@ -54,15 +54,57 @@ runs:
         repositories: ${{ steps.retrieve-secrets.outputs.TRIGGER-REPO-NAME }}
         permission-deployments: write
 
+    - name: Write trigger context
+      shell: bash
+      env:
+        _INPUTS: ${{ toJSON(github.event.inputs) }}
+        TRIGGER_CONTEXT_FILE: trigger-context.json
+        TRIGGER_CONTEXT_ARTIFACT: trigger-context
+      run: |
+        echo "TRIGGER_CONTEXT_FILE=$TRIGGER_CONTEXT_FILE" >> "$GITHUB_ENV"
+        echo "TRIGGER_CONTEXT_ARTIFACT=$TRIGGER_CONTEXT_ARTIFACT" >> "$GITHUB_ENV"
+        jq -n --argjson inputs "${_INPUTS}" '{"inputs": ($inputs // {})}' > "$TRIGGER_CONTEXT_FILE"
+
+    - name: Upload trigger context
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      with:
+        name: ${{ env.TRIGGER_CONTEXT_ARTIFACT }}
+        path: ${{ env.TRIGGER_CONTEXT_FILE }}
+
     - name: Create deployment
       uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
       env:
         _REPOSITORY: ${{ inputs.test == 'true' && 'gh-actions' || steps.retrieve-secrets.outputs.TRIGGER-REPO-NAME }}
         _TASK: ${{ inputs.task }}
-        _DESCRIPTION: ${{ inputs.description }}
+        _WORKFLOW_REF: ${{ github.workflow_ref }}
+        _DESCRIPTION: "Triggered by ${{ github.event.repository.name }} ${{ github.workflow }} on ${{ github.ref_name }} @ ${{ github.sha }}"
       with:
         github-token: ${{ inputs.test == 'true' && github.token || steps.app-token.outputs.token }}
         script: |
+          const branch = context.ref.replace('refs/heads/', '');
+          const payload = {
+            run: {
+              id: context.runId,
+              workflow: process.env._WORKFLOW_REF.split('@')[0].split('/').pop(),
+              artifact: {
+                name: process.env.TRIGGER_CONTEXT_ARTIFACT,
+                file: process.env.TRIGGER_CONTEXT_FILE,
+              },
+            },
+            git: {
+              sha: context.sha,
+              branch: branch,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            },
+          };
+
+          const MAX_PAYLOAD_SIZE = 65536;
+          const payloadSize = JSON.stringify(payload).length;
+          if (payloadSize > MAX_PAYLOAD_SIZE) {
+            throw new Error(`Deployment payload size (${payloadSize} chars) exceeds GitHub's limit of ${MAX_PAYLOAD_SIZE} characters`);
+          }
+
           await github.rest.repos.createDeployment({
             owner: 'bitwarden',
             repo: process.env._REPOSITORY,
@@ -71,5 +113,6 @@ runs:
             task: process.env._TASK,
             auto_merge: false,
             required_contexts: [],
-            description: process.env._DESCRIPTION || process.env._TASK
+            description: process.env._DESCRIPTION,
+            payload: payload,
           })

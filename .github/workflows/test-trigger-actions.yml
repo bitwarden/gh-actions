@@ -15,6 +15,7 @@ jobs:
     name: Test Trigger Actions
     runs-on: ubuntu-24.04
     permissions:
+      actions: read
       contents: read
       deployments: write
       id-token: write
@@ -31,7 +32,6 @@ jobs:
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
           azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
           task: test-trigger-actions
-          description: "Test deployment from test-trigger-actions.yml"
           test: "true"
 
       - name: Verify deployment was created
@@ -50,6 +50,68 @@ jobs:
 
           echo "deployment_id=$DEPLOYMENT_ID" >> "$GITHUB_OUTPUT"
           echo "Deployment created successfully with ID: $DEPLOYMENT_ID"
+
+      - name: Verify deployment payload
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          DEPLOYMENT_ID: ${{ steps.verify.outputs.deployment_id }}
+          EXPECTED_RUN_ID: ${{ github.run_id }}
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          PAYLOAD=$(gh api "repos/$REPOSITORY/deployments/$DEPLOYMENT_ID" --jq '.payload')
+
+          RUN_ID=$(echo "$PAYLOAD" | jq -r '.run.id')
+          RUN_WORKFLOW=$(echo "$PAYLOAD" | jq -r '.run.workflow')
+          ARTIFACT_NAME=$(echo "$PAYLOAD" | jq -r '.run.artifact.name')
+          GIT_SHA=$(echo "$PAYLOAD" | jq -r '.git.sha')
+          GIT_BRANCH=$(echo "$PAYLOAD" | jq -r '.git.branch')
+          GIT_OWNER=$(echo "$PAYLOAD" | jq -r '.git.owner')
+          GIT_REPO=$(echo "$PAYLOAD" | jq -r '.git.repo')
+
+          check() {
+            local field="$1" actual="$2" expected="$3"
+            if [[ "$actual" != "$expected" ]]; then
+              echo "::error::payload.$field: expected '$expected', got '$actual'"
+              exit 1
+            fi
+            echo "payload.$field: ✓ ($actual)"
+          }
+
+          check "run.id" "$RUN_ID" "$EXPECTED_RUN_ID"
+          check "run.workflow" "$RUN_WORKFLOW" "test-trigger-actions.yml"
+          check "run.artifact.name" "$ARTIFACT_NAME" "trigger-context"
+          check "git.sha" "$GIT_SHA" "$EXPECTED_SHA"
+          check "git.owner" "$GIT_OWNER" "bitwarden"
+          check "git.repo" "$GIT_REPO" "gh-actions"
+
+          if [[ -z "$GIT_BRANCH" || "$GIT_BRANCH" == "null" ]]; then
+            echo "::error::payload.git.branch is empty"
+            exit 1
+          fi
+          echo "payload.git.branch: ✓ ($GIT_BRANCH)"
+
+      - name: Download trigger context artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: trigger-context
+          path: trigger-context
+
+      - name: Verify trigger context
+        run: |
+          if [[ ! -f trigger-context/trigger-context.json ]]; then
+            echo "::error::trigger-context.json not found in artifact"
+            exit 1
+          fi
+
+          INPUTS=$(jq -r '.inputs' trigger-context/trigger-context.json)
+          if [[ "$INPUTS" == "null" ]]; then
+            echo "::error::trigger-context.json missing 'inputs' key"
+            exit 1
+          fi
+
+          echo "trigger-context.json: ✓"
+          cat trigger-context/trigger-context.json
 
       - name: Cleanup all trigger-actions deployments
         if: always()

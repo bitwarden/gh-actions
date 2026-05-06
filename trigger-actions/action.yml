@@ -58,14 +58,18 @@ runs:
       shell: bash
       env:
         _INPUTS: ${{ toJSON(github.event.inputs) }}
+        TRIGGER_CONTEXT_FILE: trigger-context.json
+        TRIGGER_CONTEXT_ARTIFACT: trigger-context
       run: |
-        jq -n --argjson inputs "${_INPUTS}" '{"inputs": ($inputs // {})}' > trigger-context.json
+        echo "TRIGGER_CONTEXT_FILE=$TRIGGER_CONTEXT_FILE" >> "$GITHUB_ENV"
+        echo "TRIGGER_CONTEXT_ARTIFACT=$TRIGGER_CONTEXT_ARTIFACT" >> "$GITHUB_ENV"
+        jq -n --argjson inputs "${_INPUTS}" '{"inputs": ($inputs // {})}' > "$TRIGGER_CONTEXT_FILE"
 
     - name: Upload trigger context
       uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
       with:
-        name: trigger-context
-        path: trigger-context.json
+        name: ${{ env.TRIGGER_CONTEXT_ARTIFACT }}
+        path: ${{ env.TRIGGER_CONTEXT_FILE }}
 
     - name: Create deployment
       uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
@@ -83,7 +87,8 @@ runs:
               id: context.runId,
               workflow: process.env._WORKFLOW_REF.split('@')[0].split('/').pop(),
               artifact: {
-                name: 'trigger-context',
+                name: process.env.TRIGGER_CONTEXT_ARTIFACT,
+                file: process.env.TRIGGER_CONTEXT_FILE,
               },
             },
             git: {

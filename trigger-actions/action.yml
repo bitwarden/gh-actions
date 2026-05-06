@@ -68,7 +68,7 @@ runs:
       run: |
         echo "TRIGGER_CONTEXT_FILE=$TRIGGER_CONTEXT_FILE" >> "$GITHUB_ENV"
         echo "TRIGGER_CONTEXT_ARTIFACT=$TRIGGER_CONTEXT_ARTIFACT" >> "$GITHUB_ENV"
-        jq -n --argjson inputs "${_INPUTS}" --argjson data "${_DATA}" \
+        jq -n --argjson inputs "${_INPUTS}" --argjson data "${_DATA:-null}" \
           '{"inputs": ($inputs // {}), "data": ($data // {})}' > "$TRIGGER_CONTEXT_FILE"
 
     - name: Upload trigger context

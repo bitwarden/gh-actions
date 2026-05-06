@@ -81,7 +81,7 @@ runs:
           const payload = {
             run: {
               id: context.runId,
-              workflow: process.env._WORKFLOW_REF.split('/').pop().split('@')[0],
+              workflow: process.env._WORKFLOW_REF.split('@')[0].split('/').pop(),
               artifact: {
                 name: 'trigger-context',
               },

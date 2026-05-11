@@ -13,8 +13,9 @@ This decouples the caller from knowledge of what workflow runs downstream — th
 1. Authenticates to Azure via OIDC and retrieves the GitHub App credentials (`GH-TRIGGER-APP-ID`, `GH-TRIGGER-APP-KEY`) from the `gh-org-bitwarden` Key Vault
 2. Mints a short-lived GitHub App token scoped to the target repository with `deployments: write`
 3. Creates a deployment event on `main` of the target repository with `environment: trigger-actions` and the provided `task`
+4. Polls the deployment's status history every `monitor-poll-interval-seconds` until it reaches a terminal state (`success` / `failure` / `error`) or `monitor-timeout-minutes` elapses. Each new status is logged with its timestamp. The action exits successfully on `success`, fails on `failure` / `error`, and fails on timeout.
 
-Receiving repositories should have a workflow triggered on `deployment` that filters on both `github.event.deployment.environment == 'trigger-actions'` and `github.event.deployment.task == '<task-name>'`.
+Receiving repositories should have a workflow triggered on `deployment` that filters on both `github.event.deployment.environment == 'trigger-actions'` and `github.event.deployment.task == '<task-name>'`. Downstream workflows must call `createDeploymentStatus` on this deployment to drive the monitoring loop; without those updates, the action will always time out.
 
 ## Inputs
 
@@ -25,6 +26,8 @@ Receiving repositories should have a workflow triggered on `deployment` that fil
 | `azure_client_id` | Yes | | Azure Client ID for OIDC login |
 | `task` | Yes | | Task name used for routing. Also determines the target repository (`deploy-server-dev` → `devops`, all others → `deploy`) |
 | `description` | No | *(task value)* | Human-readable description of the trigger. Defaults to the `task` value if not provided |
+| `monitor-timeout-minutes` | No | `10` | How long to wait for the downstream deployment to reach a terminal status |
+| `monitor-poll-interval-seconds` | No | `10` | How often to poll the deployment for status updates |
 | `test` | No | `false` | Skip App token generation and use the calling workflow's token instead. For testing only |
 
 ## Usage

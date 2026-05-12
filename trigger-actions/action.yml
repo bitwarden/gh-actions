@@ -157,6 +157,8 @@ runs:
         DEPLOYMENT_ID: ${{ steps.create-deployment.outputs.deployment-id }}
         DEPLOYMENT_OWNER: ${{ steps.create-deployment.outputs.deployment-owner }}
         DEPLOYMENT_REPO: ${{ steps.create-deployment.outputs.deployment-repo }}
+        DEPLOYMENT_TASK: ${{ inputs.task }}
+        DEPLOYMENT_ENVIRONMENT: trigger-actions
         TIMEOUT_MINUTES: ${{ inputs.monitor-timeout-minutes }}
         POLL_INTERVAL_SECONDS: ${{ inputs.monitor-poll-interval-seconds }}
       with:
@@ -165,6 +167,8 @@ runs:
           const deploymentId = Number(process.env.DEPLOYMENT_ID);
           const owner = process.env.DEPLOYMENT_OWNER;
           const repo = process.env.DEPLOYMENT_REPO;
+          const task = process.env.DEPLOYMENT_TASK;
+          const environment = process.env.DEPLOYMENT_ENVIRONMENT;
           const timeoutMinutes = Number(process.env.TIMEOUT_MINUTES);
           const pollIntervalSeconds = Number(process.env.POLL_INTERVAL_SECONDS);
 
@@ -181,7 +185,11 @@ runs:
           const startTime = Date.now();
           let lastSeenAt = null;
 
-          core.info(`Monitoring deployment ${owner}/${repo}#${deploymentId} (timeout: ${timeoutMinutes}m, poll: ${pollIntervalSeconds}s)`);
+          core.info(`Monitoring deployment ${owner}/${repo}#${deploymentId}`);
+          core.info(`  environment: ${environment}`);
+          core.info(`  task:        ${task}`);
+          core.info(`  timeout:     ${timeoutMinutes}m`);
+          core.info(`  poll:        ${pollIntervalSeconds}s`);
 
           while (true) {
             const elapsedMs = Date.now() - startTime;

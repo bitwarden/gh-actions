@@ -53,6 +53,7 @@ jobs:
           echo "Deployment created successfully with ID: $DEPLOYMENT_ID"
 
       - name: Verify deployment payload
+        id: verify-deployment-payload
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
@@ -81,7 +82,13 @@ jobs:
 
           check "run.id" "$RUN_ID" "$EXPECTED_RUN_ID"
           check "run.workflow" "$RUN_WORKFLOW" "test-trigger-actions.yml"
-          check "run.artifact.name" "$ARTIFACT_NAME" "trigger-context"
+
+          if [[ ! "$ARTIFACT_NAME" =~ ^trigger-context(-[a-f0-9]+)?$ ]]; then
+            echo "::error::payload.run.artifact.name: expected pattern 'trigger-context(-[a-f0-9]+)?', got '$ARTIFACT_NAME'"
+            exit 1
+          fi
+          echo "payload.run.artifact.name: ✓ ($ARTIFACT_NAME)"
+
           check "git.sha" "$GIT_SHA" "$EXPECTED_SHA"
           check "git.owner" "$GIT_OWNER" "bitwarden"
           check "git.repo" "$GIT_REPO" "gh-actions"
@@ -92,10 +99,12 @@ jobs:
           fi
           echo "payload.git.branch: ✓ ($GIT_BRANCH)"
 
+          echo "artifact_name=$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
+
       - name: Download trigger context artifact
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
-          name: trigger-context
+          name: ${{ steps.verify-deployment-payload.outputs.artifact_name }}
           path: trigger-context
 
       - name: Verify trigger context

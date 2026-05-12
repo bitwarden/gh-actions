@@ -24,7 +24,7 @@ Receiving repositories should have a workflow triggered on `deployment` that fil
 | `azure_subscription_id` | Yes | | Azure Subscription ID for OIDC login |
 | `azure_tenant_id` | Yes | | Azure Tenant ID for OIDC login |
 | `azure_client_id` | Yes | | Azure Client ID for OIDC login |
-| `task` | Yes | | Task name used for routing. Also determines the target repository (`deploy-server-dev` → `devops`, all others → `deploy`) |
+| `task` | Yes | | Task name used for routing in the target repository |
 | `description` | No | *(task value)* | Human-readable description of the trigger. Defaults to the `task` value if not provided |
 | `monitor-timeout-minutes` | No | `10` | How long to wait for the downstream deployment to reach a terminal status |
 | `monitor-poll-interval-seconds` | No | `10` | How often to poll the deployment for status updates |

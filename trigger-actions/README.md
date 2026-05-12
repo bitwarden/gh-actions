@@ -26,6 +26,7 @@ Receiving repositories should have a workflow triggered on `deployment` that fil
 | `azure_client_id` | Yes | | Azure Client ID for OIDC login |
 | `task` | Yes | | Task name used for routing in the target repository |
 | `description` | No | *(task value)* | Human-readable description of the trigger. Defaults to the `task` value if not provided |
+| `monitor-deployment` | No | `true` | Whether to poll the deployment for status updates after creating it. Set to `false` to fire-and-forget |
 | `monitor-timeout-minutes` | No | `10` | How long to wait for the downstream deployment to reach a terminal status |
 | `monitor-poll-interval-seconds` | No | `10` | How often to poll the deployment for status updates |
 | `test` | No | `false` | Skip App token generation and use the calling workflow's token instead. For testing only |

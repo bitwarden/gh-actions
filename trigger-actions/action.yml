@@ -26,6 +26,10 @@ inputs:
     description: "Skip GitHub App token generation and use the calling workflow's token instead (for testing only)"
     required: false
     default: "false"
+  monitor-deployment:
+    description: "Whether to poll the downstream deployment for status updates after creating it. Set to `false` to fire-and-forget."
+    required: false
+    default: "true"
   monitor-timeout-minutes:
     description: "How long to wait for the downstream deployment to reach a terminal status (success / failure / error), in minutes."
     required: false
@@ -156,6 +160,7 @@ runs:
           core.info(`Created deployment ${deployment.id} on bitwarden/${process.env._REPOSITORY}`);
 
     - name: Monitor deployment
+      if: inputs.monitor-deployment == 'true'
       uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
       env:
         DEPLOYMENT_ID: ${{ steps.create-deployment.outputs.deployment-id }}

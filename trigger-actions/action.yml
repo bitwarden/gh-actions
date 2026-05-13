@@ -58,16 +58,18 @@ runs:
         repositories: ${{ steps.retrieve-secrets.outputs.TRIGGER-REPO-NAME }}
         permission-deployments: write
 
+    - name: Set trigger context artifact name
+      shell: bash
+      run: |
+        echo "TRIGGER_CONTEXT_FILE=trigger-context.json" >> "$GITHUB_ENV"
+        echo "TRIGGER_CONTEXT_ARTIFACT=trigger-context-$(openssl rand -hex 8)" >> "$GITHUB_ENV"
+
     - name: Write trigger context
       shell: bash
       env:
         _INPUTS: ${{ toJSON(github.event.inputs) }}
         _DATA: ${{ inputs.data }}
-        TRIGGER_CONTEXT_FILE: trigger-context.json
-        TRIGGER_CONTEXT_ARTIFACT: trigger-context
       run: |
-        echo "TRIGGER_CONTEXT_FILE=$TRIGGER_CONTEXT_FILE" >> "$GITHUB_ENV"
-        echo "TRIGGER_CONTEXT_ARTIFACT=$TRIGGER_CONTEXT_ARTIFACT" >> "$GITHUB_ENV"
         if [[ -n "$_DATA" ]] && ! echo "$_DATA" | jq empty 2>/dev/null; then
           echo "::error::custom-data must be a valid JSON value"
           exit 1

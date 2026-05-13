@@ -66,6 +66,7 @@ runs:
       id: get-release
       shell: bash
       env:
+        GH_TOKEN: ${{ github.token }}
         REPOSITORY: ${{ inputs.repository }}
         INPUT_TRIM: ${{ inputs.trim }}
         INPUT_MONOREPO: ${{ inputs.monorepo }}
@@ -74,13 +75,14 @@ runs:
         case "${INPUT_MONOREPO}" in
             "true")
               LATEST_RELEASE_TAG_VERSION=$(
-                curl -sL https://api.github.com/repos/$REPOSITORY/releases | \
-                jq -r --arg prefix "${INPUT_MONOREPO_PROJECT}" 'first(.[] | select(.tag_name | startswith($prefix))).tag_name'
+                gh release list --repo "$REPOSITORY" --limit 100 --order desc \
+                  --json tagName --jq "[.[].tagName | select(startswith(\"$INPUT_MONOREPO_PROJECT\"))][0]"
               )
               ;;
             "false")
               LATEST_RELEASE_TAG_VERSION=$(
-                curl -sL https://api.github.com/repos/$REPOSITORY/releases/latest | jq -r ".tag_name"
+                gh release list --repo "$REPOSITORY" --limit 1 \
+                  --json tagName --jq '.[0].tagName'
               )
               ;;
           esac

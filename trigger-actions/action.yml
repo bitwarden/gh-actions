@@ -1,0 +1,130 @@
+name: "Trigger Actions"
+description: "Creates a GitHub deployment event on a target repository to trigger downstream deployment workflows"
+
+inputs:
+  azure_subscription_id:
+    description: "Azure Subscription ID"
+    required: true
+  azure_tenant_id:
+    description: "Azure Tenant ID"
+    required: true
+  azure_client_id:
+    description: "Azure Client ID"
+    required: true
+  task:
+    description: "Deployment task name used for routing in the target repository"
+    required: true
+  description:
+    description: "Deprecated: description is now set automatically from the calling repository and SHA"
+    required: false
+    default: ""
+  data:
+    description: "Optional JSON object to include in the trigger context artifact under the 'data' key"
+    required: false
+    default: ""
+  test:
+    description: "Skip GitHub App token generation and use the calling workflow's token instead (for testing only)"
+    required: false
+    default: "false"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Log in to Azure
+      uses: bitwarden/gh-actions/azure-login@main
+      with:
+        subscription_id: ${{ inputs.azure_subscription_id }}
+        tenant_id: ${{ inputs.azure_tenant_id }}
+        client_id: ${{ inputs.azure_client_id }}
+
+    - name: Retrieve secrets
+      id: retrieve-secrets
+      uses: bitwarden/gh-actions/get-keyvault-secrets@main
+      with:
+        keyvault: gh-org-bitwarden
+        secrets: "GH-TRIGGER-APP-ID,GH-TRIGGER-APP-KEY,TRIGGER-REPO-NAME"
+
+    - name: Log out from Azure
+      uses: bitwarden/gh-actions/azure-logout@main
+
+    - name: Generate GitHub App token
+      id: app-token
+      if: inputs.test != 'true'
+      uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
+      with:
+        app-id: ${{ steps.retrieve-secrets.outputs.GH-TRIGGER-APP-ID }}
+        private-key: ${{ steps.retrieve-secrets.outputs.GH-TRIGGER-APP-KEY }}
+        owner: bitwarden
+        repositories: ${{ steps.retrieve-secrets.outputs.TRIGGER-REPO-NAME }}
+        permission-deployments: write
+
+    - name: Set trigger context artifact name
+      shell: bash
+      run: |
+        echo "TRIGGER_CONTEXT_FILE=trigger-context.json" >> "$GITHUB_ENV"
+        echo "TRIGGER_CONTEXT_ARTIFACT=trigger-context-$(openssl rand -hex 8)" >> "$GITHUB_ENV"
+
+    - name: Write trigger context
+      shell: bash
+      env:
+        _INPUTS: ${{ toJSON(github.event.inputs) }}
+        _DATA: ${{ inputs.data }}
+      run: |
+        if [[ -n "$_DATA" ]] && ! echo "$_DATA" | jq empty 2>/dev/null; then
+          echo "::error::custom-data must be a valid JSON value"
+          exit 1
+        fi
+        jq -n --argjson inputs "${_INPUTS}" --argjson data "${_DATA:-null}" \
+          '{"inputs": ($inputs // {}), "data": ($data // {})}' > "$TRIGGER_CONTEXT_FILE"
+
+    - name: Upload trigger context
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      with:
+        name: ${{ env.TRIGGER_CONTEXT_ARTIFACT }}
+        path: ${{ env.TRIGGER_CONTEXT_FILE }}
+
+    - name: Create deployment
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+      env:
+        _REPOSITORY: ${{ inputs.test == 'true' && 'gh-actions' || steps.retrieve-secrets.outputs.TRIGGER-REPO-NAME }}
+        _TASK: ${{ inputs.task }}
+        _WORKFLOW_REF: ${{ github.workflow_ref }}
+        _DESCRIPTION: "Triggered by ${{ github.event.repository.name }} ${{ github.workflow }} on ${{ github.ref_name }} @ ${{ github.sha }}"
+      with:
+        github-token: ${{ inputs.test == 'true' && github.token || steps.app-token.outputs.token }}
+        script: |
+          const branch = context.ref.replace('refs/heads/', '');
+          const payload = {
+            run: {
+              id: context.runId,
+              workflow: process.env._WORKFLOW_REF.split('@')[0].split('/').pop(),
+              artifact: {
+                name: process.env.TRIGGER_CONTEXT_ARTIFACT,
+                file: process.env.TRIGGER_CONTEXT_FILE,
+              },
+            },
+            git: {
+              sha: context.sha,
+              branch: branch,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            },
+          };
+
+          const MAX_PAYLOAD_SIZE = 65536;
+          const payloadSize = JSON.stringify(payload).length;
+          if (payloadSize > MAX_PAYLOAD_SIZE) {
+            throw new Error(`Deployment payload size (${payloadSize} chars) exceeds GitHub's limit of ${MAX_PAYLOAD_SIZE} characters`);
+          }
+
+          await github.rest.repos.createDeployment({
+            owner: 'bitwarden',
+            repo: process.env._REPOSITORY,
+            ref: 'main',
+            environment: 'trigger-actions',
+            task: process.env._TASK,
+            auto_merge: false,
+            required_contexts: [],
+            description: process.env._DESCRIPTION,
+            payload: payload,
+          })

@@ -119,7 +119,6 @@ For containerized actions (e.g., `version-bump`):
 **Python/Docker Actions:**
 
 - `version-bump/` - File version updating (JSON, XML, PLIST, YAML)
-- `crowdin/` - Translation management
 
 **Shell/YAML Actions:**
 

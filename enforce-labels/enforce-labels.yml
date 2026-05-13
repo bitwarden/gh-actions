@@ -1,0 +1,14 @@
+---
+name: Enforce PR labels
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions: {}
+
+jobs:
+  enforce-labels:
+    name: Enforce labels
+    uses: bitwarden/gh-actions/.github/workflows/_enforce-labels.yml@main
+    permissions: {}

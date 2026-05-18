@@ -1,5 +1,5 @@
 name: "Check Review Gate"
-description: "Determines whether a Claude Code review should run on a pull request"
+description: "Determines whether an AI-powered code review should run on a pull request"
 author: "Bitwarden"
 branding:
   icon: shield
@@ -11,8 +11,7 @@ inputs:
     required: true
   marker_id:
     description: "Sticky comment marker ID to check for an existing review"
-    required: false
-    default: "bitwarden-code-review"
+    required: true
   pr_number:
     description: "Pull request number"
     required: true
@@ -65,9 +64,7 @@ runs:
         fi
 
         PR_JSON=$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json isDraft,labels)
-        IS_DRAFT=$(echo "$PR_JSON" | jq -r '.isDraft')
         LABELS=$(echo "$PR_JSON" | jq -r '.labels[].name')
-        SAFETY_NET_EVENTS="opened ready_for_review reopened"
 
         if printf '%s\n' "$LABELS" | grep -Fxq "ai-review-vnext"; then
           echo "should_review=true" >> "$GITHUB_OUTPUT"
@@ -85,6 +82,9 @@ runs:
           exit 0
         fi
 
+        # The following starts the at-least-one AI code review rules.
+        # We require the PR to be non-draft for the safety net to trigger to ensure reviews are not run on work-in-progress PRs.
+        IS_DRAFT=$(echo "$PR_JSON" | jq -r '.isDraft')
         if [ "$IS_DRAFT" = "true" ]; then
           echo "should_review=false" >> "$GITHUB_OUTPUT"
           echo "review_variant=" >> "$GITHUB_OUTPUT"
@@ -93,6 +93,8 @@ runs:
           exit 0
         fi
 
+        # The at-least-one AI code review rule only triggers on specific events to avoid unwanted reviews.
+        SAFETY_NET_EVENTS="opened ready_for_review reopened"
         if ! printf '%s\n' $SAFETY_NET_EVENTS | grep -Fxq "$EVENT_NAME"; then
           echo "should_review=false" >> "$GITHUB_OUTPUT"
           echo "review_variant=" >> "$GITHUB_OUTPUT"
@@ -101,7 +103,7 @@ runs:
           exit 0
         fi
 
-        # Idempotency guard — skip if a review comment with this marker already exists
+        # The idempotency guard will skip if an AI-powered code review comment with our marker already exists
         # Pattern from get-pull-request-threads/action.yml
         COMMENTS_RESPONSE=$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json comments)
         MARKER="<!-- ${MARKER_ID} -->"

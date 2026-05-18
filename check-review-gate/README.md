@@ -1,14 +1,14 @@
 # Check Review Gate
 
-Determines whether a Claude Code AI review should run on a pull request, routing through a label-triggered path or an automatic safety net.
+Determines whether an AI-powered code review should run on a pull request. The `ai-review-vnext` or `ai-review` labels are the primary opt-in signal that an engineer desires an AI code review. The at-least-one AI-powered code review rule states that if a PR is being opened, reopening, or publishing from a draft state then we must validate. The way we validate is by using a sticky comment with a hidden HTML marker.
 
 ## How It Works
 
 The gate evaluates two paths in order:
 
-**Label path** (checked first): If the PR carries `ai-review-vnext` or `ai-review`, the review proceeds immediately. Draft status is ignored — a reviewer explicitly asked for a review.
+**Label path**: If the PR carries `ai-review-vnext` or `ai-review`, the review proceeds immediately without validating the at-least-one rule.
 
-**Safety net** (when no label matched): Fires on `opened`, `ready_for_review`, and `reopened` events for non-draft PRs that do not already have a review comment. Prevents duplicate reviews on push-triggered re-runs.
+**At-least-one rules**: Validates that a non-draft PR has at least one AI-powered code review when the event trigger is `opened`, `ready_for_review`, and `reopened`.
 
 ## Inputs
 
@@ -37,13 +37,11 @@ The gate evaluates two paths in order:
       ```
       event_name: ${{ github.event_name }}
       ```
-- Optional
   - `marker_id`
     - Description: HTML comment marker ID used to detect an existing review comment (idempotency guard). Must match the `marker_id` passed to `update-pr-comment`.
-    - Default: `bitwarden-code-review`
     - Example:
       ```
-      marker_id: my-review-marker
+      marker_id: bitwarden-code-review
       ```
 
 ## Outputs
@@ -68,10 +66,11 @@ The gate evaluates two paths in order:
   id: gate
   uses: bitwarden/gh-actions/check-review-gate@main
   with:
-    token: ${{ github.token }}
+    event_name: ${{ github.event_name }}
+    marker_id: bitwarden-code-review
     pr_number: ${{ github.event.pull_request.number }}
     repository: ${{ github.repository }}
-    event_name: ${{ github.event_name }}
+    token: ${{ github.token }}
 
 - name: Run review
   if: steps.gate.outputs.should_review == 'true'

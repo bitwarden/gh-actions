@@ -39,6 +39,7 @@ jobs:
         uses: ./check-review-gate
         with:
           event_name: ${{ inputs.event_name }}
+          marker_id: bitwarden-code-review
           pr_number: ${{ inputs.pr_number }}
           repository: ${{ github.repository }}
           token: ${{ github.token }}

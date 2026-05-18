@@ -1,0 +1,122 @@
+name: "Check Review Gate"
+description: "Determines whether a Claude Code review should run on a pull request"
+author: "Bitwarden"
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  event_name:
+    description: "Triggering event name (github.event_name from the calling workflow)"
+    required: true
+  marker_id:
+    description: "Sticky comment marker ID to check for an existing review"
+    required: false
+    default: "bitwarden-code-review"
+  pr_number:
+    description: "Pull request number"
+    required: true
+  repository:
+    description: "Repository in owner/repo format"
+    required: true
+  token:
+    description: "GitHub token for API access"
+    required: true
+
+outputs:
+  should_review:
+    description: "'true' if a review should be executed, 'false' otherwise"
+    value: ${{ steps.gate.outputs.should_review }}
+  review_variant:
+    description: "Review variant to use: 'current' or 'vnext' (empty string when should_review=false)"
+    value: ${{ steps.gate.outputs.review_variant }}
+  skip_reason:
+    description: "Human-readable reason when should_review=false"
+    value: ${{ steps.gate.outputs.skip_reason }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Evaluate review gate
+      id: gate
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        PR_NUMBER: ${{ inputs.pr_number }}
+        REPOSITORY: ${{ inputs.repository }}
+        EVENT_NAME: ${{ inputs.event_name }}
+        MARKER_ID: ${{ inputs.marker_id }}
+      run: |
+        set -euo pipefail
+
+        if [[ -z "$PR_NUMBER" ]] || [[ ! "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+          echo "::error::Invalid pr_number: must be a positive integer"
+          exit 1
+        fi
+
+        if [[ -z "$REPOSITORY" ]] || [[ ! "$REPOSITORY" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]]; then
+          echo "::error::Invalid repository format: must be 'owner/repo'"
+          exit 1
+        fi
+
+        if [[ -z "$MARKER_ID" ]] || [[ ! "$MARKER_ID" =~ ^[A-Za-z0-9_-]+$ ]]; then
+          echo "::error::Invalid marker_id: must be alphanumeric with hyphens/underscores"
+          exit 1
+        fi
+
+        PR_JSON=$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json isDraft,labels)
+        IS_DRAFT=$(echo "$PR_JSON" | jq -r '.isDraft')
+        LABELS=$(echo "$PR_JSON" | jq -r '.labels[].name')
+        SAFETY_NET_EVENTS="opened ready_for_review reopened"
+
+        if printf '%s\n' "$LABELS" | grep -Fxq "ai-review-vnext"; then
+          echo "should_review=true" >> "$GITHUB_OUTPUT"
+          echo "review_variant=vnext" >> "$GITHUB_OUTPUT"
+          echo "skip_reason=" >> "$GITHUB_OUTPUT"
+          echo "✅ Gate: 'ai-review-vnext' label found — review will proceed (variant: vnext)"
+          exit 0
+        fi
+
+        if printf '%s\n' "$LABELS" | grep -Fxq "ai-review"; then
+          echo "should_review=true" >> "$GITHUB_OUTPUT"
+          echo "review_variant=current" >> "$GITHUB_OUTPUT"
+          echo "skip_reason=" >> "$GITHUB_OUTPUT"
+          echo "✅ Gate: 'ai-review' label found — review will proceed (variant: current)"
+          exit 0
+        fi
+
+        if [ "$IS_DRAFT" = "true" ]; then
+          echo "should_review=false" >> "$GITHUB_OUTPUT"
+          echo "review_variant=" >> "$GITHUB_OUTPUT"
+          echo "skip_reason=PR is a draft (safety net does not run on drafts)" >> "$GITHUB_OUTPUT"
+          echo "⚠️ Gate: Safety net: PR is a draft — skipping review"
+          exit 0
+        fi
+
+        if ! printf '%s\n' $SAFETY_NET_EVENTS | grep -Fxq "$EVENT_NAME"; then
+          echo "should_review=false" >> "$GITHUB_OUTPUT"
+          echo "review_variant=" >> "$GITHUB_OUTPUT"
+          echo "skip_reason=No review label and event '${EVENT_NAME}' is not a safety-net trigger" >> "$GITHUB_OUTPUT"
+          echo "⚠️ Gate: No review label and event '${EVENT_NAME}' is not in [${SAFETY_NET_EVENTS}] — skipping"
+          exit 0
+        fi
+
+        # Idempotency guard — skip if a review comment with this marker already exists
+        # Pattern from get-pull-request-threads/action.yml
+        COMMENTS_RESPONSE=$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json comments)
+        MARKER="<!-- ${MARKER_ID} -->"
+        HAS_REVIEW=$(echo "$COMMENTS_RESPONSE" | jq -r --arg marker "$MARKER" --arg bot "github-actions[bot]" \
+          '[.comments[] | select(.author.login == $bot) | select(.body | contains($marker))] | length')
+
+        if [ "$HAS_REVIEW" -gt "0" ]; then
+          echo "should_review=false" >> "$GITHUB_OUTPUT"
+          echo "review_variant=" >> "$GITHUB_OUTPUT"
+          echo "skip_reason=Review already exists (sticky comment found with marker '${MARKER_ID}')" >> "$GITHUB_OUTPUT"
+          echo "⚠️ Gate: Existing review comment found — skipping (idempotency)"
+          exit 0
+        fi
+
+        echo "should_review=true" >> "$GITHUB_OUTPUT"
+        echo "review_variant=current" >> "$GITHUB_OUTPUT"
+        echo "skip_reason=" >> "$GITHUB_OUTPUT"
+        echo "✅ Gate: Safety net triggered (event: ${EVENT_NAME}) — review will proceed (variant: current)"

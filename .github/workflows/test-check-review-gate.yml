@@ -1,0 +1,52 @@
+name: Test Check Review Gate Action
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to run the gate against"
+        required: true
+        type: string
+      event_name:
+        description: "Event name to simulate"
+        required: true
+        type: choice
+        options:
+          - labeled
+          - opened
+          - ready_for_review
+          - reopened
+          - synchronize
+        default: opened
+
+permissions: {}
+
+jobs:
+  gate:
+    name: Run gate
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Run check-review-gate
+        id: gate
+        uses: ./check-review-gate
+        with:
+          event_name: ${{ inputs.event_name }}
+          pr_number: ${{ inputs.pr_number }}
+          repository: ${{ github.repository }}
+          token: ${{ github.token }}
+
+      - name: Print gate result
+        env:
+          SHOULD_REVIEW: ${{ steps.gate.outputs.should_review }}
+          REVIEW_VARIANT: ${{ steps.gate.outputs.review_variant }}
+          SKIP_REASON: ${{ steps.gate.outputs.skip_reason }}
+        run: |
+          echo "should_review=$SHOULD_REVIEW"
+          echo "review_variant=$REVIEW_VARIANT"
+          echo "skip_reason=$SKIP_REASON"

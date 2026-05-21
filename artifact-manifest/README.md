@@ -54,10 +54,14 @@ Reference the manifest in a downstream workflow using the run ID from the upstre
     run_id: ${{ github.event.workflow_run.id }}
 
 - name: Print raw manifest
-  run: echo '${{ steps.manifest.outputs.manifest }}'
+  env:
+    MANIFEST: ${{ steps.manifest.outputs.manifest }}
+  run: echo "$MANIFEST"
 
 - name: Print container image SHA manifest
-  run: echo '${{ fromJSON(steps.manifest.outputs.manifest).artifacts.my-docker-image.sha }}'
+  env:
+    IMAGE_SHA: ${{ fromJSON(steps.manifest.outputs.manifest).artifacts.my-docker-image.sha }}
+  run: echo "$IMAGE_SHA"
 ```
 
 Inputs:
@@ -72,7 +76,9 @@ Outputs:
 - Individual values can be accessed using `fromJSON()`:
 
   ```yaml
-  echo ${{ fromJSON(steps.<step-id>.outputs.manifest).artifacts.my-container-image.sha }}
+  env:
+    IMAGE_SHA: ${{ fromJSON(steps.<step-id>.outputs.manifest).artifacts.my-container-image.sha }}
+  run: echo "$IMAGE_SHA"
   ```
 
 ## Manifest Schema

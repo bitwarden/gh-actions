@@ -8,28 +8,23 @@ inputs:
     required: true
   github_token:
     description: "GitHub token"
-    required: false
     default: ${{ github.token }}
   gha_artifacts:
     description: |
       Newline-separated list of GHA artifact names to include in the manifest.
       Use '*' to include all artifacts uploaded in this run. Omit to include none.
-    required: false
     default: ""
   additional_artifacts:
     description: |
       JSON object of non-GHA artifact entries (container images, blobs, release assets)
       to merge into the manifest. Keys are logical artifact names; values follow the
       artifact type schema (type, plus type-specific locator fields).
-    required: false
     default: "{}"
   repo:
     description: "Repository (owner/repo) to download the manifest from. Download mode only."
-    required: false
     default: ${{ github.repository }}
   run_id:
     description: "Workflow run ID to download the manifest from. Download mode only."
-    required: false
     default: ""
 
 outputs:
@@ -57,7 +52,7 @@ runs:
 
     - name: Upload manifest
       if: inputs.mode == 'upload'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: artifact-manifest
         path: artifact_manifest.json

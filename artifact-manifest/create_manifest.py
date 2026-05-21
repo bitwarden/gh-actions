@@ -24,12 +24,12 @@ def get_run_artifacts(token, repository, run_id):
             # call the url
             with urlopen(req) as resp:
                 data = json.loads(resp.read())
-                # grab the "next page" link that GitHub inclides in the response header
+                # grab the "next page" link that GitHub includes in the response header
                 link_header = resp.headers.get("Link", "")
         except HTTPError as e:
             print(f"::error::GitHub API error: {e.code} {e.reason}", file=sys.stderr)
             sys.exit(1)
-        # combine the list or artifacts from the response with existing list of artifacts
+        # combine the list of artifacts from the response with existing list of artifacts
         artifacts.extend(data["artifacts"])
         # set var to None. loop will exit if we don't find any "next page" links
         url = None

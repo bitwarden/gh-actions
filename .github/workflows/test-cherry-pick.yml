@@ -56,7 +56,7 @@ jobs:
             git add "$sim_branch.txt"
             git commit -m 'created test file'
             if ! git push origin "$sim_branch"; then
-              echo "ERROR: Failed to push [$sim_branch] branch to origin. Exiting."
+              echo "::error::Failed to push [$sim_branch] branch to origin. Exiting."
               exit 1
             fi
             git switch main
@@ -71,12 +71,12 @@ jobs:
             --body "Automated test PR for cherry-pick workflow testing. This should be cleaned up automatically and can safely be deleted if cleanup has failed."
 
           if [[ $? -ne 0 ]]; then
-            echo "ERROR: Failed to create PR from [$simulated_feature_branch] branch to [$simulated_main_branch]. Exiting"
+            echo "::error::Failed to create PR from [$simulated_feature_branch] branch to [$simulated_main_branch]. Exiting"
             exit 1
           fi
 
           if ! simulated_pr_number=$(gh pr view "$simulated_feature_branch" --json number --jq '.number'); then
-            echo "ERROR: Failed to retrieve simulated PR number from [$simulated_feature_branch]. Exiting."
+            echo "::error::Failed to retrieve simulated PR number from [$simulated_feature_branch]. Exiting."
             exit 1
           fi
           echo "simulated_pr_number=$simulated_pr_number" >> $GITHUB_OUTPUT
@@ -84,7 +84,7 @@ jobs:
           
           echo "INFO: Merging PR [#$simulated_pr_number] into branch [$simulated_main_branch]"
           if ! gh pr merge "$simulated_pr_number" --squash; then
-            echo "ERROR: Failed to merge PR [#$simulated_pr_number]. Exiting."
+            echo "::error::Failed to merge PR [#$simulated_pr_number]. Exiting."
             exit 1
           fi
 
@@ -151,7 +151,7 @@ jobs:
             if [[ $pr_state == 'OPEN' ]]; then
               echo "INFO: Closing simulated PR [#$_SIMULATED_PR_NUMBER]"
               if ! gh pr close "$_SIMULATED_PR_NUMBER"; then
-                echo "WARN: Failed to close PR [#$_SIMULATED_PR_NUMBER]. Please manually delete these."
+                echo "::warning::Failed to close PR [#$_SIMULATED_PR_NUMBER]. Please manually delete these."
               fi
             fi
           fi
@@ -160,7 +160,7 @@ jobs:
             if git ls-remote --exit-code --heads origin "$_SIMULATED_FEATURE_BRANCH" >/dev/null 2>&1; then
               echo "INFO: Deleting simulated feature branch [$_SIMULATED_FEATURE_BRANCH]"
               if ! git push origin --delete "$_SIMULATED_FEATURE_BRANCH"; then
-                echo "WARN: Failed to delete [$_SIMULATED_FEATURE_BRANCH] branch. Please manually delete this."
+                echo "::warning::Failed to delete [$_SIMULATED_FEATURE_BRANCH] branch. Please manually delete this."
               fi
             else
               echo "INFO: Branch [$_SIMULATED_FEATURE_BRANCH] does not exist or was already deleted."
@@ -171,7 +171,7 @@ jobs:
             if git ls-remote --exit-code --heads origin "$_SIMULATED_MAIN_BRANCH" >/dev/null 2>&1; then
               echo "INFO: Deleting simulated main branch [$_SIMULATED_MAIN_BRANCH]"
               if ! git push origin --delete "$_SIMULATED_MAIN_BRANCH"; then
-                echo "WARN: Failed to delete [$_SIMULATED_MAIN_BRANCH] branch. Please manually delete this."
+                echo "::warning::Failed to delete [$_SIMULATED_MAIN_BRANCH] branch. Please manually delete this."
               fi
             else
               echo "INFO: Branch [$_SIMULATED_MAIN_BRANCH] does not exist or was already deleted."
@@ -182,7 +182,7 @@ jobs:
             if git ls-remote --exit-code --heads origin "$_CHERRY_PICK_BRANCH" >/dev/null 2>&1; then
               echo "INFO: Deleting cherry-pick branch [$_CHERRY_PICK_BRANCH]"
               if ! git push origin --delete "$_CHERRY_PICK_BRANCH"; then
-                echo "WARN: Failed to delete [$_CHERRY_PICK_BRANCH] branch. Please manually delete this."
+                echo "::warning::Failed to delete [$_CHERRY_PICK_BRANCH] branch. Please manually delete this."
               fi
             else
               echo "INFO: Branch [$_CHERRY_PICK_BRANCH] does not exist or was already deleted."
@@ -193,7 +193,7 @@ jobs:
             if git ls-remote --exit-code --heads origin "$_SIMULATED_DEST_BRANCH" >/dev/null 2>&1; then
               echo "INFO: Deleting simulated destination branch [$_SIMULATED_DEST_BRANCH]"
               if ! git push origin --delete "$_SIMULATED_DEST_BRANCH"; then
-                echo "WARN: Failed to delete [$_SIMULATED_DEST_BRANCH] branch. Please manually delete this."
+                echo "::warning::Failed to delete [$_SIMULATED_DEST_BRANCH] branch. Please manually delete this."
               fi
             else
               echo "INFO: Branch [$_SIMULATED_DEST_BRANCH] does not exist or was already deleted."

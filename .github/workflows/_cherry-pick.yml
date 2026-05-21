@@ -22,7 +22,7 @@ on:
         type: boolean
         default: false
       test_mode:
-        description: 'Run in test mode (skips Azure auth and GPG signing)'
+        description: 'Run in test mode (skips Azure auth and uses local token)'
         required: false
         type: boolean
         default: false
@@ -60,7 +60,7 @@ jobs:
         if: inputs.dest_branch_allowed != ''
         run: |
           if ! echo "$_DEST_BRANCH" | grep -Eq "$_DEST_BRANCH_ALLOWED"; then
-            echo "ERROR: Destination branch [$_DEST_BRANCH] does not match allowed pattern [$_DEST_BRANCH_ALLOWED]"
+            echo "::error::Destination branch [$_DEST_BRANCH] does not match allowed pattern [$_DEST_BRANCH_ALLOWED]"
             exit 1
           fi
           echo "INFO: Destination branch matches allowed pattern"
@@ -106,7 +106,7 @@ jobs:
         id: validate_dest_branch
         run: |
            if ! git rev-parse --quiet --verify origin/"$_DEST_BRANCH" >/dev/null; then
-            echo "ERROR: Could not find destination branch [$_DEST_BRANCH]. Please confirm the branch exists and the name is correct."
+            echo "::error::Could not find destination branch [$_DEST_BRANCH]. Please confirm the branch exists and the name is correct."
             exit 1
            fi
 
@@ -118,7 +118,7 @@ jobs:
         run: |
           # get PR info
           if ! pr_info=$(gh pr view "$_SOURCE_PR" --json state,baseRefName,mergeCommit,title); then
-            echo "ERROR: Could not gather data for PR [#$_SOURCE_PR]. Please verify the number."
+            echo "::error::Could not gather data for PR [#$_SOURCE_PR]. Please verify the number."
             exit 1
           fi
 
@@ -137,23 +137,23 @@ jobs:
           if [[ $WORKFLOW_REF == bitwarden/gh-actions/.github/workflows/test-cherry-pick.yml@* ]]; then
               echo "INFO: This workflow is being run by the [test-cherry-pick.yml] workflow."
               if [[ ${pr_base_ref:0:21} != "cherry-pick-sim-main-" ]]; then
-                echo "ERROR: Invalid test base ref: [$pr_base_ref]. Test ref/branch must match [cherry-pick-sim-main-*]"
+                echo "::error::Invalid test base ref: [$pr_base_ref]. Test ref/branch must match [cherry-pick-sim-main-*]"
                 exit 1
               fi
           else
             if [[ $pr_base_ref != 'main' ]]; then      
-              echo "ERROR: Invalid PR base ref: [$pr_base_ref]. Base ref/branch must be [main]."
+              echo "::error::Invalid PR base ref: [$pr_base_ref]. Base ref/branch must be [main]."
               exit 1
             fi
           fi
 
           if [[ $pr_state != 'MERGED' ]]; then
-            echo "ERROR: Invalid PR state: [$pr_state]. State must be [MERGED]."
+            echo "::error::Invalid PR state: [$pr_state]. State must be [MERGED]."
             exit 1
           fi
 
           if [[ -z $pr_commit ]]; then
-            echo "ERROR: GitHub API returned empty commit for PR. Cannot continue."
+            echo "::error::GitHub API returned empty commit for PR. Cannot continue."
             exit 1
           fi
 
@@ -187,7 +187,7 @@ jobs:
         run: |
           echo "INFO: Cherry-picking commit [$PR_COMMIT] from PR [#$_SOURCE_PR]"
           if ! git cherry-pick -x "$PR_COMMIT"; then
-            echo "ERROR: Cherry-pick failed for commit [$PR_COMMIT]"
+            echo "::error::Cherry-pick failed for commit [$PR_COMMIT]"
             git cherry-pick --abort
             exit 1
           fi
@@ -200,19 +200,19 @@ jobs:
         run: |
           echo "INFO: Pushing local [$_DEST_BRANCH] branch to origin"
           if ! git push origin "$_DEST_BRANCH"; then
-            echo "ERROR: Failed to push to origin."
+            echo "::error::Failed to push to origin."
             exit 1
           fi
 
           echo "INFO: Adding 'cherry-picked' label to PR [#$_SOURCE_PR]"
           if ! gh pr edit "$_SOURCE_PR" --add-label "cherry-picked"; then
-            echo "WARN: Failed to add label to PR [#$_SOURCE_PR]"
+            echo "::warning::Failed to add label to PR [#$_SOURCE_PR]"
           fi
 
           run_url="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           echo "INFO: Adding comment to PR [#$_SOURCE_PR]"
           if ! gh pr comment "$_SOURCE_PR" --body "✅ Successfully cherry-picked to [$_DEST_BRANCH]. [View run]($run_url)"; then
-            echo "WARN: Failed to add comment to PR [#$_SOURCE_PR]"
+            echo "::warning::Failed to add comment to PR [#$_SOURCE_PR]"
           fi
 
       - name: Push branch and open PR
@@ -223,7 +223,7 @@ jobs:
         run: |
           echo "INFO: Pushing branch [$_CHERRY_PICK_BRANCH] to origin"
           if ! git push origin "$_CHERRY_PICK_BRANCH"; then
-            echo "ERROR: Failed to push branch [$_CHERRY_PICK_BRANCH]."
+            echo "::error::Failed to push branch [$_CHERRY_PICK_BRANCH]."
             exit 1
           fi
 
@@ -236,14 +236,14 @@ jobs:
             --head "$_CHERRY_PICK_BRANCH" \
             --title "Cherry pick: $PR_TITLE" \
             --body "$PR_BODY"); then
-            echo "ERROR: Failed to create PR."
+            echo "::error::Failed to create PR."
             exit 1
           fi
 
           echo "INFO: Cherry-pick PR created: [$new_pr_url]"
 
           if ! gh pr comment "$_SOURCE_PR" --body "🍒 Cherry-pick PR created targeting [$_DEST_BRANCH]: $new_pr_url. [View run]($run_url)"; then
-            echo "WARN: Failed to add comment to PR [#$_SOURCE_PR]"
+            echo "::warning::Failed to add comment to PR [#$_SOURCE_PR]"
           fi
 
-          echo "🍒 Cherry-pick PR created: $new_pr_url." >> $GITHUB_STEP_SUMMARY
+          echo "🍒 Cherry-pick PR created: [Here]($new_pr_url)." >> $GITHUB_STEP_SUMMARY

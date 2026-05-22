@@ -665,7 +665,13 @@ jobs:
             exit 1
           fi
 
-          CHANGED_FILES=$(gh api "repos/$REPOSITORY/commits/$COMMIT_SHA" --jq '[.files[].filename] | sort | join(",")')
+          # `previous_filename` covers GitHub's rename detection: when the new file's
+          # content matches the old one (e.g. after `git mv`), the API collapses the
+          # add+delete pair into a single entry with `status: renamed`. Pulling both
+          # filename and previous_filename means a renamed commit still matches the
+          # expected "NEW,OLD" list.
+          CHANGED_FILES=$(gh api "repos/$REPOSITORY/commits/$COMMIT_SHA" \
+            --jq '[.files[] | .filename, (.previous_filename // empty)] | unique | sort | join(",")')
           echo "Files changed in commit: $CHANGED_FILES"
 
           if [[ "$CHANGED_FILES" != "$EXPECTED_FILES" ]]; then

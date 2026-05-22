@@ -147,7 +147,9 @@ Pass a GitHub App token to create commits verified as a GitHub App identity:
 ## Behaviour Notes
 
 - **Auto-detect vs. explicit.** Auto-detect runs only when *both* `files` and `deletions` are empty. Setting either input disables auto-detect entirely — the action operates only on the paths listed. This avoids accidental partial commits when callers think they're listing files explicitly.
+- **Renames in auto-detect.** `git diff` is invoked with `--no-renames`, so a `git mv old new` is decomposed into a deletion of `old` plus an addition of `new` and both sides are committed. Without this, renames would surface only as the destination path under git's `R` status and the source path would silently remain on the target branch.
 - **Deletion of a path not on the branch.** If a deletion path doesn't exist in the target branch's tree, the commit may end up tree-identical and is skipped. The action reports this with an empty `commit_sha` output and a "Tree unchanged" log line.
+- **`tag_name` conflicts with an existing tag.** The commit is created *first*, then the tag. If a tag with the same name already exists on the target repo, `createRef` returns 422 *after* the commit has already landed. The action reports an `API call failed` error and the commit remains on the branch. Callers that want a friendly pre-flight error should check tag existence via `gh api repos/<owner>/<repo>/git/ref/tags/<name>` before invoking this action.
 - **Symlinks.** Symbolic links are committed with mode `120000` and the link target as content, matching how git stores them.
 - **Executable bit.** Files with the user-executable bit set are committed with mode `100755`; everything else uses `100644`.
 

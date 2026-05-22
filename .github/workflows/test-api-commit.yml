@@ -34,6 +34,7 @@ jobs:
           # Combined additions + deletions
           - mixed-explicit
           - mixed-auto-detect
+          - auto-detect-rename
           # Edge cases
           - tree-unchanged
           - file-modes
@@ -360,6 +361,57 @@ jobs:
           token: ${{ github.token }}
 
       # -----------------------------------------------------------------------
+      # auto-detect-rename: `git mv old new` should produce a commit that both
+      # adds the new path AND deletes the old one. Without --no-renames in the
+      # action's git diff, git's default rename detection would surface the
+      # rename only as the destination path under the `R` status — silently
+      # dropping the source-side deletion.
+      # -----------------------------------------------------------------------
+      - name: Create marker on disk (auto-detect-rename)
+        if: matrix.mode == 'auto-detect-rename'
+        id: seed-rename
+        run: |
+          TIMESTAMP=$(date +%s)
+          OLD_PATH="api-commit-rename-old-$TIMESTAMP.txt"
+          NEW_PATH="api-commit-rename-new-$TIMESTAMP.txt"
+          printf 'content %s\n' "$TIMESTAMP" > "$OLD_PATH"
+          {
+            echo "old_path=$OLD_PATH"
+            echo "new_path=$NEW_PATH"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Seed old marker on test branch via api-commit (auto-detect-rename)
+        if: matrix.mode == 'auto-detect-rename'
+        uses: ./api-commit
+        with:
+          files: ${{ steps.seed-rename.outputs.old_path }}
+          message: "seed old marker for rename test"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
+      - name: Synthetic local commit + git mv (auto-detect-rename)
+        if: matrix.mode == 'auto-detect-rename'
+        env:
+          OLD_PATH: ${{ steps.seed-rename.outputs.old_path }}
+          NEW_PATH: ${{ steps.seed-rename.outputs.new_path }}
+        run: |
+          git config user.name "api-commit-test"
+          git config user.email "api-commit-test@example.invalid"
+          git add "$OLD_PATH"
+          git commit -m "synthetic local seed for rename test"
+          # git mv stages both the old-path deletion and the new-path addition
+          git mv "$OLD_PATH" "$NEW_PATH"
+
+      - name: Run API Commit action (auto-detect-rename)
+        id: api-commit-rename
+        if: matrix.mode == 'auto-detect-rename'
+        uses: ./api-commit
+        with:
+          message: "chore: test API commit auto-detect rename"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
+      # -----------------------------------------------------------------------
       # tree-unchanged: explicit file whose content matches the branch.
       # createBlob runs, but createTree produces the same tree sha as HEAD,
       # so the action skips the commit and returns empty commit_sha.
@@ -473,6 +525,9 @@ jobs:
           MIXED_AUTO_SHA: ${{ steps.api-commit-mixed-auto.outputs.commit_sha }}
           MIXED_AUTO_OLD: ${{ steps.seed-mixed-auto.outputs.old_path }}
           MIXED_AUTO_NEW: ${{ steps.seed-mixed-auto.outputs.new_path }}
+          RENAME_SHA: ${{ steps.api-commit-rename.outputs.commit_sha }}
+          RENAME_OLD: ${{ steps.seed-rename.outputs.old_path }}
+          RENAME_NEW: ${{ steps.seed-rename.outputs.new_path }}
           TREE_UNCHANGED_SHA: ${{ steps.api-commit-tree-unchanged.outputs.commit_sha }}
           TREE_UNCHANGED_OUTCOME: ${{ steps.api-commit-tree-unchanged.outcome }}
           MODES_SHA: ${{ steps.api-commit-modes.outputs.commit_sha }}
@@ -538,6 +593,11 @@ jobs:
               sha=$MIXED_AUTO_SHA
               expected_files=$(printf '%s\n%s\n' "$MIXED_AUTO_NEW" "$MIXED_AUTO_OLD" | sort | paste -sd, -)
               deletion_paths=$MIXED_AUTO_OLD
+              ;;
+            auto-detect-rename)
+              sha=$RENAME_SHA
+              expected_files=$(printf '%s\n%s\n' "$RENAME_NEW" "$RENAME_OLD" | sort | paste -sd, -)
+              deletion_paths=$RENAME_OLD
               ;;
             tree-unchanged)
               # The action should succeed (outcome=success) AND return empty commit_sha

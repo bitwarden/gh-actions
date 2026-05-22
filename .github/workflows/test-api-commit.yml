@@ -615,6 +615,47 @@ jobs:
 
           echo "Commit verified successfully"
 
+      - name: Verify file content was committed accurately (explicit-files)
+        if: matrix.mode == 'explicit-files'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: ${{ steps.setup.outputs.test_branch }}
+        run: |
+          # Defends against encoding/base64 regressions: each committed blob's
+          # decoded content must byte-for-byte match the local source file.
+          for p in api-commit-test-file-1.txt api-commit-test-file-2.txt; do
+            REMOTE_HEX=$(gh api "repos/$REPOSITORY/contents/$p?ref=$BRANCH" \
+              --jq '.content' | tr -d '\n' | base64 -d | xxd -p | tr -d '\n')
+            LOCAL_HEX=$(xxd -p "$p" | tr -d '\n')
+            if [[ "$REMOTE_HEX" != "$LOCAL_HEX" ]]; then
+              echo "::error::Content mismatch for $p"
+              echo "  local hex:  $LOCAL_HEX"
+              echo "  remote hex: $REMOTE_HEX"
+              exit 1
+            fi
+            echo "Content byte-exact for $p"
+          done
+
+      - name: Verify symlink target string was committed accurately (file-modes)
+        if: matrix.mode == 'file-modes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: ${{ steps.setup.outputs.test_branch }}
+          SYMLINK_PATH: ${{ steps.seed-modes.outputs.symlink_path }}
+          EXEC_PATH: ${{ steps.seed-modes.outputs.exec_path }}
+        run: |
+          # The symlink blob's content should be the link target path string
+          # (matching how git stores symlinks), not the dereferenced file content.
+          REMOTE_TARGET=$(gh api "repos/$REPOSITORY/contents/$SYMLINK_PATH?ref=$BRANCH" \
+            --jq '.content' | tr -d '\n' | base64 -d)
+          if [[ "$REMOTE_TARGET" != "$EXEC_PATH" ]]; then
+            echo "::error::Symlink target mismatch — expected '$EXEC_PATH', got '$REMOTE_TARGET'"
+            exit 1
+          fi
+          echo "Symlink target stored correctly: $REMOTE_TARGET"
+
       - name: Validate deletion(s) removed the file(s) from the branch
         if: steps.commit.outputs.deletion_paths != ''
         env:

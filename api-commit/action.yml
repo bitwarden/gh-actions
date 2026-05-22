@@ -251,7 +251,10 @@ runs:
               let mode;
               if (stat.isSymbolicLink()) {
                 // Store the symlink target path as the blob content, as git does.
-                content = Buffer.from(fs.readlinkSync(file));
+                // `{ encoding: 'buffer' }` preserves the raw bytes from the readlink()
+                // syscall — without it, non-UTF-8 targets would round-trip through
+                // string decoding and end up with U+FFFD replacement bytes.
+                content = fs.readlinkSync(file, { encoding: 'buffer' });
                 mode = '120000';
               } else {
                 content = fs.readFileSync(file);

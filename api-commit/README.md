@@ -22,7 +22,7 @@ Create a verified commit via the GitHub API without requiring `git` credentials 
 | `tag_name`          | Tag to create pointing at the commit. If omitted, no tag is created. If no commit is made, the tag is skipped.                                                            | No       | -                                     |
 | `owner`             | Repository owner (org or user). Defaults to the current workflow repository owner.                                                                                        | No       | `${{ github.repository_owner }}`      |
 | `repo`              | Repository name. Defaults to the current workflow repository.                                                                                                             | No       | `${{ github.event.repository.name }}` |
-| `working-directory` | Directory to read files from and run `git` in. Paths in `files`/`deletions` and the local `origin` remote checked by auto-detect are interpreted relative to this directory. | No       | `GITHUB_WORKSPACE`                    |
+| `working-directory` | Path to a checkout of the target repository. Must be the repository root (not a subdirectory) — paths in `files`/`deletions` are committed at the same relative location, and auto-detect runs `git` here. | No       | `GITHUB_WORKSPACE`                    |
 
 ## Outputs
 

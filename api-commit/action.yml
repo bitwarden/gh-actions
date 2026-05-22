@@ -37,7 +37,7 @@ inputs:
     required: false
     default: ''
   working-directory:
-    description: 'Directory to read files from and run `git` in. Paths in `files`/`deletions` and the local `origin` remote checked by auto-detect are interpreted relative to this directory. Defaults to `GITHUB_WORKSPACE`.'
+    description: 'Path to a checkout of the target repository. Must be the repository root (not a subdirectory) — paths in `files`/`deletions` are committed at the same relative location, and auto-detect runs `git` here. Defaults to `GITHUB_WORKSPACE`.'
     required: false
     default: ''
 
@@ -126,7 +126,16 @@ runs:
             if (autoDetect) {
               // Verify the local git remote matches the target repository to ensure
               // auto-detected files correspond to the correct repository.
-              const remoteUrl = (await exec.getExecOutput('git', ['remote', 'get-url', 'origin'])).stdout.trim();
+              let remoteUrl;
+              try {
+                remoteUrl = (await exec.getExecOutput('git', ['remote', 'get-url', 'origin'])).stdout.trim();
+              } catch (err) {
+                core.setFailed(
+                  `Auto-detect requires a git checkout with an 'origin' remote in working-directory. ` +
+                  `Pass explicit \`files\`/\`deletions\` inputs to skip auto-detect. (${err.message})`
+                );
+                return;
+              }
               let remoteOwner, remoteRepo;
               try {
                 // HTTPS: https://github.com/owner/repo.git
@@ -203,7 +212,7 @@ runs:
                 core.setFailed(`${kind} path must be relative to the repository root: ${file}`);
                 return false;
               }
-              if (file.startsWith('..')) {
+              if (file === '..' || file.startsWith('../')) {
                 core.setFailed(`${kind} path must not escape the repository root: ${file}`);
                 return false;
               }
@@ -232,6 +241,8 @@ runs:
             }
 
             core.info(`Committing ${additions.length} addition(s) and ${deletions.length} deletion(s)`);
+            if (additions.length) core.debug(`Additions:\n${additions.join('\n')}`);
+            if (deletions.length) core.debug(`Deletions:\n${deletions.join('\n')}`);
 
             // Build tree entries — create blobs for additions, mark deletions with sha:null
             const additionEntries = await Promise.all(additions.map(async (file) => {

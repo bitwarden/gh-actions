@@ -802,6 +802,15 @@ jobs:
         run: |
           echo "dummy" > api-commit-dummy.txt
 
+      # Each negative api-commit invocation below intentionally triggers
+      # `core.setFailed()`, which emits an `::error::` workflow command that
+      # GitHub would otherwise surface as a run annotation. Stop-commands
+      # suppresses those expected errors — the step still exits non-zero, so
+      # `outcome=='failure'` registers as usual. Resumed before the assertion
+      # steps so any *real* test failures still surface as annotations.
+      - name: Suppress expected error annotations from api-commit
+        run: echo "::stop-commands::api-commit-silence"
+
       # -----------------------------------------------------------------------
       # overlap: same path in both `files` and `deletions` should be rejected
       # -----------------------------------------------------------------------
@@ -902,6 +911,10 @@ jobs:
           message: "should fail: missing file"
           branch: ${{ steps.setup.outputs.test_branch }}
           token: ${{ github.token }}
+
+      - name: Resume annotation processing
+        if: always()
+        run: echo "::api-commit-silence::"
 
       # =======================================================================
       # Verify the action failed AND that no commit was made on the test branch

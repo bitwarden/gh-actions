@@ -7,7 +7,11 @@ branding:
 
 inputs:
   files:
-    description: 'Newline-delimited list of files to commit (relative to repository root). If omitted, all files modified relative to HEAD are committed.'
+    description: 'Newline-delimited list of files to commit (paths relative to `working-directory`). If both `files` and `deletions` are omitted, additions and deletions are auto-detected via `git diff`.'
+    required: false
+    default: ''
+  deletions:
+    description: 'Newline-delimited list of files to remove (paths relative to `working-directory`). If both `files` and `deletions` are omitted, additions and deletions are auto-detected via `git diff`.'
     required: false
     default: ''
   message:
@@ -32,10 +36,14 @@ inputs:
     description: 'Repository name. Defaults to the current workflow repository.'
     required: false
     default: ''
+  working-directory:
+    description: 'Directory to read files from and run `git` in. Paths in `files`/`deletions` and the local `origin` remote checked by auto-detect are interpreted relative to this directory. Defaults to `GITHUB_WORKSPACE`.'
+    required: false
+    default: ''
 
 outputs:
   commit_sha:
-    description: 'SHA of the created commit, or empty if no changed files were detected and no commit was made'
+    description: 'SHA of the created commit, or empty if no changes were detected and no commit was made'
     value: ${{ steps.api-commit.outputs.commit_sha }}
 
 runs:
@@ -46,11 +54,13 @@ runs:
       uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
       env:
         INPUT_FILES: ${{ inputs.files }}
+        INPUT_DELETIONS: ${{ inputs.deletions }}
         INPUT_MESSAGE: ${{ inputs.message }}
         INPUT_BRANCH: ${{ inputs.branch }}
         INPUT_TAG_NAME: ${{ inputs.tag_name }}
         INPUT_OWNER: ${{ inputs.owner }}
         INPUT_REPO: ${{ inputs.repo }}
+        INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}
       with:
         github-token: ${{ inputs.token }}
         script: |
@@ -87,14 +97,33 @@ runs:
             return;
           }
 
-          // Resolve file list — explicit input or auto-detect via git diff
-          let files;
-          if (process.env.INPUT_FILES.trim().length > 0) {
-            files = process.env.INPUT_FILES.split('\n')
-              .map(f => f.trim())
-              .filter(f => f.length > 0)
-              .map(f => path.normalize(f).split(path.sep).join('/'));
-          } else {
+          // Switch into working-directory so subsequent fs and git commands resolve relative to it
+          const workingDir = process.env.INPUT_WORKING_DIRECTORY.trim();
+          if (workingDir.length) {
+            try {
+              process.chdir(workingDir);
+            } catch (err) {
+              core.setFailed(`Could not chdir into working-directory "${workingDir}": ${err.message}`);
+              return;
+            }
+          }
+
+          const normalizePath = (p) => path.normalize(p).split(path.sep).join('/');
+          const parseList = (raw) => raw.split('\n')
+            .map(f => f.trim())
+            .filter(f => f.length > 0)
+            .map(normalizePath);
+
+          // Resolve additions and deletions — explicit inputs override auto-detect.
+          // Auto-detect runs only if BOTH inputs are empty; mixing modes would be confusing.
+          const explicitFiles = process.env.INPUT_FILES.trim().length > 0;
+          const explicitDeletions = process.env.INPUT_DELETIONS.trim().length > 0;
+          const autoDetect = !explicitFiles && !explicitDeletions;
+
+          let additions = [];
+          let deletions = [];
+
+          if (autoDetect) {
             // Verify the local git remote matches the target repository to ensure
             // auto-detected files correspond to the correct repository.
             const remoteUrl = (await exec.getExecOutput('git', ['remote', 'get-url', 'origin'])).stdout.trim();
@@ -118,43 +147,69 @@ runs:
               return;
             }
             if (remoteOwner.toLowerCase() !== owner.toLowerCase() || remoteRepo.toLowerCase() !== repo.toLowerCase()) {
-              core.setFailed(`Auto-detect requires the local git remote to match the target repository. Remote is ${remoteOwner}/${remoteRepo} but targeting ${owner}/${repo}. Use explicit \`files\` input when targeting a different repository.`);
+              core.setFailed(`Auto-detect requires the local git remote to match the target repository. Remote is ${remoteOwner}/${remoteRepo} but targeting ${owner}/${repo}. Use explicit \`files\`/\`deletions\` inputs when targeting a different repository.`);
               return;
             }
 
-            // Combine working tree and staged changes so that staged-only changes are included
-            const [workingTree, staged] = await Promise.all([
+            // Combine working-tree and staged diffs in both directions so partial staging is handled
+            const [workingAdds, stagedAdds, workingDels, stagedDels] = await Promise.all([
               exec.getExecOutput('git', ['diff', '--diff-filter=d', '--name-only', 'HEAD']),
               exec.getExecOutput('git', ['diff', '--diff-filter=d', '--cached', '--name-only', 'HEAD']),
+              exec.getExecOutput('git', ['diff', '--diff-filter=D', '--name-only', 'HEAD']),
+              exec.getExecOutput('git', ['diff', '--diff-filter=D', '--cached', '--name-only', 'HEAD']),
             ]);
-            files = [...new Set([
-              ...workingTree.stdout.split('\n'),
-              ...staged.stdout.split('\n'),
-            ].map(f => f.trim()).filter(f => f.length > 0).map(f => path.normalize(f).split(path.sep).join('/')))];
-            if (files.length === 0) {
-              core.info('No changed files detected, skipping commit');
-              core.setOutput('commit_sha', '');
-              return;
+            const collect = (outs) => [...new Set(outs
+              .flatMap(o => o.stdout.split('\n'))
+              .map(f => f.trim())
+              .filter(f => f.length > 0)
+              .map(normalizePath))];
+            additions = collect([workingAdds, stagedAdds]);
+            deletions = collect([workingDels, stagedDels]);
+          } else {
+            additions = explicitFiles ? parseList(process.env.INPUT_FILES) : [];
+            deletions = explicitDeletions ? parseList(process.env.INPUT_DELETIONS) : [];
+          }
+
+          // Deduplicate within each list and warn
+          const dedupe = (list, label) => {
+            const unique = [...new Set(list)];
+            if (unique.length !== list.length) {
+              core.warning(`Removed ${list.length - unique.length} duplicate ${label} path(s)`);
             }
+            return unique;
+          };
+          additions = dedupe(additions, 'addition');
+          deletions = dedupe(deletions, 'deletion');
+
+          // Reject paths that appear in both lists — ambiguous intent
+          const overlap = additions.filter(f => deletions.includes(f));
+          if (overlap.length) {
+            core.setFailed(`Path(s) appear in both files and deletions: ${overlap.join(', ')}`);
+            return;
           }
 
-          // Deduplicate while preserving order
-          const unique = [...new Set(files)];
-          if (unique.length !== files.length) {
-            core.warning(`Removed ${files.length - unique.length} duplicate file path(s)`);
+          if (additions.length === 0 && deletions.length === 0) {
+            core.info('No changes detected, skipping commit');
+            core.setOutput('commit_sha', '');
+            return;
           }
-          files = unique;
 
-          // Validate files before making any API calls
-          for (const file of files) {
+          // Path-shape validation common to both lists
+          const validatePath = (file, kind) => {
             if (path.isAbsolute(file)) {
-              core.setFailed(`File path must be relative to the repository root: ${file}`);
-              return;
+              core.setFailed(`${kind} path must be relative to the repository root: ${file}`);
+              return false;
             }
             if (file.startsWith('..')) {
-              core.setFailed(`File path must not escape the repository root: ${file}`);
-              return;
+              core.setFailed(`${kind} path must not escape the repository root: ${file}`);
+              return false;
             }
+            return true;
+          };
+
+          // Additions must exist on disk
+          for (const file of additions) {
+            if (!validatePath(file, 'File')) return;
             let stat;
             try {
               stat = fs.lstatSync(file);
@@ -168,11 +223,15 @@ runs:
             }
           }
 
-          core.info(`Committing ${files.length} file(s):\n${files.join('\n')}`);
+          // Deletions are path-shape only — file is expected to be gone locally
+          for (const file of deletions) {
+            if (!validatePath(file, 'Deletion')) return;
+          }
 
-          // Create blobs first — no dependency on the branch ref, so doing this
-          // before getRef minimises the window between reading and updating the ref.
-          const tree = await Promise.all(files.map(async (file) => {
+          core.info(`Committing ${additions.length} addition(s) and ${deletions.length} deletion(s)`);
+
+          // Build tree entries — create blobs for additions, mark deletions with sha:null
+          const additionEntries = await Promise.all(additions.map(async (file) => {
             const stat = fs.lstatSync(file);
             let content;
             let mode;
@@ -192,6 +251,9 @@ runs:
             });
             return { path: file, mode, type: 'blob', sha: blob.sha };
           }));
+
+          const deletionEntries = deletions.map((file) => ({ path: file, sha: null }));
+          const tree = [...additionEntries, ...deletionEntries];
 
           // Get current branch HEAD as late as possible to reduce the race window
           const { data: ref } = await github.rest.git.getRef({
@@ -214,9 +276,10 @@ runs:
             tree
           });
 
-          // Skip commit if the tree is unchanged (files already match the branch)
+          // Skip commit if the tree is unchanged (changes already match the branch,
+          // or deletion targets weren't in the tree to begin with)
           if (newTree.sha === commit.tree.sha) {
-            core.info('Tree unchanged — specified files already match the branch, skipping commit');
+            core.info('Tree unchanged — specified changes already match the branch, skipping commit');
             core.setOutput('commit_sha', '');
             return;
           }

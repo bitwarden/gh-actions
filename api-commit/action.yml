@@ -252,7 +252,14 @@ runs:
             return { path: file, mode, type: 'blob', sha: blob.sha };
           }));
 
-          const deletionEntries = deletions.map((file) => ({ path: file, sha: null }));
+          // mode/type are required by createTree's schema even for deletions;
+          // the values are placeholders since sha:null removes the entry from the tree.
+          const deletionEntries = deletions.map((file) => ({
+            path: file,
+            mode: '100644',
+            type: 'blob',
+            sha: null,
+          }));
           const tree = [...additionEntries, ...deletionEntries];
 
           // Get current branch HEAD as late as possible to reduce the race window

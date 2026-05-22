@@ -642,13 +642,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
-          BRANCH: ${{ steps.setup.outputs.test_branch }}
+          COMMIT_SHA: ${{ steps.commit.outputs.sha }}
           SYMLINK_PATH: ${{ steps.seed-modes.outputs.symlink_path }}
           EXEC_PATH: ${{ steps.seed-modes.outputs.exec_path }}
         run: |
-          # The symlink blob's content should be the link target path string
-          # (matching how git stores symlinks), not the dereferenced file content.
-          REMOTE_TARGET=$(gh api "repos/$REPOSITORY/contents/$SYMLINK_PATH?ref=$BRANCH" \
+          # GitHub's Contents API dereferences symlinks server-side when the target
+          # exists in the same repo, so we go through the Git Trees + Blobs APIs to
+          # read the symlink blob's raw content (= the link target path string).
+          TREE_SHA=$(gh api "repos/$REPOSITORY/commits/$COMMIT_SHA" --jq '.commit.tree.sha')
+          BLOB_SHA=$(gh api "repos/$REPOSITORY/git/trees/$TREE_SHA" \
+            --jq ".tree[] | select(.path == \"$SYMLINK_PATH\") | .sha")
+          REMOTE_TARGET=$(gh api "repos/$REPOSITORY/git/blobs/$BLOB_SHA" \
             --jq '.content' | tr -d '\n' | base64 -d)
           if [[ "$REMOTE_TARGET" != "$EXEC_PATH" ]]; then
             echo "::error::Symlink target mismatch — expected '$EXEC_PATH', got '$REMOTE_TARGET'"

@@ -20,10 +20,25 @@ jobs:
       fail-fast: false
       matrix:
         mode:
+          # Basic input modes
           - explicit-files
           - auto-detect-files
           - no-changes
           - tag
+          # Deletions
+          - explicit-deletions
+          - auto-detect-deletions
+          # working-directory
+          - working-directory
+          - working-directory-explicit
+          # Combined additions + deletions
+          - mixed-explicit
+          - mixed-auto-detect
+          - auto-detect-rename
+          # Edge cases
+          - tree-unchanged
+          - file-modes
+          - refs-heads-prefix
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -47,6 +62,9 @@ jobs:
             -f "ref=refs/heads/$TEST_BRANCH" \
             -f "sha=$SHA"
 
+      # -----------------------------------------------------------------------
+      # explicit-files: two files in repo root, passed via `files:`
+      # -----------------------------------------------------------------------
       - name: Create test files (explicit files)
         if: matrix.mode == 'explicit-files'
         run: |
@@ -65,6 +83,9 @@ jobs:
           branch: ${{ steps.setup.outputs.test_branch }}
           token: ${{ github.token }}
 
+      # -----------------------------------------------------------------------
+      # auto-detect-files: staged addition picked up by git diff
+      # -----------------------------------------------------------------------
       - name: Create and stage test file (auto-detect files)
         if: matrix.mode == 'auto-detect-files'
         run: |
@@ -80,6 +101,9 @@ jobs:
           branch: ${{ steps.setup.outputs.test_branch }}
           token: ${{ github.token }}
 
+      # -----------------------------------------------------------------------
+      # no-changes: auto-detect with no working-tree or staged changes
+      # -----------------------------------------------------------------------
       - name: Run API Commit action (no changes)
         id: api-commit-no-changes
         if: matrix.mode == 'no-changes'
@@ -89,6 +113,9 @@ jobs:
           branch: ${{ steps.setup.outputs.test_branch }}
           token: ${{ github.token }}
 
+      # -----------------------------------------------------------------------
+      # tag: explicit file + tag_name creates a tag at the new commit
+      # -----------------------------------------------------------------------
       - name: Create test file (tag)
         if: matrix.mode == 'tag'
         run: |
@@ -105,6 +132,374 @@ jobs:
           tag_name: ${{ steps.setup.outputs.test_tag }}
           token: ${{ github.token }}
 
+      # -----------------------------------------------------------------------
+      # explicit-deletions: seed a file via Contents API, then delete via input
+      # -----------------------------------------------------------------------
+      - name: Seed marker file on test branch (explicit deletions)
+        if: matrix.mode == 'explicit-deletions'
+        id: seed-explicit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: ${{ steps.setup.outputs.test_branch }}
+        run: |
+          TIMESTAMP=$(date +%s)
+          MARKER_PATH="api-commit-explicit-deletions-marker-$TIMESTAMP.txt"
+          MARKER_B64=$(printf 'marker %s' "$TIMESTAMP" | base64 -w0)
+          gh api "repos/$REPOSITORY/contents/$MARKER_PATH" \
+            --method PUT \
+            -f "message=seed marker for deletion test" \
+            -f "branch=$BRANCH" \
+            -f "content=$MARKER_B64" >/dev/null
+          echo "path=$MARKER_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Run API Commit action (explicit deletions)
+        id: api-commit-explicit-deletions
+        if: matrix.mode == 'explicit-deletions'
+        uses: ./api-commit
+        with:
+          deletions: ${{ steps.seed-explicit.outputs.path }}
+          message: "chore: test API commit explicit deletions"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
+      # -----------------------------------------------------------------------
+      # auto-detect-deletions: seed file on branch, synthetic local commit + git rm
+      # -----------------------------------------------------------------------
+      - name: Stage marker on disk (auto-detect deletions)
+        if: matrix.mode == 'auto-detect-deletions'
+        id: seed-auto
+        run: |
+          TIMESTAMP=$(date +%s)
+          MARKER_PATH="api-commit-auto-deletions-marker-$TIMESTAMP.txt"
+          printf 'marker %s\n' "$TIMESTAMP" > "$MARKER_PATH"
+          echo "path=$MARKER_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Seed marker on test branch via api-commit (auto-detect deletions)
+        if: matrix.mode == 'auto-detect-deletions'
+        uses: ./api-commit
+        with:
+          files: ${{ steps.seed-auto.outputs.path }}
+          message: "seed marker for auto-detect deletion test"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
+      - name: Stage local deletion (auto-detect deletions)
+        if: matrix.mode == 'auto-detect-deletions'
+        env:
+          MARKER_PATH: ${{ steps.seed-auto.outputs.path }}
+        run: |
+          git config user.name "api-commit-test"
+          git config user.email "api-commit-test@example.invalid"
+          git add "$MARKER_PATH"
+          git commit -m "synthetic local seed for deletion test"
+          git rm "$MARKER_PATH"
+
+      - name: Run API Commit action (auto-detect deletions)
+        id: api-commit-auto-deletions
+        if: matrix.mode == 'auto-detect-deletions'
+        uses: ./api-commit
+        with:
+          message: "chore: test API commit auto-detect deletions"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
+      # -----------------------------------------------------------------------
+      # working-directory: clone repo into sub/, auto-detect addition
+      # -----------------------------------------------------------------------
+      - name: Clone repo into subdirectory (working-directory)
+        if: matrix.mode == 'working-directory'
+        env:
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: ${{ steps.setup.outputs.test_branch }}
+        run: |
+          git clone "https://github.com/$REPOSITORY.git" sub
+          git -C sub checkout "$BRANCH"
+          echo "content $(date +%s)" > sub/api-commit-workingdir-test-file.txt
+          git -C sub add api-commit-workingdir-test-file.txt
+
+      - name: Run API Commit action (working-directory)
+        id: api-commit-workingdir
+        if: matrix.mode == 'working-directory'
+        uses: ./api-commit
+        with:
+          working-directory: sub
+          message: "chore: test API commit working-directory"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
+      # -----------------------------------------------------------------------
+      # working-directory-explicit: working-directory + explicit files + deletions
+      # Verifies the working-directory input plays nicely with explicit-mode and
+      # that commit paths land at the unprefixed location in the target repo.
+      # -----------------------------------------------------------------------
+      - name: Seed marker in subdir (working-directory-explicit)
+        if: matrix.mode == 'working-directory-explicit'
+        id: seed-wd-explicit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: ${{ steps.setup.outputs.test_branch }}
+        run: |
+          TIMESTAMP=$(date +%s)
+          OLD_PATH="api-commit-wd-explicit-old-$TIMESTAMP.txt"
+          NEW_PATH="api-commit-wd-explicit-new-$TIMESTAMP.txt"
+          OLD_B64=$(printf 'old' | base64 -w0)
+          gh api "repos/$REPOSITORY/contents/$OLD_PATH" \
+            --method PUT \
+            -f "message=seed marker for wd-explicit test" \
+            -f "branch=$BRANCH" \
+            -f "content=$OLD_B64" >/dev/null
+          mkdir sub
+          (cd sub && git clone "https://github.com/$REPOSITORY.git" . && git checkout "$BRANCH")
+          echo "new content $TIMESTAMP" > "sub/$NEW_PATH"
+          {
+            echo "old_path=$OLD_PATH"
+            echo "new_path=$NEW_PATH"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Run API Commit action (working-directory-explicit)
+        id: api-commit-wd-explicit
+        if: matrix.mode == 'working-directory-explicit'
+        uses: ./api-commit
+        with:
+          working-directory: sub
+          files: ${{ steps.seed-wd-explicit.outputs.new_path }}
+          deletions: ${{ steps.seed-wd-explicit.outputs.old_path }}
+          message: "chore: test API commit working-directory + explicit files+deletions"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
+      # -----------------------------------------------------------------------
+      # mixed-explicit: explicit `files` + `deletions` in one commit. Uses
+      # subdirectory paths to also exercise subdir support.
+      # -----------------------------------------------------------------------
+      - name: Seed old subdir file on branch (mixed-explicit)
+        if: matrix.mode == 'mixed-explicit'
+        id: seed-mixed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: ${{ steps.setup.outputs.test_branch }}
+        run: |
+          TIMESTAMP=$(date +%s)
+          OLD_PATH="api-commit-mixed/subdir/old-$TIMESTAMP.txt"
+          NEW_PATH="api-commit-mixed/subdir/new-$TIMESTAMP.txt"
+          OLD_B64=$(printf 'old' | base64 -w0)
+          gh api "repos/$REPOSITORY/contents/$OLD_PATH" \
+            --method PUT \
+            -f "message=seed marker for mixed-explicit test" \
+            -f "branch=$BRANCH" \
+            -f "content=$OLD_B64" >/dev/null
+          mkdir -p api-commit-mixed/subdir
+          echo "new content $TIMESTAMP" > "$NEW_PATH"
+          {
+            echo "old_path=$OLD_PATH"
+            echo "new_path=$NEW_PATH"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Run API Commit action (mixed-explicit)
+        id: api-commit-mixed
+        if: matrix.mode == 'mixed-explicit'
+        uses: ./api-commit
+        with:
+          files: ${{ steps.seed-mixed.outputs.new_path }}
+          deletions: ${{ steps.seed-mixed.outputs.old_path }}
+          message: "chore: test API commit mixed explicit"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
+      # -----------------------------------------------------------------------
+      # mixed-auto-detect: local addition + local deletion, both picked up
+      # via `git diff` in one commit.
+      # -----------------------------------------------------------------------
+      - name: Seed marker on disk (mixed-auto-detect)
+        if: matrix.mode == 'mixed-auto-detect'
+        id: seed-mixed-auto
+        run: |
+          TIMESTAMP=$(date +%s)
+          OLD_PATH="api-commit-mixed-auto-old-$TIMESTAMP.txt"
+          NEW_PATH="api-commit-mixed-auto-new-$TIMESTAMP.txt"
+          printf 'old %s\n' "$TIMESTAMP" > "$OLD_PATH"
+          {
+            echo "old_path=$OLD_PATH"
+            echo "new_path=$NEW_PATH"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Seed old marker on test branch via api-commit (mixed-auto-detect)
+        if: matrix.mode == 'mixed-auto-detect'
+        uses: ./api-commit
+        with:
+          files: ${{ steps.seed-mixed-auto.outputs.old_path }}
+          message: "seed old marker for mixed auto-detect test"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
+      - name: Stage local addition + deletion (mixed-auto-detect)
+        if: matrix.mode == 'mixed-auto-detect'
+        env:
+          OLD_PATH: ${{ steps.seed-mixed-auto.outputs.old_path }}
+          NEW_PATH: ${{ steps.seed-mixed-auto.outputs.new_path }}
+        run: |
+          git config user.name "api-commit-test"
+          git config user.email "api-commit-test@example.invalid"
+          # Synthetic local commit so the old marker is in local HEAD
+          git add "$OLD_PATH"
+          git commit -m "synthetic local seed for mixed auto-detect test"
+          # Delete the old marker (staged) and stage the new one
+          git rm "$OLD_PATH"
+          printf 'new content\n' > "$NEW_PATH"
+          git add "$NEW_PATH"
+
+      - name: Run API Commit action (mixed-auto-detect)
+        id: api-commit-mixed-auto
+        if: matrix.mode == 'mixed-auto-detect'
+        uses: ./api-commit
+        with:
+          message: "chore: test API commit mixed auto-detect"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
+      # -----------------------------------------------------------------------
+      # auto-detect-rename: `git mv old new` should produce a commit that both
+      # adds the new path AND deletes the old one. Without --no-renames in the
+      # action's git diff, git's default rename detection would surface the
+      # rename only as the destination path under the `R` status — silently
+      # dropping the source-side deletion.
+      # -----------------------------------------------------------------------
+      - name: Create marker on disk (auto-detect-rename)
+        if: matrix.mode == 'auto-detect-rename'
+        id: seed-rename
+        run: |
+          TIMESTAMP=$(date +%s)
+          OLD_PATH="api-commit-rename-old-$TIMESTAMP.txt"
+          NEW_PATH="api-commit-rename-new-$TIMESTAMP.txt"
+          printf 'content %s\n' "$TIMESTAMP" > "$OLD_PATH"
+          {
+            echo "old_path=$OLD_PATH"
+            echo "new_path=$NEW_PATH"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Seed old marker on test branch via api-commit (auto-detect-rename)
+        if: matrix.mode == 'auto-detect-rename'
+        uses: ./api-commit
+        with:
+          files: ${{ steps.seed-rename.outputs.old_path }}
+          message: "seed old marker for rename test"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
+      - name: Synthetic local commit + git mv (auto-detect-rename)
+        if: matrix.mode == 'auto-detect-rename'
+        env:
+          OLD_PATH: ${{ steps.seed-rename.outputs.old_path }}
+          NEW_PATH: ${{ steps.seed-rename.outputs.new_path }}
+        run: |
+          git config user.name "api-commit-test"
+          git config user.email "api-commit-test@example.invalid"
+          git add "$OLD_PATH"
+          git commit -m "synthetic local seed for rename test"
+          # git mv stages both the old-path deletion and the new-path addition
+          git mv "$OLD_PATH" "$NEW_PATH"
+
+      - name: Run API Commit action (auto-detect-rename)
+        id: api-commit-rename
+        if: matrix.mode == 'auto-detect-rename'
+        uses: ./api-commit
+        with:
+          message: "chore: test API commit auto-detect rename"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
+      # -----------------------------------------------------------------------
+      # tree-unchanged: explicit file whose content matches the branch.
+      # createBlob runs, but createTree produces the same tree sha as HEAD,
+      # so the action skips the commit and returns empty commit_sha.
+      # -----------------------------------------------------------------------
+      - name: Seed marker on branch (tree-unchanged)
+        if: matrix.mode == 'tree-unchanged'
+        id: seed-tree-unchanged
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: ${{ steps.setup.outputs.test_branch }}
+        run: |
+          TIMESTAMP=$(date +%s)
+          MARKER_PATH="api-commit-tree-unchanged-$TIMESTAMP.txt"
+          MARKER_CONTENT="stable content $TIMESTAMP"
+          MARKER_B64=$(printf '%s' "$MARKER_CONTENT" | base64 -w0)
+          gh api "repos/$REPOSITORY/contents/$MARKER_PATH" \
+            --method PUT \
+            -f "message=seed marker for tree-unchanged test" \
+            -f "branch=$BRANCH" \
+            -f "content=$MARKER_B64" >/dev/null
+          # Write the SAME content locally — explicit-files call should produce no commit
+          printf '%s' "$MARKER_CONTENT" > "$MARKER_PATH"
+          echo "path=$MARKER_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Run API Commit action (tree-unchanged)
+        id: api-commit-tree-unchanged
+        if: matrix.mode == 'tree-unchanged'
+        uses: ./api-commit
+        with:
+          files: ${{ steps.seed-tree-unchanged.outputs.path }}
+          message: "chore: test API commit tree-unchanged (should be skipped)"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
+      # -----------------------------------------------------------------------
+      # file-modes: symlink (mode 120000) and executable file (mode 100755).
+      # -----------------------------------------------------------------------
+      - name: Create symlink and executable (file-modes)
+        if: matrix.mode == 'file-modes'
+        id: seed-modes
+        run: |
+          TIMESTAMP=$(date +%s)
+          EXEC_PATH="api-commit-exec-$TIMESTAMP.sh"
+          SYMLINK_PATH="api-commit-symlink-$TIMESTAMP"
+          printf '#!/bin/sh\necho hello %s\n' "$TIMESTAMP" > "$EXEC_PATH"
+          chmod +x "$EXEC_PATH"
+          ln -s "$EXEC_PATH" "$SYMLINK_PATH"
+          {
+            echo "exec_path=$EXEC_PATH"
+            echo "symlink_path=$SYMLINK_PATH"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Run API Commit action (file-modes)
+        id: api-commit-modes
+        if: matrix.mode == 'file-modes'
+        uses: ./api-commit
+        with:
+          files: |
+            ${{ steps.seed-modes.outputs.exec_path }}
+            ${{ steps.seed-modes.outputs.symlink_path }}
+          message: "chore: test API commit file modes"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
+      # -----------------------------------------------------------------------
+      # refs-heads-prefix: branch input is fully-qualified `refs/heads/X`.
+      # Exercises the prefix-stripping code path that the action's default
+      # `branch: ${{ github.ref }}` relies on.
+      # -----------------------------------------------------------------------
+      - name: Create test file (refs-heads-prefix)
+        if: matrix.mode == 'refs-heads-prefix'
+        run: |
+          echo "content $(date +%s)" > api-commit-refs-heads-prefix-file.txt
+
+      - name: Run API Commit action (refs-heads-prefix)
+        id: api-commit-refs-heads
+        if: matrix.mode == 'refs-heads-prefix'
+        uses: ./api-commit
+        with:
+          files: api-commit-refs-heads-prefix-file.txt
+          message: "chore: test API commit refs/heads/ prefix"
+          branch: refs/heads/${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
+      # =======================================================================
+      # Centralized expectation resolution + validation
+      # =======================================================================
       - name: Get commit SHA
         id: commit
         env:
@@ -115,28 +510,128 @@ jobs:
           NO_CHANGES_OUTCOME: ${{ steps.api-commit-no-changes.outcome }}
           TAG_SHA: ${{ steps.api-commit-tag.outputs.commit_sha }}
           EXPECTED_TAG_FILES: "api-commit-tag-test-file.txt"
+          EXPLICIT_DEL_SHA: ${{ steps.api-commit-explicit-deletions.outputs.commit_sha }}
+          EXPLICIT_DEL_PATH: ${{ steps.seed-explicit.outputs.path }}
+          AUTO_DEL_SHA: ${{ steps.api-commit-auto-deletions.outputs.commit_sha }}
+          AUTO_DEL_PATH: ${{ steps.seed-auto.outputs.path }}
+          WORKDIR_SHA: ${{ steps.api-commit-workingdir.outputs.commit_sha }}
+          EXPECTED_WORKDIR_FILES: "api-commit-workingdir-test-file.txt"
+          WD_EXPLICIT_SHA: ${{ steps.api-commit-wd-explicit.outputs.commit_sha }}
+          WD_EXPLICIT_OLD: ${{ steps.seed-wd-explicit.outputs.old_path }}
+          WD_EXPLICIT_NEW: ${{ steps.seed-wd-explicit.outputs.new_path }}
+          MIXED_SHA: ${{ steps.api-commit-mixed.outputs.commit_sha }}
+          MIXED_OLD: ${{ steps.seed-mixed.outputs.old_path }}
+          MIXED_NEW: ${{ steps.seed-mixed.outputs.new_path }}
+          MIXED_AUTO_SHA: ${{ steps.api-commit-mixed-auto.outputs.commit_sha }}
+          MIXED_AUTO_OLD: ${{ steps.seed-mixed-auto.outputs.old_path }}
+          MIXED_AUTO_NEW: ${{ steps.seed-mixed-auto.outputs.new_path }}
+          RENAME_SHA: ${{ steps.api-commit-rename.outputs.commit_sha }}
+          RENAME_OLD: ${{ steps.seed-rename.outputs.old_path }}
+          RENAME_NEW: ${{ steps.seed-rename.outputs.new_path }}
+          TREE_UNCHANGED_SHA: ${{ steps.api-commit-tree-unchanged.outputs.commit_sha }}
+          TREE_UNCHANGED_OUTCOME: ${{ steps.api-commit-tree-unchanged.outcome }}
+          MODES_SHA: ${{ steps.api-commit-modes.outputs.commit_sha }}
+          MODES_EXEC: ${{ steps.seed-modes.outputs.exec_path }}
+          MODES_SYMLINK: ${{ steps.seed-modes.outputs.symlink_path }}
+          REFS_HEADS_SHA: ${{ steps.api-commit-refs-heads.outputs.commit_sha }}
           TEST_TAG: ${{ steps.setup.outputs.test_tag }}
         run: |
-          if [[ -n "$EXPLICIT_FILES_SHA" ]]; then
-            echo "sha=$EXPLICIT_FILES_SHA" >> "$GITHUB_OUTPUT"
-            echo "expected_files=$EXPECTED_EXPLICIT_FILES" >> "$GITHUB_OUTPUT"
-            echo "tag_name=" >> "$GITHUB_OUTPUT"
-          elif [[ -n "$AUTO_DETECT_FILES_SHA" ]]; then
-            echo "sha=$AUTO_DETECT_FILES_SHA" >> "$GITHUB_OUTPUT"
-            echo "expected_files=$EXPECTED_AUTO_DETECT_FILES" >> "$GITHUB_OUTPUT"
-            echo "tag_name=" >> "$GITHUB_OUTPUT"
-          elif [[ "$NO_CHANGES_OUTCOME" == "success" ]]; then
-            echo "sha=" >> "$GITHUB_OUTPUT"
-            echo "expected_files=" >> "$GITHUB_OUTPUT"
-            echo "tag_name=" >> "$GITHUB_OUTPUT"
-          elif [[ -n "$TAG_SHA" ]]; then
-            echo "sha=$TAG_SHA" >> "$GITHUB_OUTPUT"
-            echo "expected_files=$EXPECTED_TAG_FILES" >> "$GITHUB_OUTPUT"
-            echo "tag_name=$TEST_TAG" >> "$GITHUB_OUTPUT"
-          else
-            echo "::error::No commit SHA found"
-            exit 1
-          fi
+          # Each mode resolves to: sha, expected_files (comma-joined sorted),
+          # tag_name, deletion_paths (for branch-removal verification),
+          # check_modes (exec_path:symlink_path or empty).
+          sha=""
+          expected_files=""
+          tag_name=""
+          deletion_paths=""
+          check_modes=""
+          case "${{ matrix.mode }}" in
+            explicit-files)
+              sha=$EXPLICIT_FILES_SHA
+              expected_files=$EXPECTED_EXPLICIT_FILES
+              ;;
+            auto-detect-files)
+              sha=$AUTO_DETECT_FILES_SHA
+              expected_files=$EXPECTED_AUTO_DETECT_FILES
+              ;;
+            no-changes)
+              if [[ "$NO_CHANGES_OUTCOME" != "success" ]]; then
+                echo "::error::no-changes step did not succeed (outcome=$NO_CHANGES_OUTCOME)"
+                exit 1
+              fi
+              ;;
+            tag)
+              sha=$TAG_SHA
+              expected_files=$EXPECTED_TAG_FILES
+              tag_name=$TEST_TAG
+              ;;
+            explicit-deletions)
+              sha=$EXPLICIT_DEL_SHA
+              expected_files=$EXPLICIT_DEL_PATH
+              deletion_paths=$EXPLICIT_DEL_PATH
+              ;;
+            auto-detect-deletions)
+              sha=$AUTO_DEL_SHA
+              expected_files=$AUTO_DEL_PATH
+              deletion_paths=$AUTO_DEL_PATH
+              ;;
+            working-directory)
+              sha=$WORKDIR_SHA
+              expected_files=$EXPECTED_WORKDIR_FILES
+              ;;
+            working-directory-explicit)
+              sha=$WD_EXPLICIT_SHA
+              # Sort: new vs old alphabetically
+              expected_files=$(printf '%s\n%s\n' "$WD_EXPLICIT_NEW" "$WD_EXPLICIT_OLD" | sort | paste -sd, -)
+              deletion_paths=$WD_EXPLICIT_OLD
+              ;;
+            mixed-explicit)
+              sha=$MIXED_SHA
+              expected_files=$(printf '%s\n%s\n' "$MIXED_NEW" "$MIXED_OLD" | sort | paste -sd, -)
+              deletion_paths=$MIXED_OLD
+              ;;
+            mixed-auto-detect)
+              sha=$MIXED_AUTO_SHA
+              expected_files=$(printf '%s\n%s\n' "$MIXED_AUTO_NEW" "$MIXED_AUTO_OLD" | sort | paste -sd, -)
+              deletion_paths=$MIXED_AUTO_OLD
+              ;;
+            auto-detect-rename)
+              sha=$RENAME_SHA
+              expected_files=$(printf '%s\n%s\n' "$RENAME_NEW" "$RENAME_OLD" | sort | paste -sd, -)
+              deletion_paths=$RENAME_OLD
+              ;;
+            tree-unchanged)
+              # The action should succeed (outcome=success) AND return empty commit_sha
+              if [[ "$TREE_UNCHANGED_OUTCOME" != "success" ]]; then
+                echo "::error::tree-unchanged step did not succeed (outcome=$TREE_UNCHANGED_OUTCOME)"
+                exit 1
+              fi
+              if [[ -n "$TREE_UNCHANGED_SHA" ]]; then
+                echo "::error::Expected empty commit_sha for tree-unchanged, got $TREE_UNCHANGED_SHA"
+                exit 1
+              fi
+              echo "tree-unchanged correctly produced empty commit_sha"
+              ;;
+            file-modes)
+              sha=$MODES_SHA
+              expected_files=$(printf '%s\n%s\n' "$MODES_EXEC" "$MODES_SYMLINK" | sort | paste -sd, -)
+              check_modes="$MODES_EXEC:$MODES_SYMLINK"
+              ;;
+            refs-heads-prefix)
+              sha=$REFS_HEADS_SHA
+              expected_files="api-commit-refs-heads-prefix-file.txt"
+              ;;
+            *)
+              echo "::error::Unhandled mode: ${{ matrix.mode }}"
+              exit 1
+              ;;
+          esac
+          {
+            echo "sha=$sha"
+            echo "expected_files=$expected_files"
+            echo "tag_name=$tag_name"
+            echo "deletion_paths=$deletion_paths"
+            echo "check_modes=$check_modes"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Validate commit was created
         env:
@@ -170,7 +665,13 @@ jobs:
             exit 1
           fi
 
-          CHANGED_FILES=$(gh api "repos/$REPOSITORY/commits/$COMMIT_SHA" --jq '[.files[].filename] | sort | join(",")')
+          # `previous_filename` covers GitHub's rename detection: when the new file's
+          # content matches the old one (e.g. after `git mv`), the API collapses the
+          # add+delete pair into a single entry with `status: renamed`. Pulling both
+          # filename and previous_filename means a renamed commit still matches the
+          # expected "NEW,OLD" list.
+          CHANGED_FILES=$(gh api "repos/$REPOSITORY/commits/$COMMIT_SHA" \
+            --jq '[.files[] | .filename, (.previous_filename // empty)] | unique | sort | join(",")')
           echo "Files changed in commit: $CHANGED_FILES"
 
           if [[ "$CHANGED_FILES" != "$EXPECTED_FILES" ]]; then
@@ -179,6 +680,93 @@ jobs:
           fi
 
           echo "Commit verified successfully"
+
+      - name: Verify file content was committed accurately (explicit-files)
+        if: matrix.mode == 'explicit-files'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: ${{ steps.setup.outputs.test_branch }}
+        run: |
+          # Defends against encoding/base64 regressions: each committed blob's
+          # decoded content must byte-for-byte match the local source file.
+          for p in api-commit-test-file-1.txt api-commit-test-file-2.txt; do
+            REMOTE_HEX=$(gh api "repos/$REPOSITORY/contents/$p?ref=$BRANCH" \
+              --jq '.content' | tr -d '\n' | base64 -d | xxd -p | tr -d '\n')
+            LOCAL_HEX=$(xxd -p "$p" | tr -d '\n')
+            if [[ "$REMOTE_HEX" != "$LOCAL_HEX" ]]; then
+              echo "::error::Content mismatch for $p"
+              echo "  local hex:  $LOCAL_HEX"
+              echo "  remote hex: $REMOTE_HEX"
+              exit 1
+            fi
+            echo "Content byte-exact for $p"
+          done
+
+      - name: Verify symlink target string was committed accurately (file-modes)
+        if: matrix.mode == 'file-modes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          COMMIT_SHA: ${{ steps.commit.outputs.sha }}
+          SYMLINK_PATH: ${{ steps.seed-modes.outputs.symlink_path }}
+          EXEC_PATH: ${{ steps.seed-modes.outputs.exec_path }}
+        run: |
+          # GitHub's Contents API dereferences symlinks server-side when the target
+          # exists in the same repo, so we go through the Git Trees + Blobs APIs to
+          # read the symlink blob's raw content (= the link target path string).
+          TREE_SHA=$(gh api "repos/$REPOSITORY/commits/$COMMIT_SHA" --jq '.commit.tree.sha')
+          BLOB_SHA=$(gh api "repos/$REPOSITORY/git/trees/$TREE_SHA" \
+            --jq ".tree[] | select(.path == \"$SYMLINK_PATH\") | .sha")
+          REMOTE_TARGET=$(gh api "repos/$REPOSITORY/git/blobs/$BLOB_SHA" \
+            --jq '.content' | tr -d '\n' | base64 -d)
+          if [[ "$REMOTE_TARGET" != "$EXEC_PATH" ]]; then
+            echo "::error::Symlink target mismatch — expected '$EXEC_PATH', got '$REMOTE_TARGET'"
+            exit 1
+          fi
+          echo "Symlink target stored correctly: $REMOTE_TARGET"
+
+      - name: Validate deletion(s) removed the file(s) from the branch
+        if: steps.commit.outputs.deletion_paths != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: ${{ steps.setup.outputs.test_branch }}
+          DELETION_PATHS: ${{ steps.commit.outputs.deletion_paths }}
+        run: |
+          IFS=',' read -ra PATHS <<< "$DELETION_PATHS"
+          for p in "${PATHS[@]}"; do
+            if gh api "repos/$REPOSITORY/contents/$p?ref=$BRANCH" >/dev/null 2>&1; then
+              echo "::error::File $p still exists on branch $BRANCH after deletion commit"
+              exit 1
+            fi
+            echo "File $p correctly removed from branch"
+          done
+
+      - name: Validate file modes in commit tree
+        if: steps.commit.outputs.check_modes != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          COMMIT_SHA: ${{ steps.commit.outputs.sha }}
+          CHECK_MODES: ${{ steps.commit.outputs.check_modes }}
+        run: |
+          IFS=':' read -r EXEC_PATH SYMLINK_PATH <<< "$CHECK_MODES"
+          TREE_SHA=$(gh api "repos/$REPOSITORY/commits/$COMMIT_SHA" --jq '.commit.tree.sha')
+          EXEC_MODE=$(gh api "repos/$REPOSITORY/git/trees/$TREE_SHA" \
+            --jq ".tree[] | select(.path == \"$EXEC_PATH\") | .mode")
+          SYMLINK_MODE=$(gh api "repos/$REPOSITORY/git/trees/$TREE_SHA" \
+            --jq ".tree[] | select(.path == \"$SYMLINK_PATH\") | .mode")
+          echo "Executable $EXEC_PATH mode: $EXEC_MODE (expected 100755)"
+          echo "Symlink    $SYMLINK_PATH mode: $SYMLINK_MODE (expected 120000)"
+          if [[ "$EXEC_MODE" != "100755" ]]; then
+            echo "::error::Executable mode mismatch: got $EXEC_MODE, expected 100755"
+            exit 1
+          fi
+          if [[ "$SYMLINK_MODE" != "120000" ]]; then
+            echo "::error::Symlink mode mismatch: got $SYMLINK_MODE, expected 120000"
+            exit 1
+          fi
 
       - name: Check commit verification status
         if: steps.commit.outputs.sha != ''
@@ -225,8 +813,228 @@ jobs:
           REPOSITORY: ${{ github.repository }}
         run: |
           if [[ -n "$BRANCH" ]]; then
-            gh api "repos/$REPOSITORY/git/refs/heads/$BRANCH" --method DELETE
+            gh api "repos/$REPOSITORY/git/refs/heads/$BRANCH" --method DELETE || true
           fi
           if [[ -n "$TAG_NAME" ]]; then
-            gh api "repos/$REPOSITORY/git/refs/tags/$TAG_NAME" --method DELETE
+            gh api "repos/$REPOSITORY/git/refs/tags/$TAG_NAME" --method DELETE || true
+          fi
+
+  # ===========================================================================
+  # Negative tests: each entry is expected to fail; we assert via `outcome`.
+  # No commits should land on the test branch.
+  # ===========================================================================
+  test-api-negative:
+    name: Test API commit negative (${{ matrix.mode }})
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        mode:
+          - overlap
+          - empty-message
+          - bad-branch-tag-ref
+          - cross-repo-auto-detect
+          - absolute-path
+          - parent-traversal-path
+          - missing-file
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Create test branch
+        id: setup
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          TIMESTAMP=$(date +%s)
+          TEST_BRANCH="api-commit-neg-${{ matrix.mode }}-$TIMESTAMP"
+          SHA=$(gh api "repos/$REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          gh api "repos/$REPOSITORY/git/refs" \
+            --method POST \
+            -f "ref=refs/heads/$TEST_BRANCH" \
+            -f "sha=$SHA"
+          {
+            echo "test_branch=$TEST_BRANCH"
+            echo "initial_sha=$SHA"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create dummy file for negative tests that need a real file
+        if: contains(fromJSON('["overlap","empty-message","bad-branch-tag-ref"]'), matrix.mode)
+        run: |
+          echo "dummy" > api-commit-dummy.txt
+
+      # Each negative api-commit invocation below intentionally triggers
+      # `core.setFailed()`, which emits an `::error::` workflow command that
+      # GitHub would otherwise surface as a run annotation. Stop-commands
+      # suppresses those expected errors — the step still exits non-zero, so
+      # `outcome=='failure'` registers as usual. Resumed before the assertion
+      # steps so any *real* test failures still surface as annotations.
+      - name: Suppress expected error annotations from api-commit
+        run: echo "::stop-commands::api-commit-silence"
+
+      # -----------------------------------------------------------------------
+      # overlap: same path in both `files` and `deletions` should be rejected
+      # -----------------------------------------------------------------------
+      - name: Run API Commit (overlap)
+        id: neg-overlap
+        if: matrix.mode == 'overlap'
+        continue-on-error: true
+        uses: ./api-commit
+        with:
+          files: api-commit-dummy.txt
+          deletions: api-commit-dummy.txt
+          message: "should fail: overlap"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
+      # -----------------------------------------------------------------------
+      # empty-message: blank message should be rejected
+      # -----------------------------------------------------------------------
+      - name: Run API Commit (empty-message)
+        id: neg-empty-message
+        if: matrix.mode == 'empty-message'
+        continue-on-error: true
+        uses: ./api-commit
+        with:
+          files: api-commit-dummy.txt
+          message: ""
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
+      # -----------------------------------------------------------------------
+      # bad-branch-tag-ref: branch resolving to a tag ref should be rejected
+      # -----------------------------------------------------------------------
+      - name: Run API Commit (bad-branch-tag-ref)
+        id: neg-bad-branch
+        if: matrix.mode == 'bad-branch-tag-ref'
+        continue-on-error: true
+        uses: ./api-commit
+        with:
+          files: api-commit-dummy.txt
+          message: "should fail: bad branch ref"
+          branch: refs/tags/v1.0.0
+          token: ${{ github.token }}
+
+      # -----------------------------------------------------------------------
+      # cross-repo-auto-detect: owner/repo set to a different repo than the
+      # local git remote — auto-detect should refuse to proceed.
+      # -----------------------------------------------------------------------
+      - name: Run API Commit (cross-repo-auto-detect)
+        id: neg-cross-repo
+        if: matrix.mode == 'cross-repo-auto-detect'
+        continue-on-error: true
+        uses: ./api-commit
+        with:
+          owner: bitwarden-fake-owner-for-test
+          repo: bitwarden-fake-repo-for-test
+          message: "should fail: cross-repo auto-detect"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
+      # -----------------------------------------------------------------------
+      # absolute-path: explicit file with an absolute path is rejected
+      # -----------------------------------------------------------------------
+      - name: Run API Commit (absolute-path)
+        id: neg-absolute-path
+        if: matrix.mode == 'absolute-path'
+        continue-on-error: true
+        uses: ./api-commit
+        with:
+          files: /etc/hostname
+          message: "should fail: absolute path"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
+      # -----------------------------------------------------------------------
+      # parent-traversal-path: explicit file with a `..` prefix is rejected
+      # -----------------------------------------------------------------------
+      - name: Run API Commit (parent-traversal-path)
+        id: neg-traversal-path
+        if: matrix.mode == 'parent-traversal-path'
+        continue-on-error: true
+        uses: ./api-commit
+        with:
+          files: ../escaping.txt
+          message: "should fail: parent-traversal path"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
+      # -----------------------------------------------------------------------
+      # missing-file: explicit file that doesn't exist on disk is rejected
+      # -----------------------------------------------------------------------
+      - name: Run API Commit (missing-file)
+        id: neg-missing-file
+        if: matrix.mode == 'missing-file'
+        continue-on-error: true
+        uses: ./api-commit
+        with:
+          files: this-file-definitely-does-not-exist-on-disk.txt
+          message: "should fail: missing file"
+          branch: ${{ steps.setup.outputs.test_branch }}
+          token: ${{ github.token }}
+
+      - name: Resume annotation processing
+        if: always()
+        run: echo "::api-commit-silence::"
+
+      # =======================================================================
+      # Verify the action failed AND that no commit was made on the test branch
+      # =======================================================================
+      - name: Verify failure outcome
+        env:
+          OVERLAP_OUTCOME: ${{ steps.neg-overlap.outcome }}
+          EMPTY_MESSAGE_OUTCOME: ${{ steps.neg-empty-message.outcome }}
+          BAD_BRANCH_OUTCOME: ${{ steps.neg-bad-branch.outcome }}
+          CROSS_REPO_OUTCOME: ${{ steps.neg-cross-repo.outcome }}
+          ABSOLUTE_PATH_OUTCOME: ${{ steps.neg-absolute-path.outcome }}
+          TRAVERSAL_OUTCOME: ${{ steps.neg-traversal-path.outcome }}
+          MISSING_FILE_OUTCOME: ${{ steps.neg-missing-file.outcome }}
+        run: |
+          case "${{ matrix.mode }}" in
+            overlap) outcome=$OVERLAP_OUTCOME ;;
+            empty-message) outcome=$EMPTY_MESSAGE_OUTCOME ;;
+            bad-branch-tag-ref) outcome=$BAD_BRANCH_OUTCOME ;;
+            cross-repo-auto-detect) outcome=$CROSS_REPO_OUTCOME ;;
+            absolute-path) outcome=$ABSOLUTE_PATH_OUTCOME ;;
+            parent-traversal-path) outcome=$TRAVERSAL_OUTCOME ;;
+            missing-file) outcome=$MISSING_FILE_OUTCOME ;;
+            *)
+              echo "::error::Unhandled negative mode: ${{ matrix.mode }}"
+              exit 1
+              ;;
+          esac
+          if [[ "$outcome" != "failure" ]]; then
+            echo "::error::Expected api-commit to fail for mode ${{ matrix.mode }} but got outcome=$outcome"
+            exit 1
+          fi
+          echo "Correctly failed for mode ${{ matrix.mode }}"
+
+      - name: Verify no commit was made on test branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: ${{ steps.setup.outputs.test_branch }}
+          INITIAL_SHA: ${{ steps.setup.outputs.initial_sha }}
+        run: |
+          BRANCH_SHA=$(gh api "repos/$REPOSITORY/git/ref/heads/$BRANCH" --jq '.object.sha')
+          if [[ "$BRANCH_SHA" != "$INITIAL_SHA" ]]; then
+            echo "::error::Test branch HEAD ($BRANCH_SHA) diverged from its initial state ($INITIAL_SHA) — action should not have committed"
+            exit 1
+          fi
+          echo "Test branch unchanged — no spurious commit"
+
+      - name: Cleanup test branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.setup.outputs.test_branch }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          if [[ -n "$BRANCH" ]]; then
+            gh api "repos/$REPOSITORY/git/refs/heads/$BRANCH" --method DELETE || true
           fi

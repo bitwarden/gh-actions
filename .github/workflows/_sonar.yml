@@ -65,7 +65,7 @@ jobs:
 
       - name: Scan with Sonar
         if: inputs.sonar-config == 'default'
-        uses: sonarsource/sonarqube-scan-action@59db25f34e16620e48ab4bb9e4a5dce155cb5432 # v8
+        uses: sonarsource/sonarqube-scan-action@7006c4492b2e0ee0f816d36501671557c97f5995 # v8
         env:
           SONAR_TOKEN: ${{ steps.get-kv-secrets.outputs.SONAR-TOKEN }}
           SONAR_ARGS: >-

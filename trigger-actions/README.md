@@ -50,3 +50,9 @@ Receiving repositories should have a workflow triggered on `deployment` that fil
 - `GH-TRIGGER-APP-ID` and `GH-TRIGGER-APP-KEY` must be present in the `gh-org-bitwarden` Key Vault
 - The GitHub App must be installed on the target repository with `deployments: write`
 - The target repository must have a workflow listening on the `deployment` event that handles the `trigger-actions` environment and the relevant `task` value
+
+## Receiving side
+
+The target repository today is `bitwarden/deploy`. Its receiving workflow is `.github/workflows/trigger-actions.yml`, which routes each deployment event by `task` to a dedicated job that dispatches the actual deploy/publish workflow and reports status back here.
+
+For the list of supported task names, the architectural overview, and how to add a new task or caller, see [`bitwarden/deploy` → docs/trigger-actions.md](https://github.com/bitwarden/deploy/blob/main/docs/trigger-actions.md).

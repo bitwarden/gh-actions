@@ -193,8 +193,10 @@ runs:
           const timeoutMs = timeoutMinutes * 60 * 1000;
           const pollIntervalMs = pollIntervalSeconds * 1000;
           const terminalStates = ['success', 'failure', 'error'];
+          const MAX_CONSECUTIVE_ERRORS = 5;
           const startTime = Date.now();
           let lastSeenAt = null;
+          let consecutiveErrors = 0;
 
           core.info(`Monitoring deployment ${owner}/${repo}#${deploymentId}`);
           core.info(`  environment: ${environment}`);
@@ -209,12 +211,27 @@ runs:
               return;
             }
 
-            const { data: statuses } = await github.rest.repos.listDeploymentStatuses({
-              owner,
-              repo,
-              deployment_id: deploymentId,
-              per_page: 1,
-            });
+            let statuses;
+            try {
+              const response = await github.rest.repos.listDeploymentStatuses({
+                owner,
+                repo,
+                deployment_id: deploymentId,
+                per_page: 1,
+              });
+              statuses = response.data;
+              consecutiveErrors = 0;
+            } catch (e) {
+              consecutiveErrors++;
+              const status = e.status || 'unknown';
+              if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+                core.setFailed(`Failed to query deployment statuses ${consecutiveErrors} times in a row (last error: ${status} ${e.message})`);
+                return;
+              }
+              core.warning(`Transient error querying deployment statuses (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}): ${status} ${e.message}`);
+              await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+              continue;
+            }
 
             if (statuses.length > 0) {
               const latest = statuses[0];

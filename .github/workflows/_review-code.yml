@@ -39,55 +39,15 @@ jobs:
       review_variant: ${{ steps.validate.outputs.review_variant }}
 
     steps:
-      - name: Check for review label
-        id: check-label
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          set -euo pipefail
-
-          if [ -z "${PR_NUMBER:-}" ]; then
-            echo "label_found=none" >> "$GITHUB_OUTPUT"
-            echo "review_variant=none" >> "$GITHUB_OUTPUT"
-            echo "⚠️ Validation: no pull_request context detected - skipping Claude review"
-            exit 0
-          fi
-
-          LABELS=$(gh pr view "$PR_NUMBER" --repo "$GH_REPO" --json labels -q '.labels[].name')
-
-          if printf '%s\n' "$LABELS" | grep -Fxq "ai-review-vnext"; then
-            echo "label_found=ai-review-vnext" >> "$GITHUB_OUTPUT"
-            echo "review_variant=vnext" >> "$GITHUB_OUTPUT"
-            echo "✅ Validation: 'ai-review-vnext' label found"
-
-          elif printf '%s\n' "$LABELS" | grep -Fxq "ai-review"; then
-            echo "label_found=ai-review" >> "$GITHUB_OUTPUT"
-            echo "review_variant=current" >> "$GITHUB_OUTPUT"
-            echo "✅ Validation: 'ai-review' label found"
-
-          else
-            echo "label_found=none" >> "$GITHUB_OUTPUT"
-            echo "review_variant=none" >> "$GITHUB_OUTPUT"
-            echo "⚠️ Validation: no review label found - skipping Claude review"
-          fi
-
-      - name: Set validation result
+      - name: Check review gate
         id: validate
-        env:
-          REVIEW_VARIANT: ${{ steps.check-label.outputs.review_variant }}
-        run: |
-          if [ "$REVIEW_VARIANT" != "none" ]; then
-            echo "should_review=true" >> "$GITHUB_OUTPUT"
-            echo "review_variant=$REVIEW_VARIANT" >> "$GITHUB_OUTPUT"
-            echo "✅ Validation passed - code review will proceed (variant: $REVIEW_VARIANT)"
-
-          else
-            echo "should_review=false" >> "$GITHUB_OUTPUT"
-            echo "review_variant=none" >> "$GITHUB_OUTPUT"
-            echo "⚠️ Validation failed - code review will be skipped"
-          fi
+        uses: bitwarden/gh-actions/check-review-gate@main
+        with:
+          event_name: ${{ github.event_name }}
+          marker_id: bitwarden-code-review
+          pr_number: ${{ github.event.pull_request.number }}
+          repository: ${{ github.repository }}
+          token: ${{ github.token }}
 
   review:
     name: Review

@@ -3,7 +3,7 @@ name: Test Download Artifacts Action
 on:
   workflow_dispatch:
     inputs: {}
-  workflow_run: # zizmor: ignore[dangerous-triggers]
+  workflow_run:
     workflows:
       - Upload Test Artifacts
     types:

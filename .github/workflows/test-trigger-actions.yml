@@ -26,6 +26,7 @@ jobs:
           persist-credentials: false
 
       - name: Run trigger-actions
+        id: trigger
         uses: ./trigger-actions
         with:
           azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
@@ -34,33 +35,25 @@ jobs:
           task: test-trigger-actions
           data: '{"test": true}'
           test: "true"
-
-      - name: Verify deployment was created
-        id: verify
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPOSITORY: ${{ github.repository }}
-        run: |
-          DEPLOYMENT_ID=$(gh api "repos/$REPOSITORY/deployments?task=test-trigger-actions&per_page=1" \
-            --jq '.[0].id // empty')
-
-          if [[ -z "$DEPLOYMENT_ID" ]]; then
-            echo "::error::No deployment found with task=test-trigger-actions"
-            exit 1
-          fi
-
-          echo "deployment_id=$DEPLOYMENT_ID" >> "$GITHUB_OUTPUT"
-          echo "Deployment created successfully with ID: $DEPLOYMENT_ID"
+          # The simulate-downstream job (running in parallel) drives this
+          # deployment to `success` within ~30-45s. 3 minutes is the safety net.
+          monitor-timeout-minutes: "3"
 
       - name: Verify deployment payload
         id: verify-deployment-payload
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
-          DEPLOYMENT_ID: ${{ steps.verify.outputs.deployment_id }}
+          DEPLOYMENT_ID: ${{ steps.trigger.outputs.deployment-id }}
           EXPECTED_RUN_ID: ${{ github.run_id }}
           EXPECTED_SHA: ${{ github.sha }}
         run: |
+          if [[ -z "$DEPLOYMENT_ID" ]]; then
+            echo "::error::trigger-actions did not output deployment-id"
+            exit 1
+          fi
+          echo "deployment-id from composite output: $DEPLOYMENT_ID"
+
           PAYLOAD=$(gh api "repos/$REPOSITORY/deployments/$DEPLOYMENT_ID" --jq '.payload')
 
           RUN_ID=$(echo "$PAYLOAD" | jq -r '.run.id')
@@ -145,3 +138,59 @@ jobs:
               --method DELETE
             echo "Deleted deployment $ID"
           done
+
+  simulate-downstream:
+    name: Simulate Downstream Success
+    runs-on: ubuntu-24.04
+    permissions:
+      deployments: write
+    steps:
+      - name: Find the deployment created by the test job
+        id: find
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          # Poll up to 30 times (5s each = 150s budget) for the deployment
+          # whose payload.run.id matches the current workflow run.
+          for i in $(seq 1 30); do
+            DEPLOYMENT_ID=$(gh api \
+              "repos/$REPOSITORY/deployments?environment=trigger-actions&task=test-trigger-actions&per_page=30" \
+              --jq "[.[] | select(.payload.run.id == ${RUN_ID}) | .id][0] // empty")
+            if [[ -n "$DEPLOYMENT_ID" ]]; then
+              echo "Found deployment $DEPLOYMENT_ID for run $RUN_ID (after $((i * 5))s)"
+              echo "deployment_id=$DEPLOYMENT_ID" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Did not find a trigger-actions deployment from run $RUN_ID within 150s"
+          exit 1
+
+      - name: Post in_progress status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          DEPLOYMENT_ID: ${{ steps.find.outputs.deployment_id }}
+        run: |
+          gh api "repos/$REPOSITORY/deployments/$DEPLOYMENT_ID/statuses" \
+            --method POST \
+            -f state=in_progress \
+            -f description="Simulated: downstream started"
+          echo "Posted in_progress on deployment $DEPLOYMENT_ID"
+
+      - name: Wait so the monitor logs the in_progress status
+        run: sleep 15
+
+      - name: Post success status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          DEPLOYMENT_ID: ${{ steps.find.outputs.deployment_id }}
+        run: |
+          gh api "repos/$REPOSITORY/deployments/$DEPLOYMENT_ID/statuses" \
+            --method POST \
+            -f state=success \
+            -f description="Simulated: downstream completed"
+          echo "Posted success on deployment $DEPLOYMENT_ID"

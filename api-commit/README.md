@@ -6,32 +6,35 @@ Create a verified commit via the GitHub API without requiring `git` credentials 
 
 - Creates commits via the GitHub REST API (Git Data API)
 - Supports GitHub App tokens for commits verified as a GitHub App identity
-- Commits multiple files atomically in a single commit
+- Commits multiple files atomically in a single commit, including deletions
+- Reads files and runs `git` from a configurable working directory (useful for cross-repo checkouts)
 - Exposes the resulting commit SHA as an output
 
 ## Inputs
 
-| Input     | Description                                                                    | Required | Default                  |
-| --------- | ------------------------------------------------------------------------------ | -------- | ------------------------ |
-| `files`    | Newline-delimited list of files to commit. If omitted, all files modified relative to HEAD are committed. | No | - |
-| `message`  | Commit message                                                                 | Yes      | -                        |
-| `branch`   | Branch to commit to                                                            | No       | `${{ github.ref }}`      |
-| `token`    | GitHub token for API access. Use a GitHub App token for verified commits.     | Yes      | -                        |
-| `tag_name` | Tag to create pointing at the commit. If omitted, no tag is created. If no commit is made, the tag is skipped. | No | - |
-| `owner`    | Repository owner (org or user). Defaults to the current workflow repository owner. | No  | `${{ github.repository_owner }}` |
-| `repo`     | Repository name. Defaults to the current workflow repository.                 | No       | `${{ github.event.repository.name }}` |
+| Input               | Description                                                                                                                                                                | Required | Default                               |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------- |
+| `files`             | Newline-delimited list of files to commit (paths relative to `working-directory`). If both `files` and `deletions` are omitted, additions and deletions are auto-detected via `git diff`. | No       | -                                     |
+| `deletions`         | Newline-delimited list of files to remove (paths relative to `working-directory`). If both `files` and `deletions` are omitted, additions and deletions are auto-detected via `git diff`. | No       | -                                     |
+| `message`           | Commit message                                                                                                                                                            | Yes      | -                                     |
+| `branch`            | Branch to commit to                                                                                                                                                       | No       | `${{ github.ref }}`                   |
+| `token`             | GitHub token for API access. Use a GitHub App token for verified commits.                                                                                                 | Yes      | -                                     |
+| `tag_name`          | Tag to create pointing at the commit. If omitted, no tag is created. If no commit is made, the tag is skipped.                                                            | No       | -                                     |
+| `owner`             | Repository owner (org or user). Defaults to the current workflow repository owner.                                                                                        | No       | `${{ github.repository_owner }}`      |
+| `repo`              | Repository name. Defaults to the current workflow repository.                                                                                                             | No       | `${{ github.event.repository.name }}` |
+| `working-directory` | Path to a checkout of the target repository. Must be the repository root (not a subdirectory) — paths in `files`/`deletions` are committed at the same relative location, and auto-detect runs `git` here. | No       | `GITHUB_WORKSPACE`                    |
 
 ## Outputs
 
-| Output       | Description                   |
-| ------------ | ----------------------------- |
-| `commit_sha` | SHA of the created commit, or empty if no changed files were detected |
+| Output       | Description                                                                                  |
+| ------------ | -------------------------------------------------------------------------------------------- |
+| `commit_sha` | SHA of the created commit, or empty if no changes were detected and no commit was made.      |
 
 ## Usage
 
-### Auto-detect Changed Files
+### Auto-detect Changes
 
-Omit `files` to automatically commit all files modified relative to HEAD:
+Omit both `files` and `deletions` to commit every change in the working tree relative to `HEAD` — modifications, staged additions, and deletions:
 
 ```yaml
 - name: Commit all changed files
@@ -44,7 +47,7 @@ Omit `files` to automatically commit all files modified relative to HEAD:
 ### Explicit File List
 
 ```yaml
-- name: Commit changed files
+- name: Commit specific files
   uses: bitwarden/gh-actions/api-commit@main
   with:
     files: |
@@ -52,6 +55,46 @@ Omit `files` to automatically commit all files modified relative to HEAD:
       package-lock.json
     message: "chore: bump version to ${{ inputs.version }}"
     token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+### Removing Files
+
+Use `deletions` to remove files from the branch. Mix with `files` to perform additions and deletions in a single atomic commit:
+
+```yaml
+- name: Replace generated artifacts
+  uses: bitwarden/gh-actions/api-commit@main
+  with:
+    files: |
+      generated/new-schema.json
+    deletions: |
+      generated/old-schema.json
+    message: "chore: rotate generated schemas"
+    token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+### Cross-repo / Subdirectory Checkout
+
+When `actions/checkout` puts the target repository at a subdirectory (e.g., `path: sdk-go`), use `working-directory` so file paths and auto-detect resolve there:
+
+```yaml
+- name: Checkout target repo
+  uses: actions/checkout@v6
+  with:
+    repository: bitwarden/sdk-go
+    path: sdk-go
+
+# ... steps that modify files under sdk-go/ ...
+
+- name: Commit changes
+  uses: bitwarden/gh-actions/api-commit@main
+  with:
+    working-directory: sdk-go
+    owner: bitwarden
+    repo: sdk-go
+    branch: main
+    message: "chore: sync from upstream"
+    token: ${{ steps.app-token.outputs.token }}
 ```
 
 ### With a GitHub App Token
@@ -101,11 +144,20 @@ Pass a GitHub App token to create commits verified as a GitHub App identity:
   run: echo "Created commit ${{ steps.api-commit.outputs.commit_sha }}"
 ```
 
+## Behaviour Notes
+
+- **Auto-detect vs. explicit.** Auto-detect runs only when *both* `files` and `deletions` are empty. Setting either input disables auto-detect entirely — the action operates only on the paths listed. This avoids accidental partial commits when callers think they're listing files explicitly.
+- **Renames in auto-detect.** `git diff` is invoked with `--no-renames`, so a `git mv old new` is decomposed into a deletion of `old` plus an addition of `new` and both sides are committed. Without this, renames would surface only as the destination path under git's `R` status and the source path would silently remain on the target branch.
+- **Deletion of a path not on the branch.** If a deletion path doesn't exist in the target branch's tree, the commit may end up tree-identical and is skipped. The action reports this with an empty `commit_sha` output and a "Tree unchanged" log line.
+- **`tag_name` conflicts with an existing tag.** The commit is created *first*, then the tag. If a tag with the same name already exists on the target repo, `createRef` returns 422 *after* the commit has already landed. The action reports an `API call failed` error and the commit remains on the branch. Callers that want a friendly pre-flight error should check tag existence via `gh api repos/<owner>/<repo>/git/ref/tags/<name>` before invoking this action.
+- **Symlinks.** Symbolic links are committed with mode `120000` and the link target as content, matching how git stores them.
+- **Executable bit.** Files with the user-executable bit set are committed with mode `100755`; everything else uses `100644`.
+
 ## Requirements
 
 - The target `branch` must already exist. The action looks up the branch HEAD via the API as its first step and will fail with a 404 if the branch does not exist.
-- File deletions are not supported. The Git Data API requires a separate approach to remove files from a tree. When using explicit `files`, listing a deleted file will fail with "File not found". When using auto-detect, deleted files are silently excluded from the commit.
-- Auto-detect mode requires a local git repository with a `HEAD` commit (i.e., `actions/checkout` must have run). Explicit `files` mode has no git dependency — files are read directly from disk regardless of git state.
+- Auto-detect mode requires a local git repository with a `HEAD` commit (i.e., `actions/checkout` must have run inside `working-directory`). Explicit `files` / `deletions` modes have no git dependency — additions are read directly from disk; deletions are validated as path shape only.
+- When auto-detect targets a repository other than the workflow's own, the `working-directory` must be a checkout of that repository (the action verifies via `git remote get-url origin`).
 
 ## Permissions
 

@@ -26,10 +26,37 @@ inputs:
     description: "Skip GitHub App token generation and use the calling workflow's token instead (for testing only)"
     required: false
     default: "false"
+  monitor-deployment:
+    description: "Whether to poll the downstream deployment for status updates after creating it. Set to `false` to fire-and-forget."
+    required: false
+    default: "true"
+  monitor-timeout-minutes:
+    description: "How long to wait for the downstream deployment to reach a terminal status (success / failure / error), in minutes."
+    required: false
+    default: "10"
+  monitor-poll-interval-seconds:
+    description: "How often to poll the downstream deployment for status updates, in seconds."
+    required: false
+    default: "10"
+
+outputs:
+  deployment-id:
+    description: "ID of the deployment created on the target repository"
+    value: ${{ steps.create-deployment.outputs.deployment-id }}
+  deployment-owner:
+    description: "Owner of the target repository (always `bitwarden`)"
+    value: ${{ steps.create-deployment.outputs.deployment-owner }}
+  deployment-repo:
+    description: "Name of the target repository"
+    value: ${{ steps.create-deployment.outputs.deployment-repo }}
 
 runs:
   using: "composite"
   steps:
+    - name: Set target repo
+      shell: bash
+      run: echo "TRIGGER_REPO=deploy" >> "$GITHUB_ENV"
+
     - name: Log in to Azure
       uses: bitwarden/gh-actions/azure-login@main
       with:
@@ -42,7 +69,7 @@ runs:
       uses: bitwarden/gh-actions/get-keyvault-secrets@main
       with:
         keyvault: gh-org-bitwarden
-        secrets: "GH-TRIGGER-APP-ID,GH-TRIGGER-APP-KEY,TRIGGER-REPO-NAME"
+        secrets: "GH-TRIGGER-APP-ID,GH-TRIGGER-APP-KEY"
 
     - name: Log out from Azure
       uses: bitwarden/gh-actions/azure-logout@main
@@ -50,12 +77,12 @@ runs:
     - name: Generate GitHub App token
       id: app-token
       if: inputs.test != 'true'
-      uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
+      uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
       with:
         app-id: ${{ steps.retrieve-secrets.outputs.GH-TRIGGER-APP-ID }}
         private-key: ${{ steps.retrieve-secrets.outputs.GH-TRIGGER-APP-KEY }}
         owner: bitwarden
-        repositories: ${{ steps.retrieve-secrets.outputs.TRIGGER-REPO-NAME }}
+        repositories: ${{ env.TRIGGER_REPO }}
         permission-deployments: write
 
     - name: Set trigger context artifact name
@@ -84,9 +111,10 @@ runs:
         path: ${{ env.TRIGGER_CONTEXT_FILE }}
 
     - name: Create deployment
+      id: create-deployment
       uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
       env:
-        _REPOSITORY: ${{ inputs.test == 'true' && 'gh-actions' || steps.retrieve-secrets.outputs.TRIGGER-REPO-NAME }}
+        _REPOSITORY: ${{ inputs.test == 'true' && 'gh-actions' || env.TRIGGER_REPO }}
         _TASK: ${{ inputs.task }}
         _WORKFLOW_REF: ${{ github.workflow_ref }}
         _DESCRIPTION: "Triggered by ${{ github.event.repository.name }} ${{ github.workflow }} on ${{ github.ref_name }} @ ${{ github.sha }}"
@@ -117,7 +145,7 @@ runs:
             throw new Error(`Deployment payload size (${payloadSize} chars) exceeds GitHub's limit of ${MAX_PAYLOAD_SIZE} characters`);
           }
 
-          await github.rest.repos.createDeployment({
+          const { data: deployment } = await github.rest.repos.createDeployment({
             owner: 'bitwarden',
             repo: process.env._REPOSITORY,
             ref: 'main',
@@ -127,4 +155,101 @@ runs:
             required_contexts: [],
             description: process.env._DESCRIPTION,
             payload: payload,
-          })
+          });
+          core.setOutput('deployment-id', deployment.id);
+          core.setOutput('deployment-owner', 'bitwarden');
+          core.setOutput('deployment-repo', process.env._REPOSITORY);
+          core.info(`Created deployment ${deployment.id} on bitwarden/${process.env._REPOSITORY}`);
+
+    - name: Monitor deployment
+      if: inputs.monitor-deployment == 'true'
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+      env:
+        DEPLOYMENT_ID: ${{ steps.create-deployment.outputs.deployment-id }}
+        DEPLOYMENT_OWNER: ${{ steps.create-deployment.outputs.deployment-owner }}
+        DEPLOYMENT_REPO: ${{ steps.create-deployment.outputs.deployment-repo }}
+        DEPLOYMENT_TASK: ${{ inputs.task }}
+        DEPLOYMENT_ENVIRONMENT: trigger-actions
+        TIMEOUT_MINUTES: ${{ inputs.monitor-timeout-minutes }}
+        POLL_INTERVAL_SECONDS: ${{ inputs.monitor-poll-interval-seconds }}
+      with:
+        github-token: ${{ inputs.test == 'true' && github.token || steps.app-token.outputs.token }}
+        script: |
+          const deploymentId = Number(process.env.DEPLOYMENT_ID);
+          const owner = process.env.DEPLOYMENT_OWNER;
+          const repo = process.env.DEPLOYMENT_REPO;
+          const task = process.env.DEPLOYMENT_TASK;
+          const environment = process.env.DEPLOYMENT_ENVIRONMENT;
+          const timeoutMinutes = Number(process.env.TIMEOUT_MINUTES);
+          const pollIntervalSeconds = Number(process.env.POLL_INTERVAL_SECONDS);
+
+          if (!Number.isFinite(timeoutMinutes) || timeoutMinutes <= 0) {
+            throw new Error(`Invalid monitor-timeout-minutes: ${process.env.TIMEOUT_MINUTES}`);
+          }
+          if (!Number.isFinite(pollIntervalSeconds) || pollIntervalSeconds <= 0) {
+            throw new Error(`Invalid monitor-poll-interval-seconds: ${process.env.POLL_INTERVAL_SECONDS}`);
+          }
+
+          const timeoutMs = timeoutMinutes * 60 * 1000;
+          const pollIntervalMs = pollIntervalSeconds * 1000;
+          const terminalStates = ['success', 'failure', 'error'];
+          const MAX_CONSECUTIVE_ERRORS = 5;
+          const startTime = Date.now();
+          let lastSeenAt = null;
+          let consecutiveErrors = 0;
+
+          core.info(`Monitoring deployment ${owner}/${repo}#${deploymentId}`);
+          core.info(`  environment: ${environment}`);
+          core.info(`  task:        ${task}`);
+          core.info(`  timeout:     ${timeoutMinutes}m`);
+          core.info(`  poll:        ${pollIntervalSeconds}s`);
+
+          while (true) {
+            const elapsedMs = Date.now() - startTime;
+            if (elapsedMs >= timeoutMs) {
+              core.setFailed(`Timed out after ${timeoutMinutes} minute(s) waiting for deployment ${owner}/${repo}#${deploymentId} to reach a terminal state`);
+              return;
+            }
+
+            let statuses;
+            try {
+              const response = await github.rest.repos.listDeploymentStatuses({
+                owner,
+                repo,
+                deployment_id: deploymentId,
+                per_page: 1,
+              });
+              statuses = response.data;
+              consecutiveErrors = 0;
+            } catch (e) {
+              consecutiveErrors++;
+              const status = e.status || 'unknown';
+              if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+                core.setFailed(`Failed to query deployment statuses ${consecutiveErrors} times in a row (last error: ${status} ${e.message})`);
+                return;
+              }
+              core.warning(`Transient error querying deployment statuses (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}): ${status} ${e.message}`);
+              await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+              continue;
+            }
+
+            if (statuses.length > 0) {
+              const latest = statuses[0];
+              if (latest.created_at !== lastSeenAt) {
+                lastSeenAt = latest.created_at;
+                const desc = latest.description ? ` — ${latest.description}` : '';
+                core.info(`[${latest.created_at}] ${latest.state}${desc}`);
+
+                if (terminalStates.includes(latest.state)) {
+                  if (latest.state === 'success') {
+                    core.info(`Deployment ${owner}/${repo}#${deploymentId} reached terminal state: success`);
+                    return;
+                  }
+                  core.setFailed(`Deployment ${owner}/${repo}#${deploymentId} reached terminal state: ${latest.state}`);
+                  return;
+                }
+              }
+            }
+
+            await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+          }

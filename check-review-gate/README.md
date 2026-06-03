@@ -32,10 +32,10 @@ The gate evaluates two paths in order:
       repository: ${{ github.repository }}
       ```
   - `event_name`
-    - Description: The triggering event name from the calling workflow.
+    - Description: The triggering event action from the calling workflow (e.g. `opened`, `ready_for_review`, `reopened`, `synchronize`).
     - Example:
       ```
-      event_name: ${{ github.event_name }}
+      event_name: ${{ github.event.action }}
       ```
   - `marker_id`
     - Description: HTML comment marker ID used to detect an existing review comment (idempotency guard). Must match the `marker_id` passed to `update-pr-comment`.
@@ -66,7 +66,7 @@ The gate evaluates two paths in order:
   id: gate
   uses: bitwarden/gh-actions/check-review-gate@main
   with:
-    event_name: ${{ github.event_name }}
+    event_name: ${{ github.event.action }}
     marker_id: bitwarden-code-review
     pr_number: ${{ github.event.pull_request.number }}
     repository: ${{ github.repository }}

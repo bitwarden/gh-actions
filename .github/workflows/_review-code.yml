@@ -43,7 +43,7 @@ jobs:
         id: validate
         uses: bitwarden/gh-actions/check-review-gate@main
         with:
-          event_name: ${{ github.event_name }}
+          event_name: ${{ github.event.action }}
           marker_id: bitwarden-code-review
           pr_number: ${{ github.event.pull_request.number }}
           repository: ${{ github.repository }}

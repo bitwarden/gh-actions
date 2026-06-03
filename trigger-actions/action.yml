@@ -197,6 +197,7 @@ runs:
           const startTime = Date.now();
           let lastSeenAt = null;
           let consecutiveErrors = 0;
+          let summaryWritten = false;
 
           core.info(`Monitoring deployment ${owner}/${repo}#${deploymentId}`);
           core.info(`  environment: ${environment}`);
@@ -238,7 +239,20 @@ runs:
               if (latest.created_at !== lastSeenAt) {
                 lastSeenAt = latest.created_at;
                 const desc = latest.description ? ` — ${latest.description}` : '';
-                core.info(`[${latest.created_at}] ${latest.state}${desc}`);
+                const link = latest.log_url ? ` (${latest.log_url})` : '';
+                core.info(`[${latest.created_at}] ${latest.state}${desc}${link}`);
+
+                // The downstream run URL arrives with the `in_progress` status once the
+                // dispatched workflow has started. Surface it in the job summary so the
+                // triggered run is one click away from this (the triggering) run.
+                if (latest.log_url && !summaryWritten) {
+                  summaryWritten = true;
+                  await core.summary
+                    .addHeading('Deployment Tracking', 2)
+                    .addRaw(`Deployment: ${owner}/${repo}#${deploymentId} (task: ${task})`, true)
+                    .addLink('Downstream workflow run', latest.log_url)
+                    .write();
+                }
 
                 if (terminalStates.includes(latest.state)) {
                   if (latest.state === 'success') {

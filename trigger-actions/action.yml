@@ -251,16 +251,17 @@ runs:
                   const apiUrl = process.env.GITHUB_API_URL || 'https://api.github.com';
                   const repoUrl = `${serverUrl}/${owner}/${repo}`;
                   const deploymentApiUrl = `${apiUrl}/repos/${owner}/${repo}/deployments/${deploymentId}`;
-                  const lines = [
+                  // Pure markdown (not addHeading's <h2>) with a blank line before the
+                  // list — an HTML block would otherwise swallow the bullets as literal text.
+                  const md = [
+                    '## Deployment Tracking',
+                    '',
                     `- **Repository:** [${owner}/${repo}](${repoUrl})`,
                     `- **Deployment:** [#${deploymentId}](${deploymentApiUrl})`,
                     `- **Task:** ${task}`,
                     `- **Downstream run:** [View run](${latest.log_url})`,
                   ].join('\n');
-                  await core.summary
-                    .addHeading('Deployment Tracking', 2)
-                    .addRaw(lines, true)
-                    .write();
+                  await core.summary.addRaw(md, true).write();
                 }
 
                 if (terminalStates.includes(latest.state)) {

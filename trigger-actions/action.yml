@@ -247,10 +247,19 @@ runs:
                 // triggered run is one click away from this (the triggering) run.
                 if (latest.log_url && !summaryWritten) {
                   summaryWritten = true;
+                  const serverUrl = process.env.GITHUB_SERVER_URL || 'https://github.com';
+                  const apiUrl = process.env.GITHUB_API_URL || 'https://api.github.com';
+                  const repoUrl = `${serverUrl}/${owner}/${repo}`;
+                  const deploymentApiUrl = `${apiUrl}/repos/${owner}/${repo}/deployments/${deploymentId}`;
+                  const lines = [
+                    `- **Repository:** [${owner}/${repo}](${repoUrl})`,
+                    `- **Deployment:** [#${deploymentId}](${deploymentApiUrl})`,
+                    `- **Task:** ${task}`,
+                    `- **Downstream run:** [View run](${latest.log_url})`,
+                  ].join('\n');
                   await core.summary
                     .addHeading('Deployment Tracking', 2)
-                    .addRaw(`Deployment: ${owner}/${repo}#${deploymentId} (task: ${task})`, true)
-                    .addLink('Downstream workflow run', latest.log_url)
+                    .addRaw(lines, true)
                     .write();
                 }
 

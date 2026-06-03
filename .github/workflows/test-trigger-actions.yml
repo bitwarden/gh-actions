@@ -121,6 +121,21 @@ jobs:
           fi
           echo "context.data: ✓"
 
+      - name: Verify in_progress status carried log_url
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          DEPLOYMENT_ID: ${{ steps.trigger.outputs.deployment-id }}
+          EXPECTED_LOG_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          LOG_URL=$(gh api "repos/$REPOSITORY/deployments/$DEPLOYMENT_ID/statuses?per_page=100" \
+            --jq '[.[] | select(.state == "in_progress") | .log_url | select(. != null and . != "")][0] // empty')
+          if [[ "$LOG_URL" != "$EXPECTED_LOG_URL" ]]; then
+            echo "::error::in_progress status log_url: expected '$EXPECTED_LOG_URL', got '$LOG_URL'"
+            exit 1
+          fi
+          echo "in_progress log_url: ✓ ($LOG_URL)"
+
       - name: Cleanup all trigger-actions deployments
         if: always()
         env:
@@ -173,12 +188,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
           DEPLOYMENT_ID: ${{ steps.find.outputs.deployment_id }}
+          # Stand in for the dispatched downstream run URL so the monitor's
+          # "Deployment Tracking" summary + log link get exercised.
+          LOG_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           gh api "repos/$REPOSITORY/deployments/$DEPLOYMENT_ID/statuses" \
             --method POST \
             -f state=in_progress \
+            -f log_url="$LOG_URL" \
             -f description="Simulated: downstream started"
-          echo "Posted in_progress on deployment $DEPLOYMENT_ID"
+          echo "Posted in_progress (log_url=$LOG_URL) on deployment $DEPLOYMENT_ID"
 
       - name: Wait so the monitor logs the in_progress status
         run: sleep 15

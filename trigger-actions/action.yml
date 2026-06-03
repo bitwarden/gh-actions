@@ -197,6 +197,7 @@ runs:
           const startTime = Date.now();
           let lastSeenAt = null;
           let consecutiveErrors = 0;
+          let summaryWritten = false;
 
           core.info(`Monitoring deployment ${owner}/${repo}#${deploymentId}`);
           core.info(`  environment: ${environment}`);
@@ -238,7 +239,36 @@ runs:
               if (latest.created_at !== lastSeenAt) {
                 lastSeenAt = latest.created_at;
                 const desc = latest.description ? ` — ${latest.description}` : '';
-                core.info(`[${latest.created_at}] ${latest.state}${desc}`);
+                const link = latest.log_url ? ` (${latest.log_url})` : '';
+                core.info(`[${latest.created_at}] ${latest.state}${desc}${link}`);
+
+                // The downstream run URL arrives with the `in_progress` status once the
+                // dispatched workflow has started. Surface it in the job summary so the
+                // triggered run is one click away from this (the triggering) run.
+                if (latest.log_url && !summaryWritten) {
+                  summaryWritten = true;
+                  const serverUrl = process.env.GITHUB_SERVER_URL || 'https://github.com';
+                  const repoUrl = `${serverUrl}/${owner}/${repo}`;
+                  // Pure markdown (not addHeading's <h2>) with a blank line before the
+                  // list — an HTML block would otherwise swallow the bullets as literal text.
+                  // No deployment hyperlink: the api.github.com URL 404s on a browser click
+                  // for private repos, so we surface the ID plus a copy/paste gh command.
+                  const md = [
+                    '## Deployment Tracking',
+                    '',
+                    `- **Repository:** [${owner}/${repo}](${repoUrl})`,
+                    `- **Task:** ${task}`,
+                    `- **Deployment run:** [View run](${latest.log_url})`,
+                    `- **Deployment ID:** ${deploymentId}`,
+                    '',
+                    'Inspect the deployment:',
+                    '',
+                    '```',
+                    `gh api repos/${owner}/${repo}/deployments/${deploymentId}`,
+                    '```',
+                  ].join('\n');
+                  await core.summary.addRaw(md, true).write();
+                }
 
                 if (terminalStates.includes(latest.state)) {
                   if (latest.state === 'success') {

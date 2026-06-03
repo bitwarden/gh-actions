@@ -7,7 +7,7 @@ branding:
 
 inputs:
   event_name:
-    description: "Triggering event name (github.event_name from the calling workflow)"
+    description: "Triggering event action (github.event.action from the calling workflow, e.g. 'opened', 'ready_for_review', 'reopened', 'synchronize')"
     required: true
   marker_id:
     description: "Sticky comment marker ID to check for an existing review"

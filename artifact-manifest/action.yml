@@ -35,6 +35,16 @@ outputs:
 runs:
   using: "composite"
   steps:
+    - name: Validate mode input
+      shell: bash
+      env:
+        _MODE: ${{ inputs.mode }}
+      run: |
+        if [[ "$_MODE" != "upload" && "$_MODE" != "download" ]]; then
+          echo "::error::Invalid mode `$_MODE`. Must be `upload` or `download`."
+          exit 1
+        fi
+
     - name: Build manifest
       if: inputs.mode == 'upload'
       shell: bash

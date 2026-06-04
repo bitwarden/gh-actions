@@ -87,6 +87,11 @@ def main():
         print(f"::error::Failed to parse additional_artifacts: {e}", file=sys.stderr)
         sys.exit(1)
 
+    duplicates = manifest["artifacts"].keys() & additional.keys()
+    if duplicates:
+        print(f"::error::Duplicate artifact keys in additional_artifacts: {', '.join(sorted(duplicates))}", file=sys.stderr)
+        sys.exit(1)
+
     manifest["artifacts"].update(additional)
 
     with open("artifact_manifest.json", "w") as f:

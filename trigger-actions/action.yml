@@ -33,7 +33,7 @@ inputs:
   monitor-timeout-minutes:
     description: "How long to wait for the downstream deployment to reach a terminal status (success / failure / error), in minutes."
     required: false
-    default: "10"
+    default: "60"
   monitor-poll-interval-seconds:
     description: "How often to poll the downstream deployment for status updates, in seconds."
     required: false

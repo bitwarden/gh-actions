@@ -2,8 +2,6 @@ name: SDLC / Enforce PR labels
 run-name: Enforce labels for PR ${{ github.event.pull_request.number }}
 
 on:
-  pull_request:
-    types: [labeled, unlabeled, opened, reopened, edited, synchronize]
   workflow_call:
     inputs:
       test_pr_labels_json:

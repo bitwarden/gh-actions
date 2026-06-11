@@ -12,7 +12,6 @@ jobs:
     with:
       failure_mode: "continue" # Continue so that the BW bot can skip
       require_permission: "write"
-    secrets: inherit
     permissions:
       contents: read
 

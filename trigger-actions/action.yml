@@ -112,7 +112,7 @@ runs:
 
     - name: Create deployment
       id: create-deployment
-      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
       env:
         _REPOSITORY: ${{ inputs.test == 'true' && 'gh-actions' || env.TRIGGER_REPO }}
         _TASK: ${{ inputs.task }}
@@ -163,7 +163,7 @@ runs:
 
     - name: Monitor deployment
       if: inputs.monitor-deployment == 'true'
-      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
       env:
         DEPLOYMENT_ID: ${{ steps.create-deployment.outputs.deployment-id }}
         DEPLOYMENT_OWNER: ${{ steps.create-deployment.outputs.deployment-owner }}

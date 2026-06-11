@@ -47,6 +47,8 @@ Each workflow file must comply with the following linter rules ([source director
 - **step_pinned.py**: Verifies that every workflow step using an external GitHub action in the `uses` key is pinned to a hash with the version in a comment.
 - **underscore_outputs.py**: Enforces that all GitHub outputs with more than one word use an underscore.
 
+> **`bitwarden/gh-actions` refs use `@main` by convention.** `step_pinned.py` and `step_approved.py` are step-level rules targeting third-party external actions; org-internal `bitwarden/` composite actions are pre-approved and SHA-pin exempt, and reusable workflow calls (job-level `uses:`) are not subject to these rules at all. Do not flag `@main` on `bitwarden/gh-actions` paths as a supply-chain finding.
+
 Refer to the [rules directory](https://github.com/bitwarden/workflow-linter/tree/main/src/bitwarden_workflow_linter/rules) for further details or updates to rule logic.
 
 **Trigger**: Automatic on PR when `.github/workflows/**` files change

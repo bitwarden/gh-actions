@@ -87,6 +87,10 @@ def main():
         print(f"::error::Failed to parse additional_artifacts: {e}", file=sys.stderr)
         sys.exit(1)
 
+    if not isinstance(additional, dict):
+        print("::error::additional_artifacts must be a JSON object", file=sys.stderr)
+        sys.exit(1)
+
     duplicates = manifest["artifacts"].keys() & additional.keys()
     if duplicates:
         print(f"::error::Duplicate artifact keys in additional_artifacts: {', '.join(sorted(duplicates))}", file=sys.stderr)

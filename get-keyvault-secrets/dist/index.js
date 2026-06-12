@@ -41263,7 +41263,7 @@ class ChainedTokenCredential {
 }
 //# sourceMappingURL=chainedTokenCredential.js.map
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/utils/Constants.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -41563,7 +41563,7 @@ const EncodingTypes = {
 //# sourceMappingURL=Constants.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/logger/Logger.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -41843,7 +41843,7 @@ class Logger {
 //# sourceMappingURL=Logger.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/utils/Constants.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -41992,7 +41992,7 @@ const AZURE_ARC_SECRET_FILE_MAX_SIZE_BYTES = 4096; // 4 KB
 //# sourceMappingURL=Constants.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/error/AuthError.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -42028,7 +42028,7 @@ function createAuthError(code, additionalMessage) {
 //# sourceMappingURL=AuthError.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/telemetry/server/ServerTelemetryManager.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -42296,7 +42296,7 @@ class ServerTelemetryManager {
 //# sourceMappingURL=ServerTelemetryManager.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/error/ClientAuthError.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -42325,7 +42325,7 @@ function ClientAuthError_createClientAuthError(errorCode, additionalMessage) {
 //# sourceMappingURL=ClientAuthError.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/error/ClientAuthErrorCodes.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -42375,7 +42375,7 @@ const misplacedResourceParam = "misplaced_resource_parameter";
 //# sourceMappingURL=ClientAuthErrorCodes.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/request/BaseAuthRequest.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -42415,7 +42415,7 @@ function containsResourceParam(params) {
 //# sourceMappingURL=BaseAuthRequest.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/constants/AADServerParamKeys.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -42486,7 +42486,7 @@ const CLI_DATA = "clidata";
 //# sourceMappingURL=AADServerParamKeys.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/error/ServerError.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -42511,7 +42511,7 @@ class ServerError_ServerError extends AuthError {
 //# sourceMappingURL=ServerError.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/authority/AuthorityType.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -42531,7 +42531,7 @@ const AuthorityType = {
 //# sourceMappingURL=AuthorityType.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/authority/OpenIdConfigResponse.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -42548,7 +42548,7 @@ function isOpenIdConfigResponse(response) {
 //# sourceMappingURL=OpenIdConfigResponse.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/error/ClientConfigurationError.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -42574,7 +42574,7 @@ function createClientConfigurationError(errorCode) {
 //# sourceMappingURL=ClientConfigurationError.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/utils/StringUtils.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -42659,7 +42659,7 @@ class StringUtils_StringUtils {
 //# sourceMappingURL=StringUtils.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/error/ClientConfigurationErrorCodes.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -42692,7 +42692,7 @@ const invalidRequestMethodForEAR = "invalid_request_method_for_EAR";
 //# sourceMappingURL=ClientConfigurationErrorCodes.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/url/UrlString.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -42858,7 +42858,7 @@ class UrlString {
 //# sourceMappingURL=UrlString.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/authority/AuthorityMetadata.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -43022,7 +43022,7 @@ function getCloudDiscoveryMetadataFromNetworkResponse(response, authorityHost) {
 //# sourceMappingURL=AuthorityMetadata.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/authority/ProtocolMode.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -43051,7 +43051,7 @@ const ProtocolMode = {
 //# sourceMappingURL=ProtocolMode.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/authority/AuthorityOptions.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -43076,7 +43076,7 @@ const AzureCloudInstance = {
 //# sourceMappingURL=AuthorityOptions.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/authority/CloudInstanceDiscoveryResponse.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -43091,7 +43091,7 @@ function isCloudInstanceDiscoveryResponse(response) {
 //# sourceMappingURL=CloudInstanceDiscoveryResponse.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/authority/CloudInstanceDiscoveryErrorResponse.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -43106,7 +43106,7 @@ function isCloudInstanceDiscoveryErrorResponse(response) {
 //# sourceMappingURL=CloudInstanceDiscoveryErrorResponse.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/telemetry/performance/PerformanceEvents.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -43182,7 +43182,7 @@ const SetUserData = "setUserData";
 //# sourceMappingURL=PerformanceEvents.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/utils/FunctionWrappers.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -43280,7 +43280,7 @@ const invokeAsync = (callback, eventName, logger, telemetryClient, correlationId
 //# sourceMappingURL=FunctionWrappers.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/authority/RegionDiscovery.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -43393,7 +43393,7 @@ RegionDiscovery.IMDS_OPTIONS = {
 //# sourceMappingURL=RegionDiscovery.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/account/AuthToken.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -43480,7 +43480,7 @@ function checkMaxAge(authTime, maxAge) {
 //# sourceMappingURL=AuthToken.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/utils/TimeUtils.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -43558,7 +43558,7 @@ function TimeUtils_delay(t, value) {
 //# sourceMappingURL=TimeUtils.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/cache/utils/CacheHelpers.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -43827,7 +43827,7 @@ function isAuthorityMetadataExpired(metadata) {
 //# sourceMappingURL=CacheHelpers.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/authority/Authority.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -44673,7 +44673,7 @@ function buildStaticAuthorityOptions(authOptions) {
 //# sourceMappingURL=Authority.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/request/ScopeSet.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -44879,7 +44879,7 @@ class ScopeSet {
 //# sourceMappingURL=ScopeSet.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/request/RequestParameterBuilder.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -45302,7 +45302,7 @@ function addResource(parameters, resource) {
 //# sourceMappingURL=RequestParameterBuilder.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/utils/UrlUtils.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -45419,7 +45419,7 @@ function normalizeUrlForComparison(url) {
 //# sourceMappingURL=UrlUtils.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/crypto/ICrypto.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -45465,17 +45465,17 @@ const DEFAULT_CRYPTO_IMPLEMENTATION = {
 //# sourceMappingURL=ICrypto.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/packageMetadata.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /* eslint-disable header/header */
 const packageMetadata_name = "@azure/msal-common";
-const version = "16.4.0";
+const version = "16.4.1";
 
 
 //# sourceMappingURL=packageMetadata.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/account/AccountInfo.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -45562,7 +45562,7 @@ function updateAccountTenantProfileData(baseAccountInfo, tenantProfile, idTokenC
 //# sourceMappingURL=AccountInfo.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/error/CacheErrorCodes.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -45575,7 +45575,7 @@ const cacheErrorUnknown = "cache_error_unknown";
 //# sourceMappingURL=CacheErrorCodes.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/error/CacheError.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -45622,7 +45622,7 @@ function createCacheError(e) {
 //# sourceMappingURL=CacheError.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/account/ClientInfo.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -45668,7 +45668,7 @@ function buildClientInfoFromHomeAccountId(homeAccountId) {
 //# sourceMappingURL=ClientInfo.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/account/TokenClaims.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -45695,7 +45695,7 @@ function getTenantIdFromIdTokenClaims(idTokenClaims) {
 //# sourceMappingURL=TokenClaims.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/cache/utils/AccountEntityUtils.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -45904,7 +45904,7 @@ function isAccountEntity(entity) {
 //# sourceMappingURL=AccountEntityUtils.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/cache/CacheManager.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -47022,7 +47022,7 @@ class DefaultStorageClass extends CacheManager {
 //# sourceMappingURL=CacheManager.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/telemetry/performance/PerformanceEvent.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -47069,6 +47069,7 @@ const IntFields = new Set([
     "currRefreshCount",
     "expiredCacheRemovedCount",
     "upgradedCacheCount",
+    "cacheMatchedAccounts",
     "networkRtt",
     "redirectBridgeTimeoutMs",
     "redirectBridgeMessageVersion",
@@ -47078,7 +47079,7 @@ const IntFields = new Set([
 //# sourceMappingURL=PerformanceEvent.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/telemetry/performance/StubPerformanceClient.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -47139,7 +47140,7 @@ class StubPerformanceClient {
 //# sourceMappingURL=StubPerformanceClient.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/config/ClientConfiguration.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -47248,217 +47249,40 @@ function isOidcProtocolMode(config) {
 
 //# sourceMappingURL=ClientConfiguration.mjs.map
 
-;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/error/InteractionRequiredAuthErrorCodes.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/cache/persistence/TokenCacheContext.mjs
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
 /**
- * MSAL-defined interaction required error code indicating no tokens are found in cache.
- * @public
- */
-const noTokensFound = "no_tokens_found";
-/**
- * MSAL-defined error code indicating a native account is unavailable on the platform.
- * @public
- */
-const nativeAccountUnavailable = "native_account_unavailable";
-/**
- * MSAL-defined error code indicating the refresh token has expired and user interaction is needed.
- * @public
- */
-const refreshTokenExpired = "refresh_token_expired";
-/**
- * MSAL-defined error code indicating UI/UX is not allowed (e.g., blocked by policy), requiring alternate interaction.
- * @public
- */
-const uxNotAllowed = "ux_not_allowed";
-/**
- * Server-originated error code indicating interaction is required to complete the request.
- * @public
- */
-const interactionRequired = "interaction_required";
-/**
- * Server-originated error code indicating user consent is required.
- * @public
- */
-const consentRequired = "consent_required";
-/**
- * Server-originated error code indicating user login is required.
- * @public
- */
-const loginRequired = "login_required";
-/**
- * Server-originated error code indicating the token is invalid or corrupted.
- * @public
- */
-const badToken = "bad_token";
-/**
- * Server-originated error code indicating the user is in an interrupted state and interaction is required.
- * @public
- */
-const interruptedUser = "interrupted_user";
-
-
-//# sourceMappingURL=InteractionRequiredAuthErrorCodes.mjs.map
-
-;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/error/InteractionRequiredAuthError.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
-
-
-
-
-
-
-/*
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License.
- */
-/**
- * InteractionRequiredServerErrorMessage contains string constants used by error codes and messages returned by the server indicating interaction is required
- */
-const InteractionRequiredServerErrorMessage = [
-    interactionRequired,
-    consentRequired,
-    loginRequired,
-    badToken,
-    uxNotAllowed,
-    interruptedUser,
-];
-const InteractionRequiredAuthSubErrorMessage = [
-    "message_only",
-    "additional_action",
-    "basic_action",
-    "user_password_expired",
-    "consent_required",
-    "bad_token",
-    "ux_not_allowed",
-    "interrupted_user",
-];
-/**
- * Error thrown when user interaction is required.
- */
-class InteractionRequiredAuthError_InteractionRequiredAuthError extends AuthError {
-    constructor(errorCode, errorMessage, subError, timestamp, traceId, correlationId, claims, errorNo) {
-        super(errorCode, errorMessage, subError);
-        Object.setPrototypeOf(this, InteractionRequiredAuthError_InteractionRequiredAuthError.prototype);
-        this.timestamp = timestamp || "";
-        this.traceId = traceId || "";
-        this.correlationId = correlationId || "";
-        this.claims = claims || "";
-        this.name = "InteractionRequiredAuthError";
-        this.errorNo = errorNo;
+ * This class instance helps track the memory changes facilitating
+ * decisions to read from and write to the persistent cache
+ */ class TokenCacheContext {
+    constructor(tokenCache, hasChanged) {
+        this.cache = tokenCache;
+        this.hasChanged = hasChanged;
     }
-}
-/**
- * Helper function used to determine if an error thrown by the server requires interaction to resolve
- * @param errorCode
- * @param errorString
- * @param subError
- */
-function InteractionRequiredAuthError_isInteractionRequiredError(errorCode, errorString, subError) {
-    const isInteractionRequiredErrorCode = !!errorCode &&
-        InteractionRequiredServerErrorMessage.indexOf(errorCode) > -1;
-    const isInteractionRequiredSubError = !!subError &&
-        InteractionRequiredAuthSubErrorMessage.indexOf(subError) > -1;
-    const isInteractionRequiredErrorDesc = !!errorString &&
-        InteractionRequiredServerErrorMessage.some((irErrorCode) => {
-            return errorString.indexOf(irErrorCode) > -1;
-        });
-    return (isInteractionRequiredErrorCode ||
-        isInteractionRequiredErrorDesc ||
-        isInteractionRequiredSubError);
-}
-/**
- * Creates an InteractionRequiredAuthError
- */
-function createInteractionRequiredAuthError(errorCode, errorMessage) {
-    return new InteractionRequiredAuthError_InteractionRequiredAuthError(errorCode, errorMessage);
-}
-
-
-//# sourceMappingURL=InteractionRequiredAuthError.mjs.map
-
-;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/utils/ProtocolUtils.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
-
-
-
-
-
-/*
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License.
- */
-/**
- * Appends user state with random guid, or returns random guid.
- * @param cryptoObj
- * @param userState
- * @param meta
- */
-function setRequestState(cryptoObj, userState, meta) {
-    const libraryState = generateLibraryState(cryptoObj, meta);
-    return userState
-        ? `${libraryState}${RESOURCE_DELIM}${userState}`
-        : libraryState;
-}
-/**
- * Generates the state value used by the common library.
- * @param cryptoObj
- * @param meta
- */
-function generateLibraryState(cryptoObj, meta) {
-    if (!cryptoObj) {
-        throw createClientAuthError(noCryptoObject);
+    /**
+     * boolean which indicates the changes in cache
+     */
+    get cacheHasChanged() {
+        return this.hasChanged;
     }
-    // Create a state object containing a unique id and the timestamp of the request creation
-    const stateObj = {
-        id: cryptoObj.createNewGuid(),
-    };
-    if (meta) {
-        stateObj.meta = meta;
-    }
-    const stateString = JSON.stringify(stateObj);
-    return cryptoObj.base64Encode(stateString);
-}
-/**
- * Parses the state into the RequestStateObject, which contains the LibraryState info and the state passed by the user.
- * @param base64Decode
- * @param state
- */
-function parseRequestState(base64Decode, state) {
-    if (!base64Decode) {
-        throw ClientAuthError_createClientAuthError(ClientAuthErrorCodes_noCryptoObject);
-    }
-    if (!state) {
-        throw ClientAuthError_createClientAuthError(ClientAuthErrorCodes_invalidState);
-    }
-    try {
-        // Split the state between library state and user passed state and decode them separately
-        const splitState = state.split(Constants_RESOURCE_DELIM);
-        const libraryState = splitState[0];
-        const userState = splitState.length > 1
-            ? splitState.slice(1).join(Constants_RESOURCE_DELIM)
-            : "";
-        const libraryStateString = base64Decode(libraryState);
-        const libraryStateObj = JSON.parse(libraryStateString);
-        return {
-            userRequestState: userState || "",
-            libraryState: libraryStateObj,
-        };
-    }
-    catch (e) {
-        throw ClientAuthError_createClientAuthError(ClientAuthErrorCodes_invalidState);
+    /**
+     * function to retrieve the token cache
+     */
+    get tokenCache() {
+        return this.cache;
     }
 }
 
 
-//# sourceMappingURL=ProtocolUtils.mjs.map
+//# sourceMappingURL=TokenCacheContext.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/crypto/PopTokenGenerator.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -47546,40 +47370,217 @@ class PopTokenGenerator {
 
 //# sourceMappingURL=PopTokenGenerator.mjs.map
 
-;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/cache/persistence/TokenCacheContext.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/error/InteractionRequiredAuthErrorCodes.mjs
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
 /**
- * This class instance helps track the memory changes facilitating
- * decisions to read from and write to the persistent cache
- */ class TokenCacheContext {
-    constructor(tokenCache, hasChanged) {
-        this.cache = tokenCache;
-        this.hasChanged = hasChanged;
+ * MSAL-defined interaction required error code indicating no tokens are found in cache.
+ * @public
+ */
+const noTokensFound = "no_tokens_found";
+/**
+ * MSAL-defined error code indicating a native account is unavailable on the platform.
+ * @public
+ */
+const nativeAccountUnavailable = "native_account_unavailable";
+/**
+ * MSAL-defined error code indicating the refresh token has expired and user interaction is needed.
+ * @public
+ */
+const refreshTokenExpired = "refresh_token_expired";
+/**
+ * MSAL-defined error code indicating UI/UX is not allowed (e.g., blocked by policy), requiring alternate interaction.
+ * @public
+ */
+const uxNotAllowed = "ux_not_allowed";
+/**
+ * Server-originated error code indicating interaction is required to complete the request.
+ * @public
+ */
+const interactionRequired = "interaction_required";
+/**
+ * Server-originated error code indicating user consent is required.
+ * @public
+ */
+const consentRequired = "consent_required";
+/**
+ * Server-originated error code indicating user login is required.
+ * @public
+ */
+const loginRequired = "login_required";
+/**
+ * Server-originated error code indicating the token is invalid or corrupted.
+ * @public
+ */
+const badToken = "bad_token";
+/**
+ * Server-originated error code indicating the user is in an interrupted state and interaction is required.
+ * @public
+ */
+const interruptedUser = "interrupted_user";
+
+
+//# sourceMappingURL=InteractionRequiredAuthErrorCodes.mjs.map
+
+;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/error/InteractionRequiredAuthError.mjs
+/*! @azure/msal-common v16.4.1 2026-04-01 */
+
+
+
+
+
+
+/*
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+/**
+ * InteractionRequiredServerErrorMessage contains string constants used by error codes and messages returned by the server indicating interaction is required
+ */
+const InteractionRequiredServerErrorMessage = [
+    interactionRequired,
+    consentRequired,
+    loginRequired,
+    badToken,
+    uxNotAllowed,
+    interruptedUser,
+];
+const InteractionRequiredAuthSubErrorMessage = [
+    "message_only",
+    "additional_action",
+    "basic_action",
+    "user_password_expired",
+    "consent_required",
+    "bad_token",
+    "ux_not_allowed",
+    "interrupted_user",
+];
+/**
+ * Error thrown when user interaction is required.
+ */
+class InteractionRequiredAuthError_InteractionRequiredAuthError extends AuthError {
+    constructor(errorCode, errorMessage, subError, timestamp, traceId, correlationId, claims, errorNo) {
+        super(errorCode, errorMessage, subError);
+        Object.setPrototypeOf(this, InteractionRequiredAuthError_InteractionRequiredAuthError.prototype);
+        this.timestamp = timestamp || "";
+        this.traceId = traceId || "";
+        this.correlationId = correlationId || "";
+        this.claims = claims || "";
+        this.name = "InteractionRequiredAuthError";
+        this.errorNo = errorNo;
     }
-    /**
-     * boolean which indicates the changes in cache
-     */
-    get cacheHasChanged() {
-        return this.hasChanged;
+}
+/**
+ * Helper function used to determine if an error thrown by the server requires interaction to resolve
+ * @param errorCode
+ * @param errorString
+ * @param subError
+ */
+function InteractionRequiredAuthError_isInteractionRequiredError(errorCode, errorString, subError) {
+    const isInteractionRequiredErrorCode = !!errorCode &&
+        InteractionRequiredServerErrorMessage.indexOf(errorCode) > -1;
+    const isInteractionRequiredSubError = !!subError &&
+        InteractionRequiredAuthSubErrorMessage.indexOf(subError) > -1;
+    const isInteractionRequiredErrorDesc = !!errorString &&
+        InteractionRequiredServerErrorMessage.some((irErrorCode) => {
+            return errorString.indexOf(irErrorCode) > -1;
+        });
+    return (isInteractionRequiredErrorCode ||
+        isInteractionRequiredErrorDesc ||
+        isInteractionRequiredSubError);
+}
+/**
+ * Creates an InteractionRequiredAuthError
+ */
+function createInteractionRequiredAuthError(errorCode, errorMessage) {
+    return new InteractionRequiredAuthError_InteractionRequiredAuthError(errorCode, errorMessage);
+}
+
+
+//# sourceMappingURL=InteractionRequiredAuthError.mjs.map
+
+;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/utils/ProtocolUtils.mjs
+/*! @azure/msal-common v16.4.1 2026-04-01 */
+
+
+
+
+
+/*
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+/**
+ * Appends user state with random guid, or returns random guid.
+ * @param cryptoObj
+ * @param userState
+ * @param meta
+ */
+function setRequestState(cryptoObj, userState, meta) {
+    const libraryState = generateLibraryState(cryptoObj, meta);
+    return userState
+        ? `${libraryState}${RESOURCE_DELIM}${userState}`
+        : libraryState;
+}
+/**
+ * Generates the state value used by the common library.
+ * @param cryptoObj
+ * @param meta
+ */
+function generateLibraryState(cryptoObj, meta) {
+    if (!cryptoObj) {
+        throw createClientAuthError(noCryptoObject);
     }
-    /**
-     * function to retrieve the token cache
-     */
-    get tokenCache() {
-        return this.cache;
+    // Create a state object containing a unique id and the timestamp of the request creation
+    const stateObj = {
+        id: cryptoObj.createNewGuid(),
+    };
+    if (meta) {
+        stateObj.meta = meta;
+    }
+    const stateString = JSON.stringify(stateObj);
+    return cryptoObj.base64Encode(stateString);
+}
+/**
+ * Parses the state into the RequestStateObject, which contains the LibraryState info and the state passed by the user.
+ * @param base64Decode
+ * @param state
+ */
+function parseRequestState(base64Decode, state) {
+    if (!base64Decode) {
+        throw ClientAuthError_createClientAuthError(ClientAuthErrorCodes_noCryptoObject);
+    }
+    if (!state) {
+        throw ClientAuthError_createClientAuthError(ClientAuthErrorCodes_invalidState);
+    }
+    try {
+        // Split the state between library state and user passed state and decode them separately
+        const splitState = state.split(Constants_RESOURCE_DELIM);
+        const libraryState = splitState[0];
+        const userState = splitState.length > 1
+            ? splitState.slice(1).join(Constants_RESOURCE_DELIM)
+            : "";
+        const libraryStateString = base64Decode(libraryState);
+        const libraryStateObj = JSON.parse(libraryStateString);
+        return {
+            userRequestState: userState || "",
+            libraryState: libraryStateObj,
+        };
+    }
+    catch (e) {
+        throw ClientAuthError_createClientAuthError(ClientAuthErrorCodes_invalidState);
     }
 }
 
 
-//# sourceMappingURL=TokenCacheContext.mjs.map
+//# sourceMappingURL=ProtocolUtils.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/response/ResponseHandler.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -47751,7 +47752,7 @@ class ResponseHandler {
         if (serverTokenResponse.id_token && !!idTokenClaims) {
             cachedIdToken = createIdTokenEntity(this.homeAccountIdentifier, env, serverTokenResponse.id_token, this.clientId, claimsTenantId || "");
             cachedAccount = buildAccountToCache(this.cacheStorage, authority, this.homeAccountIdentifier, this.cryptoObj.base64Decode, request.correlationId, idTokenClaims, serverTokenResponse.client_info, env, claimsTenantId, authCodePayload, undefined, // nativeAccountId
-            this.logger);
+            this.logger, this.performanceClient);
         }
         // AccessToken
         let cachedAccessToken = null;
@@ -47902,17 +47903,24 @@ class ResponseHandler {
         };
     }
 }
-function buildAccountToCache(cacheStorage, authority, homeAccountId, base64Decode, correlationId, idTokenClaims, clientInfo, environment, claimsTenantId, authCodePayload, nativeAccountId, logger) {
+function buildAccountToCache(cacheStorage, authority, homeAccountId, base64Decode, correlationId, idTokenClaims, clientInfo, environment, claimsTenantId, authCodePayload, nativeAccountId, logger, performanceClient) {
     logger?.verbose("setCachedAccount called", correlationId);
-    // Check if base account is already cached
-    const accountKeys = cacheStorage.getAccountKeys();
-    const baseAccountKey = accountKeys.find((accountKey) => {
-        return accountKey.startsWith(homeAccountId);
-    });
-    let cachedAccount = null;
-    if (baseAccountKey) {
-        cachedAccount = cacheStorage.getAccount(baseAccountKey, correlationId);
+    /*
+     * Check if base account is already cached. Filter by homeAccountId (identifies
+     * the user's home identity) and environment (identifies the cloud) — the two
+     * tenant-agnostic properties that uniquely locate a base AccountEntity.
+     */
+    const accountEnvironment = environment || authority.getPreferredCache();
+    const matchedAccounts = cacheStorage.getAccountsFilteredBy({ homeAccountId, environment: accountEnvironment }, correlationId);
+    performanceClient?.addFields({ cacheMatchedAccounts: matchedAccounts.length }, correlationId);
+    if (matchedAccounts.length > 1) {
+        /*
+         * Base accounts are expected to be unique for a given homeAccountId in normal cache usage.
+         * If multiple matches exist, ignore the cache hit rather than arbitrarily choosing one.
+         */
+        logger?.warning("Multiple base accounts matched homeAccountId. Ignoring cached account and creating a new base account.", correlationId);
     }
+    const cachedAccount = matchedAccounts.length === 1 ? matchedAccounts[0] : null;
     const baseAccount = cachedAccount ||
         createAccountEntity({
             homeAccountId,
@@ -47940,7 +47948,7 @@ function buildAccountToCache(cacheStorage, authority, homeAccountId, base64Decod
 //# sourceMappingURL=ResponseHandler.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/account/CcsCredential.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -47955,7 +47963,7 @@ const CcsCredentialType = {
 //# sourceMappingURL=CcsCredential.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/utils/ClientAssertionUtils.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -47978,7 +47986,7 @@ async function getClientAssertion(clientAssertion, clientId, tokenEndpoint) {
 //# sourceMappingURL=ClientAssertionUtils.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/network/RequestThumbprint.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -48004,7 +48012,7 @@ function getRequestThumbprint(clientId, request, homeAccountId) {
 //# sourceMappingURL=RequestThumbprint.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/network/ThrottlingUtils.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -48098,7 +48106,7 @@ class ThrottlingUtils {
 //# sourceMappingURL=ThrottlingUtils.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/error/NetworkError.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -48135,7 +48143,7 @@ function createNetworkError(error, httpStatus, responseHeaders, additionalError)
 //# sourceMappingURL=NetworkError.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/protocol/Token.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -48266,7 +48274,7 @@ async function sendPostRequest(thumbprint, tokenEndpoint, options, correlationId
 //# sourceMappingURL=Token.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/authority/AuthorityFactory.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -48310,7 +48318,7 @@ async function createDiscoveredInstance(authorityUri, networkClient, cacheManage
 //# sourceMappingURL=AuthorityFactory.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/client/AuthorizationCodeClient.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -48600,7 +48608,7 @@ class AuthorizationCodeClient {
 //# sourceMappingURL=AuthorizationCodeClient.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/client/RefreshTokenClient.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -48856,7 +48864,7 @@ class RefreshTokenClient {
 //# sourceMappingURL=RefreshTokenClient.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/client/SilentFlowClient.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -48990,7 +48998,7 @@ class SilentFlowClient {
 //# sourceMappingURL=SilentFlowClient.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/network/HttpClient.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -49164,7 +49172,7 @@ function getFetchHeaders(options) {
 //# sourceMappingURL=HttpClient.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/error/ManagedIdentityErrorCodes.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -49197,7 +49205,7 @@ const MsiEnvironmentVariableUrlMalformedErrorCodes = {
 //# sourceMappingURL=ManagedIdentityErrorCodes.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/error/ManagedIdentityError.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -49249,7 +49257,7 @@ function createManagedIdentityError(errorCode) {
 //# sourceMappingURL=ManagedIdentityError.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/config/ManagedIdentityId.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -49308,7 +49316,7 @@ class ManagedIdentityId {
 //# sourceMappingURL=ManagedIdentityId.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/error/NodeAuthError.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -49422,7 +49430,7 @@ class NodeAuthError extends AuthError {
 //# sourceMappingURL=NodeAuthError.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/config/Configuration.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -49546,7 +49554,7 @@ const stringify = dist/* stringify */.As;
 const parse = dist/* parse */.qg;
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/crypto/GuidGenerator.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -49577,7 +49585,7 @@ class GuidGenerator {
 //# sourceMappingURL=GuidGenerator.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/utils/EncodingUtils.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -49630,7 +49638,7 @@ class EncodingUtils {
 //# sourceMappingURL=EncodingUtils.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/crypto/HashUtils.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -49653,7 +49661,7 @@ class HashUtils {
 //# sourceMappingURL=HashUtils.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/crypto/PkceGenerator.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -49717,7 +49725,7 @@ class PkceGenerator {
 //# sourceMappingURL=PkceGenerator.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/crypto/CryptoProvider.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -49821,7 +49829,7 @@ class CryptoProvider {
 //# sourceMappingURL=CryptoProvider.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/cache/serializer/Deserializer.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -50001,7 +50009,7 @@ class Deserializer {
 //# sourceMappingURL=Deserializer.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/cache/serializer/Serializer.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -50148,7 +50156,7 @@ class Serializer {
 //# sourceMappingURL=Serializer.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/cache/CacheHelpers.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -50191,7 +50199,7 @@ function generateAccountKey(account) {
 //# sourceMappingURL=CacheHelpers.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/cache/NodeStorage.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -50621,7 +50629,7 @@ class NodeStorage extends CacheManager {
 //# sourceMappingURL=NodeStorage.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/cache/TokenCache.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -50925,7 +50933,7 @@ class TokenCache {
 // EXTERNAL MODULE: ./node_modules/jsonwebtoken/index.js
 var jsonwebtoken = __nccwpck_require__(9653);
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/error/ClientAuthErrorCodes.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -50943,7 +50951,7 @@ const deviceCodeUnknownError = "device_code_unknown_error";
 //# sourceMappingURL=ClientAuthErrorCodes.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/client/ClientAssertion.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -51099,17 +51107,17 @@ class ClientAssertion {
 //# sourceMappingURL=ClientAssertion.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/packageMetadata.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 /* eslint-disable header/header */
 const dist_packageMetadata_name = "@azure/msal-node";
-const packageMetadata_version = "5.1.1";
+const packageMetadata_version = "5.1.2";
 
 
 //# sourceMappingURL=packageMetadata.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/client/BaseClient.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -51179,7 +51187,7 @@ class BaseClient {
 //# sourceMappingURL=BaseClient.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/client/UsernamePasswordClient.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -51287,7 +51295,7 @@ class UsernamePasswordClient extends BaseClient {
 //# sourceMappingURL=UsernamePasswordClient.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/protocol/Authorize.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 
 
@@ -51529,7 +51537,7 @@ function extractLoginHint(account) {
 //# sourceMappingURL=Authorize.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/protocol/Authorize.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -51574,7 +51582,7 @@ function getAuthCodeRequestUrl(config, authority, request, logger) {
 //# sourceMappingURL=Authorize.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/client/ClientApplication.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -51952,7 +51960,7 @@ class ClientApplication {
 //# sourceMappingURL=ClientApplication.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/network/LoopbackClient.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -52046,7 +52054,7 @@ class LoopbackClient {
 //# sourceMappingURL=LoopbackClient.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-common/dist/error/AuthErrorCodes.mjs
-/*! @azure/msal-common v16.4.0 2026-03-18 */
+/*! @azure/msal-common v16.4.1 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -52062,7 +52070,7 @@ const postRequestFailed = "post_request_failed";
 //# sourceMappingURL=AuthErrorCodes.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/client/DeviceCodeClient.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -52285,7 +52293,7 @@ class DeviceCodeClient extends BaseClient {
 //# sourceMappingURL=DeviceCodeClient.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/client/PublicClientApplication.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -52573,7 +52581,7 @@ class PublicClientApplication extends ClientApplication {
 //# sourceMappingURL=PublicClientApplication.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/client/ClientCredentialClient.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -52780,7 +52788,7 @@ class ClientCredentialClient extends BaseClient {
 //# sourceMappingURL=ClientCredentialClient.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/client/OnBehalfOfClient.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -52994,7 +53002,7 @@ class OnBehalfOfClient extends BaseClient {
 //# sourceMappingURL=OnBehalfOfClient.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/client/ConfidentialClientApplication.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -53191,7 +53199,7 @@ class ConfidentialClientApplication extends ClientApplication {
 //# sourceMappingURL=ConfidentialClientApplication.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/utils/TimeUtils.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -53216,7 +53224,7 @@ function isIso8601(dateString) {
 //# sourceMappingURL=TimeUtils.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/network/HttpClientWithRetries.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -53264,7 +53272,7 @@ class HttpClientWithRetries {
 //# sourceMappingURL=HttpClientWithRetries.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/client/ManagedIdentitySources/BaseManagedIdentitySource.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -53511,7 +53519,7 @@ BaseManagedIdentitySource.getValidatedEnvVariableUrlString = (envVariableStringN
 //# sourceMappingURL=BaseManagedIdentitySource.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/retry/LinearRetryStrategy.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -53549,7 +53557,7 @@ class LinearRetryStrategy {
 //# sourceMappingURL=LinearRetryStrategy.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/retry/DefaultManagedIdentityRetryPolicy.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -53600,7 +53608,7 @@ class DefaultManagedIdentityRetryPolicy {
 //# sourceMappingURL=DefaultManagedIdentityRetryPolicy.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/config/ManagedIdentityRequestParameters.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -53640,7 +53648,7 @@ class ManagedIdentityRequestParameters {
 //# sourceMappingURL=ManagedIdentityRequestParameters.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/client/ManagedIdentitySources/AppService.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -53751,7 +53759,7 @@ class AppService extends BaseManagedIdentitySource {
 //# sourceMappingURL=AppService.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/client/ManagedIdentitySources/AzureArc.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -54001,7 +54009,7 @@ class AzureArc extends BaseManagedIdentitySource {
 //# sourceMappingURL=AzureArc.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/client/ManagedIdentitySources/CloudShell.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -54106,7 +54114,7 @@ class CloudShell extends BaseManagedIdentitySource {
 //# sourceMappingURL=CloudShell.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/retry/ExponentialRetryStrategy.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 /*
  * Copyright (c) Microsoft Corporation. All rights reserved.
@@ -54148,7 +54156,7 @@ class ExponentialRetryStrategy {
 //# sourceMappingURL=ExponentialRetryStrategy.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/retry/ImdsRetryPolicy.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -54240,7 +54248,7 @@ class ImdsRetryPolicy {
 //# sourceMappingURL=ImdsRetryPolicy.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/client/ManagedIdentitySources/Imds.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -54350,7 +54358,7 @@ class Imds extends BaseManagedIdentitySource {
 //# sourceMappingURL=Imds.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/client/ManagedIdentitySources/ServiceFabric.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -54474,7 +54482,7 @@ class ServiceFabric extends BaseManagedIdentitySource {
 //# sourceMappingURL=ServiceFabric.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/client/ManagedIdentitySources/MachineLearning.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -54604,7 +54612,7 @@ class MachineLearning extends BaseManagedIdentitySource {
 //# sourceMappingURL=MachineLearning.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/client/ManagedIdentityClient.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -54685,7 +54693,7 @@ class ManagedIdentityClient {
 //# sourceMappingURL=ManagedIdentityClient.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/client/ManagedIdentityApplication.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 
@@ -54822,7 +54830,7 @@ class ManagedIdentityApplication {
 //# sourceMappingURL=ManagedIdentityApplication.mjs.map
 
 ;// CONCATENATED MODULE: ./node_modules/@azure/msal-node/dist/index.mjs
-/*! @azure/msal-node v5.1.1 2026-03-18 */
+/*! @azure/msal-node v5.1.2 2026-04-01 */
 
 
 

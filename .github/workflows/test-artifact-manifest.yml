@@ -1,0 +1,112 @@
+---
+name: Test Artifact Manifest
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "artifact-manifest/**"
+      - ".github/workflows/test-artifact-manifest.yml"
+
+permissions: {}
+
+jobs:
+  build-text-file:
+    name: Build Text File
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Create artifact
+        run: echo "hello from build" > output.txt
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: text-file
+          path: output.txt
+
+  build-json-file:
+    name: Build JSON File
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Create artifact
+        run: echo '{"version":"1.0.0"}' > data.json
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: json-file
+          path: data.json
+
+  upload-manifest:
+    name: Upload Manifest
+    runs-on: ubuntu-24.04
+    needs:
+      - build-text-file
+      - build-json-file
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Create and upload manifest
+        id: manifest
+        uses: ./artifact-manifest
+        with:
+          mode: upload
+          gha_artifacts: |
+            text-file
+            json-file
+          additional_artifacts: |
+            {
+              "server": {
+                "type": "container_image",
+                "registry": "bitwardenprod.azurecr.io",
+                "image": "server",
+                "tag": "main",
+                "digest": "sha256:87dfc8005eec18f6b397e350a7f8b7ec4d1fab55f3b6534bf04fb06a04c53f27"
+              }
+            }
+
+      - name: Print manifest output
+        env:
+          _MANIFEST: ${{ steps.manifest.outputs.manifest }}
+        run: echo "$_MANIFEST" | jq .
+
+  download-manifest:
+    name: Download Manifest
+    runs-on: ubuntu-24.04
+    needs: upload-manifest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Download manifest
+        id: manifest
+        uses: ./artifact-manifest
+        with:
+          mode: download
+          run_id: ${{ github.run_id }}
+
+      - name: Print manifest
+        env:
+          _MANIFEST: ${{ steps.manifest.outputs.manifest }}
+        run: echo "$_MANIFEST" | jq .
+
+      - name: Print specific fields
+        env:
+          _SHA: ${{ fromJSON(steps.manifest.outputs.manifest).sha }}
+          _REF: ${{ fromJSON(steps.manifest.outputs.manifest).ref }}
+          _SERVER_DIGEST: ${{ fromJSON(steps.manifest.outputs.manifest).artifacts.server.digest }}
+        run: |
+          echo "SHA: $_SHA"
+          echo "Ref: $_REF"
+          echo "Server digest: $_SERVER_DIGEST"

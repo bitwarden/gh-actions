@@ -1,0 +1,111 @@
+---
+name: "Artifact Manifest"
+description: "Build and upload, or download and parse a CI artifact manifest."
+
+inputs:
+  mode:
+    description: "'upload' to build and upload the manifest, 'download' to fetch and parse it."
+    required: true
+  github_token:
+    description: "GitHub token"
+    default: ${{ github.token }}
+  gha_artifacts:
+    description: |
+      Newline-separated list of GHA artifact names to include in the manifest.
+      Use '*' to include all artifacts uploaded in this run. Omit to include none.
+    default: ""
+  additional_artifacts:
+    description: |
+      JSON object of non-GHA artifact entries (container images, blobs, release assets)
+      to merge into the manifest. Keys are logical artifact names; values follow the
+      artifact type schema (type, plus type-specific locator fields).
+    default: "{}"
+  repo:
+    description: "Repository (owner/repo) to download the manifest from. Download mode only."
+    default: ${{ github.repository }}
+  run_id:
+    description: "Workflow run ID to download the manifest from. Download mode only."
+    default: ""
+
+outputs:
+  manifest:
+    description: "The manifest as a JSON string."
+    value: ${{ steps.read-manifest-upload.outputs.manifest || steps.read-manifest.outputs.manifest }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Validate mode input
+      shell: bash
+      env:
+        _MODE: ${{ inputs.mode }}
+      run: |
+        if [[ "$_MODE" != "upload" && "$_MODE" != "download" ]]; then
+          echo "::error::Invalid mode '$_MODE'. Must be 'upload' or 'download'."
+          exit 1
+        fi
+
+    - name: Mask GitHub token
+      shell: bash
+      run: echo "::add-mask::${{ inputs.github_token }}"
+
+    - name: Build manifest
+      if: inputs.mode == 'upload'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        _RUN_ID: ${{ github.run_id }}
+        _REPOSITORY: ${{ github.repository }}
+        _SHA: ${{ github.sha }}
+        _REF: ${{ github.ref_name }}
+        _WORKFLOW: ${{ github.workflow }}
+        _ACTOR: ${{ github.actor }}
+        _GHA_ARTIFACTS: ${{ inputs.gha_artifacts }}
+        _ADDITIONAL_ARTIFACTS: ${{ inputs.additional_artifacts }}
+      run: python "${{ github.action_path }}/create_manifest.py"
+
+    - name: Upload manifest
+      if: inputs.mode == 'upload'
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: artifact-manifest
+        path: artifact_manifest.json
+
+    - name: Read manifest
+      id: read-manifest-upload
+      if: inputs.mode == 'upload'
+      shell: bash
+      run: |
+        {
+          echo "manifest<<EOF"
+          cat artifact_manifest.json
+          echo "EOF"
+        } >> $GITHUB_OUTPUT
+
+    - name: Download manifest
+      if: inputs.mode == 'download'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        _REPO: ${{ inputs.repo }}
+        _RUN_ID: ${{ inputs.run_id }}
+      run: |
+        if [[ -z "$_RUN_ID" ]]; then
+          echo "::error::Run ID is required for 'download' mode."
+          exit 1
+        fi
+        gh run download "$_RUN_ID" \
+          --repo "$_REPO" \
+          --name artifact-manifest \
+          --dir ./artifact-manifest-tmp
+
+    - name: Read manifest
+      id: read-manifest
+      if: inputs.mode == 'download'
+      shell: bash
+      run: |
+        {
+          echo "manifest<<EOF"
+          cat ./artifact-manifest-tmp/artifact_manifest.json
+          echo "EOF"
+        } >> $GITHUB_OUTPUT

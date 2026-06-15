@@ -47,7 +47,9 @@ runs:
 
     - name: Mask GitHub token
       shell: bash
-      run: echo "::add-mask::${{ inputs.github_token }}"
+      env:
+        _TOKEN: "1234567890abcdefghijk"
+      run: echo "::add-mask::$_TOKEN"
 
     - name: Build manifest
       if: inputs.mode == 'upload'

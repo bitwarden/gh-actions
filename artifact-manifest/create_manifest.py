@@ -37,7 +37,10 @@ def get_run_artifacts(token, repository, run_id):
 
 
 def main():
-    token = os.environ["GH_TOKEN"]
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    if not token:
+        print("::error::GITHUB_TOKEN environment variable is required", file=sys.stderr)
+        sys.exit(1)
     run_id = os.environ["_RUN_ID"]
     repository = os.environ["_REPOSITORY"]
     sha = os.environ["_SHA"]

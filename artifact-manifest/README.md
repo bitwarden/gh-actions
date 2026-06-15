@@ -40,7 +40,9 @@ Inputs:
 - `mode`: Set to `upload`
 - `gha_artifacts`: Newline-separated list of GHA artifact names that have been uploaded to the current run to include. Use `*` to include all artifacts from the run (the manifest itself is always excluded). Omit to include none.
 - `additional_artifacts`: JSON object of non-GHA artifact entries to merge into the manifest. Keys are logical artifact names; values are type-specific objects.
-- `github_token`: GitHub token used to query the run's artifact list. Defaults to `${{ github.token }}`.
+
+Environment:
+- `GITHUB_TOKEN`: GitHub token used to query the run's artifact list. Automatically provided by GitHub Actions. For cross-repo access or elevated permissions, pass a custom token via `env:`.
 
 ### Download Mode
 Reference the manifest in a downstream workflow using the run ID from the upstream run:
@@ -68,7 +70,9 @@ Inputs:
 - `mode`: Set to `download`
 - `run_id`: The workflow run ID to download the manifest from. Required.
 - `repo`: The `owner/repo` to download from. Defaults to the current repository.
-- `github_token`: GitHub token with artifact read access. Defaults to `${{ github.token }}`.
+
+Environment:
+- `GITHUB_TOKEN`: GitHub token with artifact read access. Automatically provided by GitHub Actions. For cross-repo downloads, pass a token with `actions: read` permission on the target repository via `env:`.
 
 Outputs:
 - `manifest`: The full manifest as a JSON string, accessible via `${{ steps.<step-id>.outputs.manifest }}`. Also available in upload mode.
@@ -80,6 +84,29 @@ Outputs:
     IMAGE_SHA: ${{ fromJSON(steps.<step-id>.outputs.manifest).artifacts.my-container-image.sha }}
   run: echo "$IMAGE_SHA"
   ```
+
+### Using Custom Tokens
+
+For cross-repo access or elevated permissions, use a GitHub App token passed via the `env` parameter:
+
+```yaml
+- name: Generate app token
+  id: app-token
+  uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+  with:
+    app-id: ${{ vars.APP_ID }}
+    private-key: ${{ secrets.APP_PRIVATE_KEY }}
+    repositories: target-repo  # Optional: scope to specific repos
+
+- name: Download manifest from another repo
+  uses: bitwarden/gh-actions/artifact-manifest@main
+  env:
+    GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+  with:
+    mode: download
+    run_id: ${{ github.event.workflow_run.id }}
+    repo: other-org/other-repo
+```
 
 ### CI/CD Workflow Handoff Example
 
@@ -142,14 +169,22 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      actions: read
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
+      - name: Generate app token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Download artifact manifest
         id: manifest
         uses: bitwarden/gh-actions/artifact-manifest@main
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         with:
           mode: download
           run_id: ${{ github.event.workflow_run.id }}
@@ -234,7 +269,7 @@ Provided via `additional_artifacts`. The `type` field is required; all other fie
 - Python 3.6 or later must be available on the runner (present by default on GitHub-hosted runners)
 - For `upload` mode, the GitHub token must have `actions: read` permission to query the run artifacts from the GitHub API
 - The `gh` CLI must be available on the runner for download mode (present by default on GitHub-hosted runners)
-- In `download` mode, for cross-repo downloads, the token must have `actions: read` on the target repository — the default `github.token` is scoped to the current repository only and will not work
+- In `download` mode, for cross-repo downloads, pass a custom token with `actions: read` on the target repository via `env: GITHUB_TOKEN` — the default `GITHUB_TOKEN` is scoped to the current repository only
 
 ## Troubleshooting
 

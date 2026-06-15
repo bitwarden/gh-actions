@@ -81,6 +81,89 @@ Outputs:
   run: echo "$IMAGE_SHA"
   ```
 
+### CI/CD Workflow Handoff Example
+
+A common pattern is to have a CI workflow build and upload the manifest, then trigger a CD workflow that downloads and uses it:
+
+**CI Workflow (build.yml):**
+```yaml
+name: Build
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      # ... build steps that create artifacts ...
+
+      - name: Upload artifact manifest
+        uses: bitwarden/gh-actions/artifact-manifest@main
+        with:
+          mode: upload
+          gha_artifacts: |
+            build-output
+            test-results
+          additional_artifacts: |
+            {
+              "app-image": {
+                "type": "container_image",
+                "registry": "ghcr.io",
+                "image": "myorg/myapp",
+                "tag": "${{ github.sha }}",
+                "digest": "sha256:..."
+              }
+            }
+```
+
+**CD Workflow (deploy.yml):**
+```yaml
+name: Deploy
+on:
+  workflow_run:
+    workflows: ["Build"]
+    types: [completed]
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Download artifact manifest
+        id: manifest
+        uses: bitwarden/gh-actions/artifact-manifest@main
+        with:
+          mode: download
+          run_id: ${{ github.event.workflow_run.id }}
+
+      - name: Deploy using manifest data
+        env:
+          IMAGE_DIGEST: ${{ fromJSON(steps.manifest.outputs.manifest).artifacts.app-image.digest }}
+          BUILD_SHA: ${{ fromJSON(steps.manifest.outputs.manifest).sha }}
+        run: |
+          echo "Deploying image: $IMAGE_DIGEST"
+          echo "Built from commit: $BUILD_SHA"
+          # ... deployment logic ...
+```
+
 ## Manifest Schema
 
 The action produces `artifact_manifest.json`. The schema is versioned via `manifest_version` and is intended to be a stable, machine-readable record of a workflow run's outputs.
@@ -148,6 +231,7 @@ Provided via `additional_artifacts`. The `type` field is required; all other fie
 ```
 
 ## Requirements
+- Python 3.6 or later must be available on the runner (present by default on GitHub-hosted runners)
 - For `upload` mode, the GitHub token must have `actions: read` permission to query the run artifacts from the GitHub API
 - The `gh` CLI must be available on the runner for download mode (present by default on GitHub-hosted runners)
 - In `download` mode, for cross-repo downloads, the token must have `actions: read` on the target repository — the default `github.token` is scoped to the current repository only and will not work

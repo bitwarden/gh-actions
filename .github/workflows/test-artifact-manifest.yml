@@ -14,8 +14,6 @@ jobs:
   build-text-file:
     name: Build Text File
     runs-on: ubuntu-24.04
-    permissions:
-      actions: write
     steps:
       - name: Create artifact
         run: echo "hello from build" > output.txt
@@ -29,8 +27,6 @@ jobs:
   build-json-file:
     name: Build JSON File
     runs-on: ubuntu-24.04
-    permissions:
-      actions: write
     steps:
       - name: Create artifact
         run: echo '{"version":"1.0.0"}' > data.json

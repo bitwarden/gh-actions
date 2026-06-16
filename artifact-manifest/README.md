@@ -20,6 +20,8 @@ Add this step at the end of a build job, after all artifacts have been uploaded:
 ```yaml
 - name: Upload artifact manifest
   uses: bitwarden/gh-actions/artifact-manifest@main
+  env:
+    GITHUB_TOKEN: ${{ github.token }}
   with:
     mode: upload
     gha_artifacts: |
@@ -42,7 +44,7 @@ Inputs:
 - `additional_artifacts`: JSON object of non-GHA artifact entries to merge into the manifest. Keys are logical artifact names; values are type-specific objects.
 
 Environment:
-- `GITHUB_TOKEN`: GitHub token used to query the run's artifact list. Automatically provided by GitHub Actions. For cross-repo access or elevated permissions, pass a custom token via `env:`.
+- `GITHUB_TOKEN`: GitHub token used to query the run's artifact list. **Required.** Pass the default token via `env: GITHUB_TOKEN: ${{ github.token }}`, or use a GitHub App token for cross-repo access or elevated permissions.
 
 ### Download Mode
 Reference the manifest in a downstream workflow using the run ID from the upstream run:
@@ -51,6 +53,8 @@ Reference the manifest in a downstream workflow using the run ID from the upstre
 - name: Download artifact manifest
   id: manifest
   uses: bitwarden/gh-actions/artifact-manifest@main
+  env:
+    GITHUB_TOKEN: ${{ github.token }}
   with:
     mode: download
     run_id: ${{ github.event.workflow_run.id }}
@@ -72,7 +76,7 @@ Inputs:
 - `repo`: The `owner/repo` to download from. Defaults to the current repository.
 
 Environment:
-- `GITHUB_TOKEN`: GitHub token with artifact read access. Automatically provided by GitHub Actions. For cross-repo downloads, pass a token with `actions: read` permission on the target repository via `env:`.
+- `GITHUB_TOKEN`: GitHub token with artifact read access. **Required.** Pass the default token via `env: GITHUB_TOKEN: ${{ github.token }}`, or use a GitHub App token for cross-repo downloads with `actions: read` permission on the target repository.
 
 Outputs:
 - `manifest`: The full manifest as a JSON string, accessible via `${{ steps.<step-id>.outputs.manifest }}`. Also available in upload mode.
@@ -135,6 +139,8 @@ jobs:
 
       - name: Upload artifact manifest
         uses: bitwarden/gh-actions/artifact-manifest@main
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           mode: upload
           gha_artifacts: |

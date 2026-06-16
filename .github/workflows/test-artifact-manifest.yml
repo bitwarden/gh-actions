@@ -55,6 +55,8 @@ jobs:
       - name: Create and upload manifest
         id: manifest
         uses: ./artifact-manifest
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           mode: upload
           gha_artifacts: |
@@ -92,6 +94,8 @@ jobs:
       - name: Download manifest
         id: manifest
         uses: ./artifact-manifest
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           mode: download
           run_id: ${{ github.run_id }}

@@ -8,7 +8,7 @@ Use this action to create an auditable record of exactly what a run produced, pa
 ## Key Features
 - **Dual upload/download modes**: One action handles both publishing and consuming the manifest
 - **Flexible artifact selection**: Include all GHA artifacts with `*`, or specify by name
-- **External artifact support**: Merge non-GHA artifacts (container images, blobs, release assets) via `additional_artifacts`
+- **External artifact support**: Add non-GHA artifacts (container images, blobs, release assets) via `additional_artifacts`
 - **Paginated API handling**: Correctly handles runs with more than 100 artifacts
 - **No external dependencies**: Pure Python standard library — no pip installs required
 
@@ -100,7 +100,7 @@ For cross-repo access or elevated permissions, use a GitHub App token passed via
   with:
     app-id: ${{ vars.APP_ID }}
     private-key: ${{ secrets.APP_PRIVATE_KEY }}
-    repositories: target-repo  # Optional: scope to specific repos
+    repositories: target-repo  # scope to specific repos
 
 - name: Download manifest from another repo
   uses: bitwarden/gh-actions/artifact-manifest@main
@@ -275,7 +275,7 @@ Provided via `additional_artifacts`. The `type` field is required; all other fie
 - Python 3.6 or later must be available on the runner (present by default on GitHub-hosted runners)
 - For `upload` mode, the GitHub token must have `actions: read` permission to query the run artifacts from the GitHub API
 - The `gh` CLI must be available on the runner for download mode (present by default on GitHub-hosted runners)
-- In `download` mode, for cross-repo downloads, pass a custom token with `actions: read` on the target repository via `env: GITHUB_TOKEN` — the default `GITHUB_TOKEN` is scoped to the current repository only
+- In `download` mode, for cross-repo downloads, pass a custom token with `actions: read` on the target repository via `env: GITHUB_TOKEN` — the default `GITHUB_TOKEN` is scoped to the current repository only. Take care to ensure the token is properly masked in Action run logs.
 
 ## Troubleshooting
 
@@ -299,3 +299,6 @@ Provided via `additional_artifacts`. The `type` field is required; all other fie
 - Confirm the upstream run completed successfully and the manifest was uploaded
 - Verify `repo` points to the correct repository if downloading cross-repo
 - The artifact is uploaded under the name `artifact-manifest` — it must not have been deleted or expired
+
+### "GITHUB_TOKEN environment variable is required"
+- Confirm that the `GITHUB_TOKEN` environment variable is set in an `env:` block when using `download` mode

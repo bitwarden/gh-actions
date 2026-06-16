@@ -44,7 +44,7 @@ Inputs:
 - `additional_artifacts`: JSON object of non-GHA artifact entries to merge into the manifest. Keys are logical artifact names; values are type-specific objects.
 
 Environment:
-- `GITHUB_TOKEN`: GitHub token used to query the run's artifact list. **Required.** Pass the default token via `env: GITHUB_TOKEN: ${{ github.token }}`, or use a GitHub App token for cross-repo access or elevated permissions.
+- `GITHUB_TOKEN`: GitHub token used to query the run's artifact list. **Required.** Pass via `env: GITHUB_TOKEN: ${{ github.token }}`.
 
 ### Download Mode
 Reference the manifest in a downstream workflow using the run ID from the upstream run:
@@ -76,7 +76,7 @@ Inputs:
 - `repo`: The `owner/repo` to download from. Defaults to the current repository.
 
 Environment:
-- `GITHUB_TOKEN`: GitHub token with artifact read access. **Required.** Pass the default token via `env: GITHUB_TOKEN: ${{ github.token }}`, or use a GitHub App token for cross-repo downloads with `actions: read` permission on the target repository.
+- `GITHUB_TOKEN`: GitHub token with artifact read access. **Required.** Pass via `env: GITHUB_TOKEN: ${{ github.token }}`. For cross-repo downloads, use a GitHub App token with `actions: read` permission on the target repository.
 
 Outputs:
 - `manifest`: The full manifest as a JSON string, accessible via `${{ steps.<step-id>.outputs.manifest }}`. Also available in upload mode.
@@ -91,7 +91,7 @@ Outputs:
 
 ### Using Custom Tokens
 
-For cross-repo access or elevated permissions, use a GitHub App token passed via the `env` parameter:
+For cross-repo artifact downloads, use a GitHub App token passed via the `env` parameter:
 
 ```yaml
 - name: Generate app token
@@ -275,7 +275,7 @@ Provided via `additional_artifacts`. The `type` field is required; all other fie
 - Python 3.6 or later must be available on the runner (present by default on GitHub-hosted runners)
 - For `upload` mode, the GitHub token must have `actions: read` permission to query the run artifacts from the GitHub API
 - The `gh` CLI must be available on the runner for download mode (present by default on GitHub-hosted runners)
-- In `download` mode, for cross-repo downloads, pass a custom token with `actions: read` on the target repository via `env: GITHUB_TOKEN` — the default `GITHUB_TOKEN` is scoped to the current repository only. Take care to ensure the token is properly masked in Action run logs.
+- In `download` mode, for cross-repo downloads, use a GitHub App token with `actions: read` on the target repository — the default `GITHUB_TOKEN` is scoped to the current repository only
 
 ## Troubleshooting
 
@@ -301,4 +301,4 @@ Provided via `additional_artifacts`. The `type` field is required; all other fie
 - The artifact is uploaded under the name `artifact-manifest` — it must not have been deleted or expired
 
 ### "GITHUB_TOKEN environment variable is required"
-- Confirm that the `GITHUB_TOKEN` environment variable is set in an `env:` block when using `download` mode
+- Confirm that the `GITHUB_TOKEN` environment variable is set in an `env:` block

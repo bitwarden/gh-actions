@@ -44,7 +44,7 @@ Inputs:
 - `additional_artifacts`: JSON object of non-GHA artifact entries to merge into the manifest. Keys are logical artifact names; values are type-specific objects.
 
 Environment:
-- `GITHUB_TOKEN`: GitHub token used to query the run's artifact list. **Required.** Pass via `env: GITHUB_TOKEN: ${{ github.token }}`.
+- `GITHUB_TOKEN`: GitHub token used to query the run's artifact list. **Required when using `gha_artifacts`.** Pass via `env: GITHUB_TOKEN: ${{ github.token }}`. Not required if using only `additional_artifacts`.
 
 ### Download Mode
 Reference the manifest in a downstream workflow using the run ID from the upstream run:
@@ -300,5 +300,7 @@ Provided via `additional_artifacts`. The `type` field is required; all other fie
 - Verify `repo` points to the correct repository if downloading cross-repo
 - The artifact is uploaded under the name `artifact-manifest` — it must not have been deleted or expired
 
-### "GITHUB_TOKEN environment variable is required"
-- Confirm that the `GITHUB_TOKEN` environment variable is set in an `env:` block
+### "GITHUB_TOKEN environment variable is required when using gha_artifacts"
+- This error occurs in upload mode when `gha_artifacts` is specified but `GITHUB_TOKEN` is not set
+- Confirm that the `GITHUB_TOKEN` environment variable is set in an `env:` block: `env: GITHUB_TOKEN: ${{ github.token }}`
+- If using only `additional_artifacts` (no `gha_artifacts`), the token is not required

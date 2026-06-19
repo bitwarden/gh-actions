@@ -35,8 +35,10 @@ runs:
     - name: Backoff before attempt 2
       if: steps.login_attempt_1.outcome == 'failure'
       shell: bash
+      env:
+        RETRY_BASE_DELAY: ${{ inputs.retry_base_delay }}
       run: |
-        delay=$(( ${{ inputs.retry_base_delay }} * 1 ))
+        delay=$(( RETRY_BASE_DELAY * 1 ))
         echo "::warning::Azure login attempt 1 failed. Retrying in ${delay}s..."
         sleep "${delay}"
 
@@ -54,8 +56,10 @@ runs:
     - name: Backoff before attempt 3
       if: steps.login_attempt_1.outcome == 'failure' && steps.login_attempt_2.outcome == 'failure'
       shell: bash
+      env:
+        RETRY_BASE_DELAY: ${{ inputs.retry_base_delay }}
       run: |
-        delay=$(( ${{ inputs.retry_base_delay }} * 2 ))
+        delay=$(( RETRY_BASE_DELAY * 2 ))
         echo "::warning::Azure login attempt 2 failed. Retrying in ${delay}s..."
         sleep "${delay}"
 

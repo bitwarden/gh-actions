@@ -270,7 +270,10 @@ def main():
     print(f"\U0001f50d Checking PR #{pr_number}...")
 
     pr_title = gh_get_pr_title(pr_number)
-    print(f"\U0001f4cb PR Title: {pr_title}\n")
+    # Sanitize before logging: strip CR/LF to prevent log injection and replace "::"
+    # to prevent GitHub Actions from interpreting workflow commands in the title.
+    safe_title = pr_title.replace("\r", "").replace("\n", "").replace("::", ": :")
+    print(f"\U0001f4cb PR Title: {safe_title}\n")
 
     changed_files = gh_get_changed_files(pr_number)
     print("\U0001f436 Changed files:\n" + "\n".join(changed_files) + "\n")

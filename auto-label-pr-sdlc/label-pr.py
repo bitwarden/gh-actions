@@ -33,6 +33,12 @@ DEFAULT_CONFIG_PATH = ".github/label-pr.json"
 
 def load_config_json(config_file: str) -> dict:
     """Load configuration from JSON file."""
+    resolved = os.path.realpath(config_file)
+    cwd = os.path.realpath(os.getcwd())
+    if not resolved.startswith(cwd + os.sep):
+        print(f"\u274c Config file path escapes working directory: {config_file}")
+        sys.exit(1)
+
     if not os.path.exists(config_file):
         print(f"\u274c Config file not found: {config_file}")
         sys.exit(1)

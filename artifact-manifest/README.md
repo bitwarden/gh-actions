@@ -8,7 +8,7 @@ Use this action to create an auditable record of exactly what a run produced, pa
 ## Key Features
 - **Dual upload/download modes**: One action handles both publishing and consuming the manifest
 - **Flexible artifact selection**: Include all GHA artifacts with `*`, or specify by name
-- **External artifact support**: Merge non-GHA artifacts (container images, blobs, release assets) via `additional_artifacts`
+- **External artifact support**: Add non-GHA artifacts (container images, blobs, release assets) via `additional_artifacts`
 - **Paginated API handling**: Correctly handles runs with more than 100 artifacts
 - **No external dependencies**: Pure Python standard library — no pip installs required
 
@@ -20,6 +20,8 @@ Add this step at the end of a build job, after all artifacts have been uploaded:
 ```yaml
 - name: Upload artifact manifest
   uses: bitwarden/gh-actions/artifact-manifest@main
+  env:
+    GITHUB_TOKEN: ${{ github.token }}
   with:
     mode: upload
     gha_artifacts: |
@@ -40,7 +42,9 @@ Inputs:
 - `mode`: Set to `upload`
 - `gha_artifacts`: Newline-separated list of GHA artifact names that have been uploaded to the current run to include. Use `*` to include all artifacts from the run (the manifest itself is always excluded). Omit to include none.
 - `additional_artifacts`: JSON object of non-GHA artifact entries to merge into the manifest. Keys are logical artifact names; values are type-specific objects.
-- `github_token`: GitHub token used to query the run's artifact list. Defaults to `${{ github.token }}`.
+
+Environment:
+- `GITHUB_TOKEN`: GitHub token used to query the run's artifact list. **Required when using `gha_artifacts`.** Pass via `env: GITHUB_TOKEN: ${{ github.token }}`. Not required if using only `additional_artifacts`.
 
 ### Download Mode
 Reference the manifest in a downstream workflow using the run ID from the upstream run:
@@ -49,6 +53,8 @@ Reference the manifest in a downstream workflow using the run ID from the upstre
 - name: Download artifact manifest
   id: manifest
   uses: bitwarden/gh-actions/artifact-manifest@main
+  env:
+    GITHUB_TOKEN: ${{ github.token }}
   with:
     mode: download
     run_id: ${{ github.event.workflow_run.id }}
@@ -68,7 +74,9 @@ Inputs:
 - `mode`: Set to `download`
 - `run_id`: The workflow run ID to download the manifest from. Required.
 - `repo`: The `owner/repo` to download from. Defaults to the current repository.
-- `github_token`: GitHub token with artifact read access. Defaults to `${{ github.token }}`.
+
+Environment:
+- `GITHUB_TOKEN`: GitHub token with artifact read access. **Required.** Pass via `env: GITHUB_TOKEN: ${{ github.token }}`. For cross-repo downloads, use a GitHub App token with `actions: read` permission on the target repository.
 
 Outputs:
 - `manifest`: The full manifest as a JSON string, accessible via `${{ steps.<step-id>.outputs.manifest }}`. Also available in upload mode.
@@ -80,6 +88,29 @@ Outputs:
     IMAGE_SHA: ${{ fromJSON(steps.<step-id>.outputs.manifest).artifacts.my-container-image.sha }}
   run: echo "$IMAGE_SHA"
   ```
+
+### Using Custom Tokens
+
+For cross-repo artifact downloads, use a GitHub App token passed via the `env` parameter:
+
+```yaml
+- name: Generate app token
+  id: app-token
+  uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+  with:
+    app-id: ${{ vars.APP_ID }}
+    private-key: ${{ secrets.APP_PRIVATE_KEY }}
+    repositories: target-repo  # scope to specific repos
+
+- name: Download manifest from another repo
+  uses: bitwarden/gh-actions/artifact-manifest@main
+  env:
+    GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+  with:
+    mode: download
+    run_id: ${{ github.event.workflow_run.id }}
+    repo: other-org/other-repo
+```
 
 ### CI/CD Workflow Handoff Example
 
@@ -108,6 +139,8 @@ jobs:
 
       - name: Upload artifact manifest
         uses: bitwarden/gh-actions/artifact-manifest@main
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           mode: upload
           gha_artifacts: |
@@ -142,14 +175,22 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      actions: read
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
+      - name: Generate app token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Download artifact manifest
         id: manifest
         uses: bitwarden/gh-actions/artifact-manifest@main
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         with:
           mode: download
           run_id: ${{ github.event.workflow_run.id }}
@@ -234,7 +275,7 @@ Provided via `additional_artifacts`. The `type` field is required; all other fie
 - Python 3.6 or later must be available on the runner (present by default on GitHub-hosted runners)
 - For `upload` mode, the GitHub token must have `actions: read` permission to query the run artifacts from the GitHub API
 - The `gh` CLI must be available on the runner for download mode (present by default on GitHub-hosted runners)
-- In `download` mode, for cross-repo downloads, the token must have `actions: read` on the target repository — the default `github.token` is scoped to the current repository only and will not work
+- In `download` mode, for cross-repo downloads, use a GitHub App token with `actions: read` on the target repository — the default `GITHUB_TOKEN` is scoped to the current repository only
 
 ## Troubleshooting
 
@@ -258,3 +299,8 @@ Provided via `additional_artifacts`. The `type` field is required; all other fie
 - Confirm the upstream run completed successfully and the manifest was uploaded
 - Verify `repo` points to the correct repository if downloading cross-repo
 - The artifact is uploaded under the name `artifact-manifest` — it must not have been deleted or expired
+
+### "GITHUB_TOKEN environment variable is required when using gha_artifacts"
+- This error occurs in upload mode when `gha_artifacts` is specified but `GITHUB_TOKEN` is not set
+- Confirm that the `GITHUB_TOKEN` environment variable is set in an `env:` block: `env: GITHUB_TOKEN: ${{ github.token }}`
+- If using only `additional_artifacts` (no `gha_artifacts`), the token is not required

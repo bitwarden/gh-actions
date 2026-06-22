@@ -6,9 +6,6 @@ inputs:
   mode:
     description: "'upload' to build and upload the manifest, 'download' to fetch and parse it."
     required: true
-  github_token:
-    description: "GitHub token"
-    default: ${{ github.token }}
   gha_artifacts:
     description: |
       Newline-separated list of GHA artifact names to include in the manifest.
@@ -45,15 +42,10 @@ runs:
           exit 1
         fi
 
-    - name: Mask GitHub token
-      shell: bash
-      run: echo "::add-mask::${{ inputs.github_token }}"
-
     - name: Build manifest
       if: inputs.mode == 'upload'
       shell: bash
       env:
-        GH_TOKEN: ${{ inputs.github_token }}
         _RUN_ID: ${{ github.run_id }}
         _REPOSITORY: ${{ github.repository }}
         _SHA: ${{ github.sha }}
@@ -86,7 +78,6 @@ runs:
       if: inputs.mode == 'download'
       shell: bash
       env:
-        GH_TOKEN: ${{ inputs.github_token }}
         _REPO: ${{ inputs.repo }}
         _RUN_ID: ${{ inputs.run_id }}
       run: |

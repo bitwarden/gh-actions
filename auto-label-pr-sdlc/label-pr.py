@@ -25,6 +25,7 @@ Examples:
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -246,6 +247,13 @@ def parse_args():
     args, unknown = parser.parse_known_args()  # required to handle --dry-run passed as an empty string ("") by the workflow
     return args
 
+def validate_pr_number(pr_number: str) -> None:
+    """Validate that pr_number is a positive integer to prevent argument/URL injection."""
+    if not re.fullmatch(r'[1-9][0-9]*', pr_number):
+        print(f"\u274c Invalid PR number: {pr_number!r} (must be a positive integer)")
+        sys.exit(1)
+
+
 def main():
     args = parse_args()
     config = load_config_json(args.config)
@@ -253,6 +261,7 @@ def main():
     LABEL_PATH_PATTERNS = config["path_patterns"]
 
     pr_number = args.pr_number
+    validate_pr_number(pr_number)
     mode = "replace" if args.replace else "add"
 
     if args.dry_run:

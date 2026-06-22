@@ -13,11 +13,6 @@ jobs:
       contents: read
 
     steps:
-      # Compute and enforce the permission in the SAME job so that GitHub's
-      # "Re-run failed jobs" re-evaluates against the current github.triggering_actor.
-      # When the permission check lives in a separate job that always succeeds
-      # (failure_mode: continue), "Re-run failed jobs" does not re-run it and the
-      # stale permission of the original triggerer is reused. See bitwarden/gh-actions#604.
       - name: Check user permission
         id: check-permission
         uses: bitwarden/gh-actions/check-permission@main

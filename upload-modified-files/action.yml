@@ -1,0 +1,48 @@
+---
+name: "Upload Modified Files"
+description: "Detect git-modified files and upload them to the workflow run as an artifact."
+
+inputs:
+  artifact_name:
+    description: "Name of the artifact to upload the modified files under."
+    default: "modified-files"
+  retention_days:
+    description: "Number of days to retain the uploaded artifact."
+    default: "1"
+
+outputs:
+  count:
+    description: "Number of modified files detected and uploaded."
+    value: ${{ steps.detect.outputs.count }}
+  modified_files:
+    description: "Newline-separated list of modified file paths."
+    value: ${{ steps.detect.outputs.modified_files }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Detect modified files
+      id: detect
+      shell: bash
+      env:
+        MODIFIED_FILES_LIST: ${{ runner.temp }}/modified_files_list.txt
+      run: bash "${{ github.action_path }}/detect-modified-files.sh"
+
+    - name: Archive modified files
+      shell: bash
+      env:
+        MODIFIED_FILES_LIST: ${{ runner.temp }}/modified_files_list.txt
+        ARCHIVE_PATH: ${{ runner.temp }}/modified-files.tar.gz
+      run: |
+        # Archive from the workspace so paths are stored repo-relative and
+        # restore to the same structure when extracted downstream.
+        tar -czf "$ARCHIVE_PATH" -T "$MODIFIED_FILES_LIST"
+        echo "Created archive at $ARCHIVE_PATH"
+
+    - name: Upload modified files
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: ${{ inputs.artifact_name }}
+        path: ${{ runner.temp }}/modified-files.tar.gz
+        retention-days: ${{ inputs.retention_days }}
+        if-no-files-found: error

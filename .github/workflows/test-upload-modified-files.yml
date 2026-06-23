@@ -1,0 +1,143 @@
+---
+name: Test Upload Modified Files
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "upload-modified-files/**"
+      - ".github/workflows/test-upload-modified-files.yml"
+
+permissions: {}
+
+jobs:
+  upload-and-verify:
+    name: Upload And Verify
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Modify tracked files at different depths
+        run: |
+          echo "modified by test at $(date -u +%s)" >> README.md
+          echo "modified by test at $(date -u +%s)" >> upload-modified-files/README.md
+
+      - name: Upload modified files
+        id: upload
+        uses: ./upload-modified-files
+        with:
+          artifact_name: test-modified-files
+
+      - name: Verify outputs
+        env:
+          _COUNT: ${{ steps.upload.outputs.count }}
+          _MODIFIED_FILES: ${{ steps.upload.outputs.modified_files }}
+        run: |
+          echo "Count: $_COUNT"
+          echo "Modified files:"
+          echo "$_MODIFIED_FILES"
+          if [[ "$_COUNT" != "2" ]]; then
+            echo "::error::Expected 2 modified files, got '$_COUNT'"
+            exit 1
+          fi
+
+  download-and-verify:
+    name: Download And Verify
+    runs-on: ubuntu-24.04
+    needs: upload-and-verify
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: test-modified-files
+          path: downloaded
+
+      - name: Extract and verify preserved paths
+        run: |
+          mkdir restored
+          tar -xzf downloaded/modified-files.tar.gz -C restored
+          echo "Restored tree:"
+          find restored -type f
+
+          if [[ ! -f restored/README.md ]]; then
+            echo "::error::Expected restored/README.md to exist"
+            exit 1
+          fi
+          if [[ ! -f restored/upload-modified-files/README.md ]]; then
+            echo "::error::Expected restored/upload-modified-files/README.md (nested path) to be preserved"
+            exit 1
+          fi
+          if ! grep -q "modified by test at" restored/upload-modified-files/README.md; then
+            echo "::error::Restored nested file is missing the modification"
+            exit 1
+          fi
+
+  fail-on-added:
+    name: Fail On Added File
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Create an untracked file
+        run: echo "brand new" > a-new-untracked-file.txt
+
+      - name: Run action (expected to fail)
+        id: upload
+        continue-on-error: true
+        uses: ./upload-modified-files
+        with:
+          artifact_name: should-not-upload-added
+
+      - name: Assert the action failed
+        env:
+          _OUTCOME: ${{ steps.upload.outcome }}
+        run: |
+          if [[ "$_OUTCOME" != "failure" ]]; then
+            echo "::error::Expected the action to fail on an added file, but outcome was '$_OUTCOME'"
+            exit 1
+          fi
+          echo "Action correctly failed on an added file."
+
+  fail-on-deleted:
+    name: Fail On Deleted File
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Delete a tracked file
+        run: rm README.md
+
+      - name: Run action (expected to fail)
+        id: upload
+        continue-on-error: true
+        uses: ./upload-modified-files
+        with:
+          artifact_name: should-not-upload-deleted
+
+      - name: Assert the action failed
+        env:
+          _OUTCOME: ${{ steps.upload.outcome }}
+        run: |
+          if [[ "$_OUTCOME" != "failure" ]]; then
+            echo "::error::Expected the action to fail on a deleted file, but outcome was '$_OUTCOME'"
+            exit 1
+          fi
+          echo "Action correctly failed on a deleted file."

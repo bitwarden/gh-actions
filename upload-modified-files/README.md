@@ -32,7 +32,7 @@ Add this step after a step that modifies tracked files (e.g. a version bump). Th
   uses: bitwarden/gh-actions/upload-modified-files@main
   with:
     artifact_name: modified-files
-    retention_days: '1'
+    retention_days: '7'
 ```
 
 ### Inputs

@@ -5,42 +5,55 @@ This action provides a centralized way to login to Azure.
 ## Inputs
 
 - Required
-    - tenant_id
-        - Description: Provides the Azure tenant ID.
-        - Example:
-            ```
-                tenant_id: ${{ secrets.AZURE_TENANT_ID }}
-            ```
-    - client_id
-        - Description: Provides the Azure client ID.
-        - Example:
-            ```
-                client_id: ${{ secrets.AZURE_CLIENT_ID }}
-            ```
+  - tenant_id
+    - Description: Provides the Azure tenant ID.
+    - Example:
+      ```
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+      ```
+  - client_id
+    - Description: Provides the Azure client ID.
+    - Example:
+      ```
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
+      ```
 - Optional
-    - subscription_id
-        - Description: Provides the Azure subscription ID.
-        - Default: Empty
-        - Example:
-            ```
-                subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-            ```
-    - allow_no_subscriptions
-        - Description: Provides the allow-no-subscriptions options to Azure
-        - Default: false
-        - Example:
-            ```
-                allow_no_subscriptions: true
-            ```
+  - subscription_id
+    - Description: Provides the Azure subscription ID.
+    - Default: Empty
+    - Example:
+      ```
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ```
+  - allow_no_subscriptions
+    - Description: Provides the allow-no-subscriptions options to Azure
+    - Default: false
+    - Example:
+      ```
+          allow_no_subscriptions: true
+      ```
+  - retry_base_delay
+    - Description: Base delay in seconds for exponential backoff between login attempts.
+    - Default: 5
+    - Example:
+      ```
+          retry_base_delay: 10
+      ```
+
+## Retry Behavior
+
+Logging in to Azure via OIDC can intermittently fail (e.g. `Failed to fetch federated token from GitHub`). To mitigate this, the action attempts the login up to 3 times, waiting with exponential backoff between attempts (`retry_base_delay`, then `retry_base_delay * 2`). The action only fails if all attempts are unsuccessful.
 
 ## Required Permissions
 
 This action requires the `id-token: write` permission to be able to obtain the OIDC token.
 
-__Note that GitHub will set this to `id-token: none` for pull requests from forks, which means the login will fail.  [(GitHub Documentation)](https://docs.github.com/en/actions/security-for-github-actions/security-guides/automatic-token-authentication)__
+**Note that GitHub will set this to `id-token: none` for pull requests from forks, which means the login will fail. [(GitHub Documentation)](https://docs.github.com/en/actions/security-for-github-actions/security-guides/automatic-token-authentication)**
 
 ## Examples
+
 ### Job Snippet
+
 ```
       - name: Azure Login
         uses: bitwarden/gh-actions/azure-login@main
@@ -51,7 +64,9 @@ __Note that GitHub will set this to `id-token: none` for pull requests from fork
 ```
 
 ### Workflow
+
 #### Repository without environment specific secrets
+
 ```
 on:
   workflow_dispatch:
@@ -92,6 +107,7 @@ jobs:
 ```
 
 #### Repository with environment specific secrets
+
 ```
 on:
   workflow_dispatch:
@@ -130,3 +146,4 @@ jobs:
         shell: bash
         run: |
           # Use ${{ steps.get-kv-secrets.output.example-secret-1}} in some way
+```

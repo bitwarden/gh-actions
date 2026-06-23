@@ -8,7 +8,7 @@ inputs:
     default: "modified-files"
   retention_days:
     description: "Number of days to retain the uploaded artifact."
-    default: "1"
+    default: "7"
 
 outputs:
   count:

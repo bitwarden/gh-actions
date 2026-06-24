@@ -40,7 +40,7 @@ Add this step after a step that modifies tracked files (e.g. a version bump). Th
 | Input            | Required | Default          | Description                                              |
 | ---------------- | -------- | ---------------- | -------------------------------------------------------- |
 | `artifact_name`  | No       | `modified-files` | Name of the artifact to upload the modified files under. |
-| `retention_days` | No       | `1`              | Number of days to retain the uploaded artifact.          |
+| `retention_days` | No       | `7`              | Number of days to retain the uploaded artifact.          |
 
 ### Outputs
 

@@ -113,6 +113,7 @@ runs:
         fi
 
     - name: Report results
+      if: always()
       shell: bash
       env:
         USERNAME: ${{ inputs.username }}

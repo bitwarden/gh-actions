@@ -59,7 +59,7 @@ The calling workflow must grant the following GitHub permissions to the `_review
 - **Safety net**: Runs automatically when a PR is opened, converted from draft, or reopened — no label required. Skips if a review comment already exists (idempotency guard).
 - **On-demand label triggers**: Adding `ai-review` runs the current review variant; `ai-review-vnext` runs the next-generation variant. Label triggers bypass draft status and the idempotency guard.
 - Uses a sticky comment — Claude updates a single comment rather than posting new ones
-- Loads Bitwarden's internal plugins: `bitwarden-code-review`, `bitwarden-software-engineer`, `bitwarden-security-engineer`
+- Loads Bitwarden's internal plugins: `bitwarden-code-review`, `bitwarden-software-engineer`, `bitwarden-security-engineer`, and `claude-config-validator`
 - Claude's tool access includes file reading (`Read`, `Grep`, `Glob`), git history (`git diff`, `git log`, `git show`), and PR interaction (`gh pr view/diff/checks`, inline comments)
 
 ## Special Considerations

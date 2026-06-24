@@ -94,6 +94,7 @@ runs:
           bitwarden-code-review@bitwarden-marketplace
           bitwarden-software-engineer@bitwarden-marketplace
           bitwarden-security-engineer@bitwarden-marketplace
+          claude-config-validator@bitwarden-marketplace
         prompt: |
           REPO: ${{ inputs.repository }}
           PR NUMBER: ${{ inputs.pr_number }}

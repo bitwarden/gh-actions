@@ -41,19 +41,19 @@ None
 
 The calling workflow must grant the following GitHub permissions to the `_respond.yml` action:
 
-| Permission | Access | Reason |
-|---|---|---|
-| `actions` | `read` | Read workflow run status for progress tracking |
-| `contents` | `write` | Check out repo and commit changes if requested |
-| `id-token` | `write` | Authenticate with Azure via OIDC |
-| `issues` | `write` | Post and update comments on issues |
-| `pull-requests` | `write` | Post and update comments on pull requests |
+| Permission      | Access  | Reason                                         |
+| --------------- | ------- | ---------------------------------------------- |
+| `actions`       | `read`  | Read workflow run status for progress tracking |
+| `contents`      | `write` | Check out repo and commit changes if requested |
+| `id-token`      | `write` | Authenticate with Azure via OIDC               |
+| `issues`        | `write` | Post and update comments on issues             |
+| `pull-requests` | `write` | Post and update comments on pull requests      |
 
 ## Features
 
 - Supports `@claude` mentions in issue comments, PR review comments, PR reviews, and issue bodies
 - Uses a sticky comment — Claude updates a single comment rather than posting new ones
-- Loads Bitwarden's internal plugins: `bitwarden-code-review`, `bitwarden-software-engineer`, `bitwarden-security-engineer`
+- Loads Bitwarden's internal plugins: `bitwarden-code-review`, `bitwarden-software-engineer`, `bitwarden-security-engineer`, and `claude-config-validator`
 - Claude's tool access is restricted to GitHub comment and PR diff tools only
 
 ## Special Considerations
@@ -62,8 +62,8 @@ The calling workflow must grant the following GitHub permissions to the `_respon
 
 ## Troubleshooting
 
-| Symptom | Likely cause |
-|---|---|
+| Symptom                                | Likely cause                                                                            |
+| -------------------------------------- | --------------------------------------------------------------------------------------- |
 | No response after mentioning `@claude` | Actor lacks write permission, or `@claude` was not in the top-level comment/review body |
-| Workflow fails at secret retrieval | Azure credentials are missing or the calling workflow did not pass the required secrets |
-| Claude response stops mid-way | 10-minute job timeout was hit; consider breaking the request into smaller tasks |
+| Workflow fails at secret retrieval     | Azure credentials are missing or the calling workflow did not pass the required secrets |
+| Claude response stops mid-way          | 10-minute job timeout was hit; consider breaking the request into smaller tasks         |

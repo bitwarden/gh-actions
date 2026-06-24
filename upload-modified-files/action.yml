@@ -11,6 +11,9 @@ inputs:
     default: "7"
 
 outputs:
+  artifact_name:
+    description: "Name of the artifact the modified files were uploaded under."
+    value: ${{ inputs.artifact_name }}
   count:
     description: "Number of modified files detected and uploaded."
     value: ${{ steps.detect.outputs.count }}

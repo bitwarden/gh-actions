@@ -44,10 +44,11 @@ Add this step after a step that modifies tracked files (e.g. a version bump). Th
 
 ### Outputs
 
-| Output           | Description                                     |
-| ---------------- | ----------------------------------------------- |
-| `count`          | Number of modified files detected and uploaded. |
-| `modified_files` | Newline-separated list of modified file paths.  |
+| Output           | Description                                                  |
+| ---------------- | ------------------------------------------------------------ |
+| `artifact_name`  | Name of the artifact the modified files were uploaded under. |
+| `count`          | Number of modified files detected and uploaded.              |
+| `modified_files` | Newline-separated list of modified file paths.               |
 
 ## Consuming the Artifact
 

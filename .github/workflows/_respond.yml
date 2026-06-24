@@ -126,6 +126,7 @@ jobs:
             bitwarden-code-review@bitwarden-marketplace
             bitwarden-software-engineer@bitwarden-marketplace
             bitwarden-security-engineer@bitwarden-marketplace
+            claude-config-validator@bitwarden-marketplace
           prompt: ${{ github.event.comment.body || github.event.review.body || github.event.issue.body }}
           claude_args: |
             --model opus

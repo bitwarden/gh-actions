@@ -44,19 +44,3 @@ jobs:
           username: ${{ github.triggering_actor }}
           token: ${{ secrets.GITHUB_TOKEN }}
           failure_mode: ${{ inputs.failure_mode }}
-
-      - name: Report results
-        env:
-          ACTOR: ${{ github.triggering_actor }}
-          REQUIRED: ${{ inputs.require_permission }}
-          ACTUAL: ${{ steps.check.outputs.user_permission }}
-          HAS_PERM: ${{ steps.check.outputs.has_permission }}
-          SHOULD_PROCEED: ${{ steps.check.outputs.should_proceed }}
-        run: |
-          echo "🤖 Permission Check"
-          echo "================================"
-          echo "User: $ACTOR"
-          echo "Required: $REQUIRED"
-          echo "Actual: $ACTUAL"
-          echo "Has permission: $HAS_PERM"
-          echo "Should proceed: $SHOULD_PROCEED"

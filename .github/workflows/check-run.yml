@@ -6,26 +6,27 @@ on:
 permissions: {}
 
 jobs:
-  check-permission:
-    name: Check permission
-    uses: bitwarden/gh-actions/.github/workflows/_check-permission.yml@main
-    with:
-      failure_mode: "continue" # Continue so that the BW bot can skip
-      require_permission: "write"
-    permissions:
-      contents: read
-
   check:
     name: Check
     runs-on: ubuntu-24.04
-    needs: check-permission
-    if: ${{ needs.check-permission.outputs.has_permission == 'false' && github.triggering_actor != 'bw-ghapp[bot]' }}
+    permissions:
+      contents: read
 
     steps:
+      - name: Check user permission
+        id: check-permission
+        uses: bitwarden/gh-actions/check-permission@main
+        with:
+          require: "write"
+          username: ${{ github.triggering_actor }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          failure_mode: "continue" # Continue so that the BW bot can skip below
+
       - name: Enforce permission check
+        if: ${{ steps.check-permission.outputs.has_permission == 'false' && github.triggering_actor != 'bw-ghapp[bot]' }}
         env:
           GITHUB_TRIGGERING_ACTOR: ${{ github.triggering_actor }}
-          USER_PERMISSIONS: ${{ needs.check-permission.outputs.user_permission }}
+          USER_PERMISSIONS: ${{ steps.check-permission.outputs.user_permission }}
           GITHUB_ACTOR: ${{ github.actor }}
         run: |
           echo "User ${GITHUB_TRIGGERING_ACTOR} does not have the necessary access for this repository."

@@ -111,3 +111,21 @@ runs:
               ;;
           esac
         fi
+
+    - name: Report results
+      if: always()
+      shell: bash
+      env:
+        USERNAME: ${{ inputs.username }}
+        REQUIRED: ${{ inputs.require }}
+        ACTUAL: ${{ steps.check-permission.outputs.user_permission }}
+        HAS_PERM: ${{ steps.check-permission.outputs.has_permission }}
+        SHOULD_PROCEED: ${{ steps.check-permission.outputs.should_proceed }}
+      run: |
+        echo "🤖 Permission Check"
+        echo "================================"
+        echo "User: $USERNAME"
+        echo "Required: $REQUIRED"
+        echo "Actual: $ACTUAL"
+        echo "Has permission: $HAS_PERM"
+        echo "Should proceed: $SHOULD_PROCEED"

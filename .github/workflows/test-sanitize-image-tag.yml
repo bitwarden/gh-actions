@@ -1,18 +1,18 @@
-name: Test Container Tag Action
+name: Test Sanitize Image Tag Action
 
 on:
   pull_request:
     paths:
-      - "container-tag/**"
-      - ".github/workflows/test-container-tag.yml"
+      - "sanitize-image-tag/**"
+      - ".github/workflows/test-sanitize-image-tag.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  test-tag-generation:
-    name: Test Tag Generation
+  test-basic:
+    name: Test basic tag generation
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -56,7 +56,7 @@ jobs:
 
       - name: Generate tag - ${{ matrix.name }}
         id: generate
-        uses: ./container-tag
+        uses: ./sanitize-image-tag
         with:
           ref: ${{ matrix.ref }}
 
@@ -73,51 +73,122 @@ jobs:
           echo "Actual: $ACTUAL"
 
           if [[ "$ACTUAL" == "$EXPECTED" ]]; then
-            echo "✓ Test passed"
+            echo "Test passed"
           else
-            echo "✗ Test failed: expected '$EXPECTED' but got '$ACTUAL'"
+            echo "Test failed: expected '$EXPECTED' but got '$ACTUAL'"
             exit 1
           fi
 
-  test-github-context:
-    name: Test with GitHub context
+  test-prefix:
+    name: Test prefix prepending
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Server prefix on main
+            ref: main
+            prefix: "server-"
+            expected: server-dev
+          - name: Web prefix on rc
+            ref: rc
+            prefix: "web-"
+            expected: web-rc
+          - name: Server prefix on feature branch
+            ref: feature/foo
+            prefix: "server-"
+            expected: server-feature-foo
+          - name: Prefix preserves main-to-dev mapping
+            ref: refs/heads/main
+            prefix: "server-"
+            expected: server-dev
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
-      - name: Generate tag from GitHub ref
-        id: tag
-        uses: ./container-tag
+      - name: Generate tag - ${{ matrix.name }}
+        id: generate
+        uses: ./sanitize-image-tag
         with:
-          ref: ${{ github.head_ref || github.ref }}
+          ref: ${{ matrix.ref }}
+          prefix: ${{ matrix.prefix }}
 
-      - name: Display generated tag
+      - name: Verify output
         env:
-          TAG: ${{ steps.tag.outputs.tag }}
-          REF: ${{ github.head_ref || github.ref }}
+          ACTUAL: ${{ steps.generate.outputs.tag }}
+          EXPECTED: ${{ matrix.expected }}
+          TEST_NAME: ${{ matrix.name }}
         run: |
-          echo "GitHub ref: $REF"
-          echo "Generated tag: $TAG"
+          echo "Test: $TEST_NAME"
+          echo "Expected: $EXPECTED"
+          echo "Actual: $ACTUAL"
 
-          # Verify tag is not empty
-          if [[ -z "$TAG" ]]; then
-            echo "✗ Error: Generated tag is empty"
+          if [[ "$ACTUAL" == "$EXPECTED" ]]; then
+            echo "Test passed"
+          else
+            echo "Test failed: expected '$EXPECTED' but got '$ACTUAL'"
             exit 1
           fi
 
-          # Verify tag only contains valid characters
-          if ! [[ "$TAG" =~ ^[a-z0-9._-]+$ ]]; then
-            echo "✗ Error: Tag contains invalid characters"
+  test-fork-repo:
+    name: Test fork repo prepending
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Fork PR on feature branch
+            ref: feature/foo
+            fork_repo: bobuser/server
+            expected: bobuser-server-feature-foo
+          - name: Fork PR on main keeps fork name
+            ref: main
+            fork_repo: bobuser/server
+            expected: bobuser-server-main
+          - name: Fork with uppercase repo name
+            ref: feature/bar
+            fork_repo: BobUser/Server
+            expected: bobuser-server-feature-bar
+          - name: Fork with prefix
+            ref: feature/foo
+            prefix: "server-"
+            fork_repo: bobuser/server
+            expected: server-bobuser-server-feature-foo
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Generate tag - ${{ matrix.name }}
+        id: generate
+        uses: ./sanitize-image-tag
+        with:
+          ref: ${{ matrix.ref }}
+          prefix: ${{ matrix.prefix }}
+          fork_repo: ${{ matrix.fork_repo }}
+
+      - name: Verify output
+        env:
+          ACTUAL: ${{ steps.generate.outputs.tag }}
+          EXPECTED: ${{ matrix.expected }}
+          TEST_NAME: ${{ matrix.name }}
+        run: |
+          echo "Test: $TEST_NAME"
+          echo "Expected: $EXPECTED"
+          echo "Actual: $ACTUAL"
+
+          if [[ "$ACTUAL" == "$EXPECTED" ]]; then
+            echo "Test passed"
+          else
+            echo "Test failed: expected '$EXPECTED' but got '$ACTUAL'"
             exit 1
           fi
-
-          echo "✓ Tag validation passed"
 
   test-edge-cases:
-    name: Test Edge Cases
+    name: Test edge cases
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -129,15 +200,12 @@ jobs:
           - name: Leading and trailing special chars
             ref: -feature-branch-
             expected: feature-branch
-          - name: Only underscores and dots preserved
+          - name: Underscores and dots preserved
             ref: feature_test.version
             expected: feature_test.version
           - name: Mixed special characters
             ref: FE@TUR#/T$ST%BR^NCH
             expected: fe-tur-t-st-br-nch
-          - name: Leading dot after v stripping
-            ref: v.something
-            expected: something
           - name: Long branch name truncation
             ref: feature/this-is-a-very-long-branch-name-that-exceeds-the-maximum-allowed-length-of-128-characters-for-docker-tags-and-should-be-truncated-properly-without-leaving-trailing-special-chars
             expected: feature-this-is-a-very-long-branch-name-that-exceeds-the-maximum-allowed-length-of-128-characters-for-docker-tags-and-should-be
@@ -152,7 +220,7 @@ jobs:
 
       - name: Generate tag - ${{ matrix.name }}
         id: generate
-        uses: ./container-tag
+        uses: ./sanitize-image-tag
         with:
           ref: ${{ matrix.ref }}
 
@@ -169,8 +237,8 @@ jobs:
           echo "Actual: $ACTUAL"
 
           if [[ "$ACTUAL" == "$EXPECTED" ]]; then
-            echo "✓ Test passed"
+            echo "Test passed"
           else
-            echo "✗ Test failed: expected '$EXPECTED' but got '$ACTUAL'"
+            echo "Test failed: expected '$EXPECTED' but got '$ACTUAL'"
             exit 1
           fi

@@ -1,0 +1,133 @@
+name: Platform community signal
+
+on:
+  workflow_call:
+    inputs:
+      config_path:
+        description: "Path to the dorny/paths-filter filters file. Must define a single filter named 'matched'."
+        required: true
+        type: string
+      label_name:
+        description: "Label applied when a watched path is touched."
+        required: false
+        default: "platform-community"
+        type: string
+
+permissions: {}
+
+jobs:
+  signal:
+    name: Signal platform-community review
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Detect watched paths
+        id: filter
+        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+        with:
+          filters: ${{ inputs.config_path }}
+
+      - name: Sync label and comment
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          MATCHED: ${{ steps.filter.outputs.matched }}
+          LABEL_NAME: ${{ inputs.label_name }}
+        with:
+          script: |
+            const marker = "<!-- platform-community-signal -->";
+            const matched = process.env.MATCHED === "true";
+            const labelName = process.env.LABEL_NAME;
+            const { owner, repo } = context.repo;
+            const issueNumber = context.issue.number;
+
+            if (!issueNumber) {
+              core.info("No pull request context found; nothing to do.");
+              return;
+            }
+
+            // Label sync (both directions).
+            const currentLabels = await github.paginate(
+              github.rest.issues.listLabelsOnIssue,
+              { owner, repo, issue_number: issueNumber },
+            );
+            const hasLabel = currentLabels.some((label) => label.name === labelName);
+
+            if (matched && !hasLabel) {
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                labels: [labelName],
+              });
+              core.info(`Added label "${labelName}".`);
+            } else if (!matched && hasLabel) {
+              try {
+                await github.rest.issues.removeLabel({
+                  owner,
+                  repo,
+                  issue_number: issueNumber,
+                  name: labelName,
+                });
+                core.info(`Removed label "${labelName}".`);
+              } catch (error) {
+                if (error.status !== 404) {
+                  throw error;
+                }
+              }
+            }
+
+            // Comment sync (both directions).
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number: issueNumber,
+            });
+            const existing = comments.find(
+              (comment) => comment.body && comment.body.includes(marker),
+            );
+
+            if (matched) {
+              const lines = [
+                marker,
+                "### :information_source: Limited Platform familiarity",
+                "",
+                `This PR touches a **${labelName}** area. The Platform team owns this code but does not actively develop it, so a Platform review here may be less authoritative than usual.`,
+              ];
+              const body = lines.join("\n");
+
+              if (existing) {
+                if (existing.body !== body) {
+                  await github.rest.issues.updateComment({
+                    owner,
+                    repo,
+                    comment_id: existing.id,
+                    body,
+                  });
+                  core.info("Updated existing platform-community comment.");
+                } else {
+                  core.info("Existing platform-community comment already up to date.");
+                }
+              } else {
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: issueNumber,
+                  body,
+                });
+                core.info("Created platform-community comment.");
+              }
+            } else if (existing) {
+              await github.rest.issues.deleteComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+              });
+              core.info("Removed stale platform-community comment.");
+            }

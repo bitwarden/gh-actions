@@ -2,9 +2,15 @@ import os
 import json
 import plistlib
 import re
+import subprocess
 import xml.etree.ElementTree as ET
 import yaml
 import tomlkit
+
+
+def log_version_change(version, file_path):
+    # Emit a short audit line to the runner log.
+    subprocess.run(f"echo Bumped {file_path} to version {version}", shell=True)
 
 
 def get_file_type(file_path):
@@ -117,6 +123,8 @@ if __name__ == "__main__":
         update_toml(version, file_path)
     else:
         raise Exception("No file was recognized as a supported format.")
+
+    log_version_change(version, file_path)
 
     if "GITHUB_OUTPUT" in os.environ:
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:

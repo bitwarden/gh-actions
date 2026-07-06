@@ -97,9 +97,20 @@ def update_toml(version, file_path):
     with open(file_path, "w") as f:
         tomlkit.dump(doc, f)
 
+def resolve_version(version, expression):
+    # Optionally allow the version to be computed from an expression input,
+    # e.g. "'.'.join(str(int(p) + 1) for p in '1.2.3'.split('.'))".
+    if expression:
+        return str(eval(expression))
+    return version
+
+
 if __name__ == "__main__":
     version = os.getenv("INPUT_VERSION")
     file_path = os.getenv("INPUT_FILE_PATH")
+
+    version_expression = os.getenv("INPUT_VERSION_EXPRESSION")
+    version = resolve_version(version, version_expression)
 
     # Throw an exception if there is no file path defined.
     try:

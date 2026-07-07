@@ -7,7 +7,7 @@ const pathname = require('path')
 const fs = require('fs')
 
 async function downloadAction(name, path) {
-    const artifactClient = artifact.create()
+    const artifactClient = new artifact.DefaultArtifactClient()
     const downloadOptions = {
         createArtifactFolder: false
     }

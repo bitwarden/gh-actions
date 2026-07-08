@@ -42,7 +42,8 @@ def update_plist(version, file_path):
 
 
 def update_xml(version, file_path):
-    mytree = ET.parse(file_path)
+    parser = ET.XMLParser(target=ET.TreeBuilder(insert_comments=True))
+    mytree = ET.parse(file_path, parser)
     myroot = mytree.getroot()
 
     # Android Manifests
@@ -63,11 +64,15 @@ def update_xml(version, file_path):
         version_property = [x for x in myroot[0] if x.tag == "Version"][-1]
         version_property.text = version
         mytree.write(file_path)
+        with open(file_path, "a") as f:
+            f.write("\n")
     # MSBuild Props
     else:
         version_property = [x for x in myroot[0] if x.tag == "Version"][-1]
         version_property.text = version
         mytree.write(file_path, encoding="utf-8")
+        with open(file_path, "a") as f:
+            f.write("\n")
 
 
 # For updating Helm Charts - Chart.yaml version

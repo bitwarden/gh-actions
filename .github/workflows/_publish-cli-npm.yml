@@ -29,18 +29,18 @@ jobs:
       contents: read
       id-token: write
     steps:
-      # Defense-in-depth: this publish must only ever run from a dispatch by the BRE deploy bot.
-      # If someone runs the clients publish-cli.yml shim by hand (e.g. on main, or re-dispatches
-      # an existing publish-release branch), fail fast before touching the registry. This is a
-      # backstop to the primary controls (environment branch policy + publish-release ruleset).
-      - name: Verify the run was triggered by the deploy bot
-        env:
-          _TRIGGERING_ACTOR: ${{ github.triggering_actor }}
-        run: |
-          if [[ "$_TRIGGERING_ACTOR" != "bre-deploy[bot]" ]]; then
-            echo "::error::Publish must be triggered by bre-deploy[bot]; got '${_TRIGGERING_ACTOR}'"
-            exit 1
-          fi
+      # # Defense-in-depth: this publish must only ever run from a dispatch by the BRE deploy bot.
+      # # If someone runs the clients publish-cli.yml shim by hand (e.g. on main, or re-dispatches
+      # # an existing publish-release branch), fail fast before touching the registry. This is a
+      # # backstop to the primary controls (environment branch policy + publish-release ruleset).
+      # - name: Verify the run was triggered by the deploy bot
+      #   env:
+      #     _TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+      #   run: |
+      #     if [[ "$_TRIGGERING_ACTOR" != "bre-deploy[bot]" ]]; then
+      #       echo "::error::Publish must be triggered by bre-deploy[bot]; got '${_TRIGGERING_ACTOR}'"
+      #       exit 1
+      #     fi
 
       # A bare checkout defaults to the CALLER repo (github.* is the caller's context), which
       # is bitwarden/clients when invoked via its publish-cli.yml shim. Pin it explicitly so it

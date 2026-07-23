@@ -1,0 +1,95 @@
+name: _publish-cli-npm
+run-name: Publish @bitwarden/cli to npm
+
+# Reusable publish logic for @bitwarden/cli, called by bitwarden/clients' inert
+# publish-cli.yml shim. Living here (locked main, no external contributors) is what lets the
+# shim reference it @main so CD can iterate independently of the CI-built, QA-tested artifact.
+#
+# Runs in the caller's repo context (bitwarden/clients) at the dispatched commit — the
+# publish-release/<version> branch deploy cuts from the release commit. The version is derived
+# from that commit's apps/cli/package.json (the single source of truth; npm publishes that
+# version regardless), and the matching CI-built artifact is promoted from the cli-v<version>
+# release — never rebuilt here.
+#
+# Provenance is issued by npm's trusted publisher only for this exact
+# repo + workflow (publish-cli.yml) + environment (cli-npm); keep this job free of any
+# other OIDC login (e.g. Azure) so the environment-scoped id-token is used solely for npm.
+
+on:
+  workflow_call: {}
+
+permissions: {}
+
+jobs:
+  publish:
+    name: Publish @bitwarden/cli to npm
+    runs-on: ubuntu-24.04
+    environment: cli-npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      # Defense-in-depth: this publish must only ever run from a dispatch by the BRE deploy bot.
+      # If someone runs the clients publish-cli.yml shim by hand (e.g. on main, or re-dispatches
+      # an existing publish-release branch), fail fast before touching the registry. This is a
+      # backstop to the primary controls (environment branch policy + publish-release ruleset).
+      - name: Verify the run was triggered by the deploy bot
+        env:
+          _TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+        run: |
+          if [[ "$_TRIGGERING_ACTOR" != "bre-deploy[bot]" ]]; then
+            echo "::error::Publish must be triggered by bre-deploy[bot]; got '${_TRIGGERING_ACTOR}'"
+            exit 1
+          fi
+
+      # A bare checkout defaults to the CALLER repo (github.* is the caller's context), which
+      # is bitwarden/clients when invoked via its publish-cli.yml shim. Pin it explicitly so it
+      # is also correct from any test caller. github.sha is the caller's commit — the
+      # publish-release/<version> branch deploy cuts from the release commit.
+      - name: Check out bitwarden/clients at the release commit
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: bitwarden/clients
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Derive version from apps/cli/package.json
+        id: version
+        run: |
+          VERSION=$(jq -r '.version' apps/cli/package.json)
+          if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
+            echo "::error::Could not read .version from apps/cli/package.json"
+            exit 1
+          fi
+          echo "Resolved version: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version-file: ".nvmrc"
+          registry-url: "https://registry.npmjs.org/"
+
+      - name: Pin npm version
+        run: |
+          npm install -g npm@latest # npm 11.5.1+ required for OIDC trusted publishing + provenance
+          npm --version
+
+      # Promote the CI-built, QA-tested bundle: download the npm build zip attached to the
+      # cli-v<version> release and unpack it into the checked-out apps/cli/build. apps/cli's
+      # .npmignore (`*` + `!/build`) ships only build/, and npm force-includes README.md +
+      # package.json from the working tree. clients is public, so the job's GITHUB_TOKEN
+      # (contents: read) can download the release asset.
+      - name: Download and unpack npm build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          _PKG_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release download "cli-v${_PKG_VERSION}" \
+            --repo bitwarden/clients \
+            --pattern "bitwarden-cli-${_PKG_VERSION}-npm-build.zip"
+          unzip "bitwarden-cli-${_PKG_VERSION}-npm-build.zip" -d apps/cli/build
+
+      - name: Publish to npm with provenance
+        working-directory: apps/cli
+        run: npm publish --provenance --access public

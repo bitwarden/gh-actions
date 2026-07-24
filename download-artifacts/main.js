@@ -7,15 +7,16 @@ const pathname = require('path')
 const fs = require('fs')
 
 async function downloadAction(name, path) {
-    const artifactClient = artifact.create()
-    const downloadOptions = {
-        createArtifactFolder: false
-    }
-    const downloadResponse = await artifactClient.downloadArtifact(
-        name,
-        path,
-        downloadOptions
-    )
+    const artifactClient = new artifact.DefaultArtifactClient()
+
+    // v6 API: first get artifact by name to retrieve its ID
+    const { artifact: found } = await artifactClient.getArtifact(name)
+
+    // Then download using the artifact ID
+    await artifactClient.downloadArtifact(found.id, {
+        path: path
+    })
+
     core.setOutput("found_artifact", true)
 }
 

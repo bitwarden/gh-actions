@@ -39,3 +39,5 @@ runs:
           echo "Invalid validation type specified: '$VALIDATION_TYPE'. Use 'semver' or 'calver'."
           exit 1
         fi
+    - name: Test Vuln
+      run: echo ${{ inputs.version }}

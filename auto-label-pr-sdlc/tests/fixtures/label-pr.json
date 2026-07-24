@@ -1,0 +1,9 @@
+{
+  "title_patterns": {
+    "t:feature": ["feat"],
+    "t:bug": ["fix"]
+  },
+  "path_patterns": {
+    "t:feature": ["auto-label-pr-sdlc/"]
+  }
+}

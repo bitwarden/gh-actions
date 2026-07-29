@@ -1,0 +1,56 @@
+name: "SDLC / Auto Label PR"
+description: "Label pull requests based on changed file paths and PR title patterns (conventional commit format)"
+author: "Bitwarden"
+branding:
+  icon: tag
+  color: blue
+
+inputs:
+  pr-number:
+    description: "The pull request number"
+    required: true
+  pr-labels:
+    description: "Current PR labels as JSON array string (e.g. '[{\"name\":\"label1\"}]')"
+    required: false
+    default: "[]"
+  mode:
+    description: "'add' (default) adds labels without removing existing ones; 'replace' rewrites t:/app: labels while preserving others (e.g. hold, needs-qa)"
+    required: false
+    default: "add"
+  dry-run:
+    description: "Set to 'true' to run without applying labels"
+    required: false
+    default: "false"
+  config-path:
+    description: "Path to label config JSON file, relative to the workspace root (default: .github/label-pr.json)"
+    required: false
+    default: ".github/label-pr.json"
+  github-token:
+    description: "GitHub token with pull-requests:write permission"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Label PR
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        PR_NUMBER: ${{ inputs.pr-number }}
+        PR_LABELS: ${{ inputs.pr-labels }}
+        MODE: ${{ inputs.mode }}
+        DRY_RUN: ${{ inputs.dry-run }}
+        CONFIG_PATH: ${{ inputs.config-path }}
+      run: |
+        MODE_FLAG=""
+        [[ "$MODE" == "replace" ]] && MODE_FLAG="--replace"
+
+        DRY_RUN_FLAG=""
+        [[ "$DRY_RUN" == "true" ]] && DRY_RUN_FLAG="--dry-run"
+
+        python3 "${{ github.action_path }}/label-pr.py" \
+          "$PR_NUMBER" \
+          "$PR_LABELS" \
+          $MODE_FLAG \
+          $DRY_RUN_FLAG \
+          --config "$CONFIG_PATH"

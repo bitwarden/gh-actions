@@ -1,0 +1,8 @@
+{
+  "name": "example-plugin",
+  "version": "1.0.0",
+  "description": "Fixture plugin used to exercise the run-ai-validation workflow. Not a real plugin.",
+  "author": {
+    "name": "Bitwarden"
+  }
+}

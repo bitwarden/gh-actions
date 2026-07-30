@@ -1,5 +1,5 @@
-name: "Validate AI Plugins"
-description: "Validates Claude Code plugin and configuration changes using bundled structure checks and Claude Code with Bitwarden plugins"
+name: "Validate AI"
+description: "Reviews Claude Code material (.claude config, skills, agents, commands, hooks, CLAUDE.md, and plugins) using bundled structure checks and Claude Code with Bitwarden plugins"
 inputs:
   azure_subscription_id:
     description: "Azure Subscription ID for OIDC authentication"
@@ -174,13 +174,13 @@ runs:
         token: ${{ inputs.github_token }}
         pr_number: ${{ inputs.pr_number }}
         repository: ${{ inputs.repository }}
-        marker_id: bitwarden-plugin-validation
+        marker_id: bitwarden-ai-validation
         body: |
-          **Claude Code** is validating plugin components and security...
+          **Claude Code** is reviewing the changed Claude configuration...
 
           If this comment does not update with results, check the [Actions log](${{ github.server_url }}/${{ inputs.repository }}/actions/runs/${{ github.run_id }}).
 
-    - name: Validate plugin components and security
+    - name: Review Claude configuration and plugins
       id: components
       if: steps.changed-files.outputs.has_components == 'true'
       continue-on-error: true
@@ -202,14 +202,18 @@ runs:
           PR NUMBER: ${{ inputs.pr_number }}
           STICKY COMMENT ID: ${{ steps.create-comment.outputs.comment_id }}
 
-          You have access to two plugins: plugin-dev and claude-config-validator.
-          Use their specialized agents to validate the changed Claude files below.
+          You are reviewing the Claude Code material that changed in this pull
+          request. That may be a plugin marketplace, or it may just be a repo's
+          own `.claude/` directory (skills, agents, commands, hooks, settings)
+          and `CLAUDE.md`. Not every section below applies to every repo — use
+          the skip guidance in each. You have access to two plugins, plugin-dev
+          and claude-config-validator; use their agents and skills as directed.
 
           # RULES
 
           1. The repository is already checked out at the PR head.
-          2. You can read files directly to inspect the changed plugin components.
-          3. When your validation is complete, write your final report in markdown
+          2. You can read files directly to inspect the changed Claude files.
+          3. When your review is complete, write your final report in markdown
              format to /tmp/validation-summary.md. This file will be used to update
              the sticky PR comment automatically. Do not attempt to post PR comments
              yourself.
@@ -266,16 +270,20 @@ runs:
 
           Skip this step if no SKILL.md files were changed.
 
-          ## 3. Security & Config Validation (claude-config-validator plugin)
+          ## 3. Configuration & Security Review (claude-config-validator plugin)
 
-          For all changed Claude files (including any changed CLAUDE.md and .claude/
-          config listed above), use the reviewing-claude-config skill from the
-          claude-config-validator plugin to perform security review:
+          This is the primary review for a repo's own `.claude/` directory and
+          `CLAUDE.md`, and it also applies to plugin repos. For every changed
+          Claude file listed above (CLAUDE.md, and anything under `.claude/`:
+          skills, agents, commands, hooks, and settings), use the
+          reviewing-claude-config skill from the claude-config-validator plugin to
+          review structure and security:
           - Scan for committed secrets (API keys, tokens, passwords)
           - Check for hardcoded credentials in code
           - Validate permission scoping in settings files
           - Detect dangerous command auto-approvals
           - Identify overly broad file access permissions
+          - Flag malformed or non-compliant agent, command, and hook definitions
 
           ## Output Requirements
 
@@ -297,7 +305,7 @@ runs:
         token: ${{ inputs.github_token }}
         pr_number: ${{ inputs.pr_number }}
         repository: ${{ inputs.repository }}
-        marker_id: bitwarden-plugin-validation
+        marker_id: bitwarden-ai-validation
         comment_id: ${{ steps.create-comment.outputs.comment_id }}
         body_file: /tmp/validation-summary.md
 

@@ -1,11 +1,11 @@
-name: Test Validate AI Plugins Workflow
+name: Test Validate AI Workflow
 
 on:
   pull_request:
     paths:
-      - "run-ai-plugin-validation/**"
-      - ".github/workflows/_validate-ai-plugins.yml"
-      - ".github/workflows/test-validate-ai-plugins.yml"
+      - "run-ai-validation/**"
+      - ".github/workflows/_validate-ai.yml"
+      - ".github/workflows/test-validate-ai.yml"
   workflow_dispatch:
     inputs:
       pr_number:
@@ -73,7 +73,7 @@ jobs:
     name: Test validate
     needs: prepare
     if: needs.prepare.outputs.pr_number != ''
-    uses: ./.github/workflows/_validate-ai-plugins.yml
+    uses: ./.github/workflows/_validate-ai.yml
     permissions:
       actions: read
       contents: read
@@ -110,7 +110,7 @@ jobs:
           fi
 
           # The action upserts a sticky comment carrying this hidden marker.
-          MARKER="<!-- bitwarden-plugin-validation -->"
+          MARKER="<!-- bitwarden-ai-validation -->"
           UPDATED_AT=$(gh api "repos/$GH_REPO/issues/$PR_NUMBER/comments" \
             --jq "[.[] | select(.body | contains(\"$MARKER\")) | .updated_at] | max // empty")
 

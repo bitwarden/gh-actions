@@ -1,8 +1,8 @@
-# Validate AI Plugins
+# Validate AI
 
-Validates Claude Code plugin and configuration changes on a pull request using Claude Code with Bitwarden plugins.
+Reviews Claude Code material that changed in a pull request using Claude Code with Bitwarden plugins. It works for any repository that carries Claude config, not only plugin marketplaces. A repo with its own `.claude/` directory (skills, agents, commands, hooks, settings) and `CLAUDE.md` gets the same review as a marketplace of plugins.
 
-It detects changed Claude-related files (plugin directories, `.claude-plugin/` and `.claude/` config, `CLAUDE.md`, agents, skills, commands, and hooks), runs the `plugin-dev` and `claude-config-validator` plugins against them, and posts the results to a sticky PR comment. In a plugin marketplace repository (one with a `.claude-plugin/marketplace.json`), a pull request that touches a `plugins/` directory also runs the bundled structure, marketplace, and version-bump scripts against the checkout. Repositories without that manifest skip those steps.
+It detects changed Claude-related files (`.claude/` config, `CLAUDE.md`, agents, skills, commands, hooks, and plugin directories), runs the `plugin-dev` and `claude-config-validator` plugins against them, and posts the results to a sticky PR comment. In a plugin marketplace repository (one with a `.claude-plugin/marketplace.json`), a pull request that touches a `plugins/` directory also runs the bundled structure, marketplace, and version-bump scripts against the checkout. Repositories without that manifest skip those steps and just get the AI-driven review.
 
 The validation scripts live in [`scripts/`](scripts/) and are bundled with the action — this action directory is their sole source of truth, so callers do not need to vendor anything.
 
@@ -69,8 +69,8 @@ Most repositories should call the reusable workflow rather than the action direc
 ### Job Snippet
 
 ```
-      - name: Validate AI Plugins
-        uses: bitwarden/gh-actions/run-ai-plugin-validation@main
+      - name: Validate AI
+        uses: bitwarden/gh-actions/run-ai-validation@main
         with:
           azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
@@ -84,10 +84,10 @@ Most repositories should call the reusable workflow rather than the action direc
 
 ## Reusable Workflow
 
-`bitwarden/gh-actions/.github/workflows/_validate-ai-plugins.yml` wraps this action with a permission gate. Add a caller workflow to any repository:
+`bitwarden/gh-actions/.github/workflows/_validate-ai.yml` wraps this action with a permission gate. Add a caller workflow to any repository:
 
 ```yaml
-name: Validate AI Plugins
+name: Validate AI
 
 on:
   pull_request:
@@ -96,8 +96,8 @@ permissions: {}
 
 jobs:
   validate:
-    name: Validate AI Plugins
-    uses: bitwarden/gh-actions/.github/workflows/_validate-ai-plugins.yml@main
+    name: Validate AI
+    uses: bitwarden/gh-actions/.github/workflows/_validate-ai.yml@main
     secrets:
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}

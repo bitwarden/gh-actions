@@ -2,7 +2,7 @@
 
 Validation and maintenance scripts for Claude Code plugin **marketplace** repositories, such as [`bitwarden/ai-plugins`](https://github.com/bitwarden/ai-plugins).
 
-These scripts are bundled with the [`run-ai-plugin-validation`](../) action and live here as their single source of truth. The `validate-*` scripts run automatically in CI when a marketplace pull request touches a `plugins/` directory; `bump-plugin-version.sh` is a local helper for marketplace maintainers.
+These scripts are bundled with the [`run-ai-validation`](../) action and live here as their single source of truth. The `validate-*` scripts run automatically in CI when a marketplace pull request touches a `plugins/` directory; `bump-plugin-version.sh` is a local helper for marketplace maintainers.
 
 ## Table of Contents
 
@@ -18,7 +18,7 @@ These scripts are bundled with the [`run-ai-plugin-validation`](../) action and 
 
 ## How these scripts run
 
-**In CI (automatic).** The `run-ai-plugin-validation` action checks out the pull request and runs `validate-plugin-structure.sh`, `validate-marketplace.sh`, and `validate-version-bump.sh` against it. The action sets `REPO_ROOT` to the checked-out repository, so the scripts inspect the caller's plugins rather than their own directory — nothing needs to be copied into the marketplace repository.
+**In CI (automatic).** The `run-ai-validation` action checks out the pull request and runs `validate-plugin-structure.sh`, `validate-marketplace.sh`, and `validate-version-bump.sh` against it. The action sets `REPO_ROOT` to the checked-out repository, so the scripts inspect the caller's plugins rather than their own directory — nothing needs to be copied into the marketplace repository.
 
 **Locally.** Each script defaults `REPO_ROOT` to the parent of this `scripts/` directory but honors a `REPO_ROOT` override, so you can point it at a marketplace checkout from anywhere:
 
@@ -452,7 +452,7 @@ Based on research into Claude Code plugin validation and best practices:
 
 ## Contributing
 
-These scripts live in [`bitwarden/gh-actions`](https://github.com/bitwarden/gh-actions), bundled with the `run-ai-plugin-validation` action — this is their sole source. When modifying them:
+These scripts live in [`bitwarden/gh-actions`](https://github.com/bitwarden/gh-actions), bundled with the `run-ai-validation` action — this is their sole source. When modifying them:
 
 1. Test locally against a marketplace checkout (see [How these scripts run](#how-these-scripts-run)) before committing
 2. Document any new validation checks in this README

@@ -1,6 +1,6 @@
 ---
 name: example-skill
-description: Example skill used only as a validation fixture for the run-ai-plugin-validation workflow. It performs no real work.
+description: Example skill used only as a validation fixture for the run-ai-validation workflow. It performs no real work.
 ---
 
 # Example Skill

@@ -1,7 +1,7 @@
 # Changelog
 
 All notable changes to this fixture plugin are documented here. It exists only to
-exercise the `run-ai-validation` workflow.
+exercise the `validate-ai` workflow.
 
 ## [1.0.0]
 

@@ -70,7 +70,7 @@ Most repositories should call the reusable workflow rather than the action direc
 
 ```
       - name: Validate AI
-        uses: bitwarden/gh-actions/run-ai-validation@main
+        uses: bitwarden/gh-actions/validate-ai@main
         with:
           azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}

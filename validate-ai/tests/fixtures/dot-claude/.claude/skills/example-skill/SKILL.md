@@ -1,6 +1,6 @@
 ---
 name: example-skill
-description: Example repository-level skill used only as a validation fixture for the run-ai-validation workflow. It performs no real work.
+description: Example repository-level skill used only as a validation fixture for the validate-ai workflow. It performs no real work.
 ---
 
 # Example Skill

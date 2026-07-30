@@ -1,7 +1,7 @@
 # `.claude/` config (fixture)
 
 A minimal repository-level `.claude/` directory used by the `test-validate-ai.yml`
-workflow to exercise the non-plugin path of the `run-ai-validation` action, the
+workflow to exercise the non-plugin path of the `validate-ai` action, the
 way a repo like [bitwarden/tech-breakdowns](https://github.com/bitwarden/tech-breakdowns/tree/main/.claude)
 carries Claude config without being a plugin marketplace.
 

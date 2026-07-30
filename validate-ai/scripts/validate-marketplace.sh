@@ -26,7 +26,7 @@ TOTAL_ERRORS=0
 # Script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # REPO_ROOT defaults to the parent of scripts/ for standalone use, but can be
-# overridden (e.g. by the run-ai-validation action) to point at the
+# overridden (e.g. by the validate-ai action) to point at the
 # checkout being validated.
 REPO_ROOT="${REPO_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 MARKETPLACE_JSON="$REPO_ROOT/.claude-plugin/marketplace.json"

@@ -3,7 +3,7 @@ name: Test Validate AI Workflow
 on:
   pull_request:
     paths:
-      - "run-ai-validation/**"
+      - "validate-ai/**"
       - ".github/workflows/_validate-ai.yml"
       - ".github/workflows/test-validate-ai.yml"
   workflow_dispatch:

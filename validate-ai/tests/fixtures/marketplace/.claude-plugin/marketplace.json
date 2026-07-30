@@ -1,0 +1,14 @@
+{
+  "name": "example-marketplace",
+  "owner": {
+    "name": "Bitwarden"
+  },
+  "plugins": [
+    {
+      "name": "example-plugin",
+      "source": "./plugins/example-plugin",
+      "description": "Fixture plugin used to exercise the validate-ai scripts. Not a real plugin.",
+      "version": "1.0.0"
+    }
+  ]
+}

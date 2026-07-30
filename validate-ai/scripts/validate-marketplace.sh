@@ -341,8 +341,10 @@ main() {
         fi
 
         if [[ "${#target_plugins[@]}" -eq 0 ]]; then
-            echo -e "${YELLOW}⚠️ No valid plugins found in arguments${RESET}"
-            exit 0
+            # Arguments referenced no existing plugin directory (e.g. a plugin was
+            # removed in this PR). Fall through to a full scan so a now-dangling
+            # marketplace.json entry or stale README catalog row is still caught.
+            echo -e "${YELLOW}⚠️ No existing plugin directories in arguments — running a full marketplace scan${RESET}"
         fi
     fi
 

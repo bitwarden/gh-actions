@@ -111,17 +111,75 @@ jobs:
 
           # The action upserts a sticky comment carrying this hidden marker.
           MARKER="<!-- bitwarden-ai-validation -->"
-          UPDATED_AT=$(gh api "repos/$GH_REPO/issues/$PR_NUMBER/comments" \
-            --jq "[.[] | select(.body | contains(\"$MARKER\")) | .updated_at] | max // empty")
+          LATEST=$(gh api "repos/$GH_REPO/issues/$PR_NUMBER/comments" \
+            --jq "[.[] | select(.body | contains(\"$MARKER\"))] | sort_by(.updated_at) | last // empty")
 
-          if [[ -z "$UPDATED_AT" ]]; then
+          if [[ -z "$LATEST" ]]; then
             echo "::error::No validation comment found on PR #$PR_NUMBER"
             exit 1
           fi
 
+          # The placeholder is posted before Claude runs, so its updated_at alone
+          # would pass. Require that it was replaced with the actual summary.
+          if jq -e '.body | contains("is reviewing the changed Claude configuration")' <<< "$LATEST" >/dev/null; then
+            echo "::error::Validation comment on PR #$PR_NUMBER still shows the placeholder — no summary was written"
+            exit 1
+          fi
+
+          UPDATED_AT=$(jq -r '.updated_at' <<< "$LATEST")
           if [[ "$UPDATED_AT" > "$TIMESTAMP" ]]; then
-            echo "✅ Verify: validation comment on PR #$PR_NUMBER updated at $UPDATED_AT (after $TIMESTAMP)"
+            echo "✅ Verify: validation summary on PR #$PR_NUMBER posted at $UPDATED_AT (after $TIMESTAMP)"
           else
             echo "::error::Validation comment on PR #$PR_NUMBER was not updated after $TIMESTAMP (last update: $UPDATED_AT)"
             exit 1
           fi
+
+  test-scripts:
+    name: Test scripts
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Run bundled validators against the fixture marketplace
+        env:
+          FIXTURE: ${{ github.workspace }}/validate-ai/tests/fixtures/marketplace
+        run: |
+          set -euo pipefail
+
+          structure() { REPO_ROOT="$1" bash validate-ai/scripts/validate-plugin-structure.sh example-plugin; }
+          marketplace() { REPO_ROOT="$1" bash validate-ai/scripts/validate-marketplace.sh example-plugin; }
+
+          echo "::group::Positive: the valid fixture marketplace passes"
+          structure "$FIXTURE"
+          marketplace "$FIXTURE"
+          echo "::endgroup::"
+
+          echo "::group::Negative: a missing CHANGELOG fails structure validation"
+          TMP=$(mktemp -d); cp -R "$FIXTURE/." "$TMP/"
+          rm "$TMP/plugins/example-plugin/CHANGELOG.md"
+          if structure "$TMP"; then echo "::error::structure passed with a missing CHANGELOG"; exit 1; fi
+          echo "correctly failed"
+          echo "::endgroup::"
+
+          echo "::group::Negative: a version mismatch fails marketplace validation"
+          TMP2=$(mktemp -d); cp -R "$FIXTURE/." "$TMP2/"
+          jq '.plugins[0].version="9.9.9"' "$TMP2/.claude-plugin/marketplace.json" > "$TMP2/mj"
+          mv "$TMP2/mj" "$TMP2/.claude-plugin/marketplace.json"
+          if marketplace "$TMP2"; then echo "::error::marketplace passed with a version mismatch"; exit 1; fi
+          echo "correctly failed"
+          echo "::endgroup::"
+
+          echo "::group::Negative: a path-traversal source is rejected"
+          TMP3=$(mktemp -d); cp -R "$FIXTURE/." "$TMP3/"
+          jq '.plugins[0].source="./plugins/../../etc"' "$TMP3/.claude-plugin/marketplace.json" > "$TMP3/mj"
+          mv "$TMP3/mj" "$TMP3/.claude-plugin/marketplace.json"
+          if marketplace "$TMP3"; then echo "::error::marketplace accepted a traversal source"; exit 1; fi
+          echo "correctly rejected"
+          echo "::endgroup::"
+
+          echo "✅ All bundled validator checks behaved as expected"

@@ -274,8 +274,10 @@ validate_agent_frontmatter() {
     agent_name=$(basename "$(dirname "$agent_file")")
     local has_errors=0
 
-    # Check for YAML frontmatter
-    if ! grep -q "^---$" "$agent_file"; then
+    # Check for YAML frontmatter. Require two --- markers so the block is
+    # properly delimited; a single marker would make the awk extraction below
+    # slurp the whole file and pass invalid frontmatter.
+    if [[ "$(grep -c "^---$" "$agent_file")" -lt 2 ]]; then
         print_error "Agent $plugin_name/$agent_name: Missing YAML frontmatter"
         return 1
     fi
@@ -328,8 +330,10 @@ validate_skill_frontmatter() {
     skill_name=$(basename "$(dirname "$skill_file")")
     local has_errors=0
 
-    # Check for YAML frontmatter
-    if ! grep -q "^---$" "$skill_file"; then
+    # Check for YAML frontmatter. Require two --- markers so the block is
+    # properly delimited; a single marker would make the awk extraction below
+    # slurp the whole file and pass invalid frontmatter.
+    if [[ "$(grep -c "^---$" "$skill_file")" -lt 2 ]]; then
         print_error "Skill $plugin_name/$skill_name: Missing YAML frontmatter"
         return 1
     fi

@@ -109,6 +109,11 @@ validate_plugin_entry() {
         print_error "Plugin at index $index missing required field: name"
         has_errors=1
         plugin_name="plugin at index $index"
+    elif ! is_safe_plugin_name "$plugin_name"; then
+        # Names feed into filesystem paths and grep patterns, so constrain them
+        # to a safe identifier format.
+        print_error "Plugin at index $index has an invalid name: '$plugin_name' (only letters, numbers, hyphens, and underscores allowed)"
+        has_errors=1
     fi
 
     local source
@@ -160,18 +165,11 @@ check_plugin_exists() {
         return 0  # Already reported in validate_plugin_entry
     fi
 
-    # Remove leading './' if present
-    source="${source#./}"
-
-    local plugin_path="$REPO_ROOT/$source"
-
-    if [[ ! -e "$plugin_path" ]]; then
-        print_error "Plugin directory does not exist: $plugin_path"
-        return 1
-    fi
-
-    if [[ ! -d "$plugin_path" ]]; then
-        print_error "Plugin source is not a directory: $plugin_path"
+    # Resolve the marketplace-supplied source safely, constraining it under
+    # plugins/ so a crafted source (e.g. './plugins/../..') can't escape the repo.
+    local plugin_path
+    if ! plugin_path="$(sanitize_plugin_path "$source" "$REPO_ROOT/plugins" 2>/dev/null)"; then
+        print_error "Plugin '$plugin_name' has an invalid or missing source directory: $source"
         return 1
     fi
 
@@ -203,9 +201,12 @@ check_consistency() {
             continue
         fi
 
-        # Remove leading './'
-        source="${source#./}"
-        local plugin_json="$REPO_ROOT/$source/.claude-plugin/plugin.json"
+        # Resolve the source safely under plugins/ (see check_plugin_exists).
+        local plugin_path
+        if ! plugin_path="$(sanitize_plugin_path "$source" "$REPO_ROOT/plugins" 2>/dev/null)"; then
+            continue  # Invalid/missing source already reported in check_plugin_exists
+        fi
+        local plugin_json="$plugin_path/.claude-plugin/plugin.json"
 
         if [[ ! -f "$plugin_json" ]]; then
             continue  # Already reported in check_plugin_exists
@@ -416,8 +417,10 @@ main() {
                 marketplace_version=$(jq -r ".plugins[$found_index].version // empty" "$MARKETPLACE_JSON")
 
                 if [[ -n "$source" ]]; then
-                    source="${source#./}"
-                    local plugin_json="$REPO_ROOT/$source/.claude-plugin/plugin.json"
+                    # Resolve the source safely under plugins/ (see check_plugin_exists).
+                    local plugin_path
+                    plugin_path="$(sanitize_plugin_path "$source" "$REPO_ROOT/plugins" 2>/dev/null)" || plugin_path=""
+                    local plugin_json="$plugin_path/.claude-plugin/plugin.json"
 
                     if [[ -f "$plugin_json" ]]; then
                         if ! jq empty "$plugin_json" 2>/dev/null; then

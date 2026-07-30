@@ -103,16 +103,17 @@ sanitize_plugin_path() {
         return 1
     fi
 
-    # Use realpath to resolve any symlinks and get canonical path
+    # Resolve symlinks physically so the containment check below is meaningful.
+    # A logical path (plain pwd) would let a symlinked plugin directory escape.
     local canonical_path
-    if ! canonical_path="$(cd "$plugin_path" && pwd 2>/dev/null)"; then
+    if ! canonical_path="$(cd -P "$plugin_path" 2>/dev/null && pwd -P)"; then
         echo "ERROR: Failed to resolve canonical path for: $plugin_path" >&2
         return 1
     fi
 
     # Verify the resolved path is still under plugins_dir
     local canonical_plugins_dir
-    if ! canonical_plugins_dir="$(cd "$plugins_dir" && pwd 2>/dev/null)"; then
+    if ! canonical_plugins_dir="$(cd -P "$plugins_dir" 2>/dev/null && pwd -P)"; then
         echo "ERROR: Failed to resolve plugins directory: $plugins_dir" >&2
         return 1
     fi

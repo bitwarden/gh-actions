@@ -47,7 +47,7 @@ runs:
 
         # Claude-related files: plugin directories, plugin/marketplace manifests,
         # per-repo .claude config, CLAUDE.md guidance, and the validation scripts.
-        RELEVANT=$(echo "$CHANGED_FILES" | grep -E '(^plugins/|(^|/)\.claude-plugin/|(^|/)\.claude/|(^|/)CLAUDE\.md$|(^|/)agents/.*\.md$|(^|/)skills/.*/SKILL\.md$|(^|/)commands/.*\.md$|hooks\.json$|^scripts/validate-)' || echo "")
+        RELEVANT=$(echo "$CHANGED_FILES" | grep -E '(^plugins/|(^|/)\.claude-plugin/|(^|/)\.claude/|(^|/)CLAUDE\.md$|(^|/)agents/.*\.md$|(^|/)skills/.*/SKILL\.md$|(^|/)commands/.*\.md$|(^|/)hooks\.json$|^scripts/validate-)' || echo "")
 
         if [[ -z "$RELEVANT" ]]; then
           echo "should_run=false" >> "$GITHUB_OUTPUT"
@@ -68,7 +68,7 @@ runs:
         AGENT_FILES=$(echo "$RELEVANT" | grep -E '(^|/)agents/.*\.md$' || echo "")
         SKILL_FILES=$(echo "$RELEVANT" | grep -E '(^|/)skills/.*/SKILL\.md$' || echo "")
         COMMAND_FILES=$(echo "$RELEVANT" | grep -E '(^|/)commands/.*\.md$' || echo "")
-        HOOK_FILES=$(echo "$RELEVANT" | grep -E 'hooks\.json$' || echo "")
+        HOOK_FILES=$(echo "$RELEVANT" | grep -E '(^|/)hooks\.json$' || echo "")
         CONFIG_FILES=$(echo "$RELEVANT" | grep -E '(^|/)CLAUDE\.md$|(^|/)\.claude/' || echo "")
 
         {
@@ -101,7 +101,7 @@ runs:
 
     - name: Validate plugin structure
       id: structure
-      if: steps.changed-files.outputs.changed_plugins != ''
+      if: steps.changed-files.outputs.changed_plugins != '' && hashFiles('.claude-plugin/marketplace.json') != ''
       continue-on-error: true
       shell: bash
       env:
@@ -116,7 +116,7 @@ runs:
 
     - name: Validate marketplace.json
       id: marketplace
-      if: steps.changed-files.outputs.changed_plugins != ''
+      if: steps.changed-files.outputs.changed_plugins != '' && hashFiles('.claude-plugin/marketplace.json') != ''
       continue-on-error: true
       shell: bash
       env:
@@ -131,7 +131,7 @@ runs:
 
     - name: Validate version bump
       id: version-bump
-      if: steps.changed-files.outputs.has_components == 'true' && steps.changed-files.outputs.changed_plugins != ''
+      if: steps.changed-files.outputs.has_components == 'true' && steps.changed-files.outputs.changed_plugins != '' && hashFiles('.claude-plugin/marketplace.json') != ''
       continue-on-error: true
       shell: bash
       env:

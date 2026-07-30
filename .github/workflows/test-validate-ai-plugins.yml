@@ -62,7 +62,7 @@ jobs:
           if [[ -n "${BASE_REF:-}" ]]; then
             git fetch origin "$BASE_REF"
             CHANGED=$(git diff --name-only "origin/$BASE_REF...HEAD")
-            if echo "$CHANGED" | grep -qE '(^|/)agents/.*\.md$|(^|/)skills/.*/SKILL\.md$|(^|/)commands/.*\.md$|hooks\.json$|(^|/)CLAUDE\.md$|(^|/)\.claude/'; then
+            if echo "$CHANGED" | grep -qE '(^|/)agents/.*\.md$|(^|/)skills/.*/SKILL\.md$|(^|/)commands/.*\.md$|(^|/)hooks\.json$|(^|/)CLAUDE\.md$|(^|/)\.claude/'; then
               HAS_COMPONENT=true
             fi
           fi

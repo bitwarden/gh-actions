@@ -1,0 +1,127 @@
+name: Test Validate Plugins Workflow
+
+on:
+  pull_request:
+    paths:
+      - "run-ai-plugin-validation/**"
+      - ".github/workflows/_validate-plugins.yml"
+      - ".github/workflows/test-validate-plugins.yml"
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to test validation on (optional, will use event PR if not provided)"
+        required: false
+        default: ""
+
+permissions: {}
+
+jobs:
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      pr_number: ${{ steps.detect.outputs.pr_number }}
+      timestamp: ${{ steps.detect.outputs.timestamp }}
+      has_component: ${{ steps.detect.outputs.has_component }}
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Determine PR and expected outcome
+        id: detect
+        env:
+          INPUT_PR: ${{ inputs.pr_number }}
+          EVENT_PR: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+
+          if [[ -n "${INPUT_PR:-}" ]]; then
+            PR_NUMBER="$INPUT_PR"
+          elif [[ -n "${EVENT_PR:-}" ]]; then
+            PR_NUMBER="$EVENT_PR"
+          else
+            echo "pr_number=" >> "$GITHUB_OUTPUT"
+            echo "timestamp=" >> "$GITHUB_OUTPUT"
+            echo "has_component=false" >> "$GITHUB_OUTPUT"
+            echo "⚠️ No PR context available - skipping validation test"
+            exit 0
+          fi
+
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+          # Mirror the action's change detection so we only require a validation
+          # comment when the PR actually changes a Claude component.
+          HAS_COMPONENT=false
+          if [[ -n "${BASE_REF:-}" ]]; then
+            git fetch origin "$BASE_REF"
+            CHANGED=$(git diff --name-only "origin/$BASE_REF...HEAD")
+            if echo "$CHANGED" | grep -qE '(^|/)agents/.*\.md$|(^|/)skills/.*/SKILL\.md$|(^|/)commands/.*\.md$|hooks\.json$|(^|/)CLAUDE\.md$|(^|/)\.claude/'; then
+              HAS_COMPONENT=true
+            fi
+          fi
+          echo "has_component=$HAS_COMPONENT" >> "$GITHUB_OUTPUT"
+          echo "PR #$PR_NUMBER, component change in diff: $HAS_COMPONENT"
+
+  test-validate:
+    name: Test validate
+    needs: prepare
+    if: needs.prepare.outputs.pr_number != ''
+    uses: ./.github/workflows/_validate-plugins.yml
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      pull-requests: write
+    secrets:
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+
+  verify:
+    name: Verify
+    needs:
+      - prepare
+      - test-validate
+    if: needs.prepare.outputs.pr_number != ''
+    runs-on: ubuntu-24.04
+    permissions:
+      pull-requests: read
+    steps:
+      - name: Check for validation comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ needs.prepare.outputs.pr_number }}
+          TIMESTAMP: ${{ needs.prepare.outputs.timestamp }}
+          HAS_COMPONENT: ${{ needs.prepare.outputs.has_component }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$HAS_COMPONENT" != "true" ]]; then
+            echo "✅ Verify: PR #$PR_NUMBER changed no Claude component; validation correctly did not post a comment."
+            exit 0
+          fi
+
+          # The action upserts a sticky comment carrying this hidden marker.
+          MARKER="<!-- bitwarden-plugin-validation -->"
+          UPDATED_AT=$(gh api "repos/$GH_REPO/issues/$PR_NUMBER/comments" \
+            --jq "[.[] | select(.body | contains(\"$MARKER\")) | .updated_at] | max // empty")
+
+          if [[ -z "$UPDATED_AT" ]]; then
+            echo "::error::No validation comment found on PR #$PR_NUMBER"
+            exit 1
+          fi
+
+          if [[ "$UPDATED_AT" > "$TIMESTAMP" ]]; then
+            echo "✅ Verify: validation comment on PR #$PR_NUMBER updated at $UPDATED_AT (after $TIMESTAMP)"
+          else
+            echo "::error::Validation comment on PR #$PR_NUMBER was not updated after $TIMESTAMP (last update: $UPDATED_AT)"
+            exit 1
+          fi

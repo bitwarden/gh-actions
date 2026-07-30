@@ -1,0 +1,131 @@
+# Validate AI Plugins
+
+Validates Claude Code plugin and configuration changes on a pull request using Claude Code with Bitwarden plugins.
+
+It detects changed Claude-related files (plugin directories, `.claude-plugin/` and `.claude/` config, `CLAUDE.md`, agents, skills, commands, and hooks), runs the `plugin-dev` and `claude-config-validator` plugins against them, and posts the results to a sticky PR comment. When a pull request touches a `plugins/` directory, the bundled structure, marketplace, and version-bump scripts also run against the checkout; on repositories with no `plugins/` directory those steps have nothing to check and are skipped.
+
+The validation scripts live in [`scripts/`](scripts/) and are bundled with the action — this action directory is their sole source of truth, so callers do not need to vendor anything.
+
+## Inputs
+
+- Required
+  - azure_subscription_id
+    - Description: Azure Subscription ID for OIDC authentication.
+    - Example:
+      ```
+      azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ```
+  - azure_tenant_id
+    - Description: Azure Tenant ID for OIDC authentication.
+    - Example:
+      ```
+      azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+      ```
+  - azure_client_id
+    - Description: Azure Client ID for OIDC authentication.
+    - Example:
+      ```
+      azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+      ```
+  - pr_number
+    - Description: Pull request number to validate.
+    - Example:
+      ```
+      pr_number: ${{ github.event.pull_request.number }}
+      ```
+  - repository
+    - Description: Repository in `owner/repo` format.
+    - Example:
+      ```
+      repository: ${{ github.repository }}
+      ```
+  - checkout_ref
+    - Description: Git ref to check out (typically the PR head SHA).
+    - Example:
+      ```
+      checkout_ref: ${{ github.event.pull_request.head.sha }}
+      ```
+  - base_ref
+    - Description: Base branch to diff against for change detection (typically the PR base ref).
+    - Example:
+      ```
+      base_ref: ${{ github.base_ref }}
+      ```
+  - github_token
+    - Description: GitHub token for API access.
+    - Example:
+      ```
+      github_token: ${{ secrets.GITHUB_TOKEN }}
+      ```
+
+## Required Permissions
+
+This action requires the `id-token: write` permission to obtain an OIDC token for Azure authentication, and `pull-requests: write` to manage the sticky validation comment.
+
+## Usage
+
+Most repositories should call the reusable workflow rather than the action directly. See [Reusable Workflow](#reusable-workflow) below.
+
+### Job Snippet
+
+```
+      - name: Validate AI Plugins
+        uses: bitwarden/gh-actions/run-ai-plugin-validation@main
+        with:
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+          pr_number: ${{ github.event.pull_request.number }}
+          repository: ${{ github.repository }}
+          checkout_ref: ${{ github.event.pull_request.head.sha }}
+          base_ref: ${{ github.base_ref }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+## Reusable Workflow
+
+`bitwarden/gh-actions/.github/workflows/_validate-plugins.yml` wraps this action with a permission gate. Add a caller workflow to any repository:
+
+```yaml
+name: Validate Plugins
+
+on:
+  pull_request:
+
+permissions: {}
+
+jobs:
+  validate:
+    name: Validate Plugins
+    uses: bitwarden/gh-actions/.github/workflows/_validate-plugins.yml@main
+    secrets:
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+```
+
+The action no-ops when a pull request changes no Claude-related files, so it is safe to run on every PR.
+
+## Validation Steps
+
+| Step                             | Runs when                                                                | Fails the job |
+| -------------------------------- | ------------------------------------------------------------------------ | ------------- |
+| Plugin structure                 | A `plugins/` directory changed                                           | Yes           |
+| Marketplace                      | A `plugins/` directory changed                                           | Yes           |
+| Version bump                     | Component files changed inside a `plugins/` directory                    | Yes           |
+| Component & security (AI-driven) | Any agent, skill, command, hook, `CLAUDE.md`, or `.claude/` file changed | Yes           |
+
+The structure, marketplace, and version-bump steps run the bundled scripts against the caller's checkout (via `REPO_ROOT`). They only trigger when a `plugins/` directory changes, so they are no-ops for ordinary repositories that keep Claude config under `.claude/`. The AI-driven validation runs in any repository.
+
+## Bundled Scripts
+
+[`scripts/`](scripts/) is the sole source for the marketplace validation logic:
+
+- `validate-plugin-structure.sh` — plugin directory layout and required files
+- `validate-marketplace.sh` — `.claude-plugin/marketplace.json` consistency
+- `validate-version-bump.sh` — enforces a version bump + changelog entry when components change
+- `bump-plugin-version.sh` — developer helper to bump a plugin version across all files
+- `lib/path-sanitization.sh` — shared path-sanitization helpers
+- `README.md` — full script documentation
+
+Each script derives `REPO_ROOT` from its own location for standalone use but honors a `REPO_ROOT` environment override, which is how the action points them at the checkout being validated.

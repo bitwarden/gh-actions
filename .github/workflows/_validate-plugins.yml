@@ -1,0 +1,52 @@
+name: Validate Plugins
+
+on:
+  workflow_call:
+    secrets:
+      AZURE_SUBSCRIPTION_ID:
+        required: true
+      AZURE_TENANT_ID:
+        required: true
+      AZURE_CLIENT_ID:
+        required: true
+
+concurrency:
+  group: ${{ github.repository }}-${{ github.workflow }}-${{ github.event.pull_request.number || github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  check-permission:
+    name: Check permission
+    uses: bitwarden/gh-actions/.github/workflows/_check-permission.yml@main
+    with:
+      failure_mode: "skip"
+      require_permission: "write"
+    permissions:
+      contents: read
+
+  validate:
+    name: Validate
+    runs-on: ubuntu-24.04
+    needs: check-permission
+    if: needs.check-permission.outputs.should_proceed == 'true'
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      pull-requests: write
+
+    steps:
+      - name: Run plugin validation
+        uses: bitwarden/gh-actions/run-ai-plugin-validation@main
+        with:
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+          pr_number: ${{ github.event.pull_request.number }}
+          repository: ${{ github.repository }}
+          checkout_ref: ${{ github.event.pull_request.head.sha }}
+          base_ref: ${{ github.base_ref }}
+          github_token: ${{ github.token }}

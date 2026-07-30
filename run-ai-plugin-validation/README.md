@@ -2,7 +2,7 @@
 
 Validates Claude Code plugin and configuration changes on a pull request using Claude Code with Bitwarden plugins.
 
-It detects changed Claude-related files (plugin directories, `.claude-plugin/` and `.claude/` config, `CLAUDE.md`, agents, skills, commands, and hooks), runs the `plugin-dev` and `claude-config-validator` plugins against them, and posts the results to a sticky PR comment. When a pull request touches a `plugins/` directory, the bundled structure, marketplace, and version-bump scripts also run against the checkout; on repositories with no `plugins/` directory those steps have nothing to check and are skipped.
+It detects changed Claude-related files (plugin directories, `.claude-plugin/` and `.claude/` config, `CLAUDE.md`, agents, skills, commands, and hooks), runs the `plugin-dev` and `claude-config-validator` plugins against them, and posts the results to a sticky PR comment. In a plugin marketplace repository (one with a `.claude-plugin/marketplace.json`), a pull request that touches a `plugins/` directory also runs the bundled structure, marketplace, and version-bump scripts against the checkout. Repositories without that manifest skip those steps.
 
 The validation scripts live in [`scripts/`](scripts/) and are bundled with the action — this action directory is their sole source of truth, so callers do not need to vendor anything.
 

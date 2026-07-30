@@ -16,12 +16,6 @@
   ],
   "packageRules": [
     {
-      "matchManagers": ["github-actions"],
-      "matchDepNames": ["anthropics/claude-code-action"],
-      "matchUpdateTypes": ["patch"],
-      "dependencyDashboardApproval": false
-    },
-    {
       "additionalBranchPrefix": "{{parentDir}}-",
       "commitMessagePrefix": "[deps] {{parentDir}}:",
       "groupName": "minor",
@@ -33,6 +27,13 @@
         "pipenv"
       ],
       "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "matchDepNames": ["anthropics/claude-code-action"],
+      "matchUpdateTypes": ["patch"],
+      "groupName": null,
+      "dependencyDashboardApproval": false
     }
   ],
   "regexManagers": [

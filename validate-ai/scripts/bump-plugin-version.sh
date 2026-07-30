@@ -211,7 +211,9 @@ if [ -d "$AGENT_DIR" ]; then
             if sed -i.bak "/^---$/,/^---$/ s/^version: .*/version: $NEW_VERSION/" "$agent_file"; then
                 rm -f "$agent_file.bak"
                 print_success "Updated $agent_file"
-                ((AGENT_COUNT++))
+                # Use an assignment (always exit 0) rather than ((AGENT_COUNT++)),
+                # whose value is 0 on the first bump and would abort under set -e.
+                AGENT_COUNT=$((AGENT_COUNT + 1))
             else
                 print_error "Failed to update $agent_file"
                 rm -f "$agent_file.bak"

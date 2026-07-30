@@ -7,5 +7,5 @@ carries Claude config without being a plugin marketplace.
 
 Editing any file under `.claude/` here makes the action's change detection treat
 the pull request as a Claude-related change, which triggers the AI-driven review.
-Nothing here is loaded as real config; the nested path keeps it out of the way of
-Claude Code's own `.claude/` lookup.
+Claude Code discovers this nested `.claude/` as directory-scoped skills and agents
+whenever someone works under `dot-claude/`, so keep the fixture content inert.

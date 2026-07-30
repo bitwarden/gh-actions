@@ -1,4 +1,4 @@
-name: Validate Plugins
+name: Validate AI Plugins
 
 on:
   workflow_call:

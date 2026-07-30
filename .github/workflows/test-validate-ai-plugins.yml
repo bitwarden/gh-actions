@@ -1,11 +1,11 @@
-name: Test Validate Plugins Workflow
+name: Test Validate AI Plugins Workflow
 
 on:
   pull_request:
     paths:
       - "run-ai-plugin-validation/**"
-      - ".github/workflows/_validate-plugins.yml"
-      - ".github/workflows/test-validate-plugins.yml"
+      - ".github/workflows/_validate-ai-plugins.yml"
+      - ".github/workflows/test-validate-ai-plugins.yml"
   workflow_dispatch:
     inputs:
       pr_number:
@@ -73,7 +73,7 @@ jobs:
     name: Test validate
     needs: prepare
     if: needs.prepare.outputs.pr_number != ''
-    uses: ./.github/workflows/_validate-plugins.yml
+    uses: ./.github/workflows/_validate-ai-plugins.yml
     permissions:
       actions: read
       contents: read

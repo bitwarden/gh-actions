@@ -84,10 +84,10 @@ Most repositories should call the reusable workflow rather than the action direc
 
 ## Reusable Workflow
 
-`bitwarden/gh-actions/.github/workflows/_validate-plugins.yml` wraps this action with a permission gate. Add a caller workflow to any repository:
+`bitwarden/gh-actions/.github/workflows/_validate-ai-plugins.yml` wraps this action with a permission gate. Add a caller workflow to any repository:
 
 ```yaml
-name: Validate Plugins
+name: Validate AI Plugins
 
 on:
   pull_request:
@@ -96,8 +96,8 @@ permissions: {}
 
 jobs:
   validate:
-    name: Validate Plugins
-    uses: bitwarden/gh-actions/.github/workflows/_validate-plugins.yml@main
+    name: Validate AI Plugins
+    uses: bitwarden/gh-actions/.github/workflows/_validate-ai-plugins.yml@main
     secrets:
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}

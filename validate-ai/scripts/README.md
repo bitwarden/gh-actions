@@ -2,7 +2,9 @@
 
 Validation and maintenance scripts for Claude Code plugin **marketplace** repositories, such as [`bitwarden/ai-plugins`](https://github.com/bitwarden/ai-plugins).
 
-These scripts are bundled with the [`validate-ai`](../) action and live here as their single source of truth. The `validate-*` scripts run automatically in CI when a marketplace pull request touches a `plugins/` directory; `bump-plugin-version.sh` is a local helper for marketplace maintainers.
+These are the plugin-marketplace piece of the [`validate-ai`](../) action. That action reviews any repository's Claude Code material (`.claude/` config, skills, agents, commands, hooks, and `CLAUDE.md`), and most of that review is AI-driven; see the [action README](../README.md). The scripts here cover the part that is deterministic instead of AI-driven: the structure and consistency checks for a plugin marketplace. They are bundled with the action and live here as their single source of truth.
+
+The `validate-*` scripts run in CI only for a marketplace repository (one with a `.claude-plugin/marketplace.json`). `bump-plugin-version.sh` is a local helper for marketplace maintainers.
 
 ## Table of Contents
 
@@ -18,7 +20,7 @@ These scripts are bundled with the [`validate-ai`](../) action and live here as 
 
 ## How these scripts run
 
-**In CI (automatic).** The `validate-ai` action checks out the pull request and runs `validate-plugin-structure.sh`, `validate-marketplace.sh`, and `validate-version-bump.sh` against it. The action sets `REPO_ROOT` to the checked-out repository, so the scripts inspect the caller's plugins rather than their own directory — nothing needs to be copied into the marketplace repository.
+**In CI (automatic).** For a plugin marketplace repository, the `validate-ai` action runs `validate-plugin-structure.sh`, `validate-marketplace.sh`, and `validate-version-bump.sh` against the pull request. It detects a marketplace by the presence of a `.claude-plugin/marketplace.json`, so a repo that only carries a `.claude/` directory never runs these scripts; it gets the AI-driven review instead. The action sets `REPO_ROOT` to the checked-out repository so the scripts inspect the caller's plugins rather than their own directory, and it scopes version-bump enforcement to the plugins that actually had a component change.
 
 **Locally.** Each script defaults `REPO_ROOT` to the parent of this `scripts/` directory but honors a `REPO_ROOT` override, so you can point it at a marketplace checkout from anywhere:
 
@@ -452,12 +454,13 @@ Based on research into Claude Code plugin validation and best practices:
 
 ## Contributing
 
-These scripts live in [`bitwarden/gh-actions`](https://github.com/bitwarden/gh-actions), bundled with the `validate-ai` action — this is their sole source. When modifying them:
+These scripts live in [`bitwarden/gh-actions`](https://github.com/bitwarden/gh-actions), bundled with the `validate-ai` action; this is their sole source. When modifying them:
 
 1. Test locally against a marketplace checkout (see [How these scripts run](#how-these-scripts-run)) before committing
 2. Document any new validation checks in this README
 3. Keep the action in sync if you add, rename, or remove a check
-4. Follow existing patterns for consistency
-5. Consider backwards compatibility for the marketplace repositories that depend on these checks
+4. Add coverage to the `test-scripts` job in [`test-validate-ai.yml`](../../.github/workflows/test-validate-ai.yml), which runs these validators against [`tests/fixtures/marketplace/`](../tests/fixtures/marketplace/) with positive and negative cases
+5. Follow existing patterns for consistency
+6. Consider backwards compatibility for the marketplace repositories that depend on these checks
 
 For how the checks are wired into CI, see the [action README](../README.md).

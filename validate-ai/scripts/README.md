@@ -1,10 +1,8 @@
-# Plugin Marketplace Validation Scripts
+# validate-ai scripts
 
-Validation and maintenance scripts for Claude Code plugin **marketplace** repositories, such as [`bitwarden/ai-plugins`](https://github.com/bitwarden/ai-plugins).
+The [`validate-ai`](../) action reviews the Claude Code material in a pull request for any repository, not only plugin marketplaces. A repo with its own `.claude/` directory (skills, agents, commands, hooks, settings) and `CLAUDE.md` is reviewed the same way a marketplace of plugins is. Most of that review is AI-driven and uses no scripts; see the [action README](../README.md) for the full picture.
 
-These are the plugin-marketplace piece of the [`validate-ai`](../) action. That action reviews any repository's Claude Code material (`.claude/` config, skills, agents, commands, hooks, and `CLAUDE.md`), and most of that review is AI-driven; see the [action README](../README.md). The scripts here cover the part that is deterministic instead of AI-driven: the structure and consistency checks for a plugin marketplace. They are bundled with the action and live here as their single source of truth.
-
-The `validate-*` scripts run in CI only for a marketplace repository (one with a `.claude-plugin/marketplace.json`). `bump-plugin-version.sh` is a local helper for marketplace maintainers.
+This directory holds the one deterministic part: the structure and consistency checks for a plugin **marketplace** repository, such as [`bitwarden/ai-plugins`](https://github.com/bitwarden/ai-plugins). These scripts run only when the repo is a marketplace (it has a `.claude-plugin/marketplace.json`); a repo that just carries a `.claude/` directory never runs them and gets the AI-driven review instead. They are bundled with the action and live here as their single source of truth, and `bump-plugin-version.sh` is a local helper for marketplace maintainers.
 
 ## Table of Contents
 

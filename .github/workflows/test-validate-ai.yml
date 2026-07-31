@@ -182,4 +182,15 @@ jobs:
           echo "correctly rejected"
           echo "::endgroup::"
 
+          echo "::group::Negative: a manifest-only change is caught by the no-args full scan"
+          # Mirrors the action gating a manifest-only PR straight to a full scan.
+          TMP4=$(mktemp -d); cp -R "$FIXTURE/." "$TMP4/"
+          jq '.plugins[0].version="9.9.9"' "$TMP4/.claude-plugin/marketplace.json" > "$TMP4/mj"
+          mv "$TMP4/mj" "$TMP4/.claude-plugin/marketplace.json"
+          if REPO_ROOT="$TMP4" bash validate-ai/scripts/validate-marketplace.sh; then
+            echo "::error::full marketplace scan passed with a version mismatch"; exit 1
+          fi
+          echo "correctly failed"
+          echo "::endgroup::"
+
           echo "✅ All bundled validator checks behaved as expected"

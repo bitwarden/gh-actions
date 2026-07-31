@@ -77,6 +77,11 @@ runs:
         # does not force a version bump on that plugin.
         COMPONENT_PLUGINS=$(printf '%s\n' "$AGENT_FILES" "$SKILL_FILES" "$COMMAND_FILES" "$HOOK_FILES" | grep '^plugins/' | cut -d/ -f1-2 | sort -u | tr '\n' ' ' | sed 's/ $//' || echo "")
 
+        # Root marketplace manifest change. Marketplace validation must run for a
+        # manifest-only edit (version, description, removed entry) even when no
+        # plugins/ file changed, so this gates the marketplace step on its own.
+        MARKETPLACE_CHANGED=$(echo "$RELEVANT" | grep -E '^\.claude-plugin/' || echo "")
+
         {
           echo "changed_files<<EOF"
           echo "$RELEVANT"
@@ -98,6 +103,7 @@ runs:
           echo "$CONFIG_FILES"
           echo "EOF"
           echo "component_plugins=$COMPONENT_PLUGINS"
+          echo "marketplace_changed=$MARKETPLACE_CHANGED"
         } >> "$GITHUB_OUTPUT"
 
         if [[ -n "$AGENT_FILES" ]] || [[ -n "$SKILL_FILES" ]] || [[ -n "$COMMAND_FILES" ]] || [[ -n "$HOOK_FILES" ]] || [[ -n "$CONFIG_FILES" ]]; then
@@ -123,7 +129,7 @@ runs:
 
     - name: Validate marketplace.json
       id: marketplace
-      if: steps.changed-files.outputs.changed_plugins != '' && hashFiles('.claude-plugin/marketplace.json') != ''
+      if: (steps.changed-files.outputs.changed_plugins != '' || steps.changed-files.outputs.marketplace_changed != '') && hashFiles('.claude-plugin/marketplace.json') != ''
       continue-on-error: true
       shell: bash
       env:
@@ -132,8 +138,12 @@ runs:
         ACTION_PATH: ${{ github.action_path }}
       run: |
         set -o pipefail
-        echo "Validating marketplace entries for changed plugins: $CHANGED_PLUGINS"
         read -ra PLUGINS_ARRAY <<< "$CHANGED_PLUGINS"
+        if [[ "${#PLUGINS_ARRAY[@]}" -gt 0 ]]; then
+          echo "Validating marketplace entries for changed plugins: $CHANGED_PLUGINS"
+        else
+          echo "Marketplace manifest changed with no plugin directory change; running a full marketplace scan"
+        fi
         bash "$ACTION_PATH/scripts/validate-marketplace.sh" "${PLUGINS_ARRAY[@]}" 2>&1 | tee /tmp/marketplace-validation.log
 
     - name: Validate version bump

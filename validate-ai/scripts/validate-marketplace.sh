@@ -324,6 +324,7 @@ main() {
     local target_plugins=()
     if [[ $# -gt 0 ]]; then
         # Arguments provided - extract plugin names
+        local unresolved=0
         for arg in "$@"; do
             # Use shared sanitization function to safely parse plugin path
             local sanitized_path
@@ -332,6 +333,8 @@ main() {
                 local plugin_name
                 plugin_name=$(basename "$sanitized_path")
                 target_plugins+=("$plugin_name")
+            else
+                unresolved=1
             fi
         done
 
@@ -340,11 +343,13 @@ main() {
             array_from_lines target_plugins < <(printf '%s\n' "${target_plugins[@]}" | sort -u)
         fi
 
-        if [[ "${#target_plugins[@]}" -eq 0 ]]; then
-            # Arguments referenced no existing plugin directory (e.g. a plugin was
-            # removed in this PR). Fall through to a full scan so a now-dangling
-            # marketplace.json entry or stale README catalog row is still caught.
-            echo -e "${YELLOW}⚠️ No existing plugin directories in arguments — running a full marketplace scan${RESET}"
+        if [[ $unresolved -eq 1 ]]; then
+            # An argument referenced no existing plugin directory (e.g. a plugin
+            # was removed in this PR). Fall through to a full scan so a now-dangling
+            # marketplace.json entry or stale README catalog row is still caught,
+            # even when other requested plugins survive.
+            echo -e "${YELLOW}⚠️ An argument referenced no existing plugin directory — running a full marketplace scan${RESET}"
+            target_plugins=()
         fi
     fi
 

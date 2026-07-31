@@ -202,6 +202,20 @@ jobs:
           echo "correctly failed"
           echo "::endgroup::"
 
+          echo "::group::Negative: a mixed PR (one plugin removed, one surviving) still catches the dangling entry"
+          # Register a second plugin whose directory does not exist, then request
+          # both the surviving and the removed plugin. Any unresolved argument must
+          # trigger the full scan rather than a partial targeted one.
+          TMP6=$(mktemp -d); cp -R "$FIXTURE/." "$TMP6/"
+          jq '.plugins += [{"name":"other","source":"./plugins/other","description":"x","version":"1.0.0"}]' \
+            "$TMP6/.claude-plugin/marketplace.json" > "$TMP6/mj"
+          mv "$TMP6/mj" "$TMP6/.claude-plugin/marketplace.json"
+          if REPO_ROOT="$TMP6" bash validate-ai/scripts/validate-marketplace.sh example-plugin other; then
+            echo "::error::marketplace passed with a dangling entry for a removed plugin"; exit 1
+          fi
+          echo "correctly failed"
+          echo "::endgroup::"
+
           echo "::group::version-bump: honors REPO_ROOT via git -C, flags a missing bump, accepts a real one"
           # A git repo the version-bump script diffs against, pointed at by REPO_ROOT
           # while the script is invoked from this checkout (the documented override).

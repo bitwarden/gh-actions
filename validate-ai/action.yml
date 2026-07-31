@@ -1,0 +1,417 @@
+name: "Validate AI"
+description: "Reviews Claude Code material (.claude config, skills, agents, commands, hooks, CLAUDE.md, and plugins) using bundled structure checks and Claude Code with Bitwarden plugins"
+inputs:
+  azure_subscription_id:
+    description: "Azure Subscription ID for OIDC authentication"
+    required: true
+  azure_tenant_id:
+    description: "Azure Tenant ID for OIDC authentication"
+    required: true
+  azure_client_id:
+    description: "Azure Client ID for OIDC authentication"
+    required: true
+  pr_number:
+    description: "Pull request number to validate"
+    required: true
+  repository:
+    description: "Repository in owner/repo format"
+    required: true
+  checkout_ref:
+    description: "Git ref to check out (typically the PR head SHA)"
+    required: true
+  base_ref:
+    description: "Base branch to diff against for change detection (typically the PR base ref)"
+    required: true
+  github_token:
+    description: "GitHub token for API access"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check out repo
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        fetch-depth: 0
+        ref: ${{ inputs.checkout_ref }}
+        persist-credentials: true
+
+    - name: Detect changed Claude files
+      id: changed-files
+      shell: bash
+      env:
+        BASE_REF: ${{ inputs.base_ref }}
+      run: |
+        git fetch origin "$BASE_REF"
+        CHANGED_FILES=$(git diff --name-only "origin/$BASE_REF...HEAD")
+
+        # Claude-related files: plugin directories, plugin/marketplace manifests,
+        # per-repo .claude config, CLAUDE.md guidance, and the validation scripts.
+        RELEVANT=$(echo "$CHANGED_FILES" | grep -E '(^plugins/|(^|/)\.claude-plugin/|(^|/)\.claude/|(^|/)CLAUDE\.md$|(^|/)agents/.*\.md$|(^|/)skills/.*/SKILL\.md$|(^|/)commands/.*\.md$|(^|/)hooks\.json$|^scripts/validate-)' || echo "")
+
+        if [[ -z "$RELEVANT" ]]; then
+          echo "should_run=false" >> "$GITHUB_OUTPUT"
+          echo "has_components=false" >> "$GITHUB_OUTPUT"
+          echo "changed_plugins=" >> "$GITHUB_OUTPUT"
+          echo "No Claude-related files changed — skipping validation."
+          exit 0
+        fi
+        echo "should_run=true" >> "$GITHUB_OUTPUT"
+        echo "Relevant Claude files changed:"
+        echo "$RELEVANT"
+
+        # Unique plugin directories (marketplace repos keep plugins under plugins/<name>/).
+        CHANGED_PLUGINS=$(echo "$CHANGED_FILES" | grep '^plugins/' | cut -d/ -f1-2 | sort -u | tr '\n' ' ' | sed 's/ $//' || echo "")
+
+        # Component files drive the AI-driven validation. Agent files appear both as
+        # agents/<name>/AGENT.md and as agents/<name>.md, so match any .md under agents/.
+        AGENT_FILES=$(echo "$RELEVANT" | grep -E '(^|/)agents/.*\.md$' || echo "")
+        SKILL_FILES=$(echo "$RELEVANT" | grep -E '(^|/)skills/.*/SKILL\.md$' || echo "")
+        COMMAND_FILES=$(echo "$RELEVANT" | grep -E '(^|/)commands/.*\.md$' || echo "")
+        HOOK_FILES=$(echo "$RELEVANT" | grep -E '(^|/)hooks\.json$' || echo "")
+        CONFIG_FILES=$(echo "$RELEVANT" | grep -E '(^|/)CLAUDE\.md$|(^|/)\.claude/' || echo "")
+
+        # Plugin directories that had an actual component change (agents, skills,
+        # commands, hooks). Version-bump enforcement applies only to these, not to
+        # every touched plugin directory, so a docs-only edit under plugins/<name>
+        # does not force a version bump on that plugin.
+        COMPONENT_PLUGINS=$(printf '%s\n' "$AGENT_FILES" "$SKILL_FILES" "$COMMAND_FILES" "$HOOK_FILES" | grep '^plugins/' | cut -d/ -f1-2 | sort -u | tr '\n' ' ' | sed 's/ $//' || echo "")
+
+        # Root marketplace manifest change. Marketplace validation must run for a
+        # manifest-only edit (version, description, removed entry) even when no
+        # plugins/ file changed, so this gates the marketplace step on its own.
+        # Keep it a single-line boolean; a multi-line value would break the
+        # key=value GITHUB_OUTPUT write below.
+        if echo "$RELEVANT" | grep -qE '^\.claude-plugin/'; then
+          MARKETPLACE_CHANGED=true
+        else
+          MARKETPLACE_CHANGED=""
+        fi
+
+        {
+          echo "changed_files<<EOF"
+          echo "$RELEVANT"
+          echo "EOF"
+          echo "changed_plugins=$CHANGED_PLUGINS"
+          echo "agent_files<<EOF"
+          echo "$AGENT_FILES"
+          echo "EOF"
+          echo "skill_files<<EOF"
+          echo "$SKILL_FILES"
+          echo "EOF"
+          echo "command_files<<EOF"
+          echo "$COMMAND_FILES"
+          echo "EOF"
+          echo "hook_files<<EOF"
+          echo "$HOOK_FILES"
+          echo "EOF"
+          echo "config_files<<EOF"
+          echo "$CONFIG_FILES"
+          echo "EOF"
+          echo "component_plugins=$COMPONENT_PLUGINS"
+          echo "marketplace_changed=$MARKETPLACE_CHANGED"
+        } >> "$GITHUB_OUTPUT"
+
+        if [[ -n "$AGENT_FILES" ]] || [[ -n "$SKILL_FILES" ]] || [[ -n "$COMMAND_FILES" ]] || [[ -n "$HOOK_FILES" ]] || [[ -n "$CONFIG_FILES" ]]; then
+          echo "has_components=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "has_components=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Validate plugin structure
+      id: structure
+      if: steps.changed-files.outputs.changed_plugins != '' && hashFiles('.claude-plugin/marketplace.json') != ''
+      continue-on-error: true
+      shell: bash
+      env:
+        CHANGED_PLUGINS: ${{ steps.changed-files.outputs.changed_plugins }}
+        REPO_ROOT: ${{ github.workspace }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        set -o pipefail
+        echo "Validating changed plugins: $CHANGED_PLUGINS"
+        read -ra PLUGINS_ARRAY <<< "$CHANGED_PLUGINS"
+        bash "$ACTION_PATH/scripts/validate-plugin-structure.sh" "${PLUGINS_ARRAY[@]}" 2>&1 | tee /tmp/structure-validation.log
+
+    - name: Validate marketplace.json
+      id: marketplace
+      if: (steps.changed-files.outputs.changed_plugins != '' || steps.changed-files.outputs.marketplace_changed != '') && hashFiles('.claude-plugin/marketplace.json') != ''
+      continue-on-error: true
+      shell: bash
+      env:
+        CHANGED_PLUGINS: ${{ steps.changed-files.outputs.changed_plugins }}
+        REPO_ROOT: ${{ github.workspace }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        set -o pipefail
+        read -ra PLUGINS_ARRAY <<< "$CHANGED_PLUGINS"
+        if [[ "${#PLUGINS_ARRAY[@]}" -gt 0 ]]; then
+          echo "Validating marketplace entries for changed plugins: $CHANGED_PLUGINS"
+        else
+          echo "Marketplace manifest changed with no plugin directory change; running a full marketplace scan"
+        fi
+        bash "$ACTION_PATH/scripts/validate-marketplace.sh" "${PLUGINS_ARRAY[@]}" 2>&1 | tee /tmp/marketplace-validation.log
+
+    - name: Validate version bump
+      id: version-bump
+      if: steps.changed-files.outputs.component_plugins != '' && hashFiles('.claude-plugin/marketplace.json') != ''
+      continue-on-error: true
+      shell: bash
+      env:
+        BASE_REF: ${{ inputs.base_ref }}
+        COMPONENT_PLUGINS: ${{ steps.changed-files.outputs.component_plugins }}
+        REPO_ROOT: ${{ github.workspace }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        set -o pipefail
+        git fetch origin "$BASE_REF"
+        echo "Checking version bumps for plugins with component changes: $COMPONENT_PLUGINS"
+        read -ra PLUGINS_ARRAY <<< "$COMPONENT_PLUGINS"
+        bash "$ACTION_PATH/scripts/validate-version-bump.sh" "origin/$BASE_REF" "${PLUGINS_ARRAY[@]}" 2>&1 | tee /tmp/version-bump-validation.log
+
+    - name: Log in to Azure
+      if: steps.changed-files.outputs.has_components == 'true'
+      uses: bitwarden/gh-actions/azure-login@main
+      with:
+        subscription_id: ${{ inputs.azure_subscription_id }}
+        tenant_id: ${{ inputs.azure_tenant_id }}
+        client_id: ${{ inputs.azure_client_id }}
+
+    - name: Get Azure Key Vault secrets
+      id: get-kv-secrets
+      if: steps.changed-files.outputs.has_components == 'true'
+      uses: bitwarden/gh-actions/get-keyvault-secrets@main
+      with:
+        keyvault: gh-org-bitwarden
+        secrets: "ANTHROPIC-CODE-REVIEW-API-KEY"
+
+    - name: Log out from Azure
+      if: steps.changed-files.outputs.has_components == 'true'
+      uses: bitwarden/gh-actions/azure-logout@main
+
+    - name: Create PR comment placeholder
+      id: create-comment
+      if: steps.changed-files.outputs.has_components == 'true'
+      uses: bitwarden/gh-actions/update-pr-comment@main
+      with:
+        token: ${{ inputs.github_token }}
+        pr_number: ${{ inputs.pr_number }}
+        repository: ${{ inputs.repository }}
+        marker_id: bitwarden-ai-validation
+        body: |
+          **Claude Code** is reviewing the changed Claude configuration...
+
+          If this comment does not update with results, check the [Actions log](${{ github.server_url }}/${{ inputs.repository }}/actions/runs/${{ github.run_id }}).
+
+    - name: Review Claude configuration and plugins
+      id: components
+      if: steps.changed-files.outputs.has_components == 'true'
+      continue-on-error: true
+      uses: anthropics/claude-code-action@be7b93b1907a4abad570368f3c74b6fe3807510b # v1.0.183
+      with:
+        anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-CODE-REVIEW-API-KEY }}
+        plugin_marketplaces: |
+          https://github.com/anthropics/claude-code.git
+          https://github.com/bitwarden/ai-plugins.git
+        plugins: |
+          plugin-dev@claude-code-plugins
+          claude-config-validator@bitwarden-marketplace
+        claude_args: |
+          --verbose
+          --model opus
+          --allowedTools "Task,Skill,Read,Write,Grep,Glob"
+        prompt: |
+          REPO: ${{ inputs.repository }}
+          PR NUMBER: ${{ inputs.pr_number }}
+          STICKY COMMENT ID: ${{ steps.create-comment.outputs.comment_id }}
+
+          You are reviewing the Claude Code material that changed in this pull
+          request. That may be a plugin marketplace, or it may just be a repo's
+          own `.claude/` directory (skills, agents, commands, hooks, settings)
+          and `CLAUDE.md`. Not every section below applies to every repo — use
+          the skip guidance in each. You have access to two plugins, plugin-dev
+          and claude-config-validator; use their agents and skills as directed.
+
+          # RULES
+
+          1. The repository is already checked out at the PR head.
+          2. You can read files directly to inspect the changed Claude files.
+          3. When your review is complete, write your final report in markdown
+             format to /tmp/validation-summary.md. This file will be used to update
+             the sticky PR comment automatically. Do not attempt to post PR comments
+             yourself.
+
+          Changed files:
+          ${{ steps.changed-files.outputs.changed_files }}
+
+          Changed plugins:
+          ${{ steps.changed-files.outputs.changed_plugins }}
+
+          Agent files changed:
+          ${{ steps.changed-files.outputs.agent_files }}
+
+          Skill files changed:
+          ${{ steps.changed-files.outputs.skill_files }}
+
+          Command files changed:
+          ${{ steps.changed-files.outputs.command_files }}
+
+          Hook files changed:
+          ${{ steps.changed-files.outputs.hook_files }}
+
+          Config files changed (CLAUDE.md, .claude/):
+          ${{ steps.changed-files.outputs.config_files }}
+
+          Perform the following validations in order:
+
+          ## 1. Plugin Validation (plugin-validator agent from plugin-dev)
+
+          For each changed plugin listed above, validate the plugin structure.
+          This triggers the plugin-validator agent which performs comprehensive checks:
+          - plugin.json manifest correctness (name, version, required fields)
+          - Directory structure and auto-discovery compliance
+          - Command frontmatter (description, argument-hint, allowed-tools)
+          - Agent frontmatter (name 3-50 chars lowercase hyphens, description with <example> blocks, valid model/color, system prompt >20 chars)
+          - Hooks JSON schema, event names, and ${CLAUDE_PLUGIN_ROOT} usage in script paths
+          - MCP server configurations (valid types, HTTPS/WSS enforcement)
+          - File organization (README.md presence, no unnecessary files)
+          - No hardcoded credentials in any plugin files
+
+          Run this for every changed plugin directory even if only some component types changed.
+          Skip this step if no plugin directories changed (component-only or config-only repos).
+
+          ## 2. Skill Review (skill-reviewer agent from plugin-dev)
+
+          If any SKILL.md files were changed (listed above), review each modified skill.
+          This triggers the skill-reviewer agent which evaluates:
+          - SKILL.md YAML frontmatter (required: name, description)
+          - Description quality: specific trigger phrases, third-person form, appropriate length
+          - Content quality: word count (target 1,000-3,000 words), imperative/infinitive writing style
+          - Progressive disclosure: core SKILL.md is lean, details in references/, examples in examples/, scripts in scripts/
+          - All referenced files actually exist
+          - Anti-patterns: vague triggers, bloated SKILL.md, missing examples
+
+          Skip this step if no SKILL.md files were changed.
+
+          ## 3. Configuration & Security Review (claude-config-validator plugin)
+
+          This is the primary review for a repo's own `.claude/` directory and
+          `CLAUDE.md`, and it also applies to plugin repos. For every changed
+          Claude file listed above (CLAUDE.md, and anything under `.claude/`:
+          skills, agents, commands, hooks, and settings), use the
+          reviewing-claude-config skill from the claude-config-validator plugin to
+          review structure and security:
+          - Scan for committed secrets (API keys, tokens, passwords)
+          - Check for hardcoded credentials in code
+          - Validate permission scoping in settings files
+          - Detect dangerous command auto-approvals
+          - Identify overly broad file access permissions
+          - Flag malformed or non-compliant agent, command, and hook definitions
+
+          ## Output Requirements
+
+          Write your final report to /tmp/validation-summary.md as a single
+          structured markdown document:
+          - Categorize issues by severity: critical, major, minor
+          - Include the exact file path and line for each issue
+          - Provide specific remediation guidance for each violation
+          - Distinguish errors (must fix) from warnings (should fix)
+          - If all checks pass, confirm with a summary of what was validated
+
+          The report must be written to /tmp/validation-summary.md even when
+          all checks pass — the sticky PR comment is replaced with its contents.
+
+    - name: Update PR comment with validation summary
+      if: always() && steps.changed-files.outputs.has_components == 'true' && steps.create-comment.outputs.comment_id != ''
+      uses: bitwarden/gh-actions/update-pr-comment@main
+      with:
+        token: ${{ inputs.github_token }}
+        pr_number: ${{ inputs.pr_number }}
+        repository: ${{ inputs.repository }}
+        marker_id: bitwarden-ai-validation
+        comment_id: ${{ steps.create-comment.outputs.comment_id }}
+        body_file: /tmp/validation-summary.md
+
+    - name: Summary
+      if: always()
+      shell: bash
+      env:
+        SHOULD_RUN: ${{ steps.changed-files.outputs.should_run }}
+        STRUCTURE_RESULT: ${{ steps.structure.outcome }}
+        MARKETPLACE_RESULT: ${{ steps.marketplace.outcome }}
+        VERSION_BUMP_RESULT: ${{ steps.version-bump.outcome }}
+        COMPONENTS_RESULT: ${{ steps.components.outcome }}
+        HAS_COMPONENTS: ${{ steps.changed-files.outputs.has_components }}
+        CHANGED_PLUGINS: ${{ steps.changed-files.outputs.changed_plugins }}
+      run: |
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "📊 Validation Summary"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+
+        if [[ "$SHOULD_RUN" != "true" ]]; then
+          echo "✅ No Claude-related files changed — validation not required."
+          exit 0
+        fi
+
+        # An empty outcome means the step was gated out (script absent or nothing to validate).
+        echo "Plugin structure validation: ${STRUCTURE_RESULT:-skipped}"
+        echo "Marketplace validation: ${MARKETPLACE_RESULT:-skipped}"
+        echo "Version bump validation: ${VERSION_BUMP_RESULT:-skipped}"
+        echo "Component & security validation (AI-driven): ${COMPONENTS_RESULT:-skipped}"
+        echo ""
+
+        if [[ -f /tmp/structure-validation.log ]] && [[ "$STRUCTURE_RESULT" == "failure" ]]; then
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📋 Plugin Structure Validation Details:"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          cat /tmp/structure-validation.log
+          echo ""
+        fi
+
+        if [[ -f /tmp/marketplace-validation.log ]] && [[ "$MARKETPLACE_RESULT" == "failure" ]]; then
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📋 Marketplace Validation Details:"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          cat /tmp/marketplace-validation.log
+          echo ""
+        fi
+
+        if [[ -f /tmp/version-bump-validation.log ]] && [[ "$VERSION_BUMP_RESULT" == "failure" ]]; then
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📋 Version Bump Validation Details:"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          cat /tmp/version-bump-validation.log
+          echo ""
+        fi
+
+        if [[ "$COMPONENTS_RESULT" == "failure" ]]; then
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📋 Component & Security Validation Details:"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "See the sticky PR comment for detailed validation feedback from:"
+          echo "  - plugin-dev (component validation)"
+          echo "  - claude-config-validator (security validation)"
+          echo ""
+        fi
+
+        FAILED=false
+        for RESULT in "$STRUCTURE_RESULT" "$MARKETPLACE_RESULT" "$VERSION_BUMP_RESULT" "$COMPONENTS_RESULT"; do
+          if [[ "$RESULT" == "failure" ]]; then
+            FAILED=true
+          fi
+        done
+
+        if [[ "$FAILED" == "true" ]]; then
+          echo "❌ Validation failed. Please review the errors above."
+          echo ""
+          echo "For more information on plugin requirements:"
+          echo "  🔗 https://docs.claude.com/en/docs/claude-code/plugins-reference"
+          exit 1
+        else
+          echo "✅ All validation checks passed!"
+          echo ""
+          echo "For more information on plugin requirements:"
+          echo "  🔗 https://docs.claude.com/en/docs/claude-code/plugins-reference"
+        fi

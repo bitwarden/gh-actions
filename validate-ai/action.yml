@@ -80,7 +80,13 @@ runs:
         # Root marketplace manifest change. Marketplace validation must run for a
         # manifest-only edit (version, description, removed entry) even when no
         # plugins/ file changed, so this gates the marketplace step on its own.
-        MARKETPLACE_CHANGED=$(echo "$RELEVANT" | grep -E '^\.claude-plugin/' || echo "")
+        # Keep it a single-line boolean; a multi-line value would break the
+        # key=value GITHUB_OUTPUT write below.
+        if echo "$RELEVANT" | grep -qE '^\.claude-plugin/'; then
+          MARKETPLACE_CHANGED=true
+        else
+          MARKETPLACE_CHANGED=""
+        fi
 
         {
           echo "changed_files<<EOF"

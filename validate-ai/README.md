@@ -108,12 +108,12 @@ The action no-ops when a pull request changes no Claude-related files, so it is 
 
 ## Validation Steps
 
-| Step                             | Runs when                                                                           | Fails the job |
-| -------------------------------- | ----------------------------------------------------------------------------------- | ------------- |
-| Plugin structure                 | A `plugins/` directory changed and the repo has a `.claude-plugin/marketplace.json` | Yes           |
-| Marketplace                      | A `plugins/` directory changed and the repo has a `.claude-plugin/marketplace.json` | Yes           |
-| Version bump                     | Component files changed inside `plugins/` and the repo has a `marketplace.json`     | Yes           |
-| Component & security (AI-driven) | Any agent, skill, command, hook, `CLAUDE.md`, or `.claude/` file changed            | Yes           |
+| Step                             | Runs when                                                                                                                   | Fails the job |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| Plugin structure                 | A `plugins/` directory changed and the repo has a `.claude-plugin/marketplace.json`                                         | Yes           |
+| Marketplace                      | A `plugins/` directory or the root `.claude-plugin/` manifest changed, and the repo has a `.claude-plugin/marketplace.json` | Yes           |
+| Version bump                     | Component files changed inside `plugins/` and the repo has a `marketplace.json`                                             | Yes           |
+| Component & security (AI-driven) | Any agent, skill, command, hook, `CLAUDE.md`, or `.claude/` file changed                                                    | Yes           |
 
 The structure, marketplace, and version-bump steps run the bundled scripts against the caller's checkout (via `REPO_ROOT`). They only trigger in a plugin marketplace repository, which the action detects by the presence of a `.claude-plugin/marketplace.json`. A repo that has an unrelated top-level `plugins/` directory but no marketplace manifest never runs them, so it won't hit spurious failures. The AI-driven validation runs in any repository.
 

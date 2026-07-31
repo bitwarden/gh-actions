@@ -193,4 +193,31 @@ jobs:
           echo "correctly failed"
           echo "::endgroup::"
 
+          echo "::group::version-bump: honors REPO_ROOT via git -C, flags a missing bump, accepts a real one"
+          # A git repo the version-bump script diffs against, pointed at by REPO_ROOT
+          # while the script is invoked from this checkout (the documented override).
+          GITDIR=$(mktemp -d); cp -R "$FIXTURE/." "$GITDIR/"
+          git="git -C $GITDIR -c user.email=ci@example.com -c user.name=ci"
+          $git init -q -b main
+          $git add -A
+          $git commit -qm "base"
+          BASE=$($git rev-parse HEAD)
+
+          # Change a component without bumping version or CHANGELOG -> must fail
+          printf '\nextra line\n' >> "$GITDIR/plugins/example-plugin/agents/example-agent/AGENT.md"
+          $git commit -qam "touch agent, no bump"
+          if REPO_ROOT="$GITDIR" bash validate-ai/scripts/validate-version-bump.sh "$BASE" example-plugin; then
+            echo "::error::version-bump passed despite no version bump"; exit 1
+          fi
+          echo "correctly failed"
+
+          # Bump the version and update the CHANGELOG -> must pass
+          jq '.version="1.0.1"' "$GITDIR/plugins/example-plugin/.claude-plugin/plugin.json" > "$GITDIR/pj"
+          mv "$GITDIR/pj" "$GITDIR/plugins/example-plugin/.claude-plugin/plugin.json"
+          printf '\n## [1.0.1]\n\n### Changed\n\n- Bump.\n' >> "$GITDIR/plugins/example-plugin/CHANGELOG.md"
+          $git commit -qam "bump to 1.0.1"
+          REPO_ROOT="$GITDIR" bash validate-ai/scripts/validate-version-bump.sh "$BASE" example-plugin
+          echo "correctly passed"
+          echo "::endgroup::"
+
           echo "✅ All bundled validator checks behaved as expected"

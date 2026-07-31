@@ -72,9 +72,10 @@ get_version_at_ref() {
     local plugin_name="$2"
     local plugin_json_path="plugins/$plugin_name/.claude-plugin/plugin.json"
 
-    # Try to read the file at the given ref
+    # Try to read the file at the given ref. Run git against REPO_ROOT so the
+    # documented override works when the script is invoked from another checkout.
     local content
-    if content=$(git show "$ref:$plugin_json_path" 2>/dev/null); then
+    if content=$(git -C "$REPO_ROOT" show "$ref:$plugin_json_path" 2>/dev/null); then
         echo "$content" | jq -r '.version // empty' 2>/dev/null
     fi
 }
@@ -90,7 +91,7 @@ changelog_was_modified() {
     local plugin_name="$2"
     local changelog_path="plugins/$plugin_name/CHANGELOG.md"
 
-    git diff --name-only "$base_ref...HEAD" -- "$changelog_path" | grep -q .
+    git -C "$REPO_ROOT" diff --name-only "$base_ref...HEAD" -- "$changelog_path" | grep -q .
 }
 
 # Function to compare semver strings
@@ -190,7 +191,7 @@ main() {
     shift
 
     # Validate base ref exists
-    if ! git rev-parse --verify "$base_ref" >/dev/null 2>&1; then
+    if ! git -C "$REPO_ROOT" rev-parse --verify "$base_ref" >/dev/null 2>&1; then
         echo -e "${RED}❌ Invalid base ref: $base_ref${RESET}"
         exit 1
     fi

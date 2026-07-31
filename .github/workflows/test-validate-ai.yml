@@ -193,6 +193,15 @@ jobs:
           echo "correctly failed"
           echo "::endgroup::"
 
+          echo "::group::Negative: a plugin directory missing from the manifest fails the targeted scan"
+          TMP5=$(mktemp -d); cp -R "$FIXTURE/." "$TMP5/"
+          cp -R "$TMP5/plugins/example-plugin" "$TMP5/plugins/newthing"
+          if REPO_ROOT="$TMP5" bash validate-ai/scripts/validate-marketplace.sh newthing; then
+            echo "::error::marketplace passed for a plugin absent from marketplace.json"; exit 1
+          fi
+          echo "correctly failed"
+          echo "::endgroup::"
+
           echo "::group::version-bump: honors REPO_ROOT via git -C, flags a missing bump, accepts a real one"
           # A git repo the version-bump script diffs against, pointed at by REPO_ROOT
           # while the script is invoked from this checkout (the documented override).

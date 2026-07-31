@@ -117,6 +117,8 @@ The action no-ops when a pull request changes no Claude-related files, so it is 
 
 The structure, marketplace, and version-bump steps run the bundled scripts against the caller's checkout (via `REPO_ROOT`). They only trigger in a plugin marketplace repository, which the action detects by the presence of a `.claude-plugin/marketplace.json`. A repo that has an unrelated top-level `plugins/` directory but no marketplace manifest never runs them, so it won't hit spurious failures. The AI-driven validation runs in any repository.
 
+The AI-driven step and its sticky PR comment fire only when a component changed (an agent, skill, command, hook, `CLAUDE.md`, or a `.claude/` file). A pull request that touches only a plugin's `plugin.json` or `README.md`, or only the marketplace manifest, is still validated by the bundled scripts, but the outcome shows up in the job log and the check status rather than in a PR comment.
+
 ## Bundled Scripts
 
 [`scripts/`](scripts/) is the sole source for the marketplace validation logic:

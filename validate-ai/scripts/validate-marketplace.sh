@@ -466,6 +466,12 @@ main() {
                         has_errors=1
                     fi
                 fi
+            else
+                # The plugin directory exists (it passed sanitize_plugin_path) but
+                # has no marketplace.json entry. Mirror of the removal case: a new
+                # plugin added without registering it must not pass silently.
+                print_error "Plugin '$target_plugin' exists in 'plugins/' but is not listed in marketplace.json"
+                has_errors=1
             fi
         done
 

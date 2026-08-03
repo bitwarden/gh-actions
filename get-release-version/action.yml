@@ -17,6 +17,10 @@ inputs:
     description: "Identifies the monorepo project: ('', 'browser', 'cli', 'desktop', 'web')"
     required: false
     default: ""
+  prerelease:
+    description: "Filter by release type: 'false' (default) = latest stable release, 'true' = latest pre-release, '' = most recent regardless (legacy). 'true'/'false' exclude drafts."
+    required: false
+    default: "false"
 outputs:
   version:
     description: "GitHub Latest Release version from specified repository"
@@ -31,10 +35,16 @@ runs:
         INPUT_TRIM: ${{ inputs.trim }}
         INPUT_MONOREPO: ${{ inputs.monorepo }}
         INPUT_MONOREPO_PROJECT: ${{ inputs.monorepo-project }}
+        INPUT_PRERELEASE: ${{ inputs.prerelease }}
       run: |
         trim_valid_inputs=("true" "false")
         if [[ ! "${trim_valid_inputs[@]}" =~ "${INPUT_TRIM}" ]]; then
           echo "[!] 'trim' option only supports the following values: (${trim_valid_inputs})"
+          exit 1
+        fi
+        prerelease_valid_inputs=("" "true" "false")
+        if [[ ! "${prerelease_valid_inputs[@]}" =~ "${INPUT_PRERELEASE}" ]]; then
+          echo "[!] 'prerelease' option only supports the following values: ('', 'true', 'false')"
           exit 1
         fi
         monorepo_valid_inputs=("true" "false")
@@ -71,18 +81,28 @@ runs:
         INPUT_TRIM: ${{ inputs.trim }}
         INPUT_MONOREPO: ${{ inputs.monorepo }}
         INPUT_MONOREPO_PROJECT: ${{ inputs.monorepo-project }}
+        INPUT_PRERELEASE: ${{ inputs.prerelease }}
       run: |
+        # Optional release-type filter
+        case "${INPUT_PRERELEASE}" in
+            "true")  SELECT='select(.isPrerelease and (.isDraft | not))' ;;
+            "false") SELECT='select((.isPrerelease | not) and (.isDraft | not))' ;;
+            *)       SELECT='.' ;;
+          esac
+
         case "${INPUT_MONOREPO}" in
             "true")
               LATEST_RELEASE_TAG_VERSION=$(
                 gh release list --repo "$REPOSITORY" --limit 100 --order desc \
-                  --json tagName --jq "[.[].tagName | select(startswith(\"$INPUT_MONOREPO_PROJECT\"))][0]"
+                  --json tagName,isPrerelease,isDraft \
+                  --jq "[.[] | select(.tagName | startswith(\"$INPUT_MONOREPO_PROJECT\")) | $SELECT | .tagName][0] // \"\""
               )
               ;;
             "false")
               LATEST_RELEASE_TAG_VERSION=$(
-                gh release list --repo "$REPOSITORY" --limit 1 \
-                  --json tagName --jq '.[0].tagName'
+                gh release list --repo "$REPOSITORY" --limit 100 --order desc \
+                  --json tagName,isPrerelease,isDraft \
+                  --jq "[.[] | $SELECT | .tagName][0] // \"\""
               )
               ;;
           esac

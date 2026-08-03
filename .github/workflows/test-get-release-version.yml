@@ -97,6 +97,24 @@ jobs:
           monorepo: "true"
           monorepo-project: web
 
+      - name: Non-monorepo, prerelease=false
+        id: non_monorepo_stable
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/server
+          prerelease: "false"
+
+      - name: Monorepo desktop, prerelease=false
+        id: monorepo_desktop_stable
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/clients
+          monorepo: "true"
+          monorepo-project: desktop
+          prerelease: "false"
+
       ### Invalid cases ###
 
       - name: Invalid trim value
@@ -106,6 +124,14 @@ jobs:
         with:
           repository: bitwarden/server
           trim: "maybe"
+
+      - name: Invalid prerelease value
+        id: invalid_prerelease
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/server
+          prerelease: "maybe"
 
       - name: Invalid monorepo value
         id: invalid_monorepo
@@ -152,7 +178,12 @@ jobs:
           MONOREPO_WEB_NO_TRIM_VERSION: ${{ steps.monorepo_web_no_trim.outputs.version }}
           MONOREPO_WEB_TRIM_OUTCOME: ${{ steps.monorepo_web_trim.outcome }}
           MONOREPO_WEB_TRIM_VERSION: ${{ steps.monorepo_web_trim.outputs.version }}
+          NON_MONOREPO_STABLE_OUTCOME: ${{ steps.non_monorepo_stable.outcome }}
+          NON_MONOREPO_STABLE_VERSION: ${{ steps.non_monorepo_stable.outputs.version }}
+          MONOREPO_DESKTOP_STABLE_OUTCOME: ${{ steps.monorepo_desktop_stable.outcome }}
+          MONOREPO_DESKTOP_STABLE_VERSION: ${{ steps.monorepo_desktop_stable.outputs.version }}
           INVALID_TRIM_OUTCOME: ${{ steps.invalid_trim.outcome }}
+          INVALID_PRERELEASE_OUTCOME: ${{ steps.invalid_prerelease.outcome }}
           INVALID_MONOREPO_OUTCOME: ${{ steps.invalid_monorepo.outcome }}
           MONOREPO_NO_PROJECT_OUTCOME: ${{ steps.monorepo_no_project.outcome }}
           INVALID_MONOREPO_PROJECT_OUTCOME: ${{ steps.invalid_monorepo_project.outcome }}
@@ -199,8 +230,11 @@ jobs:
           assert_success "Monorepo desktop, trim=false" "$MONOREPO_DESKTOP_OUTCOME"         "$MONOREPO_DESKTOP_VERSION"         '^desktop-v[0-9]+\.[0-9]+\.[0-9]+'
           assert_success "Monorepo web, trim=false"    "$MONOREPO_WEB_NO_TRIM_OUTCOME"     "$MONOREPO_WEB_NO_TRIM_VERSION"     '^web-v[0-9]+\.[0-9]+\.[0-9]+'
           assert_success "Monorepo web, trim=true"     "$MONOREPO_WEB_TRIM_OUTCOME"        "$MONOREPO_WEB_TRIM_VERSION"        '^[0-9]+\.[0-9]+\.[0-9]+'
+          assert_success "Non-monorepo, prerelease=false"     "$NON_MONOREPO_STABLE_OUTCOME"     "$NON_MONOREPO_STABLE_VERSION"     '^v[0-9]+\.[0-9]+\.[0-9]+'
+          assert_success "Monorepo desktop, prerelease=false" "$MONOREPO_DESKTOP_STABLE_OUTCOME" "$MONOREPO_DESKTOP_STABLE_VERSION" '^desktop-v[0-9]+\.[0-9]+\.[0-9]+'
 
           assert_failure "Invalid trim value"                "$INVALID_TRIM_OUTCOME"
+          assert_failure "Invalid prerelease value"          "$INVALID_PRERELEASE_OUTCOME"
           assert_failure "Invalid monorepo value"            "$INVALID_MONOREPO_OUTCOME"
           assert_failure "Monorepo=true without project"     "$MONOREPO_NO_PROJECT_OUTCOME"
           assert_failure "Invalid monorepo-project value"    "$INVALID_MONOREPO_PROJECT_OUTCOME"

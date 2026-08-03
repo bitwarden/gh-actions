@@ -216,6 +216,12 @@ runs:
         plugins: |
           plugin-dev@claude-code-plugins
           claude-config-validator@bitwarden-marketplace
+        # Bash is granted broadly here rather than scoped to command prefixes
+        # (as run-code-review does) because the plugin-dev plugin-validator agent
+        # shells out to an open-ended, upstream-owned set of inspection commands
+        # that we cannot reliably enumerate; a tight allowlist would break the
+        # review whenever that plugin changes. The write-permission gate in
+        # _validate-ai.yml keeps this to trusted actors.
         claude_args: |
           --verbose
           --model opus
@@ -322,6 +328,7 @@ runs:
           all checks pass — the sticky PR comment is replaced with its contents.
 
     - name: Ensure a validation summary exists
+      id: ensure-summary
       if: always() && steps.changed-files.outputs.has_components == 'true' && steps.create-comment.outputs.comment_id != ''
       shell: bash
       env:
@@ -332,8 +339,10 @@ runs:
       run: |
         # Claude writes the summary itself. If it errored or ended without one,
         # write a fallback so the sticky comment reflects the failure instead of
-        # being left on the "reviewing..." placeholder.
+        # being left on the "reviewing..." placeholder, and flag it so the Summary
+        # step fails the check (a review that did not run must not pass green).
         if [[ ! -s /tmp/validation-summary.md ]]; then
+          echo "summary_missing=true" >> "$GITHUB_OUTPUT"
           {
             echo "### Claude Code validation did not complete"
             echo ""
@@ -363,6 +372,7 @@ runs:
         MARKETPLACE_RESULT: ${{ steps.marketplace.outcome }}
         VERSION_BUMP_RESULT: ${{ steps.version-bump.outcome }}
         COMPONENTS_RESULT: ${{ steps.components.outcome }}
+        SUMMARY_MISSING: ${{ steps.ensure-summary.outputs.summary_missing }}
         HAS_COMPONENTS: ${{ steps.changed-files.outputs.has_components }}
         CHANGED_PLUGINS: ${{ steps.changed-files.outputs.changed_plugins }}
       run: |
@@ -418,12 +428,23 @@ runs:
           echo ""
         fi
 
+        # The AI step can exit 0 without producing a report (e.g. permission
+        # denials or an early exit). Treat a missing summary as a failure so the
+        # check never goes green on a review that did not actually run.
+        if [[ "$SUMMARY_MISSING" == "true" ]]; then
+          echo "AI-driven review produced no summary; a fallback was posted to the PR comment."
+          echo ""
+        fi
+
         FAILED=false
         for RESULT in "$STRUCTURE_RESULT" "$MARKETPLACE_RESULT" "$VERSION_BUMP_RESULT" "$COMPONENTS_RESULT"; do
           if [[ "$RESULT" == "failure" ]]; then
             FAILED=true
           fi
         done
+        if [[ "$SUMMARY_MISSING" == "true" ]]; then
+          FAILED=true
+        fi
 
         if [[ "$FAILED" == "true" ]]; then
           echo "❌ Validation failed. Please review the errors above."

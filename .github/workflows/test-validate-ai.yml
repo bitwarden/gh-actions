@@ -120,7 +120,11 @@ jobs:
           fi
 
           # The placeholder is posted before Claude runs, so its updated_at alone
-          # would pass. Require that it was replaced with the actual summary.
+          # would pass. Require that it was replaced with the actual summary. This
+          # asserts the happy path (a summary was produced and posted). The
+          # "no summary at all" case is owned by the action: it sets
+          # summary_missing and fails the check, which fails test-validate and
+          # skips this job, so there is no fallback comment to assert here.
           if jq -e '.body | contains("is reviewing the changed Claude configuration")' <<< "$LATEST" >/dev/null; then
             echo "::error::Validation comment on PR #$PR_NUMBER still shows the placeholder — no summary was written"
             exit 1

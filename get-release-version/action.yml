@@ -20,7 +20,7 @@ inputs:
   prerelease:
     description: "Filter by release type: 'false' (default) = latest stable release, 'true' = latest pre-release, '' = most recent regardless (legacy). 'true'/'false' exclude drafts."
     required: false
-    default: "false"
+    default: ""
 outputs:
   version:
     description: "GitHub Latest Release version from specified repository"

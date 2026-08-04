@@ -1,7 +1,14 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["github>bitwarden/renovate-config"],
-  "enabledManagers": ["dockerfile", "github-actions", "npm", "nuget", "pipenv", "regex"],
+  "enabledManagers": [
+    "dockerfile",
+    "github-actions",
+    "npm",
+    "nuget",
+    "pipenv",
+    "regex"
+  ],
   "ignorePaths": [
     "release-version-check/tests/fixtures/**",
     "version-bump/tests/fixtures/**",
@@ -20,6 +27,13 @@
         "pipenv"
       ],
       "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "matchDepNames": ["anthropics/claude-code-action"],
+      "matchUpdateTypes": ["patch"],
+      "groupName": null,
+      "dependencyDashboardApproval": false
     }
   ],
   "regexManagers": [

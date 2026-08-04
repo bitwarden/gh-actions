@@ -1,0 +1,144 @@
+name: Test SDLC / Auto Label PR action
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to test against (required for matching tests)"
+        required: false
+  pull_request:
+    paths:
+      - "auto-label-pr-sdlc/**"
+      - ".github/workflows/test-auto-label-pr-sdlc.yml"
+
+permissions: {}
+
+jobs:
+  test-add-mode:
+    name: Test add mode (dry-run, should succeed)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Run auto-label-pr-sdlc (add mode, dry-run)
+        uses: ./auto-label-pr-sdlc
+        with:
+          pr-number: ${{ github.event.pull_request.number || inputs.pr_number }}
+          pr-labels: "[]"
+          mode: add
+          dry-run: "true"
+          config-path: auto-label-pr-sdlc/tests/fixtures/label-pr.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  test-replace-mode:
+    name: Test replace mode preserves non-type labels (dry-run, should succeed)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Run auto-label-pr-sdlc (replace mode, dry-run)
+        uses: ./auto-label-pr-sdlc
+        with:
+          pr-number: ${{ github.event.pull_request.number || inputs.pr_number }}
+          pr-labels: '[{"name":"hold"},{"name":"t:bug"}]'
+          mode: replace
+          dry-run: "true"
+          config-path: auto-label-pr-sdlc/tests/fixtures/label-pr.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  test-invalid-pr-number:
+    name: Test invalid PR number (should fail)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Run auto-label-pr-sdlc (invalid PR number)
+        uses: ./auto-label-pr-sdlc
+        with:
+          pr-number: not-a-number
+          pr-labels: "[]"
+          dry-run: "true"
+          config-path: auto-label-pr-sdlc/tests/fixtures/label-pr.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  test-path-traversal:
+    name: Test config path traversal blocked (should fail)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Run auto-label-pr-sdlc (path traversal config)
+        uses: ./auto-label-pr-sdlc
+        with:
+          pr-number: "1"
+          pr-labels: "[]"
+          dry-run: "true"
+          config-path: ../../../etc/passwd
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  validate:
+    name: Validate Test Results
+    runs-on: ubuntu-24.04
+    needs:
+      - test-add-mode
+      - test-replace-mode
+      - test-invalid-pr-number
+      - test-path-traversal
+    if: always()
+    permissions:
+      contents: read
+    env:
+      _ADD_MODE: ${{ needs.test-add-mode.result }}
+      _REPLACE_MODE: ${{ needs.test-replace-mode.result }}
+      _INVALID_PR_NUMBER: ${{ needs.test-invalid-pr-number.result }}
+      _PATH_TRAVERSAL: ${{ needs.test-path-traversal.result }}
+    steps:
+      - name: Validate results
+        run: |
+          failed=false
+
+          check_result() {
+            local name="$1"
+            local result="$2"
+            local expected="$3"
+            if [[ "$result" == "$expected" ]]; then
+              echo "✅ [$name] correctly got [$result]" | tee -a $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ [$name] expected [$expected] but got [$result]" | tee -a $GITHUB_STEP_SUMMARY
+              failed=true
+            fi
+          }
+
+          check_result "test-add-mode"          "$_ADD_MODE"          "success"
+          check_result "test-replace-mode"      "$_REPLACE_MODE"      "success"
+          check_result "test-invalid-pr-number" "$_INVALID_PR_NUMBER" "failure"
+          check_result "test-path-traversal"    "$_PATH_TRAVERSAL"    "failure"
+
+          if [[ "$failed" == "true" ]]; then
+            echo "❌ One or more test results were unexpected. See above for details." | tee -a $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          echo "✅ All test results are as expected." | tee -a $GITHUB_STEP_SUMMARY

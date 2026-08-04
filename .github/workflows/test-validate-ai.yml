@@ -1,0 +1,250 @@
+name: Test Validate AI Workflow
+
+on:
+  pull_request:
+    paths:
+      - "validate-ai/**"
+      - ".github/workflows/_validate-ai.yml"
+      - ".github/workflows/test-validate-ai.yml"
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to test validation on (optional, will use event PR if not provided)"
+        required: false
+        default: ""
+
+permissions: {}
+
+jobs:
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      pr_number: ${{ steps.detect.outputs.pr_number }}
+      timestamp: ${{ steps.detect.outputs.timestamp }}
+      has_component: ${{ steps.detect.outputs.has_component }}
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Determine PR and expected outcome
+        id: detect
+        env:
+          INPUT_PR: ${{ inputs.pr_number }}
+          EVENT_PR: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+
+          if [[ -n "${INPUT_PR:-}" ]]; then
+            PR_NUMBER="$INPUT_PR"
+          elif [[ -n "${EVENT_PR:-}" ]]; then
+            PR_NUMBER="$EVENT_PR"
+          else
+            echo "pr_number=" >> "$GITHUB_OUTPUT"
+            echo "timestamp=" >> "$GITHUB_OUTPUT"
+            echo "has_component=false" >> "$GITHUB_OUTPUT"
+            echo "⚠️ No PR context available - skipping validation test"
+            exit 0
+          fi
+
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+          # Mirror the action's change detection so we only require a validation
+          # comment when the PR actually changes a Claude component.
+          HAS_COMPONENT=false
+          if [[ -n "${BASE_REF:-}" ]]; then
+            git fetch origin "$BASE_REF"
+            CHANGED=$(git diff --name-only "origin/$BASE_REF...HEAD")
+            if echo "$CHANGED" | grep -qE '(^|/)agents/.*\.md$|(^|/)skills/.*/SKILL\.md$|(^|/)commands/.*\.md$|(^|/)hooks\.json$|(^|/)CLAUDE\.md$|(^|/)\.claude/'; then
+              HAS_COMPONENT=true
+            fi
+          fi
+          echo "has_component=$HAS_COMPONENT" >> "$GITHUB_OUTPUT"
+          echo "PR #$PR_NUMBER, component change in diff: $HAS_COMPONENT"
+
+  test-validate:
+    name: Test validate
+    needs: prepare
+    if: needs.prepare.outputs.pr_number != ''
+    uses: ./.github/workflows/_validate-ai.yml
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      pull-requests: write
+    secrets:
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+
+  verify:
+    name: Verify
+    needs:
+      - prepare
+      - test-validate
+    if: needs.prepare.outputs.pr_number != ''
+    runs-on: ubuntu-24.04
+    permissions:
+      pull-requests: read
+    steps:
+      - name: Check for validation comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ needs.prepare.outputs.pr_number }}
+          TIMESTAMP: ${{ needs.prepare.outputs.timestamp }}
+          HAS_COMPONENT: ${{ needs.prepare.outputs.has_component }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$HAS_COMPONENT" != "true" ]]; then
+            echo "✅ Verify: PR #$PR_NUMBER changed no Claude component; validation correctly did not post a comment."
+            exit 0
+          fi
+
+          # The action upserts a sticky comment carrying this hidden marker.
+          MARKER="<!-- bitwarden-ai-validation -->"
+          LATEST=$(gh api "repos/$GH_REPO/issues/$PR_NUMBER/comments" \
+            --jq "[.[] | select(.body | contains(\"$MARKER\"))] | sort_by(.updated_at) | last // empty")
+
+          if [[ -z "$LATEST" ]]; then
+            echo "::error::No validation comment found on PR #$PR_NUMBER"
+            exit 1
+          fi
+
+          # The placeholder is posted before Claude runs, so its updated_at alone
+          # would pass. Require that it was replaced with the actual summary. This
+          # asserts the happy path (a summary was produced and posted). The
+          # "no summary at all" case is owned by the action: it sets
+          # summary_missing and fails the check, which fails test-validate and
+          # skips this job, so there is no fallback comment to assert here.
+          if jq -e '.body | contains("is reviewing the changed Claude configuration")' <<< "$LATEST" >/dev/null; then
+            echo "::error::Validation comment on PR #$PR_NUMBER still shows the placeholder — no summary was written"
+            exit 1
+          fi
+
+          UPDATED_AT=$(jq -r '.updated_at' <<< "$LATEST")
+          if [[ "$UPDATED_AT" > "$TIMESTAMP" ]]; then
+            echo "✅ Verify: validation summary on PR #$PR_NUMBER posted at $UPDATED_AT (after $TIMESTAMP)"
+          else
+            echo "::error::Validation comment on PR #$PR_NUMBER was not updated after $TIMESTAMP (last update: $UPDATED_AT)"
+            exit 1
+          fi
+
+  test-scripts:
+    name: Test scripts
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Run bundled validators against the fixture marketplace
+        env:
+          FIXTURE: ${{ github.workspace }}/validate-ai/tests/fixtures/marketplace
+        run: |
+          set -euo pipefail
+
+          structure() { REPO_ROOT="$1" bash validate-ai/scripts/validate-plugin-structure.sh example-plugin; }
+          marketplace() { REPO_ROOT="$1" bash validate-ai/scripts/validate-marketplace.sh example-plugin; }
+
+          echo "::group::Positive: the valid fixture marketplace passes"
+          structure "$FIXTURE"
+          marketplace "$FIXTURE"
+          echo "::endgroup::"
+
+          echo "::group::Negative: a missing CHANGELOG fails structure validation"
+          TMP=$(mktemp -d); cp -R "$FIXTURE/." "$TMP/"
+          rm "$TMP/plugins/example-plugin/CHANGELOG.md"
+          if structure "$TMP"; then echo "::error::structure passed with a missing CHANGELOG"; exit 1; fi
+          echo "correctly failed"
+          echo "::endgroup::"
+
+          echo "::group::Negative: a version mismatch fails marketplace validation"
+          TMP2=$(mktemp -d); cp -R "$FIXTURE/." "$TMP2/"
+          jq '.plugins[0].version="9.9.9"' "$TMP2/.claude-plugin/marketplace.json" > "$TMP2/mj"
+          mv "$TMP2/mj" "$TMP2/.claude-plugin/marketplace.json"
+          if marketplace "$TMP2"; then echo "::error::marketplace passed with a version mismatch"; exit 1; fi
+          echo "correctly failed"
+          echo "::endgroup::"
+
+          echo "::group::Negative: a path-traversal source is rejected"
+          TMP3=$(mktemp -d); cp -R "$FIXTURE/." "$TMP3/"
+          jq '.plugins[0].source="./plugins/../../etc"' "$TMP3/.claude-plugin/marketplace.json" > "$TMP3/mj"
+          mv "$TMP3/mj" "$TMP3/.claude-plugin/marketplace.json"
+          if marketplace "$TMP3"; then echo "::error::marketplace accepted a traversal source"; exit 1; fi
+          echo "correctly rejected"
+          echo "::endgroup::"
+
+          echo "::group::Negative: a manifest-only change is caught by the no-args full scan"
+          # Mirrors the action gating a manifest-only PR straight to a full scan.
+          TMP4=$(mktemp -d); cp -R "$FIXTURE/." "$TMP4/"
+          jq '.plugins[0].version="9.9.9"' "$TMP4/.claude-plugin/marketplace.json" > "$TMP4/mj"
+          mv "$TMP4/mj" "$TMP4/.claude-plugin/marketplace.json"
+          if REPO_ROOT="$TMP4" bash validate-ai/scripts/validate-marketplace.sh; then
+            echo "::error::full marketplace scan passed with a version mismatch"; exit 1
+          fi
+          echo "correctly failed"
+          echo "::endgroup::"
+
+          echo "::group::Negative: a plugin directory missing from the manifest fails the targeted scan"
+          TMP5=$(mktemp -d); cp -R "$FIXTURE/." "$TMP5/"
+          cp -R "$TMP5/plugins/example-plugin" "$TMP5/plugins/newthing"
+          if REPO_ROOT="$TMP5" bash validate-ai/scripts/validate-marketplace.sh newthing; then
+            echo "::error::marketplace passed for a plugin absent from marketplace.json"; exit 1
+          fi
+          echo "correctly failed"
+          echo "::endgroup::"
+
+          echo "::group::Negative: a mixed PR (one plugin removed, one surviving) still catches the dangling entry"
+          # Register a second plugin whose directory does not exist, then request
+          # both the surviving and the removed plugin. Any unresolved argument must
+          # trigger the full scan rather than a partial targeted one.
+          TMP6=$(mktemp -d); cp -R "$FIXTURE/." "$TMP6/"
+          jq '.plugins += [{"name":"other","source":"./plugins/other","description":"x","version":"1.0.0"}]' \
+            "$TMP6/.claude-plugin/marketplace.json" > "$TMP6/mj"
+          mv "$TMP6/mj" "$TMP6/.claude-plugin/marketplace.json"
+          if REPO_ROOT="$TMP6" bash validate-ai/scripts/validate-marketplace.sh example-plugin other; then
+            echo "::error::marketplace passed with a dangling entry for a removed plugin"; exit 1
+          fi
+          echo "correctly failed"
+          echo "::endgroup::"
+
+          echo "::group::version-bump: honors REPO_ROOT via git -C, flags a missing bump, accepts a real one"
+          # A git repo the version-bump script diffs against, pointed at by REPO_ROOT
+          # while the script is invoked from this checkout (the documented override).
+          GITDIR=$(mktemp -d); cp -R "$FIXTURE/." "$GITDIR/"
+          git="git -C $GITDIR -c user.email=ci@example.com -c user.name=ci"
+          $git init -q -b main
+          $git add -A
+          $git commit -qm "base"
+          BASE=$($git rev-parse HEAD)
+
+          # Change a component without bumping version or CHANGELOG -> must fail
+          printf '\nextra line\n' >> "$GITDIR/plugins/example-plugin/agents/example-agent/AGENT.md"
+          $git commit -qam "touch agent, no bump"
+          if REPO_ROOT="$GITDIR" bash validate-ai/scripts/validate-version-bump.sh "$BASE" example-plugin; then
+            echo "::error::version-bump passed despite no version bump"; exit 1
+          fi
+          echo "correctly failed"
+
+          # Bump the version and update the CHANGELOG -> must pass
+          jq '.version="1.0.1"' "$GITDIR/plugins/example-plugin/.claude-plugin/plugin.json" > "$GITDIR/pj"
+          mv "$GITDIR/pj" "$GITDIR/plugins/example-plugin/.claude-plugin/plugin.json"
+          printf '\n## [1.0.1]\n\n### Changed\n\n- Bump.\n' >> "$GITDIR/plugins/example-plugin/CHANGELOG.md"
+          $git commit -qam "bump to 1.0.1"
+          REPO_ROOT="$GITDIR" bash validate-ai/scripts/validate-version-bump.sh "$BASE" example-plugin
+          echo "correctly passed"
+          echo "::endgroup::"
+
+          echo "✅ All bundled validator checks behaved as expected"

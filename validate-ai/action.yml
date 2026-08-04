@@ -242,10 +242,11 @@ runs:
 
           1. The repository is already checked out at the PR head.
           2. You can read files directly to inspect the changed Claude files.
-          3. When your review is complete, write your final report in markdown
-             format to /tmp/validation-summary.md. This file will be used to update
-             the sticky PR comment automatically. Do not attempt to post PR comments
-             yourself.
+          3. Writing the report is mandatory and is the only way your results
+             reach the pull request. When your review is complete, your final
+             action must be to write the full report in markdown to
+             /tmp/validation-summary.md. Do not post PR comments yourself, and do
+             not end your turn until that file exists.
 
           Changed files:
           ${{ steps.changed-files.outputs.changed_files }}
@@ -324,8 +325,18 @@ runs:
           - Distinguish errors (must fix) from warnings (should fix)
           - If all checks pass, confirm with a summary of what was validated
 
-          The report must be written to /tmp/validation-summary.md even when
-          all checks pass — the sticky PR comment is replaced with its contents.
+          The report must be written to /tmp/validation-summary.md even when all
+          checks pass, and even when every section above was skipped as not
+          applicable. The sticky PR comment is replaced with its contents.
+
+          # FINAL STEP (REQUIRED)
+
+          Your task is not done until /tmp/validation-summary.md exists on disk.
+          After the validations above, your final action must be a single Write
+          call that creates that file with the full report. If a section did not
+          apply or a check could not run, still write the file and say so. If you
+          have not written this file, you have not completed the task, no matter
+          what you reported in your responses.
 
     - name: Ensure a validation summary exists
       id: ensure-summary

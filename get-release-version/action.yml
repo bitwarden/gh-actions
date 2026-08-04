@@ -107,6 +107,11 @@ runs:
               ;;
           esac
 
+        if [[ -z "$LATEST_RELEASE_TAG_VERSION" ]]; then
+          echo "[!] No release found for '$REPOSITORY' matching prerelease='${INPUT_PRERELEASE}' monorepo-project='${INPUT_MONOREPO_PROJECT}'"
+          exit 1
+        fi
+
         case "${INPUT_TRIM}" in
             "true")
               LATEST_RELEASE_TAG_VERSION=$(echo "${LATEST_RELEASE_TAG_VERSION//[a-z-]}")

@@ -4,7 +4,9 @@ Determines whether an AI-powered code review should run on a pull request. The `
 
 ## How It Works
 
-The gate evaluates two paths in order:
+The gate evaluates three paths in order:
+
+**State check**: If the PR is closed or merged, the gate skips. Nothing about a PR that is no longer open warrants a review, and neither label overrides this.
 
 **Label path**: If the PR carries `ai-review-vnext` or `ai-review`, the review proceeds immediately without validating the at-least-one rule.
 

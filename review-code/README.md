@@ -57,7 +57,8 @@ The calling workflow must grant the following GitHub permissions to the `_review
 ## Features
 
 - **Safety net**: Runs automatically when a PR is opened, converted from draft, or reopened — no label required. Skips if a review comment already exists (idempotency guard).
-- **On-demand label triggers**: Adding `ai-review` runs the current review variant; `ai-review-vnext` runs the next-generation variant. Label triggers bypass draft status and the idempotency guard.
+- **On-demand label triggers**: Adding `ai-review` runs the current review variant; `ai-review-vnext` runs the next-generation variant. Label triggers bypass draft status and the idempotency guard, but not the state check.
+- **Open PRs only**: Closed and merged PRs are never reviewed, regardless of labels. This covers labeling a closed PR and pushing to the head branch of one.
 - Uses a sticky comment — Claude updates a single comment rather than posting new ones
 - Loads Bitwarden's internal plugins: `bitwarden-code-review`, `bitwarden-software-engineer`, `bitwarden-security-engineer`, and `claude-config-validator`
 - Claude's tool access includes file reading (`Read`, `Grep`, `Glob`), git history (`git diff`, `git log`, `git show`), and PR interaction (`gh pr view/diff/checks`, inline comments)
@@ -75,5 +76,6 @@ The calling workflow must grant the following GitHub permissions to the `_review
 | No review after adding `ai-review` label | Actor lacks write permission, or the calling workflow does not trigger on `labeled` events                                                |
 | Safety net ran but review was skipped    | A sticky comment with the review marker already exists from a prior run (idempotency guard)                                               |
 | Review skipped on a draft PR             | Expected — the safety net does not run on drafts. Add the `ai-review` label to force a review on a draft.                                 |
+| No review after labeling a closed PR     | Expected — closed and merged PRs are never reviewed. Reopen the PR first.                                                                 |
 | Workflow fails at secret retrieval       | Azure credentials are missing or the calling workflow did not pass the required secrets                                                   |
 | Claude response stops mid-way            | 10-minute step timeout was hit; consider breaking the request into smaller tasks                                                          |

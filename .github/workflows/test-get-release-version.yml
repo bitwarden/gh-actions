@@ -133,6 +133,16 @@ jobs:
           repository: bitwarden/passwordless-server
           prerelease: "false"
 
+      # Legacy mode: no filtering, newest release regardless of type. Previously covered
+      # implicitly by every case that omits 'prerelease', until the default became "false".
+      - name: Non-monorepo, prerelease='' (most recent regardless of type)
+        id: non_monorepo_legacy
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/passwordless-server
+          prerelease: ""
+
       - name: Non-monorepo, prerelease=true, trim=true
         id: non_monorepo_prerelease_trim
         continue-on-error: true
@@ -223,6 +233,8 @@ jobs:
           NON_MONOREPO_PRERELEASE_VERSION: ${{ steps.non_monorepo_prerelease.outputs.version }}
           NON_MONOREPO_STABLE_MIXED_OUTCOME: ${{ steps.non_monorepo_stable_mixed.outcome }}
           NON_MONOREPO_STABLE_MIXED_VERSION: ${{ steps.non_monorepo_stable_mixed.outputs.version }}
+          NON_MONOREPO_LEGACY_OUTCOME: ${{ steps.non_monorepo_legacy.outcome }}
+          NON_MONOREPO_LEGACY_VERSION: ${{ steps.non_monorepo_legacy.outputs.version }}
           NON_MONOREPO_PRERELEASE_TRIM_OUTCOME: ${{ steps.non_monorepo_prerelease_trim.outcome }}
           NON_MONOREPO_PRERELEASE_TRIM_VERSION: ${{ steps.non_monorepo_prerelease_trim.outputs.version }}
           PRERELEASE_NO_MATCH_OUTCOME: ${{ steps.prerelease_no_match.outcome }}
@@ -291,6 +303,7 @@ jobs:
           assert_success "Monorepo desktop, prerelease=false" "$MONOREPO_DESKTOP_STABLE_OUTCOME" "$MONOREPO_DESKTOP_STABLE_VERSION" '^desktop-v[0-9]+\.[0-9]+\.[0-9]+$'
           # Pre-release tags may carry a suffix (e.g. 2025.10.0-beta.1), so this pattern allows one.
           assert_success "Non-monorepo, prerelease=true"      "$NON_MONOREPO_PRERELEASE_OUTCOME" "$NON_MONOREPO_PRERELEASE_VERSION" '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'
+          assert_success "Non-monorepo, prerelease=''"        "$NON_MONOREPO_LEGACY_OUTCOME"     "$NON_MONOREPO_LEGACY_VERSION"     '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'
           assert_success "Non-monorepo, prerelease=true, trim=true" "$NON_MONOREPO_PRERELEASE_TRIM_OUTCOME" "$NON_MONOREPO_PRERELEASE_TRIM_VERSION" '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'
           assert_success "Non-monorepo, prerelease=false on a repo with pre-releases" "$NON_MONOREPO_STABLE_MIXED_OUTCOME" "$NON_MONOREPO_STABLE_MIXED_VERSION" '^[0-9]+\.[0-9]+\.[0-9]+$'
 

@@ -114,7 +114,7 @@ runs:
 
         case "${INPUT_TRIM}" in
             "true")
-              LATEST_RELEASE_TAG_VERSION=$(echo "${LATEST_RELEASE_TAG_VERSION//[a-z-]}")
+              LATEST_RELEASE_TAG_VERSION="${LATEST_RELEASE_TAG_VERSION#"${LATEST_RELEASE_TAG_VERSION%%[0-9]*}"}"
                 echo "version=$LATEST_RELEASE_TAG_VERSION" >> $GITHUB_OUTPUT
               ;;
             "false")

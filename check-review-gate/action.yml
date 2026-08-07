@@ -63,7 +63,20 @@ runs:
           exit 1
         fi
 
-        PR_JSON=$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json isDraft,labels)
+        PR_JSON=$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json isDraft,labels,state)
+
+        # No review path applies to a PR that is no longer open. Labels can be added to closed and
+        # merged PRs, and pushing to the head branch of a closed PR still fires 'synchronize', so
+        # this check precedes the label path rather than sitting alongside the safety net.
+        STATE=$(echo "$PR_JSON" | jq -r '.state')
+        if [ "$STATE" != "OPEN" ]; then
+          echo "should_review=false" >> "$GITHUB_OUTPUT"
+          echo "review_variant=" >> "$GITHUB_OUTPUT"
+          echo "skip_reason=PR is not open (state: ${STATE})" >> "$GITHUB_OUTPUT"
+          echo "⚠️ Gate: PR state is ${STATE} — skipping review"
+          exit 0
+        fi
+
         LABELS=$(echo "$PR_JSON" | jq -r '.labels[].name')
 
         if printf '%s\n' "$LABELS" | grep -Fxq "ai-review-vnext"; then

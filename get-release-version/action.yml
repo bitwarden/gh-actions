@@ -18,9 +18,9 @@ inputs:
     required: false
     default: ""
   prerelease:
-    description: "Filter by release type: 'false' = latest stable release, 'true' = latest pre-release, '' = most recent regardless (legacy). 'true'/'false' exclude drafts."
+    description: "Filter by release type: 'false' (default) = latest stable release, 'true' = latest pre-release, '' = most recent regardless of type. 'true'/'false' exclude drafts."
     required: false
-    default: ""
+    default: "false"
 outputs:
   version:
     description: "GitHub Latest Release version from specified repository"
@@ -114,8 +114,9 @@ runs:
 
         case "${INPUT_TRIM}" in
             "true")
-              LATEST_RELEASE_TAG_VERSION="${LATEST_RELEASE_TAG_VERSION#"$INPUT_MONOREPO_PROJECT"-}"
-              LATEST_RELEASE_TAG_VERSION="${LATEST_RELEASE_TAG_VERSION#v}"
+              # Strip everything before the first digit (project prefix and leading 'v'),
+              # leaving any pre-release suffix intact (desktop-v2025.10.0-beta.1 -> 2025.10.0-beta.1).
+              LATEST_RELEASE_TAG_VERSION="${LATEST_RELEASE_TAG_VERSION#"${LATEST_RELEASE_TAG_VERSION%%[0-9]*}"}"
               echo "version=$LATEST_RELEASE_TAG_VERSION" >> $GITHUB_OUTPUT
               ;;
             "false")

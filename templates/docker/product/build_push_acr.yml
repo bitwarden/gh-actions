@@ -19,7 +19,6 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
-      security-events: write
       packages: write
       id-token: write
 
@@ -88,8 +87,8 @@ jobs:
         run: |
           FULL_IMAGE_NAME="${_AZURE_REGISTRY}/${_IMAGE_NAME}"
           TAGS="${FULL_IMAGE_NAME}:${IMAGE_TAG}"
-          echo "primary_tag=$TAGS" >> "$GITHUB_OUTPUT"
           if [[ "$IMAGE_TAG" == "dev" ]]; then
+          echo "primary_tag=$TAGS" >> "$GITHUB_OUTPUT"
             SHORT_SHA="$(git rev-parse --short "${SHA}")"
             TAGS="$TAGS,${FULL_IMAGE_NAME}:${IMAGE_TAG}-${SHORT_SHA}"
           fi

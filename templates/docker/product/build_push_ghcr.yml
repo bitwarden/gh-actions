@@ -18,7 +18,6 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
-      security-events: write
       packages: write
       id-token: write
 
@@ -83,7 +82,6 @@ jobs:
           SHA: ${{ github.sha }}
         run: |
           TAGS="${_IMAGE_NAME}:${IMAGE_TAG}"
-          echo "primary_tag=$TAGS" >> "$GITHUB_OUTPUT"
           if [[ "$IMAGE_TAG" == "dev" ]]; then
             SHORT_SHA="$(git rev-parse --short "${SHA}")"
             TAGS="$TAGS,${_IMAGE_NAME}:${IMAGE_TAG}-${SHORT_SHA}"

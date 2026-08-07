@@ -6,7 +6,7 @@ inputs:
     description: "This is the repository that we get the latest release version from"
     required: true
   trim:
-    description: "Trims the returned value of all letter characters: ('true', 'false')"
+    description: "Strips any tag prefix before the version number, keeping any pre-release suffix, e.g. 'desktop-v2026.10.0-beta.1' -> '2026.10.0-beta.1': ('true', 'false')"
     required: false
     default: "false"
   monorepo:

@@ -114,8 +114,9 @@ runs:
 
         case "${INPUT_TRIM}" in
             "true")
-              LATEST_RELEASE_TAG_VERSION=$(echo "${LATEST_RELEASE_TAG_VERSION//[a-z-]}")
-                echo "version=$LATEST_RELEASE_TAG_VERSION" >> $GITHUB_OUTPUT
+              LATEST_RELEASE_TAG_VERSION="${LATEST_RELEASE_TAG_VERSION#"$INPUT_MONOREPO_PROJECT"-}"
+              LATEST_RELEASE_TAG_VERSION="${LATEST_RELEASE_TAG_VERSION#v}"
+              echo "version=$LATEST_RELEASE_TAG_VERSION" >> $GITHUB_OUTPUT
               ;;
             "false")
               echo "version=$LATEST_RELEASE_TAG_VERSION" >> $GITHUB_OUTPUT

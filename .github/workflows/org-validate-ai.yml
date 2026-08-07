@@ -1,0 +1,22 @@
+name: Validate AI
+
+on:
+  pull_request:
+
+permissions: {}
+
+jobs:
+  validate:
+    name: Validate
+    # Do not run this workflow in the gh-actions repository itself
+    if: github.repository != 'bitwarden/gh-actions'
+    uses: bitwarden/gh-actions/.github/workflows/_validate-ai.yml@main
+    secrets:
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      pull-requests: write

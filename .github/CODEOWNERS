@@ -18,5 +18,6 @@
 .github/workflows/_respond.yml @bitwarden/team-ai-sme
 .github/workflows/_review-code.yml @bitwarden/team-ai-sme
 .github/workflows/_validate-ai.yml @bitwarden/team-ai-sme
+.github/workflows/org-validate-ai.yml @bitwarden/team-ai-sme
 .github/workflows/respond.yml @bitwarden/team-ai-sme
 .github/workflows/review-code.yml @bitwarden/team-ai-sme

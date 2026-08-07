@@ -115,6 +115,34 @@ jobs:
           monorepo-project: desktop
           prerelease: "false"
 
+      # bitwarden/passwordless-server has both stable and pre-releases, and its
+      # newest release is a pre-release, so the two filters resolve to different tags.
+      - name: Non-monorepo, prerelease=true
+        id: non_monorepo_prerelease
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/passwordless-server
+          prerelease: "true"
+
+      - name: Non-monorepo, prerelease=false on a repo with pre-releases
+        id: non_monorepo_stable_mixed
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/passwordless-server
+          prerelease: "false"
+
+      ### No match cases ###
+
+      - name: Prerelease=true with no matching pre-release
+        id: prerelease_no_match
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/server
+          prerelease: "true"
+
       ### Invalid cases ###
 
       - name: Invalid trim value
@@ -182,6 +210,11 @@ jobs:
           NON_MONOREPO_STABLE_VERSION: ${{ steps.non_monorepo_stable.outputs.version }}
           MONOREPO_DESKTOP_STABLE_OUTCOME: ${{ steps.monorepo_desktop_stable.outcome }}
           MONOREPO_DESKTOP_STABLE_VERSION: ${{ steps.monorepo_desktop_stable.outputs.version }}
+          NON_MONOREPO_PRERELEASE_OUTCOME: ${{ steps.non_monorepo_prerelease.outcome }}
+          NON_MONOREPO_PRERELEASE_VERSION: ${{ steps.non_monorepo_prerelease.outputs.version }}
+          NON_MONOREPO_STABLE_MIXED_OUTCOME: ${{ steps.non_monorepo_stable_mixed.outcome }}
+          NON_MONOREPO_STABLE_MIXED_VERSION: ${{ steps.non_monorepo_stable_mixed.outputs.version }}
+          PRERELEASE_NO_MATCH_OUTCOME: ${{ steps.prerelease_no_match.outcome }}
           INVALID_TRIM_OUTCOME: ${{ steps.invalid_trim.outcome }}
           INVALID_PRERELEASE_OUTCOME: ${{ steps.invalid_prerelease.outcome }}
           INVALID_MONOREPO_OUTCOME: ${{ steps.invalid_monorepo.outcome }}
@@ -210,6 +243,19 @@ jobs:
             fi
           }
 
+          function assert_differs() {
+            local name="$1"
+            local first="$2"
+            local second="$3"
+
+            if [[ "$first" == "$second" ]]; then
+              echo "${name}: FAIL (both filters resolved to '${first}')"
+              test_failures+=("$name")
+            else
+              echo "${name}: pass (prerelease=${first}, stable=${second})"
+            fi
+          }
+
           function assert_failure() {
             local name="$1"
             local outcome="$2"
@@ -232,6 +278,12 @@ jobs:
           assert_success "Monorepo web, trim=true"     "$MONOREPO_WEB_TRIM_OUTCOME"        "$MONOREPO_WEB_TRIM_VERSION"        '^[0-9]+\.[0-9]+\.[0-9]+'
           assert_success "Non-monorepo, prerelease=false"     "$NON_MONOREPO_STABLE_OUTCOME"     "$NON_MONOREPO_STABLE_VERSION"     '^v[0-9]+\.[0-9]+\.[0-9]+'
           assert_success "Monorepo desktop, prerelease=false" "$MONOREPO_DESKTOP_STABLE_OUTCOME" "$MONOREPO_DESKTOP_STABLE_VERSION" '^desktop-v[0-9]+\.[0-9]+\.[0-9]+'
+          assert_success "Non-monorepo, prerelease=true"      "$NON_MONOREPO_PRERELEASE_OUTCOME" "$NON_MONOREPO_PRERELEASE_VERSION" '^[0-9]+\.[0-9]+\.[0-9]+'
+          assert_success "Non-monorepo, prerelease=false on a repo with pre-releases" "$NON_MONOREPO_STABLE_MIXED_OUTCOME" "$NON_MONOREPO_STABLE_MIXED_VERSION" '^[0-9]+\.[0-9]+\.[0-9]+'
+
+          assert_differs "prerelease=true and prerelease=false resolve differently" "$NON_MONOREPO_PRERELEASE_VERSION" "$NON_MONOREPO_STABLE_MIXED_VERSION"
+
+          assert_failure "Prerelease=true with no matching pre-release" "$PRERELEASE_NO_MATCH_OUTCOME"
 
           assert_failure "Invalid trim value"                "$INVALID_TRIM_OUTCOME"
           assert_failure "Invalid prerelease value"          "$INVALID_PRERELEASE_OUTCOME"

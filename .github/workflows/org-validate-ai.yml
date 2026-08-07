@@ -1,4 +1,4 @@
-name: Validate AI
+name: Validate AI Configuration
 
 on:
   pull_request:

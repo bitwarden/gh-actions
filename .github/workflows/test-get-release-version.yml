@@ -180,6 +180,33 @@ jobs:
           repository: bitwarden/server
           prerelease: "maybe"
 
+      # Near-miss values: substrings of a valid option. These slipped past the old
+      # substring-matching validator and silently changed behaviour.
+      - name: Invalid prerelease value that is a substring of a valid one
+        id: invalid_prerelease_substring
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/server
+          prerelease: "tru"
+
+      - name: Invalid trim value that is a substring of a valid one
+        id: invalid_trim_substring
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/server
+          trim: "tru"
+
+      - name: Invalid monorepo-project value that is a substring of a valid one
+        id: invalid_monorepo_project_substring
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/clients
+          monorepo: "true"
+          monorepo-project: "deskto"
+
       - name: Invalid monorepo value
         id: invalid_monorepo
         continue-on-error: true
@@ -240,6 +267,9 @@ jobs:
           PRERELEASE_NO_MATCH_OUTCOME: ${{ steps.prerelease_no_match.outcome }}
           INVALID_TRIM_OUTCOME: ${{ steps.invalid_trim.outcome }}
           INVALID_PRERELEASE_OUTCOME: ${{ steps.invalid_prerelease.outcome }}
+          INVALID_PRERELEASE_SUBSTRING_OUTCOME: ${{ steps.invalid_prerelease_substring.outcome }}
+          INVALID_TRIM_SUBSTRING_OUTCOME: ${{ steps.invalid_trim_substring.outcome }}
+          INVALID_MONOREPO_PROJECT_SUBSTRING_OUTCOME: ${{ steps.invalid_monorepo_project_substring.outcome }}
           INVALID_MONOREPO_OUTCOME: ${{ steps.invalid_monorepo.outcome }}
           MONOREPO_NO_PROJECT_OUTCOME: ${{ steps.monorepo_no_project.outcome }}
           INVALID_MONOREPO_PROJECT_OUTCOME: ${{ steps.invalid_monorepo_project.outcome }}
@@ -313,6 +343,9 @@ jobs:
 
           assert_failure "Invalid trim value"                "$INVALID_TRIM_OUTCOME"
           assert_failure "Invalid prerelease value"          "$INVALID_PRERELEASE_OUTCOME"
+          assert_failure "Invalid prerelease substring 'tru'" "$INVALID_PRERELEASE_SUBSTRING_OUTCOME"
+          assert_failure "Invalid trim substring 'tru'"      "$INVALID_TRIM_SUBSTRING_OUTCOME"
+          assert_failure "Invalid monorepo-project 'deskto'" "$INVALID_MONOREPO_PROJECT_SUBSTRING_OUTCOME"
           assert_failure "Invalid monorepo value"            "$INVALID_MONOREPO_OUTCOME"
           assert_failure "Monorepo=true without project"     "$MONOREPO_NO_PROJECT_OUTCOME"
           assert_failure "Invalid monorepo-project value"    "$INVALID_MONOREPO_PROJECT_OUTCOME"

@@ -18,7 +18,6 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
-      security-events: write
       packages: write
       id-token: write
 
@@ -83,7 +82,6 @@ jobs:
           SHA: ${{ github.sha }}
         run: |
           TAGS="${_IMAGE_NAME}:${IMAGE_TAG}"
-          echo "primary_tag=$TAGS" >> "$GITHUB_OUTPUT"
           if [[ "$IMAGE_TAG" == "dev" ]]; then
             SHORT_SHA="$(git rev-parse --short "${SHA}")"
             TAGS="$TAGS,${_IMAGE_NAME}:${IMAGE_TAG}-${SHORT_SHA}"
@@ -119,22 +117,6 @@ jobs:
             images+=("${tag}@${DIGEST}")
           done
           cosign sign --yes ${images[@]} # Do not quote the array to expand properly
-
-      - name: Scan Docker image
-        id: container-scan
-        uses: anchore/scan-action@568b89d27fc18c60e56937bff480c91c772cd993 # v7.1.0
-        with:
-          image: ${{ steps.image-tags.outputs.primary_tag }}
-          fail-build: false
-          output-format: sarif
-
-      - name: Upload Grype results to GitHub
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        uses: github/codeql-action/upload-sarif@0499de31b99561a6d14a36a5f662c2a54f91beee # v4.31.2
-        with:
-          sarif_file: ${{ steps.container-scan.outputs.sarif }}
-          sha: ${{ contains(github.event_name, 'pull_request') && github.event.pull_request.head.sha || github.sha }}
-          ref: ${{ contains(github.event_name, 'pull_request') && format('refs/pull/{0}/head', github.event.pull_request.number) || github.ref }}
 
       - name: Log out of Docker
         run: |

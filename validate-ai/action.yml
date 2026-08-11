@@ -240,9 +240,41 @@ runs:
 
           # RULES
 
-          1. The repository is already checked out at the PR head.
-          2. You can read files directly to inspect the changed Claude files.
-          3. Writing the report is mandatory and is the only way your results
+          1. The repository is checked out at the PR head, but the Claude
+             configuration in the working tree is NOT. See rule 2 before reading
+             any of it.
+          2. Read Claude configuration from `.claude-pr/`, not from the working
+             tree. Before this review begins, claude-code-action replaces these
+             repository-root paths with their base-branch versions, because
+             PR-authored config executes at CLI startup and so cannot be trusted:
+             `.claude/`, `CLAUDE.md`, `CLAUDE.local.md`, `.mcp.json`,
+             `.claude.json`, `.gitmodules`, `.ripgreprc`, and `.husky`. It first
+             snapshots the PR-authored versions to `.claude-pr/`, preserving the
+             original layout, specifically so a review agent can inspect them
+             safely. Only those root paths are affected; a nested path such as
+             `plugins/foo/.claude/` is left alone.
+
+             Map each changed path at one of those locations by prefixing it:
+             the PR's `.claude/CLAUDE.md` is at `.claude-pr/.claude/CLAUDE.md`,
+             and its root `CLAUDE.md` is at `.claude-pr/CLAUDE.md`. Quote line
+             numbers and text from the `.claude-pr/` copy, and report the path in
+             its original repo-relative form.
+
+             The working-tree copy of those paths is base-branch content. Never
+             quote it as this PR's work; doing so produces findings about code the
+             contributor did not write. A path present in the working tree with no
+             `.claude-pr/` counterpart was deleted by this PR.
+
+             Everything else is untouched and should be read from the working
+             tree as normal, including `plugins/`, `.claude-plugin/`, and
+             `scripts/`.
+
+             If a config file is listed as changed below and `.claude-pr/` does
+             not exist at all, stop treating the working tree as the PR's content
+             and say so in your report. That means this rule no longer matches
+             the action's behavior.
+          3. You can read files directly to inspect the changed Claude files.
+          4. Writing the report is mandatory and is the only way your results
              reach the pull request. When your review is complete, your final
              action must be to write the full report in markdown to
              /tmp/validation-summary.md. Do not post PR comments yourself, and do
@@ -307,7 +339,8 @@ runs:
           Claude file listed above (CLAUDE.md, and anything under `.claude/`:
           skills, agents, commands, hooks, and settings), use the
           reviewing-claude-config skill from the claude-config-validator plugin to
-          review structure and security:
+          review structure and security. These are exactly the paths rule 2
+          covers, so read them from `.claude-pr/`:
           - Scan for committed secrets (API keys, tokens, passwords)
           - Check for hardcoded credentials in code
           - Validate permission scoping in settings files

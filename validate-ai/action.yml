@@ -338,6 +338,66 @@ runs:
           have not written this file, you have not completed the task, no matter
           what you reported in your responses.
 
+    - name: Check for a missing validation summary
+      id: summary-check
+      if: "!cancelled() && steps.changed-files.outputs.has_components == 'true'"
+      shell: bash
+      env:
+        SESSION_ID: ${{ steps.components.outputs.session_id }}
+      run: |
+        # The retry below needs this as a step output, because an `if:` on a
+        # `uses:` step cannot test the filesystem itself.
+        if [[ -s /tmp/validation-summary.md ]]; then
+          echo "missing=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        echo "missing=true" >> "$GITHUB_OUTPUT"
+        if [[ -n "$SESSION_ID" ]]; then
+          echo "::warning::The AI review ended without writing /tmp/validation-summary.md; resuming the session to retry once."
+        else
+          echo "::warning::No validation summary was written and there is no session to resume, so the AI review never started."
+        fi
+
+    - name: Retry the validation summary
+      id: components-retry
+      # A completed review that never wrote its report reaches the pull request as
+      # nothing at all, and the Summary step then fails the check. Resuming reuses
+      # the analysis the first attempt already paid for, so this costs one turn
+      # rather than a second full review. Skipped when there is no session to
+      # resume, which means the review never started.
+      #
+      # !cancelled() rather than always(): this still runs after an earlier step
+      # failed, but will not start a paid model session inside a cancelled run's
+      # shutdown window. cancel-in-progress is on in _validate-ai.yml, so that
+      # window is reached on every superseded push.
+      if: >-
+        !cancelled() &&
+        steps.summary-check.outputs.missing == 'true' &&
+        steps.components.outputs.session_id != ''
+      continue-on-error: true
+      uses: anthropics/claude-code-action@be7b93b1907a4abad570368f3c74b6fe3807510b # v1.0.183
+      with:
+        anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-CODE-REVIEW-API-KEY }}
+        # Read and Write only. The analysis is already in the resumed session, so
+        # this needs no Bash, no subagents, and no plugins. Read is kept so the
+        # model can re-check a file while composing the report rather than
+        # deadlocking on a denied tool. max-turns bounds the cost: the point of
+        # resuming is to avoid paying for a second full review.
+        claude_args: |
+          --verbose
+          --model opus
+          --resume ${{ steps.components.outputs.session_id }}
+          --max-turns 5
+          --allowedTools "Read,Write"
+        prompt: |
+          Your previous turn ended without creating /tmp/validation-summary.md, so
+          the review you performed never reached the pull request.
+
+          Write that file now from the review already in this session. Use a single
+          Write call and do nothing else. Where a check did not apply or could not
+          run, say so in the report rather than leaving it out.
+
     - name: Ensure a validation summary exists
       id: ensure-summary
       if: always() && steps.changed-files.outputs.has_components == 'true' && steps.create-comment.outputs.comment_id != ''
@@ -347,17 +407,19 @@ runs:
         REPOSITORY: ${{ inputs.repository }}
         RUN_ID: ${{ github.run_id }}
         COMPONENTS_OUTCOME: ${{ steps.components.outcome }}
+        RETRY_OUTCOME: ${{ steps.components-retry.outcome }}
       run: |
-        # Claude writes the summary itself. If it errored or ended without one,
-        # write a fallback so the sticky comment reflects the failure instead of
-        # being left on the "reviewing..." placeholder, and flag it so the Summary
-        # step fails the check (a review that did not run must not pass green).
+        # Claude writes the summary itself, and the retry above gets a second
+        # attempt at it. If neither produced one, write a fallback so the sticky
+        # comment reflects the failure instead of being left on the "reviewing..."
+        # placeholder, and flag it so the Summary step fails the check (a review
+        # that did not run must not pass green).
         if [[ ! -s /tmp/validation-summary.md ]]; then
           echo "summary_missing=true" >> "$GITHUB_OUTPUT"
           {
             echo "### Claude Code validation did not complete"
             echo ""
-            echo "The AI review step finished without writing a summary (outcome: \`${COMPONENTS_OUTCOME:-unknown}\`). This usually means it errored or ran out of turns before producing its report."
+            echo "The AI review step finished without writing a summary (outcome: \`${COMPONENTS_OUTCOME:-unknown}\`, retry: \`${RETRY_OUTCOME:-not attempted}\`). This usually means it errored or ran out of turns before producing its report."
             echo ""
             echo "See the [Actions log](${SERVER_URL}/${REPOSITORY}/actions/runs/${RUN_ID}) for details."
           } > /tmp/validation-summary.md
@@ -383,6 +445,7 @@ runs:
         MARKETPLACE_RESULT: ${{ steps.marketplace.outcome }}
         VERSION_BUMP_RESULT: ${{ steps.version-bump.outcome }}
         COMPONENTS_RESULT: ${{ steps.components.outcome }}
+        RETRY_RESULT: ${{ steps.components-retry.outcome }}
         SUMMARY_MISSING: ${{ steps.ensure-summary.outputs.summary_missing }}
         HAS_COMPONENTS: ${{ steps.changed-files.outputs.has_components }}
         CHANGED_PLUGINS: ${{ steps.changed-files.outputs.changed_plugins }}
@@ -403,6 +466,10 @@ runs:
         echo "Marketplace validation: ${MARKETPLACE_RESULT:-skipped}"
         echo "Version bump validation: ${VERSION_BUMP_RESULT:-skipped}"
         echo "Component & security validation (AI-driven): ${COMPONENTS_RESULT:-skipped}"
+        # Only printed when the summary was missing and a session existed to resume.
+        if [[ -n "$RETRY_RESULT" ]]; then
+          echo "Summary write retry (resumed session): ${RETRY_RESULT}"
+        fi
         echo ""
 
         if [[ -f /tmp/structure-validation.log ]] && [[ "$STRUCTURE_RESULT" == "failure" ]]; then

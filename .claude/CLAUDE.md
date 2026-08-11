@@ -181,6 +181,19 @@ For containerized actions (e.g., `version-bump`):
 - Use environment variables for input (`os.getenv("INPUT_*")`)
 - Docker-based execution via `Dockerfile`
 
+**Workflow Files:**
+
+- `_[name].yml` - Reusable workflow (`on: workflow_call`) called by this repo and others
+- `[name].yml` - This repository's own CI
+- `test-[action-name].yml` - Test harness for a single action
+- `org-[name].yml` - Entry point for an organization-wide ruleset; runs in every repo in the org rather than here
+
+Organization-wide workflows (`org-*.yml`) carry three hard constraints:
+
+- Must sit directly in `.github/workflows/`. GitHub does not discover workflows in subdirectories, so these cannot be filed away in their own folder
+- Must trigger on `pull_request`. Rulesets also accept `pull_request_target`, which grants secrets to pull requests from forks
+- Must reference reusable workflows by full `bitwarden/gh-actions/...@main` path. A `./` path resolves against the target repository, which has no such file
+
 **Testing:**
 
 - Test workflows named `test-[action-name].yml`

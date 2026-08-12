@@ -433,6 +433,37 @@ runs:
           echo "::warning::The AI review ended without writing /tmp/validation-summary.md; retrying once."
         fi
 
+    - name: Preserve the PR config snapshot for the retry
+      id: preserve-snapshot
+      # claude-code-action rebuilds `.claude-pr/` on every invocation: it deletes
+      # the directory outright, then re-snapshots the root config paths from the
+      # working tree (restore-config.ts). The first invocation already replaced
+      # those working-tree paths with base-branch content, so a second invocation
+      # rebuilds the snapshot from the base branch — and for a path the PR added,
+      # the base checkout failed and left it deleted, so it is missing from the
+      # snapshot entirely. Either way the retry would read base-branch config
+      # while believing it was the PR's, find nothing, and pass the check on a
+      # review that never looked at the change.
+      #
+      # So take the first invocation's snapshot out of the way first. The action
+      # only ever touches `.claude-pr/`, so a copy under another name survives.
+      if: >-
+        !cancelled() &&
+        steps.summary-check.outputs.missing == 'true' &&
+        steps.create-comment.outputs.comment_id != ''
+      shell: bash
+      run: |
+        rm -rf .claude-pr-first-pass
+        if [[ -d .claude-pr ]]; then
+          cp -R .claude-pr .claude-pr-first-pass
+          echo "Preserved the first pass's .claude-pr/ snapshot as .claude-pr-first-pass/"
+          # Keep it out of git status for anything downstream that inspects the
+          # tree; the action does the same for .claude-pr/ itself.
+          echo "/.claude-pr-first-pass/" >> .git/info/exclude
+        else
+          echo "No .claude-pr/ snapshot exists; the retry will report that it could not read PR-authored root config."
+        fi
+
     - name: Retry the validation summary
       id: components-retry
       # A review that never wrote its report reaches the pull request as nothing
@@ -497,33 +528,43 @@ runs:
 
           # RULES
 
-          1. Read Claude configuration from `.claude-pr/`, not from the working
-             tree. claude-code-action replaced these repository-root paths with
-             their base-branch versions because PR-authored config executes at CLI
+          1. Read Claude configuration from `.claude-pr-first-pass/`. Do not read
+             it from the working tree, and do not read it from `.claude-pr/`.
+
+             claude-code-action replaced these repository-root paths with their
+             base-branch versions because PR-authored config executes at CLI
              startup and cannot be trusted: `.claude/`, `CLAUDE.md`,
              `CLAUDE.local.md`, `.mcp.json`, `.claude.json`, `.gitmodules`,
-             `.ripgreprc`, and `.husky`. The PR's versions were snapshotted to
+             `.ripgreprc`, and `.husky`. It snapshotted the PR's versions to
              `.claude-pr/` first, preserving the original layout. Only those root
              paths are affected; a nested path such as `plugins/foo/.claude/` is
              left alone.
 
-             Map each changed path at one of those locations by prefixing it: the
-             PR's `.claude/CLAUDE.md` is at `.claude-pr/.claude/CLAUDE.md`, and its
-             root `CLAUDE.md` is at `.claude-pr/CLAUDE.md`. Quote line numbers from
-             the `.claude-pr/` copy and report the path in its original
-             repo-relative form. Never quote the working-tree copy of those paths
-             as this PR's work — it is base-branch content, and findings against it
-             are findings about code the contributor did not write. A path present
-             in the working tree with no `.claude-pr/` counterpart was deleted by
-             this PR.
+             You are the second run of that action in this job, which is why you
+             read a different directory than the first attempt did. The action
+             rebuilds `.claude-pr/` from the working tree on every run, and by now
+             that tree holds base-branch content, so the `.claude-pr/` you can see
+             is base-branch content too. The first attempt's snapshot — the real
+             PR-authored config — was copied to `.claude-pr-first-pass/` before you
+             started.
+
+             Map each changed path by prefixing it: the PR's `.claude/CLAUDE.md` is
+             at `.claude-pr-first-pass/.claude/CLAUDE.md`, and its root `CLAUDE.md`
+             is at `.claude-pr-first-pass/CLAUDE.md`. Quote line numbers from that
+             copy and report the path in its original repo-relative form. Findings
+             quoted from the working tree or from `.claude-pr/` are findings about
+             base-branch code the contributor did not write.
 
              Everything else is untouched and reads from the working tree as
              normal, including `plugins/`, `.claude-plugin/`, and `scripts/`.
 
-             If a config file is listed as changed below and `.claude-pr/` does not
-             exist at all, stop treating the working tree as the PR's content and
-             say so in your report. That means this rule no longer matches the
-             action's behavior.
+             If a config file is listed as changed below and
+             `.claude-pr-first-pass/` does not exist, or the file has no
+             counterpart inside it, do not fall back to the working tree or to
+             `.claude-pr/`. Report that the PR-authored config could not be read
+             and that this section of the review did not run. Say so plainly: a
+             report that admits the gap is what lets a human catch it, and a clean
+             report that reviewed base-branch content hides it.
           2. Writing the report is mandatory and is the only way your results reach
              the pull request. Write it exactly once, as the last thing you do, and
              never write an interim or partial version. This session is
@@ -567,7 +608,7 @@ runs:
              claude-config-validator: committed secrets, hardcoded credentials,
              permission scoping in settings, dangerous command auto-approvals,
              overly broad file access, and malformed definitions. Read these from
-             `.claude-pr/` per rule 1.
+             `.claude-pr-first-pass/` per rule 1.
 
           ## Output Requirements
 

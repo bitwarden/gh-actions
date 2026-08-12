@@ -97,6 +97,71 @@ jobs:
           monorepo: "true"
           monorepo-project: web
 
+      - name: Non-monorepo, prerelease=false
+        id: non_monorepo_stable
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/server
+          prerelease: "false"
+
+      - name: Monorepo desktop, prerelease=false
+        id: monorepo_desktop_stable
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/clients
+          monorepo: "true"
+          monorepo-project: desktop
+          prerelease: "false"
+
+      # bitwarden/passwordless-server has both stable and pre-releases, and its
+      # newest release is a pre-release, so the two filters resolve to different tags.
+      - name: Non-monorepo, prerelease=true
+        id: non_monorepo_prerelease
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/passwordless-server
+          prerelease: "true"
+
+      - name: Non-monorepo, prerelease=false on a repo with pre-releases
+        id: non_monorepo_stable_mixed
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/passwordless-server
+          prerelease: "false"
+
+      # Legacy mode: no filtering, newest release regardless of type. Previously covered
+      # implicitly by every case that omits 'prerelease', until the default became "false".
+      - name: Non-monorepo, prerelease='' (most recent regardless of type)
+        id: non_monorepo_legacy
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/passwordless-server
+          prerelease: ""
+
+      - name: Non-monorepo, prerelease=true, trim=true
+        id: non_monorepo_prerelease_trim
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/passwordless-server
+          prerelease: "true"
+          trim: "true"
+
+      ### No match cases ###
+
+      - name: Prerelease=true with no matching pre-release
+        id: prerelease_no_match
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/server
+          prerelease: "true"
+
       ### Invalid cases ###
 
       - name: Invalid trim value
@@ -106,6 +171,41 @@ jobs:
         with:
           repository: bitwarden/server
           trim: "maybe"
+
+      - name: Invalid prerelease value
+        id: invalid_prerelease
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/server
+          prerelease: "maybe"
+
+      # Near-miss values: substrings of a valid option. These slipped past the old
+      # substring-matching validator and silently changed behaviour.
+      - name: Invalid prerelease value that is a substring of a valid one
+        id: invalid_prerelease_substring
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/server
+          prerelease: "tru"
+
+      - name: Invalid trim value that is a substring of a valid one
+        id: invalid_trim_substring
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/server
+          trim: "tru"
+
+      - name: Invalid monorepo-project value that is a substring of a valid one
+        id: invalid_monorepo_project_substring
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/clients
+          monorepo: "true"
+          monorepo-project: "deskto"
 
       - name: Invalid monorepo value
         id: invalid_monorepo
@@ -152,7 +252,24 @@ jobs:
           MONOREPO_WEB_NO_TRIM_VERSION: ${{ steps.monorepo_web_no_trim.outputs.version }}
           MONOREPO_WEB_TRIM_OUTCOME: ${{ steps.monorepo_web_trim.outcome }}
           MONOREPO_WEB_TRIM_VERSION: ${{ steps.monorepo_web_trim.outputs.version }}
+          NON_MONOREPO_STABLE_OUTCOME: ${{ steps.non_monorepo_stable.outcome }}
+          NON_MONOREPO_STABLE_VERSION: ${{ steps.non_monorepo_stable.outputs.version }}
+          MONOREPO_DESKTOP_STABLE_OUTCOME: ${{ steps.monorepo_desktop_stable.outcome }}
+          MONOREPO_DESKTOP_STABLE_VERSION: ${{ steps.monorepo_desktop_stable.outputs.version }}
+          NON_MONOREPO_PRERELEASE_OUTCOME: ${{ steps.non_monorepo_prerelease.outcome }}
+          NON_MONOREPO_PRERELEASE_VERSION: ${{ steps.non_monorepo_prerelease.outputs.version }}
+          NON_MONOREPO_STABLE_MIXED_OUTCOME: ${{ steps.non_monorepo_stable_mixed.outcome }}
+          NON_MONOREPO_STABLE_MIXED_VERSION: ${{ steps.non_monorepo_stable_mixed.outputs.version }}
+          NON_MONOREPO_LEGACY_OUTCOME: ${{ steps.non_monorepo_legacy.outcome }}
+          NON_MONOREPO_LEGACY_VERSION: ${{ steps.non_monorepo_legacy.outputs.version }}
+          NON_MONOREPO_PRERELEASE_TRIM_OUTCOME: ${{ steps.non_monorepo_prerelease_trim.outcome }}
+          NON_MONOREPO_PRERELEASE_TRIM_VERSION: ${{ steps.non_monorepo_prerelease_trim.outputs.version }}
+          PRERELEASE_NO_MATCH_OUTCOME: ${{ steps.prerelease_no_match.outcome }}
           INVALID_TRIM_OUTCOME: ${{ steps.invalid_trim.outcome }}
+          INVALID_PRERELEASE_OUTCOME: ${{ steps.invalid_prerelease.outcome }}
+          INVALID_PRERELEASE_SUBSTRING_OUTCOME: ${{ steps.invalid_prerelease_substring.outcome }}
+          INVALID_TRIM_SUBSTRING_OUTCOME: ${{ steps.invalid_trim_substring.outcome }}
+          INVALID_MONOREPO_PROJECT_SUBSTRING_OUTCOME: ${{ steps.invalid_monorepo_project_substring.outcome }}
           INVALID_MONOREPO_OUTCOME: ${{ steps.invalid_monorepo.outcome }}
           MONOREPO_NO_PROJECT_OUTCOME: ${{ steps.monorepo_no_project.outcome }}
           INVALID_MONOREPO_PROJECT_OUTCOME: ${{ steps.invalid_monorepo_project.outcome }}
@@ -179,6 +296,19 @@ jobs:
             fi
           }
 
+          function assert_differs() {
+            local name="$1"
+            local first="$2"
+            local second="$3"
+
+            if [[ "$first" == "$second" ]]; then
+              echo "${name}: FAIL (both filters resolved to '${first}')"
+              test_failures+=("$name")
+            else
+              echo "${name}: pass (prerelease=${first}, stable=${second})"
+            fi
+          }
+
           function assert_failure() {
             local name="$1"
             local outcome="$2"
@@ -191,16 +321,31 @@ jobs:
             fi
           }
 
-          assert_success "Non-monorepo, trim=false"     "$NON_MONOREPO_NO_TRIM_OUTCOME"     "$NON_MONOREPO_NO_TRIM_VERSION"     '^v[0-9]+\.[0-9]+\.[0-9]+'
-          assert_success "Non-monorepo, trim=true"      "$NON_MONOREPO_TRIM_OUTCOME"        "$NON_MONOREPO_TRIM_VERSION"        '^[0-9]+\.[0-9]+\.[0-9]+'
-          assert_success "Monorepo browser, trim=false" "$MONOREPO_BROWSER_NO_TRIM_OUTCOME" "$MONOREPO_BROWSER_NO_TRIM_VERSION" '^browser-v[0-9]+\.[0-9]+\.[0-9]+'
-          assert_success "Monorepo browser, trim=true"  "$MONOREPO_BROWSER_TRIM_OUTCOME"    "$MONOREPO_BROWSER_TRIM_VERSION"    '^[0-9]+\.[0-9]+\.[0-9]+'
-          assert_success "Monorepo cli, trim=false"     "$MONOREPO_CLI_OUTCOME"             "$MONOREPO_CLI_VERSION"             '^cli-v[0-9]+\.[0-9]+\.[0-9]+'
-          assert_success "Monorepo desktop, trim=false" "$MONOREPO_DESKTOP_OUTCOME"         "$MONOREPO_DESKTOP_VERSION"         '^desktop-v[0-9]+\.[0-9]+\.[0-9]+'
-          assert_success "Monorepo web, trim=false"    "$MONOREPO_WEB_NO_TRIM_OUTCOME"     "$MONOREPO_WEB_NO_TRIM_VERSION"     '^web-v[0-9]+\.[0-9]+\.[0-9]+'
-          assert_success "Monorepo web, trim=true"     "$MONOREPO_WEB_TRIM_OUTCOME"        "$MONOREPO_WEB_TRIM_VERSION"        '^[0-9]+\.[0-9]+\.[0-9]+'
+          assert_success "Non-monorepo, trim=false"     "$NON_MONOREPO_NO_TRIM_OUTCOME"     "$NON_MONOREPO_NO_TRIM_VERSION"     '^v[0-9]+\.[0-9]+\.[0-9]+$'
+          assert_success "Non-monorepo, trim=true"      "$NON_MONOREPO_TRIM_OUTCOME"        "$NON_MONOREPO_TRIM_VERSION"        '^[0-9]+\.[0-9]+\.[0-9]+$'
+          assert_success "Monorepo browser, trim=false" "$MONOREPO_BROWSER_NO_TRIM_OUTCOME" "$MONOREPO_BROWSER_NO_TRIM_VERSION" '^browser-v[0-9]+\.[0-9]+\.[0-9]+$'
+          assert_success "Monorepo browser, trim=true"  "$MONOREPO_BROWSER_TRIM_OUTCOME"    "$MONOREPO_BROWSER_TRIM_VERSION"    '^[0-9]+\.[0-9]+\.[0-9]+$'
+          assert_success "Monorepo cli, trim=false"     "$MONOREPO_CLI_OUTCOME"             "$MONOREPO_CLI_VERSION"             '^cli-v[0-9]+\.[0-9]+\.[0-9]+$'
+          assert_success "Monorepo desktop, trim=false" "$MONOREPO_DESKTOP_OUTCOME"         "$MONOREPO_DESKTOP_VERSION"         '^desktop-v[0-9]+\.[0-9]+\.[0-9]+$'
+          assert_success "Monorepo web, trim=false"    "$MONOREPO_WEB_NO_TRIM_OUTCOME"     "$MONOREPO_WEB_NO_TRIM_VERSION"     '^web-v[0-9]+\.[0-9]+\.[0-9]+$'
+          assert_success "Monorepo web, trim=true"     "$MONOREPO_WEB_TRIM_OUTCOME"        "$MONOREPO_WEB_TRIM_VERSION"        '^[0-9]+\.[0-9]+\.[0-9]+$'
+          assert_success "Non-monorepo, prerelease=false"     "$NON_MONOREPO_STABLE_OUTCOME"     "$NON_MONOREPO_STABLE_VERSION"     '^v[0-9]+\.[0-9]+\.[0-9]+$'
+          assert_success "Monorepo desktop, prerelease=false" "$MONOREPO_DESKTOP_STABLE_OUTCOME" "$MONOREPO_DESKTOP_STABLE_VERSION" '^desktop-v[0-9]+\.[0-9]+\.[0-9]+$'
+          # Pre-release tags may carry a suffix (e.g. 2025.10.0-beta.1), so this pattern allows one.
+          assert_success "Non-monorepo, prerelease=true"      "$NON_MONOREPO_PRERELEASE_OUTCOME" "$NON_MONOREPO_PRERELEASE_VERSION" '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'
+          assert_success "Non-monorepo, prerelease=''"        "$NON_MONOREPO_LEGACY_OUTCOME"     "$NON_MONOREPO_LEGACY_VERSION"     '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'
+          assert_success "Non-monorepo, prerelease=true, trim=true" "$NON_MONOREPO_PRERELEASE_TRIM_OUTCOME" "$NON_MONOREPO_PRERELEASE_TRIM_VERSION" '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'
+          assert_success "Non-monorepo, prerelease=false on a repo with pre-releases" "$NON_MONOREPO_STABLE_MIXED_OUTCOME" "$NON_MONOREPO_STABLE_MIXED_VERSION" '^[0-9]+\.[0-9]+\.[0-9]+$'
+
+          assert_differs "prerelease=true and prerelease=false resolve differently" "$NON_MONOREPO_PRERELEASE_VERSION" "$NON_MONOREPO_STABLE_MIXED_VERSION"
+
+          assert_failure "Prerelease=true with no matching pre-release" "$PRERELEASE_NO_MATCH_OUTCOME"
 
           assert_failure "Invalid trim value"                "$INVALID_TRIM_OUTCOME"
+          assert_failure "Invalid prerelease value"          "$INVALID_PRERELEASE_OUTCOME"
+          assert_failure "Invalid prerelease substring 'tru'" "$INVALID_PRERELEASE_SUBSTRING_OUTCOME"
+          assert_failure "Invalid trim substring 'tru'"      "$INVALID_TRIM_SUBSTRING_OUTCOME"
+          assert_failure "Invalid monorepo-project 'deskto'" "$INVALID_MONOREPO_PROJECT_SUBSTRING_OUTCOME"
           assert_failure "Invalid monorepo value"            "$INVALID_MONOREPO_OUTCOME"
           assert_failure "Monorepo=true without project"     "$MONOREPO_NO_PROJECT_OUTCOME"
           assert_failure "Invalid monorepo-project value"    "$INVALID_MONOREPO_PROJECT_OUTCOME"

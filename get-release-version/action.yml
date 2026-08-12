@@ -6,7 +6,7 @@ inputs:
     description: "This is the repository that we get the latest release version from"
     required: true
   trim:
-    description: "Trims the returned value of all letter characters: ('true', 'false')"
+    description: "Strips any tag prefix before the version number, keeping any pre-release suffix, e.g. 'desktop-v2026.10.0-beta.1' -> '2026.10.0-beta.1': ('true', 'false')"
     required: false
     default: "false"
   monorepo:
@@ -17,6 +17,10 @@ inputs:
     description: "Identifies the monorepo project: ('', 'browser', 'cli', 'desktop', 'web')"
     required: false
     default: ""
+  prerelease:
+    description: "Filter by release type: 'false' (default) = latest stable release, 'true' = latest pre-release, '' = most recent regardless of type. 'true'/'false' exclude drafts."
+    required: false
+    default: "false"
 outputs:
   version:
     description: "GitHub Latest Release version from specified repository"
@@ -31,26 +35,40 @@ runs:
         INPUT_TRIM: ${{ inputs.trim }}
         INPUT_MONOREPO: ${{ inputs.monorepo }}
         INPUT_MONOREPO_PROJECT: ${{ inputs.monorepo-project }}
+        INPUT_PRERELEASE: ${{ inputs.prerelease }}
       run: |
-        trim_valid_inputs=("true" "false")
-        if [[ ! "${trim_valid_inputs[@]}" =~ "${INPUT_TRIM}" ]]; then
-          echo "[!] 'trim' option only supports the following values: (${trim_valid_inputs})"
-          exit 1
-        fi
-        monorepo_valid_inputs=("true" "false")
-        if [[ ! "${monorepo_valid_inputs[@]}" =~ "${INPUT_MONOREPO}" ]]; then
-          echo "[!] 'monorepo' option only supports the following values: (${monorepo_valid_inputs})"
-          exit 1
-        fi
+        case "${INPUT_TRIM}" in
+          "true" | "false") ;;
+          *)
+            echo "[!] 'trim' option only supports the following values: ('true', 'false')"
+            exit 1
+            ;;
+        esac
+        case "${INPUT_PRERELEASE}" in
+          "" | "true" | "false") ;;
+          *)
+            echo "[!] 'prerelease' option only supports the following values: ('', 'true', 'false')"
+            exit 1
+            ;;
+        esac
+        case "${INPUT_MONOREPO}" in
+          "true" | "false") ;;
+          *)
+            echo "[!] 'monorepo' option only supports the following values: ('true', 'false')"
+            exit 1
+            ;;
+        esac
         if [ "${INPUT_MONOREPO}" == "true" ] && [ "${INPUT_MONOREPO_PROJECT}" == "" ]; then
           echo "[!] using the 'monorepo' option requires the use of 'monorepo-project'"
           exit 1
         fi
-        monorepo_project_valid_inputs=("" "browser" "cli" "desktop" "web")
-        if [[ ! "${monorepo_project_valid_inputs[@]}" =~ "${INPUT_MONOREPO_PROJECT}" ]]; then
-          echo "[!] 'monorepo-project' option only supports the following values: (${monorepo_project_valid_inputs})"
-          exit 1
-        fi
+        case "${INPUT_MONOREPO_PROJECT}" in
+          "" | "browser" | "cli" | "desktop" | "web") ;;
+          *)
+            echo "[!] 'monorepo-project' option only supports the following values: ('', 'browser', 'cli', 'desktop', 'web')"
+            exit 1
+            ;;
+        esac
 
     - name: Check Runner OS
       shell: bash
@@ -71,26 +89,43 @@ runs:
         INPUT_TRIM: ${{ inputs.trim }}
         INPUT_MONOREPO: ${{ inputs.monorepo }}
         INPUT_MONOREPO_PROJECT: ${{ inputs.monorepo-project }}
+        INPUT_PRERELEASE: ${{ inputs.prerelease }}
       run: |
+        # Optional release-type filter
+        case "${INPUT_PRERELEASE}" in
+            "true")  SELECT='select(.isPrerelease and (.isDraft | not))' ;;
+            "false") SELECT='select((.isPrerelease | not) and (.isDraft | not))' ;;
+            *)       SELECT='.' ;;
+          esac
+
         case "${INPUT_MONOREPO}" in
             "true")
               LATEST_RELEASE_TAG_VERSION=$(
                 gh release list --repo "$REPOSITORY" --limit 100 --order desc \
-                  --json tagName --jq "[.[].tagName | select(startswith(\"$INPUT_MONOREPO_PROJECT\"))][0]"
+                  --json tagName,isPrerelease,isDraft \
+                  --jq "[.[] | select(.tagName | startswith(\"$INPUT_MONOREPO_PROJECT\")) | $SELECT | .tagName][0] // \"\""
               )
               ;;
             "false")
               LATEST_RELEASE_TAG_VERSION=$(
-                gh release list --repo "$REPOSITORY" --limit 1 \
-                  --json tagName --jq '.[0].tagName'
+                gh release list --repo "$REPOSITORY" --limit 100 --order desc \
+                  --json tagName,isPrerelease,isDraft \
+                  --jq "[.[] | $SELECT | .tagName][0] // \"\""
               )
               ;;
           esac
 
+        if [[ -z "$LATEST_RELEASE_TAG_VERSION" ]]; then
+          echo "[!] No release found for '$REPOSITORY' matching prerelease='${INPUT_PRERELEASE}' monorepo-project='${INPUT_MONOREPO_PROJECT}'"
+          exit 1
+        fi
+
         case "${INPUT_TRIM}" in
             "true")
-              LATEST_RELEASE_TAG_VERSION=$(echo "${LATEST_RELEASE_TAG_VERSION//[a-z-]}")
-                echo "version=$LATEST_RELEASE_TAG_VERSION" >> $GITHUB_OUTPUT
+              # Strip everything before the first digit (project prefix and leading 'v'),
+              # leaving any pre-release suffix intact (desktop-v2025.10.0-beta.1 -> 2025.10.0-beta.1).
+              LATEST_RELEASE_TAG_VERSION="${LATEST_RELEASE_TAG_VERSION#"${LATEST_RELEASE_TAG_VERSION%%[0-9]*}"}"
+              echo "version=$LATEST_RELEASE_TAG_VERSION" >> $GITHUB_OUTPUT
               ;;
             "false")
               echo "version=$LATEST_RELEASE_TAG_VERSION" >> $GITHUB_OUTPUT

@@ -119,6 +119,18 @@ The structure, marketplace, and version-bump steps run the bundled scripts again
 
 The AI-driven step and its sticky PR comment fire only when a component changed (an agent, skill, command, hook, `CLAUDE.md`, or a `.claude/` file). A pull request that touches only a plugin's `plugin.json` or `README.md`, or only the marketplace manifest, is still validated by the bundled scripts, but the outcome shows up in the job log and the check status rather than in a PR comment.
 
+### Where the AI step reads Claude configuration
+
+`claude-code-action` treats PR-authored Claude configuration as untrusted, because `.claude/settings.json`, `.mcp.json`, and hooks execute at CLI startup before any tool-permission gating. Before the review runs, it replaces these repository-root paths with their base-branch versions:
+
+`.claude/`, `CLAUDE.md`, `CLAUDE.local.md`, `.mcp.json`, `.claude.json`, `.gitmodules`, `.ripgreprc`, `.husky`
+
+It snapshots the PR-authored versions to `.claude-pr/` first, preserving the original layout, so the PR's `.claude/CLAUDE.md` is available at `.claude-pr/.claude/CLAUDE.md`.
+
+The review prompt therefore directs the AI step to read those paths from `.claude-pr/` and to report them under their original repo-relative names. Reading them from the working tree yields base-branch content, which produces findings about lines the contributor never wrote. Everything outside that list, including `plugins/`, `.claude-plugin/`, and `scripts/`, is untouched and is read from the working tree.
+
+If a future version of `claude-code-action` stops writing the `.claude-pr/` snapshot, the prompt instructs the AI step to say so in its report rather than silently reviewing base-branch content.
+
 ## Bundled Scripts
 
 [`scripts/`](scripts/) is the sole source for the marketplace validation logic:

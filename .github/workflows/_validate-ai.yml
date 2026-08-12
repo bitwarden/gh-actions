@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: check-permission
     if: needs.check-permission.outputs.should_proceed == 'true'
-    timeout-minutes: 20
+    timeout-minutes: 15
     permissions:
       actions: read
       contents: read

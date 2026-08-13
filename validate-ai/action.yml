@@ -45,8 +45,7 @@ runs:
         git fetch origin "$BASE_REF"
         CHANGED_FILES=$(git diff --name-only "origin/$BASE_REF...HEAD")
 
-        # Claude-related files: plugin directories, plugin/marketplace manifests,
-        # per-repo .claude config, CLAUDE.md guidance, and the validation scripts.
+        # Plugin dirs, plugin/marketplace manifests, .claude config, CLAUDE.md, validation scripts.
         RELEVANT=$(echo "$CHANGED_FILES" | grep -E '(^plugins/|(^|/)\.claude-plugin/|(^|/)\.claude/|(^|/)CLAUDE\.md$|(^|/)agents/.*\.md$|(^|/)skills/.*/SKILL\.md$|(^|/)commands/.*\.md$|(^|/)hooks\.json$|^scripts/validate-)' || echo "")
 
         if [[ -z "$RELEVANT" ]]; then
@@ -63,25 +62,19 @@ runs:
         # Unique plugin directories (marketplace repos keep plugins under plugins/<name>/).
         CHANGED_PLUGINS=$(echo "$CHANGED_FILES" | grep '^plugins/' | cut -d/ -f1-2 | sort -u | tr '\n' ' ' | sed 's/ $//' || echo "")
 
-        # Component files drive the AI-driven validation. Agent files appear both as
-        # agents/<name>/AGENT.md and as agents/<name>.md, so match any .md under agents/.
+        # Agents appear as agents/<name>/AGENT.md or agents/<name>.md, so match any .md under agents/.
         AGENT_FILES=$(echo "$RELEVANT" | grep -E '(^|/)agents/.*\.md$' || echo "")
         SKILL_FILES=$(echo "$RELEVANT" | grep -E '(^|/)skills/.*/SKILL\.md$' || echo "")
         COMMAND_FILES=$(echo "$RELEVANT" | grep -E '(^|/)commands/.*\.md$' || echo "")
         HOOK_FILES=$(echo "$RELEVANT" | grep -E '(^|/)hooks\.json$' || echo "")
         CONFIG_FILES=$(echo "$RELEVANT" | grep -E '(^|/)CLAUDE\.md$|(^|/)\.claude/' || echo "")
 
-        # Plugin directories that had an actual component change (agents, skills,
-        # commands, hooks). Version-bump enforcement applies only to these, not to
-        # every touched plugin directory, so a docs-only edit under plugins/<name>
-        # does not force a version bump on that plugin.
+        # Version bumps are enforced only where a component changed, so a docs-only
+        # edit under plugins/<name> does not require one.
         COMPONENT_PLUGINS=$(printf '%s\n' "$AGENT_FILES" "$SKILL_FILES" "$COMMAND_FILES" "$HOOK_FILES" | grep '^plugins/' | cut -d/ -f1-2 | sort -u | tr '\n' ' ' | sed 's/ $//' || echo "")
 
-        # Root marketplace manifest change. Marketplace validation must run for a
-        # manifest-only edit (version, description, removed entry) even when no
-        # plugins/ file changed, so this gates the marketplace step on its own.
-        # Keep it a single-line boolean; a multi-line value would break the
-        # key=value GITHUB_OUTPUT write below.
+        # Gates marketplace validation on its own so a manifest-only edit still runs it.
+        # Must stay single-line: a multi-line value breaks the key=value write below.
         if echo "$RELEVANT" | grep -qE '^\.claude-plugin/'; then
           MARKETPLACE_CHANGED=true
         else
@@ -216,25 +209,12 @@ runs:
         plugins: |
           plugin-dev@claude-code-plugins
           claude-config-validator@bitwarden-marketplace
-        # Bash is granted broadly here rather than scoped to command prefixes
-        # (as run-code-review does) because the plugin-dev plugin-validator agent
-        # shells out to an open-ended, upstream-owned set of inspection commands
-        # that we cannot reliably enumerate; a tight allowlist would break the
-        # review whenever that plugin changes. The write-permission gate in
-        # _validate-ai.yml keeps this to trusted actors.
-        # max-turns bounds turn count, not wall clock, and the two are only loosely
-        # related here: a single Task turn is an entire subagent run, so a review
-        # can spend a quarter of an hour inside a couple of dozen turns. Run
-        # 31699838478 in bitwarden/ai-plugins hit the 15-minute job timeout without
-        # coming near this cap. Treat it as a backstop against a loop, not as the
-        # thing that keeps a review inside its time budget; the job timeout in
-        # _validate-ai.yml is what does that, and a composite step cannot carry a
-        # timeout of its own. Observed runs land in the 25-45 turn range.
+        # Bash is unscoped because the plugin-validator agent shells out to an
+        # open-ended set of upstream-owned commands. The write-permission gate in
+        # _validate-ai.yml limits this to trusted actors.
         #
-        # A timeout kill is survivable either way: the steps that post the sticky
-        # comment run under always(), and GitHub still executes them in the
-        # cancellation window, so the pull request gets the fallback rather than
-        # being left on the "reviewing..." placeholder.
+        # max-turns is a backstop against a loop, not a time bound: one Task turn is
+        # a whole subagent run. Wall clock is bounded by the job timeout.
         claude_args: |
           --verbose
           --model opus
@@ -434,26 +414,16 @@ runs:
         RUN_ID: ${{ github.run_id }}
         COMPONENTS_OUTCOME: ${{ steps.components.outcome }}
       run: |
-        # Claude writes the summary itself. Completeness is decided by the marker
-        # the prompt requires as the report's last line, not by the file existing:
-        # a review that ends mid-flight can leave a partial report behind, and
-        # presence alone accepts that as the final word and posts it to the pull
-        # request under a green check.
-        #
-        # Anything short of a marked report gets a fallback instead, so the sticky
-        # comment reflects the failure rather than being left on the "reviewing..."
-        # placeholder, and summary_missing fails the check (a review that did not
-        # finish must not pass green). Recovery is a re-run of the job, which
-        # starts a clean review.
+        # The trailing marker decides completeness, not the file existing: a review
+        # that ends mid-flight can leave a partial report behind. Anything unmarked is
+        # replaced with a fallback and fails the check.
         if [[ -s /tmp/validation-summary.md ]] && grep -qF '<!-- validation-complete -->' /tmp/validation-summary.md; then
           exit 0
         fi
 
         echo "summary_missing=true" >> "$GITHUB_OUTPUT"
         if [[ -s /tmp/validation-summary.md ]]; then
-          # Move it aside rather than leaving it in place: the step below posts
-          # whatever is at this path, and the partial text must not reach the pull
-          # request. Keep a copy for the log.
+          # A later step posts whatever is at this path, so move the partial aside.
           mv /tmp/validation-summary.md /tmp/validation-summary.partial.md
           echo "::warning::The AI review wrote an incomplete validation summary (no completion marker); discarding it."
           echo "Discarded partial summary:"
@@ -515,9 +485,7 @@ runs:
         echo "Plugin structure validation: ${STRUCTURE_RESULT:-skipped}"
         echo "Marketplace validation: ${MARKETPLACE_RESULT:-skipped}"
         echo "Version bump validation: ${VERSION_BUMP_RESULT:-skipped}"
-        # Report whether a complete report was produced rather than only the step's
-        # exit status: the step can succeed and still end without one, and a bare
-        # "success" on that line reads as though the review landed.
+        # The step can exit 0 without producing a report, so report both.
         if [[ "$SUMMARY_MISSING" == "true" ]]; then
           echo "Component & security validation (AI-driven): ${COMPONENTS_RESULT:-skipped}, but produced no complete report"
         else
@@ -559,10 +527,7 @@ runs:
           echo ""
         fi
 
-        # The AI step can exit 0 having produced no report, or a partial one it
-        # never got to finish (e.g. permission denials, an early exit, or a turn
-        # that ended on work still in flight). Treat either as a failure so the
-        # check never goes green on a review that did not actually finish.
+        # A missing or unfinished report must not pass green.
         if [[ "$SUMMARY_MISSING" == "true" ]]; then
           echo "AI-driven review produced no complete summary; a fallback was posted to the PR comment. Re-run the job to start a fresh review."
           echo ""

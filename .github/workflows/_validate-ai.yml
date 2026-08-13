@@ -31,7 +31,14 @@ jobs:
     runs-on: ubuntu-24.04
     needs: check-permission
     if: needs.check-permission.outputs.should_proceed == 'true'
-    timeout-minutes: 15
+    # A review that actually waits for its subagents takes far longer than the
+    # abandoned reviews this budget was originally sized against: run 31699838478
+    # in bitwarden/ai-plugins spent over 14 minutes on the same input that earlier
+    # runs "finished" in four, and was killed here at 15. The step cannot carry a
+    # timeout of its own, and the model's turn cap does not bound wall clock, so
+    # this is the only limit that does. Set generously until a run completes and
+    # gives a real duration to tune against.
+    timeout-minutes: 30
     permissions:
       actions: read
       contents: read

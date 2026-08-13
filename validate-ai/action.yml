@@ -222,13 +222,19 @@ runs:
         # that we cannot reliably enumerate; a tight allowlist would break the
         # review whenever that plugin changes. The write-permission gate in
         # _validate-ai.yml keeps this to trusted actors.
-        # max-turns turns a runaway review into a graceful failure. A composite
-        # step cannot carry its own timeout-minutes, so without a cap the job
-        # timeout is the only bound, and a timeout kill skips the steps that post
-        # the sticky comment: the pull request would be left on the "reviewing..."
-        # placeholder with no explanation. Hitting the cap instead ends the step,
-        # posts the fallback comment, and fails the check. The cap is generous;
-        # observed runs land in the 25-45 turn range.
+        # max-turns bounds turn count, not wall clock, and the two are only loosely
+        # related here: a single Task turn is an entire subagent run, so a review
+        # can spend a quarter of an hour inside a couple of dozen turns. Run
+        # 31699838478 in bitwarden/ai-plugins hit the 15-minute job timeout without
+        # coming near this cap. Treat it as a backstop against a loop, not as the
+        # thing that keeps a review inside its time budget; the job timeout in
+        # _validate-ai.yml is what does that, and a composite step cannot carry a
+        # timeout of its own. Observed runs land in the 25-45 turn range.
+        #
+        # A timeout kill is survivable either way: the steps that post the sticky
+        # comment run under always(), and GitHub still executes them in the
+        # cancellation window, so the pull request gets the fallback rather than
+        # being left on the "reviewing..." placeholder.
         claude_args: |
           --verbose
           --model opus
@@ -293,13 +299,23 @@ runs:
              is in that file at that moment is what lands on the pull request,
              permanently, with no chance to revise it.
           5. Run every subagent synchronously — pass run_in_background: false
-             where that parameter exists — and wait for its result before moving
-             on. Subagents default to running in the background, on the
-             assumption that a notification will wake you when one finishes.
-             Nothing wakes you up here. If you end your turn while a subagent is
-             still running, it is killed and its findings are lost. Do not end
-             your turn while any subagent is outstanding, and do not report on
-             work a subagent has not yet returned.
+             where that parameter exists. Subagents default to running in the
+             background, on the assumption that a notification will wake you when
+             one finishes. Nothing wakes you up here. If you end your turn while a
+             subagent is still running, it is killed and its findings are lost. Do
+             not end your turn while any subagent is outstanding, and do not report
+             on work a subagent has not yet returned.
+
+             Synchronous does not mean one at a time. This review is on a wall
+             clock, so dispatch independent subagents together in a single message
+             with several tool calls: they then run concurrently and all return
+             before your turn ends, which is both faster and safe.
+
+             Every subagent call in sections 1 and 2 below is independent of every
+             other one, and there can be more than two of them: section 1 is one
+             validation per changed plugin and section 2 is one review per changed
+             skill. Work out the full set first and send all of it in one message,
+             rather than batching by section or dispatching one at a time.
 
           Changed files:
           ${{ steps.changed-files.outputs.changed_files }}
@@ -322,7 +338,12 @@ runs:
           Config files changed (CLAUDE.md, .claude/):
           ${{ steps.changed-files.outputs.config_files }}
 
-          Perform the following validations in order:
+          Perform the following validations. Sections 1 and 2 are subagent work and
+          every call in them is independent, so send them all out in one message per
+          rule 5 rather than waiting for one to finish before dispatching the next.
+          Section 3 is yours to carry out once their results come back. The numbering
+          is for reference and for the order of the report, not an order of
+          execution.
 
           ## 1. Plugin Validation (plugin-validator agent from plugin-dev)
 

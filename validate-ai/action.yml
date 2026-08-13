@@ -222,9 +222,17 @@ runs:
         # that we cannot reliably enumerate; a tight allowlist would break the
         # review whenever that plugin changes. The write-permission gate in
         # _validate-ai.yml keeps this to trusted actors.
+        # max-turns turns a runaway review into a graceful failure. A composite
+        # step cannot carry its own timeout-minutes, so without a cap the job
+        # timeout is the only bound, and a timeout kill skips the steps that post
+        # the sticky comment: the pull request would be left on the "reviewing..."
+        # placeholder with no explanation. Hitting the cap instead ends the step,
+        # posts the fallback comment, and fails the check. The cap is generous;
+        # observed runs land in the 25-45 turn range.
         claude_args: |
           --verbose
           --model opus
+          --max-turns 80
           --allowedTools "Task,Skill,Read,Write,Grep,Glob,Bash"
         prompt: |
           REPO: ${{ inputs.repository }}
@@ -277,8 +285,21 @@ runs:
           4. Writing the report is mandatory and is the only way your results
              reach the pull request. When your review is complete, your final
              action must be to write the full report in markdown to
-             /tmp/validation-summary.md. Do not post PR comments yourself, and do
-             not end your turn until that file exists.
+             /tmp/validation-summary.md. Do not post PR comments yourself.
+
+             Write that file exactly once, as the last thing you do. Never write
+             an interim, partial, or "in progress" version of it. This session is
+             non-interactive: when your turn ends the process exits, so whatever
+             is in that file at that moment is what lands on the pull request,
+             permanently, with no chance to revise it.
+          5. Run every subagent synchronously — pass run_in_background: false
+             where that parameter exists — and wait for its result before moving
+             on. Subagents default to running in the background, on the
+             assumption that a notification will wake you when one finishes.
+             Nothing wakes you up here. If you end your turn while a subagent is
+             still running, it is killed and its findings are lost. Do not end
+             your turn while any subagent is outstanding, and do not report on
+             work a subagent has not yet returned.
 
           Changed files:
           ${{ steps.changed-files.outputs.changed_files }}
@@ -362,74 +383,25 @@ runs:
           checks pass, and even when every section above was skipped as not
           applicable. The sticky PR comment is replaced with its contents.
 
+          End the report with this line, exactly, on a line of its own:
+
+          <!-- validation-complete -->
+
+          That marker is how this action tells a finished report from an
+          abandoned one, so it must be the last line and it must only appear on
+          a report you consider complete. A report without it is discarded and
+          the check fails.
+
           # FINAL STEP (REQUIRED)
 
-          Your task is not done until /tmp/validation-summary.md exists on disk.
-          After the validations above, your final action must be a single Write
-          call that creates that file with the full report. If a section did not
-          apply or a check could not run, still write the file and say so. If you
-          have not written this file, you have not completed the task, no matter
-          what you reported in your responses.
-
-    - name: Check for a missing validation summary
-      id: summary-check
-      if: "!cancelled() && steps.changed-files.outputs.has_components == 'true'"
-      shell: bash
-      env:
-        SESSION_ID: ${{ steps.components.outputs.session_id }}
-      run: |
-        # The retry below needs this as a step output, because an `if:` on a
-        # `uses:` step cannot test the filesystem itself.
-        if [[ -s /tmp/validation-summary.md ]]; then
-          echo "missing=false" >> "$GITHUB_OUTPUT"
-          exit 0
-        fi
-
-        echo "missing=true" >> "$GITHUB_OUTPUT"
-        if [[ -n "$SESSION_ID" ]]; then
-          echo "::warning::The AI review ended without writing /tmp/validation-summary.md; resuming the session to retry once."
-        else
-          echo "::warning::No validation summary was written and there is no session to resume, so the AI review never started."
-        fi
-
-    - name: Retry the validation summary
-      id: components-retry
-      # A completed review that never wrote its report reaches the pull request as
-      # nothing at all, and the Summary step then fails the check. Resuming reuses
-      # the analysis the first attempt already paid for, so this costs one turn
-      # rather than a second full review. Skipped when there is no session to
-      # resume, which means the review never started.
-      #
-      # !cancelled() rather than always(): this still runs after an earlier step
-      # failed, but will not start a paid model session inside a cancelled run's
-      # shutdown window. cancel-in-progress is on in _validate-ai.yml, so that
-      # window is reached on every superseded push.
-      if: >-
-        !cancelled() &&
-        steps.summary-check.outputs.missing == 'true' &&
-        steps.components.outputs.session_id != ''
-      continue-on-error: true
-      uses: anthropics/claude-code-action@be7b93b1907a4abad570368f3c74b6fe3807510b # v1.0.183
-      with:
-        anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-CODE-REVIEW-API-KEY }}
-        # Read and Write only. The analysis is already in the resumed session, so
-        # this needs no Bash, no subagents, and no plugins. Read is kept so the
-        # model can re-check a file while composing the report rather than
-        # deadlocking on a denied tool. max-turns bounds the cost: the point of
-        # resuming is to avoid paying for a second full review.
-        claude_args: |
-          --verbose
-          --model opus
-          --resume ${{ steps.components.outputs.session_id }}
-          --max-turns 5
-          --allowedTools "Read,Write"
-        prompt: |
-          Your previous turn ended without creating /tmp/validation-summary.md, so
-          the review you performed never reached the pull request.
-
-          Write that file now from the review already in this session. Use a single
-          Write call and do nothing else. Where a check did not apply or could not
-          run, say so in the report rather than leaving it out.
+          Your task is not done until /tmp/validation-summary.md exists on disk
+          with the completion marker as its last line. After the validations
+          above, your final action must be a single Write call that creates that
+          file with the full report. If a section did not apply or a check could
+          not run, still write the file and say so — a report that documents a
+          skipped check is complete; one that omits it is not. If you have not
+          written this file, you have not completed the task, no matter what you
+          reported in your responses.
 
     - name: Ensure a validation summary exists
       id: ensure-summary
@@ -440,23 +412,48 @@ runs:
         REPOSITORY: ${{ inputs.repository }}
         RUN_ID: ${{ github.run_id }}
         COMPONENTS_OUTCOME: ${{ steps.components.outcome }}
-        RETRY_OUTCOME: ${{ steps.components-retry.outcome }}
       run: |
-        # Claude writes the summary itself, and the retry above gets a second
-        # attempt at it. If neither produced one, write a fallback so the sticky
-        # comment reflects the failure instead of being left on the "reviewing..."
-        # placeholder, and flag it so the Summary step fails the check (a review
-        # that did not run must not pass green).
-        if [[ ! -s /tmp/validation-summary.md ]]; then
-          echo "summary_missing=true" >> "$GITHUB_OUTPUT"
-          {
-            echo "### Claude Code validation did not complete"
-            echo ""
-            echo "The AI review step finished without writing a summary (outcome: \`${COMPONENTS_OUTCOME:-unknown}\`, retry: \`${RETRY_OUTCOME:-not attempted}\`). This usually means it errored or ran out of turns before producing its report."
-            echo ""
-            echo "See the [Actions log](${SERVER_URL}/${REPOSITORY}/actions/runs/${RUN_ID}) for details."
-          } > /tmp/validation-summary.md
+        # Claude writes the summary itself. Completeness is decided by the marker
+        # the prompt requires as the report's last line, not by the file existing:
+        # a review that ends mid-flight can leave a partial report behind, and
+        # presence alone accepts that as the final word and posts it to the pull
+        # request under a green check.
+        #
+        # Anything short of a marked report gets a fallback instead, so the sticky
+        # comment reflects the failure rather than being left on the "reviewing..."
+        # placeholder, and summary_missing fails the check (a review that did not
+        # finish must not pass green). Recovery is a re-run of the job, which
+        # starts a clean review.
+        if [[ -s /tmp/validation-summary.md ]] && grep -qF '<!-- validation-complete -->' /tmp/validation-summary.md; then
+          exit 0
         fi
+
+        echo "summary_missing=true" >> "$GITHUB_OUTPUT"
+        if [[ -s /tmp/validation-summary.md ]]; then
+          # Move it aside rather than leaving it in place: the step below posts
+          # whatever is at this path, and the partial text must not reach the pull
+          # request. Keep a copy for the log.
+          mv /tmp/validation-summary.md /tmp/validation-summary.partial.md
+          echo "::warning::The AI review wrote an incomplete validation summary (no completion marker); discarding it."
+          echo "Discarded partial summary:"
+          cat /tmp/validation-summary.partial.md
+        else
+          echo "::warning::The AI review ended without writing /tmp/validation-summary.md."
+        fi
+
+        {
+          echo "### Claude Code validation did not complete"
+          echo ""
+          echo "The AI review did not produce a complete report, so this check has no validation feedback to show. Re-running the job starts a fresh review."
+          echo ""
+          echo "Review step outcome: \`${COMPONENTS_OUTCOME:-unknown}\`. A step can report success and still end without a finished report, so that outcome does not mean the review ran."
+          if [[ -s /tmp/validation-summary.partial.md ]]; then
+            echo ""
+            echo "A partial report was written and discarded; the Actions log quotes it in full."
+          fi
+          echo ""
+          echo "See the [Actions log](${SERVER_URL}/${REPOSITORY}/actions/runs/${RUN_ID}) for details."
+        } > /tmp/validation-summary.md
 
     - name: Update PR comment with validation summary
       if: always() && steps.changed-files.outputs.has_components == 'true' && steps.create-comment.outputs.comment_id != ''
@@ -478,7 +475,6 @@ runs:
         MARKETPLACE_RESULT: ${{ steps.marketplace.outcome }}
         VERSION_BUMP_RESULT: ${{ steps.version-bump.outcome }}
         COMPONENTS_RESULT: ${{ steps.components.outcome }}
-        RETRY_RESULT: ${{ steps.components-retry.outcome }}
         SUMMARY_MISSING: ${{ steps.ensure-summary.outputs.summary_missing }}
         HAS_COMPONENTS: ${{ steps.changed-files.outputs.has_components }}
         CHANGED_PLUGINS: ${{ steps.changed-files.outputs.changed_plugins }}
@@ -498,10 +494,13 @@ runs:
         echo "Plugin structure validation: ${STRUCTURE_RESULT:-skipped}"
         echo "Marketplace validation: ${MARKETPLACE_RESULT:-skipped}"
         echo "Version bump validation: ${VERSION_BUMP_RESULT:-skipped}"
-        echo "Component & security validation (AI-driven): ${COMPONENTS_RESULT:-skipped}"
-        # Only printed when the summary was missing and a session existed to resume.
-        if [[ -n "$RETRY_RESULT" ]]; then
-          echo "Summary write retry (resumed session): ${RETRY_RESULT}"
+        # Report whether a complete report was produced rather than only the step's
+        # exit status: the step can succeed and still end without one, and a bare
+        # "success" on that line reads as though the review landed.
+        if [[ "$SUMMARY_MISSING" == "true" ]]; then
+          echo "Component & security validation (AI-driven): ${COMPONENTS_RESULT:-skipped}, but produced no complete report"
+        else
+          echo "Component & security validation (AI-driven): ${COMPONENTS_RESULT:-skipped}"
         fi
         echo ""
 
@@ -539,11 +538,12 @@ runs:
           echo ""
         fi
 
-        # The AI step can exit 0 without producing a report (e.g. permission
-        # denials or an early exit). Treat a missing summary as a failure so the
-        # check never goes green on a review that did not actually run.
+        # The AI step can exit 0 having produced no report, or a partial one it
+        # never got to finish (e.g. permission denials, an early exit, or a turn
+        # that ended on work still in flight). Treat either as a failure so the
+        # check never goes green on a review that did not actually finish.
         if [[ "$SUMMARY_MISSING" == "true" ]]; then
-          echo "AI-driven review produced no summary; a fallback was posted to the PR comment."
+          echo "AI-driven review produced no complete summary; a fallback was posted to the PR comment. Re-run the job to start a fresh review."
           echo ""
         fi
 

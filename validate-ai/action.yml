@@ -225,78 +225,6 @@ runs:
           PR NUMBER: ${{ inputs.pr_number }}
           STICKY COMMENT ID: ${{ steps.create-comment.outputs.comment_id }}
 
-          You are reviewing the Claude Code material that changed in this pull
-          request. That may be a plugin marketplace, or it may just be a repo's
-          own `.claude/` directory (skills, agents, commands, hooks, settings)
-          and `CLAUDE.md`. Not every section below applies to every repo — use
-          the skip guidance in each. You have access to two plugins, plugin-dev
-          and claude-config-validator; use their agents and skills as directed.
-
-          # RULES
-
-          1. The repository is checked out at the PR head, but the Claude
-             configuration in the working tree is NOT. See rule 2 before reading
-             any of it.
-          2. Read Claude configuration from `.claude-pr/`, not from the working
-             tree. Before this review begins, claude-code-action replaces these
-             repository-root paths with their base-branch versions, because
-             PR-authored config executes at CLI startup and so cannot be trusted:
-             `.claude/`, `CLAUDE.md`, `CLAUDE.local.md`, `.mcp.json`,
-             `.claude.json`, `.gitmodules`, `.ripgreprc`, and `.husky`. It first
-             snapshots the PR-authored versions to `.claude-pr/`, preserving the
-             original layout, specifically so a review agent can inspect them
-             safely. Only those root paths are affected; a nested path such as
-             `plugins/foo/.claude/` is left alone.
-
-             Map each changed path at one of those locations by prefixing it:
-             the PR's `.claude/CLAUDE.md` is at `.claude-pr/.claude/CLAUDE.md`,
-             and its root `CLAUDE.md` is at `.claude-pr/CLAUDE.md`. Quote line
-             numbers and text from the `.claude-pr/` copy, and report the path in
-             its original repo-relative form.
-
-             The working-tree copy of those paths is base-branch content. Never
-             quote it as this PR's work; doing so produces findings about code the
-             contributor did not write. A path present in the working tree with no
-             `.claude-pr/` counterpart was deleted by this PR.
-
-             Everything else is untouched and should be read from the working
-             tree as normal, including `plugins/`, `.claude-plugin/`, and
-             `scripts/`.
-
-             If a config file is listed as changed below and `.claude-pr/` does
-             not exist at all, stop treating the working tree as the PR's content
-             and say so in your report. That means this rule no longer matches
-             the action's behavior.
-          3. You can read files directly to inspect the changed Claude files.
-          4. Writing the report is mandatory and is the only way your results
-             reach the pull request. When your review is complete, your final
-             action must be to write the full report in markdown to
-             /tmp/validation-summary.md. Do not post PR comments yourself.
-
-             Write that file exactly once, as the last thing you do. Never write
-             an interim, partial, or "in progress" version of it. This session is
-             non-interactive: when your turn ends the process exits, so whatever
-             is in that file at that moment is what lands on the pull request,
-             permanently, with no chance to revise it.
-          5. Run every subagent synchronously — pass run_in_background: false
-             where that parameter exists. Subagents default to running in the
-             background, on the assumption that a notification will wake you when
-             one finishes. Nothing wakes you up here. If you end your turn while a
-             subagent is still running, it is killed and its findings are lost. Do
-             not end your turn while any subagent is outstanding, and do not report
-             on work a subagent has not yet returned.
-
-             Synchronous does not mean one at a time. This review is on a wall
-             clock, so dispatch independent subagents together in a single message
-             with several tool calls: they then run concurrently and all return
-             before your turn ends, which is both faster and safe.
-
-             Every subagent call in sections 1 and 2 below is independent of every
-             other one, and there can be more than two of them: section 1 is one
-             validation per changed plugin and section 2 is one review per changed
-             skill. Work out the full set first and send all of it in one message,
-             rather than batching by section or dispatching one at a time.
-
           Changed files:
           ${{ steps.changed-files.outputs.changed_files }}
 
@@ -318,91 +246,15 @@ runs:
           Config files changed (CLAUDE.md, .claude/):
           ${{ steps.changed-files.outputs.config_files }}
 
-          Perform the following validations. Sections 1 and 2 are subagent work and
-          every call in them is independent, so send them all out in one message per
-          rule 5 rather than waiting for one to finish before dispatching the next.
-          Section 3 is yours to carry out once their results come back. The numbering
-          is for reference and for the order of the report, not an order of
-          execution.
+          # RULES
 
-          ## 1. Plugin Validation (plugin-validator agent from plugin-dev)
+          1. The repository is checked out at the PR head SHA with full git history (fetch-depth: 0).
+          2. The changed-file lists above are authoritative — do not re-derive them.
+          3. When the review is complete, write the report to /tmp/validation-summary.md.
+             This file replaces the sticky PR comment automatically, so do not post
+             comments yourself.
 
-          For each changed plugin listed above, validate the plugin structure.
-          This triggers the plugin-validator agent which performs comprehensive checks:
-          - plugin.json manifest correctness (name, version, required fields)
-          - Directory structure and auto-discovery compliance
-          - Command frontmatter (description, argument-hint, allowed-tools)
-          - Agent frontmatter (name 3-50 chars lowercase hyphens, description with <example> blocks, valid model/color, system prompt >20 chars)
-          - Hooks JSON schema, event names, and ${CLAUDE_PLUGIN_ROOT} usage in script paths
-          - MCP server configurations (valid types, HTTPS/WSS enforcement)
-          - File organization (README.md presence, no unnecessary files)
-          - No hardcoded credentials in any plugin files
-
-          Run this for every changed plugin directory even if only some component types changed.
-          Skip this step if no plugin directories changed (component-only or config-only repos).
-
-          ## 2. Skill Review (skill-reviewer agent from plugin-dev)
-
-          If any SKILL.md files were changed (listed above), review each modified skill.
-          This triggers the skill-reviewer agent which evaluates:
-          - SKILL.md YAML frontmatter (required: name, description)
-          - Description quality: specific trigger phrases, third-person form, appropriate length
-          - Content quality: word count (target 1,000-3,000 words), imperative/infinitive writing style
-          - Progressive disclosure: core SKILL.md is lean, details in references/, examples in examples/, scripts in scripts/
-          - All referenced files actually exist
-          - Anti-patterns: vague triggers, bloated SKILL.md, missing examples
-
-          Skip this step if no SKILL.md files were changed.
-
-          ## 3. Configuration & Security Review (claude-config-validator plugin)
-
-          This is the primary review for a repo's own `.claude/` directory and
-          `CLAUDE.md`, and it also applies to plugin repos. For every changed
-          Claude file listed above (CLAUDE.md, and anything under `.claude/`:
-          skills, agents, commands, hooks, and settings), use the
-          reviewing-claude-config skill from the claude-config-validator plugin to
-          review structure and security. These are exactly the paths rule 2
-          covers, so read them from `.claude-pr/`:
-          - Scan for committed secrets (API keys, tokens, passwords)
-          - Check for hardcoded credentials in code
-          - Validate permission scoping in settings files
-          - Detect dangerous command auto-approvals
-          - Identify overly broad file access permissions
-          - Flag malformed or non-compliant agent, command, and hook definitions
-
-          ## Output Requirements
-
-          Write your final report to /tmp/validation-summary.md as a single
-          structured markdown document:
-          - Categorize issues by severity: critical, major, minor
-          - Include the exact file path and line for each issue
-          - Provide specific remediation guidance for each violation
-          - Distinguish errors (must fix) from warnings (should fix)
-          - If all checks pass, confirm with a summary of what was validated
-
-          The report must be written to /tmp/validation-summary.md even when all
-          checks pass, and even when every section above was skipped as not
-          applicable. The sticky PR comment is replaced with its contents.
-
-          End the report with this line, exactly, on a line of its own:
-
-          <!-- validation-complete -->
-
-          That marker is how this action tells a finished report from an
-          abandoned one, so it must be the last line and it must only appear on
-          a report you consider complete. A report without it is discarded and
-          the check fails.
-
-          # FINAL STEP (REQUIRED)
-
-          Your task is not done until /tmp/validation-summary.md exists on disk
-          with the completion marker as its last line. After the validations
-          above, your final action must be a single Write call that creates that
-          file with the full report. If a section did not apply or a check could
-          not run, still write the file and say so — a report that documents a
-          skipped check is complete; one that omits it is not. If you have not
-          written this file, you have not completed the task, no matter what you
-          reported in your responses.
+          /claude-config-validator:validate-ai
 
     - name: Ensure a validation summary exists
       id: ensure-summary

@@ -2,7 +2,7 @@
 
 Reviews Claude Code material that changed in a pull request using Claude Code with Bitwarden plugins. It works for any repository that carries Claude config, not only plugin marketplaces. A repo with its own `.claude/` directory (skills, agents, commands, hooks, settings) and `CLAUDE.md` gets the same review as a marketplace of plugins.
 
-It detects changed Claude-related files (`.claude/` config, `CLAUDE.md`, agents, skills, commands, hooks, and plugin directories), runs the `plugin-dev` and `claude-config-validator` plugins against them, and posts the results to a sticky PR comment. In a plugin marketplace repository (one with a `.claude-plugin/marketplace.json`), a pull request that touches a `plugins/` directory also runs the bundled structure, marketplace, and version-bump scripts against the checkout. Repositories without that manifest skip those steps and just get the AI-driven review.
+It detects changed Claude-related files (`.claude/` config, `CLAUDE.md`, agents, skills, commands, hooks, and plugin directories), hands them to the [`/validate-ai`](https://github.com/bitwarden/ai-plugins/tree/main/plugins/claude-config-validator/commands/validate-ai) command from the `claude-config-validator` plugin, and posts the results to a sticky PR comment. That command owns the review itself — scope rules, subagent delegation to `plugin-dev`, and the report format — so a developer running `/validate-ai` or `/validate-ai-local` locally gets the same review this action performs. In a plugin marketplace repository (one with a `.claude-plugin/marketplace.json`), a pull request that touches a `plugins/` directory also runs the bundled structure, marketplace, and version-bump scripts against the checkout. Repositories without that manifest skip those steps and just get the AI-driven review.
 
 The validation scripts live in [`scripts/`](scripts/) and are bundled with the action — this action directory is their sole source of truth, so callers do not need to vendor anything.
 
@@ -127,9 +127,9 @@ The AI-driven step and its sticky PR comment fire only when a component changed 
 
 It snapshots the PR-authored versions to `.claude-pr/` first, preserving the original layout, so the PR's `.claude/CLAUDE.md` is available at `.claude-pr/.claude/CLAUDE.md`.
 
-The review prompt therefore directs the AI step to read those paths from `.claude-pr/` and to report them under their original repo-relative names. Reading them from the working tree yields base-branch content, which produces findings about lines the contributor never wrote. Everything outside that list, including `plugins/`, `.claude-plugin/`, and `scripts/`, is untouched and is read from the working tree.
+The `/validate-ai` command therefore reads those paths from `.claude-pr/` and reports them under their original repo-relative names. Reading them from the working tree yields base-branch content, which produces findings about lines the contributor never wrote. Everything outside that list, including `plugins/`, `.claude-plugin/`, and `scripts/`, is untouched and is read from the working tree.
 
-If a future version of `claude-code-action` stops writing the `.claude-pr/` snapshot, the prompt instructs the AI step to say so in its report rather than silently reviewing base-branch content.
+If a future version of `claude-code-action` stops writing the `.claude-pr/` snapshot, the command says so in its report rather than silently reviewing base-branch content.
 
 ## Bundled Scripts
 

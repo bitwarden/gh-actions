@@ -1,0 +1,112 @@
+name: _publish-mcp-server-npm
+run-name: Stage publish @bitwarden/mcp-server to npm
+
+# Reusable publish logic for @bitwarden/mcp-server, called by bitwarden/mcp-server's inert
+# publish-npm.yml shim. Living here (locked main, no external contributors) is what lets the
+# shim reference it @main so CD can iterate independently of the CI-built, QA-tested artifact.
+#
+# Runs in the caller's repo context (bitwarden/mcp-server) at the dispatched commit — the
+# publish-release/<version> branch deploy cuts from the release commit. The version is derived
+# from that commit's package.json (the single source of truth; npm publishes that version
+# regardless), and the matching CI-built artifact is promoted from the v<version> release —
+# never rebuilt here.
+#
+# Provenance is issued by npm's trusted publisher only for this exact
+# repo + workflow (publish-npm.yml) + environment (mcp-server-npm); keep this job free of any
+# other OIDC login (e.g. Azure) so the environment-scoped id-token is used solely for npm.
+#
+# This STAGES the publish (`npm stage publish`) rather than publishing directly: the npm
+# trusted publisher for @bitwarden/mcp-server is restricted to stage-only, so a maintainer
+# must approve the staged package on npmjs.com with 2FA before it goes live. Provenance is
+# generated for staged publishes at parity with direct publishes and carries through the
+# approval.
+
+on:
+  workflow_call: {}
+
+permissions: {}
+
+jobs:
+  publish:
+    name: Stage publish @bitwarden/mcp-server to npm
+    runs-on: ubuntu-24.04
+    environment: mcp-server-npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      # Defense-in-depth: this publish must only ever run from a dispatch by the BRE deploy bot.
+      # If someone runs the mcp-server publish-npm.yml shim by hand (e.g. on main, or
+      # re-dispatches an existing publish-release branch), fail fast before touching the
+      # registry. This is a backstop to the primary controls (environment branch policy +
+      # publish-release ruleset).
+      - name: Verify the run was triggered by the deploy bot
+        env:
+          _TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+        run: |
+          if [[ "$_TRIGGERING_ACTOR" != "bre-deploy[bot]" ]]; then
+            echo "::error::Publish must be triggered by bre-deploy[bot]; got '${_TRIGGERING_ACTOR}'"
+            exit 1
+          fi
+
+      # A bare checkout defaults to the CALLER repo (github.* is the caller's context), which
+      # is bitwarden/mcp-server when invoked via its publish-npm.yml shim. Pin it explicitly so
+      # it is also correct from any test caller. github.sha is the caller's commit — the
+      # publish-release/<version> branch deploy cuts from the release commit.
+      - name: Check out bitwarden/mcp-server at the release commit
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: bitwarden/mcp-server
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Derive version from package.json
+        id: version
+        run: |
+          VERSION=$(jq -r '.version' package.json)
+          if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
+            echo "::error::Could not read .version from package.json"
+            exit 1
+          fi
+          echo "Resolved version: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version-file: ".nvmrc"
+          registry-url: "https://registry.npmjs.org/"
+          cache: npm
+
+      - name: Pin npm version
+        run: |
+          # npm 11.5.1+ required for OIDC trusted publishing + provenance; 11.15.0+ for `npm stage`.
+          npm install -g npm@latest
+          npm --version
+
+      # package.json has `"prepare": "husky"`, which npm runs as part of `npm publish` /
+      # `npm stage publish`. Without node_modules that lifecycle script fails and takes the
+      # publish with it (BRE-1960). `--ignore-scripts` keeps the install itself from executing
+      # any dependency scripts inside this OIDC-bearing job.
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      # Promote the CI-built, QA-tested bundle: download the build zip attached to the
+      # v<version> release and unpack it at the repo root, which restores dist/ exactly as
+      # package.json `files: ["dist"]` expects. npm force-includes README.md + LICENSE.txt +
+      # package.json from the working tree (already present via the checkout). mcp-server is
+      # public, so the job's GITHUB_TOKEN (contents: read) can download the release asset.
+      - name: Download and unpack npm build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          _PKG_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release download "v${_PKG_VERSION}" \
+            --repo bitwarden/mcp-server \
+            --pattern "mcp-server-${_PKG_VERSION}.zip"
+          unzip "mcp-server-${_PKG_VERSION}.zip"
+
+      # Stages the publish with provenance. A maintainer must approve it on npmjs.com (2FA)
+      # before the version is live — bitwarden/deploy notifies #release when this completes.
+      - name: Stage publish to npm with provenance
+        run: npm stage publish --provenance --access public

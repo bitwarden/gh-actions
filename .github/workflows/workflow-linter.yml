@@ -18,6 +18,9 @@ permissions:
   contents: read
   id-token: write
 
+env:
+  ROLLOUT_DAYS: 10 # Duration of rollout period for new versions
+
 jobs:
   lint:
     name: Lint
@@ -91,19 +94,181 @@ jobs:
         run: |
           curl \
           --fail \
+          --silent \
+          --show-error \
+          --max-time 30 \
+          --retry 3 \
+          --retry-delay 2 \
           --create-dirs \
           --output .github/actionlint.yml \
           https://raw.githubusercontent.com/bitwarden/workflow-linter/refs/heads/main/.github/actionlint.yml
 
-      - name: Set up Python 3.13
+      - name: Retrieve stable version
+        id: version_config
+        if: steps.changed-workflows.outputs.changed_files_count != '0'
+        run: |
+          set -euo pipefail
+          # pull stable version from config file in gh-actions repo
+          curl \
+          --fail \
+          --silent \
+          --show-error \
+          --max-time 30 \
+          --retry 3 \
+          --retry-delay 2 \
+          --output config.json \
+          https://raw.githubusercontent.com/bitwarden/gh-actions/refs/heads/BRE-2181/workflow-linter-staged-rollout/.github/linter-versions.json
+          #https://raw.githubusercontent.com/bitwarden/gh-actions/main/.github/linter-versions.json
+
+          # Assign first (not echo "$(jq ...)"): echo always exits 0, so wrapping jq in it hides
+          # a parse error / missing field and lets the step "pass" with an empty version. As a
+          # bare assignment under set -e, a jq failure fails the step. -e also errors on null/absent.
+          linter_version=$(jq -re '.current_linter_version' config.json)
+          python_version=$(jq -re '.current_python_version' config.json)
+          echo "linter_version=$linter_version" | tee -a "$GITHUB_OUTPUT"
+          echo "python_version=$python_version" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Get releases from PyPI
+        id: pypi_data
+        if: steps.changed-workflows.outputs.changed_files_count != '0'
+        run: |
+          set -uo pipefail
+          if curl \
+          --fail \
+          --silent \
+          --show-error \
+          --max-time 30 \
+          --retry 3 \
+          --retry-delay 2 \
+          --output pypi.json \
+          https://pypi.org/pypi/bitwarden_workflow_linter/json; then
+            echo "success=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "success=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Retrieve PyPI latest version
+        id: pypi_linter
+        if: steps.changed-workflows.outputs.changed_files_count != '0' && steps.pypi_data.outputs.success == 'true'
+        run: |
+          set -euo pipefail
+          # Latest non-yanked release.; sort -V handles version number ordering.
+          version=$(jq -r '.releases | to_entries[] | select(all(.value[]; .yanked != true)) | .key' pypi.json | sort -V | tail -n 1)
+          echo "version=$version" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Determine Python version
+        id: pypi_python
+        if: steps.changed-workflows.outputs.changed_files_count != '0' && steps.pypi_data.outputs.success == 'true'
+        env:
+          VERSION: ${{ steps.pypi_linter.outputs.version }}
+        run: |
+          set -euo pipefail
+          # extract required Python version from PyPI data for latest release
+          version=$(jq -r --arg v "$VERSION" '.releases[$v][0].requires_python' pypi.json | grep -oE '[0-9]+\.[0-9]+' | head -1) || true
+          echo "version=$version" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Determine publish date
+        id: pypi_publish_date
+        if: steps.changed-workflows.outputs.changed_files_count != '0' && steps.pypi_data.outputs.success == 'true'
+        env:
+          VERSION: ${{ steps.pypi_linter.outputs.version }}
+        run: |
+          set -euo pipefail
+          # exit cleanly if VERSION is empty. will be caught in later step.
+          if [ -z "$VERSION" ]; then exit 0; fi
+          # generate publish date by pulling the upload_time_iso_8601 from all files in the release and extracting just the YYYY-MM-DD from the oldest
+          published=$(jq -r --arg v "$VERSION" '[.releases[$v][].upload_time_iso_8601] | min | .[0:10]' pypi.json)
+          # Whole calendar days between the publish date and today, both at UTC midnight. The
+          # rollout is day-granular, so the boundary shouldn't shift with the release's time of day.
+          today=$(date -u +%F)
+          days_ago=$(( ( $(date -u -d "$today" +%s) - $(date -u -d "$published" +%s) ) / 86400 ))
+          echo "days_ago=$days_ago" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Set versions
+        id: versions
+        if: steps.changed-workflows.outputs.changed_files_count != '0'
+        env:
+          STABLE_LINTER: ${{ steps.version_config.outputs.linter_version }}
+          STABLE_PYTHON: ${{ steps.version_config.outputs.python_version }}
+          LATEST_LINTER: ${{ steps.pypi_linter.outputs.version }}
+          LATEST_PYTHON: ${{ steps.pypi_python.outputs.version }}
+          DAYS_AGO: ${{ steps.pypi_publish_date.outputs.days_ago }}
+          PYPI_SUCCESS: ${{ steps.pypi_data.outputs.success }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          is_rollout=false
+
+          if [[ "$PYPI_SUCCESS" != "true" || -z "$LATEST_LINTER" || -z "$LATEST_PYTHON" || -z "$DAYS_AGO" ]]; then
+            # Missing PyPI data: fall back to the stable config version.
+            echo "::warning::Could not resolve the linter version from PyPI; using stable config version $STABLE_LINTER."
+            linter_version="$STABLE_LINTER"
+            python_version="$STABLE_PYTHON"
+          else
+            highest_version=$(printf '%s\n%s\n' "$STABLE_LINTER" "$LATEST_LINTER" | sort -V | tail -n 1)
+            if [[ "$LATEST_LINTER" == "$STABLE_LINTER" || "$LATEST_LINTER" != "$highest_version" ]]; then
+              # PyPI is the same as, or older than, the config version: stay on stable.
+              linter_version="$STABLE_LINTER"
+              python_version="$STABLE_PYTHON"
+            elif [[ "$DAYS_AGO" -ge "$ROLLOUT_DAYS" ]]; then
+              # New version, past the rollout window: fully adopt it.
+              linter_version="$LATEST_LINTER"
+              python_version="$LATEST_PYTHON"
+            elif [[ "$RUN_ATTEMPT" -gt 1 ]]; then
+              # Escape hatch: re-runs during the rollout window get the stable version, so a
+              # broken new release can be dodged by simply re-running the check.
+              linter_version="$STABLE_LINTER"
+              python_version="$STABLE_PYTHON"
+              echo "::notice::Re-run detected during rollout window - using stable linter $linter_version (Python $python_version)."
+            else
+              # New version, still in the rollout window: percentage-based dice roll.
+              rollout_day=$(( DAYS_AGO + 1 ))
+              rollout_pct=$(( rollout_day * 100 / ROLLOUT_DAYS ))
+              # pick a number between 1-100, and if it's less than the rollout %, use the latest linter version from PyPI
+              if (( RANDOM % 100 < rollout_pct )); then
+                linter_version="$LATEST_LINTER"
+                python_version="$LATEST_PYTHON"
+                is_rollout=true
+                echo "::notice::Rollout: using new linter $linter_version (Python $python_version) - ${rollout_pct}% on day $rollout_day."
+              else
+                linter_version="$STABLE_LINTER"
+                python_version="$STABLE_PYTHON"
+              fi
+            fi
+          fi
+
+          echo "is_rollout=$is_rollout" >> "$GITHUB_OUTPUT"
+          echo "linter_version=$linter_version" >> "$GITHUB_OUTPUT"
+          echo "python_version=$python_version" >> "$GITHUB_OUTPUT"
+          echo "INFO: selected linter=$linter_version, python=$python_version"
+
+      - name: Annotate rollout usage
+        if: steps.versions.outputs.is_rollout == 'true'
+        env:
+          LINTER_VERSION: ${{ steps.versions.outputs.linter_version }}
+          PYTHON_VERSION: ${{ steps.versions.outputs.python_version }}
+        run: |
+          set -euo pipefail
+          {
+            echo "### :rocket: Staged Rollout Active"
+            echo "This workflow run is using:"
+            echo "- **Linter version**: $LINTER_VERSION"
+            echo "- **Python version**: $PYTHON_VERSION"
+            echo ""
+            echo "A gradual rollout is in progress. If you encounter issues, re-run this check to use the stable version."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Set up Python
         if: steps.changed-workflows.outputs.changed_files_count != '0'
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
-          python-version: "3.13.7"
+          python-version: ${{ steps.versions.outputs.python_version }}
 
       - name: Install bwwl binary
         if: steps.changed-workflows.outputs.changed_files_count != '0'
-        run: python -m pip install --upgrade bitwarden_workflow_linter
+        env:
+          LINTER_VERSION: ${{ steps.versions.outputs.linter_version }}
+        run: python -m pip install "bitwarden_workflow_linter==$LINTER_VERSION"
 
       - name: Lint
         env:

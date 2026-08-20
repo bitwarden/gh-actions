@@ -19,11 +19,11 @@ permissions:
   id-token: write
 
 env:
-  LINTER_PREVIOUS_VERSION: "3.5.6" # Current stable version
+  LINTER_PREVIOUS_VERSION: "3.5.7" # Current stable version
   LINTER_CURRENT_VERSION: "3.5.7" # Version being rolled out
   PYTHON_PREVIOUS_VERSION: "3.13.7" # Python version for previous linter
-  PYTHON_CURRENT_VERSION: "3.13.8" # Python version for current linter
-  ROLLOUT_START_DATE: "2026-08-15" # YYYY-MM-DD format
+  PYTHON_CURRENT_VERSION: "3.13.7" # Python version for current linter
+  ROLLOUT_START_DATE: "2026-08-01" # YYYY-MM-DD format
   ROLLOUT_DAYS: 10 # Duration of rollout period
 
 jobs:

@@ -118,14 +118,14 @@ jobs:
           now_epoch=$(date -u +%s)
           rollout_day=$(( (now_epoch - start_epoch) / 86400 + 1 ))
 
+          # Default: this run is not using a newly rolled-out version
+          is_rollout=false
+
           if [[ $rollout_day -lt 1 ]]; then
             # Before rollout start: stay on the previous (stable) version
             linter_version="$LINTER_PREVIOUS_VERSION"
             python_version="$PYTHON_PREVIOUS_VERSION"
-            echo "is_rollout=false" >> "$GITHUB_OUTPUT"
           elif [[ $rollout_day -le $ROLLOUT_DAYS ]]; then
-            echo "is_rollout=true" >> "$GITHUB_OUTPUT"
-
             if [[ "$RUN_ATTEMPT" -gt 1 ]]; then
               # Re-runs always get previous version during the rollout window (escape hatch)
               linter_version="$LINTER_PREVIOUS_VERSION"
@@ -137,8 +137,10 @@ jobs:
               random=$((RANDOM % 100))
 
               if [[ $random -lt $rollout_pct ]]; then
+                # Selected for the new version on this run
                 linter_version="$LINTER_CURRENT_VERSION"
                 python_version="$PYTHON_CURRENT_VERSION"
+                is_rollout=true
                 echo "::notice::Using rollout versions (linter $linter_version, Python $python_version) - ${rollout_pct}% rollout on day $rollout_day"
               else
                 linter_version="$LINTER_PREVIOUS_VERSION"
@@ -149,9 +151,9 @@ jobs:
             # After rollout window: fully rolled out to current version
             linter_version="$LINTER_CURRENT_VERSION"
             python_version="$PYTHON_CURRENT_VERSION"
-            echo "is_rollout=false" >> "$GITHUB_OUTPUT"
           fi
 
+          echo "is_rollout=$is_rollout" >> "$GITHUB_OUTPUT"
           echo "linter_version=$linter_version" >> "$GITHUB_OUTPUT"
           echo "python_version=$python_version" >> "$GITHUB_OUTPUT"
           echo "Versions selected: linter=$linter_version, python=$python_version"

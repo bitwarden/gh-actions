@@ -126,6 +126,7 @@ jobs:
             linter_version="$LINTER_PREVIOUS_VERSION"
             python_version="$PYTHON_PREVIOUS_VERSION"
           elif [[ $rollout_day -le $ROLLOUT_DAYS ]]; then
+            echo "INFO: Phased rollout period is active between linter versions $LINTER_PREVIOUS_VERSION and $LINTER_CURRENT_VERSION."
             if [[ "$RUN_ATTEMPT" -gt 1 ]]; then
               # Re-runs always get previous version during the rollout window (escape hatch)
               linter_version="$LINTER_PREVIOUS_VERSION"
@@ -156,7 +157,7 @@ jobs:
           echo "is_rollout=$is_rollout" >> "$GITHUB_OUTPUT"
           echo "linter_version=$linter_version" >> "$GITHUB_OUTPUT"
           echo "python_version=$python_version" >> "$GITHUB_OUTPUT"
-          echo "Versions selected: linter=$linter_version, python=$python_version"
+          echo "INFO: Versions selected: linter=$linter_version, python=$python_version"
 
       - name: Annotate rollout usage
         if: steps.versions.outputs.is_rollout == 'true'

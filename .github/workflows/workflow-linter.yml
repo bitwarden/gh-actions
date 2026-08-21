@@ -18,6 +18,14 @@ permissions:
   contents: read
   id-token: write
 
+env:
+  LINTER_PREVIOUS_VERSION: "3.5.7" # Current stable version
+  LINTER_CURRENT_VERSION: "3.5.7" # Version being rolled out
+  PYTHON_PREVIOUS_VERSION: "3.13.7" # Python version for previous linter
+  PYTHON_CURRENT_VERSION: "3.13.7" # Python version for current linter
+  ROLLOUT_START_DATE: "2026-08-01" # YYYY-MM-DD format
+  ROLLOUT_DAYS: 10 # Duration of rollout period
+
 jobs:
   lint:
     name: Lint
@@ -95,15 +103,89 @@ jobs:
           --output .github/actionlint.yml \
           https://raw.githubusercontent.com/bitwarden/workflow-linter/refs/heads/main/.github/actionlint.yml
 
-      - name: Set up Python 3.13
+      - name: Determine linter and Python versions
+        id: versions
+        if: steps.changed-workflows.outputs.changed_files_count != '0'
+        env:
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+
+          if ! start_epoch=$(date -u -d "$ROLLOUT_START_DATE" +%s); then
+            echo "::error::Could not parse ROLLOUT_START_DATE='$ROLLOUT_START_DATE'"
+            exit 1
+          fi
+          now_epoch=$(date -u +%s)
+          rollout_day=$(( (now_epoch - start_epoch) / 86400 + 1 ))
+
+          # Default: this run is not using a newly rolled-out version
+          is_rollout=false
+
+          if [[ $rollout_day -lt 1 ]]; then
+            # Before rollout start: stay on the previous (stable) version
+            linter_version="$LINTER_PREVIOUS_VERSION"
+            python_version="$PYTHON_PREVIOUS_VERSION"
+          elif [[ $rollout_day -le $ROLLOUT_DAYS ]]; then
+            echo "INFO: Phased rollout period is active between linter versions $LINTER_PREVIOUS_VERSION and $LINTER_CURRENT_VERSION."
+            if [[ "$RUN_ATTEMPT" -gt 1 ]]; then
+              # Re-runs always get previous version during the rollout window (escape hatch)
+              linter_version="$LINTER_PREVIOUS_VERSION"
+              python_version="$PYTHON_PREVIOUS_VERSION"
+              echo "::notice::Re-run detected - using stable versions (linter $linter_version, Python $python_version)"
+            else
+              # First run: percentage-based rollout
+              rollout_pct=$((rollout_day * 10))
+              random=$((RANDOM % 100))
+
+              if [[ $random -lt $rollout_pct ]]; then
+                # Selected for the new version on this run
+                linter_version="$LINTER_CURRENT_VERSION"
+                python_version="$PYTHON_CURRENT_VERSION"
+                is_rollout=true
+                echo "::notice::Using rollout versions (linter $linter_version, Python $python_version) - ${rollout_pct}% rollout on day $rollout_day"
+              else
+                linter_version="$LINTER_PREVIOUS_VERSION"
+                python_version="$PYTHON_PREVIOUS_VERSION"
+              fi
+            fi
+          else
+            # After rollout window: fully rolled out to current version
+            linter_version="$LINTER_CURRENT_VERSION"
+            python_version="$PYTHON_CURRENT_VERSION"
+          fi
+
+          echo "is_rollout=$is_rollout" >> "$GITHUB_OUTPUT"
+          echo "linter_version=$linter_version" >> "$GITHUB_OUTPUT"
+          echo "python_version=$python_version" >> "$GITHUB_OUTPUT"
+          echo "INFO: Versions selected: linter=$linter_version, python=$python_version"
+
+      - name: Annotate rollout usage
+        if: steps.versions.outputs.is_rollout == 'true'
+        env:
+          LINTER_VERSION: ${{ steps.versions.outputs.linter_version }}
+          PYTHON_VERSION: ${{ steps.versions.outputs.python_version }}
+        run: |
+          set -euo pipefail
+          {
+            echo "### :rocket: Staged Rollout Active"
+            echo "This workflow run is using:"
+            echo "- **Linter version**: $LINTER_VERSION"
+            echo "- **Python version**: $PYTHON_VERSION"
+            echo ""
+            echo "A gradual rollout is in progress. If you encounter issues, re-run this check to use the stable version."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Set up Python
         if: steps.changed-workflows.outputs.changed_files_count != '0'
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
-          python-version: "3.13.7"
+          python-version: ${{ steps.versions.outputs.python_version }}
 
       - name: Install bwwl binary
         if: steps.changed-workflows.outputs.changed_files_count != '0'
-        run: python -m pip install --upgrade bitwarden_workflow_linter
+        env:
+          LINTER_VERSION: ${{ steps.versions.outputs.linter_version }}
+        run: python -m pip install "bitwarden_workflow_linter==$LINTER_VERSION"
 
       - name: Lint
         env:

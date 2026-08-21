@@ -1,0 +1,367 @@
+name: Test Workflow Summary Action
+
+on:
+  pull_request:
+    paths:
+      - "workflow-summary/**"
+      - ".github/workflows/test-workflow-summary.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-minimal:
+    name: Test minimal usage
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Run with minimal inputs
+        id: summary
+        uses: ./workflow-summary
+        with:
+          status: success
+
+      - name: Verify summary was written
+        env:
+          SUMMARY_PATH: ${{ steps.summary.outputs.summary-path }}
+        run: |
+          if [[ ! -s "$SUMMARY_PATH" ]]; then
+            echo "✗ Summary file is empty or missing"
+            exit 1
+          fi
+
+          CONTENT=$(cat "$SUMMARY_PATH")
+
+          # Verify status emoji present
+          if [[ "$CONTENT" != *"✅"* ]]; then
+            echo "✗ Missing success emoji in summary"
+            exit 1
+          fi
+
+          # Verify run metadata present by default
+          if [[ "$CONTENT" != *"Run"* ]] || [[ "$CONTENT" != *"Actor"* ]]; then
+            echo "✗ Missing run metadata in summary"
+            exit 1
+          fi
+
+          echo "✓ Minimal usage test passed"
+
+  test-full-inputs:
+    name: Test full inputs
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Run with all inputs
+        id: summary
+        uses: ./workflow-summary
+        with:
+          status: failure
+          title: "Integration Test Suite"
+          description: "Full end-to-end test run"
+          job-results: |
+            [
+              {"name": "Build", "status": "success", "duration": "2m 30s"},
+              {"name": "Unit Tests", "status": "success", "duration": "1m 15s"},
+              {"name": "Integration Tests", "status": "failure", "duration": "5m 12s"},
+              {"name": "Deploy", "status": "skipped", "duration": "-"}
+            ]
+          custom-markdown: |
+            ## Additional Notes
+            Integration tests failed due to timeout.
+          details-label: "Error Logs"
+          details-content: "Error: Connection timed out after 30s"
+
+      - name: Verify summary content
+        env:
+          SUMMARY_PATH: ${{ steps.summary.outputs.summary-path }}
+        run: |
+          CONTENT=$(cat "$SUMMARY_PATH")
+
+          check() {
+            if [[ "$CONTENT" != *"$1"* ]]; then
+              echo "✗ Missing expected content: $1"
+              exit 1
+            fi
+          }
+
+          check "❌"
+          check "Integration Test Suite"
+          check "Full end-to-end test run"
+          check "Job Results"
+          check "Build"
+          check "Unit Tests"
+          check "Integration Tests"
+          check "Deploy"
+          check "⏭️"
+          check "Additional Notes"
+          check "Error Logs"
+          check "Connection timed out"
+          check "<details>"
+
+          echo "✓ Full inputs test passed"
+
+  test-file-based:
+    name: Test file-based content
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Create test files
+        run: |
+          echo "## Release Changelog" > /tmp/test-markdown.md
+          echo "- Fixed login bug" >> /tmp/test-markdown.md
+          echo "- Updated dependencies" >> /tmp/test-markdown.md
+
+          echo "Build output:" > /tmp/test-details.txt
+          echo "  Compiled 42 modules" >> /tmp/test-details.txt
+          echo "  0 warnings" >> /tmp/test-details.txt
+
+      - name: Run with file-based content
+        id: summary
+        uses: ./workflow-summary
+        with:
+          status: success
+          title: "Release Build"
+          custom-markdown-file: /tmp/test-markdown.md
+          details-label: "Build Output"
+          details-content-file: /tmp/test-details.txt
+
+      - name: Verify file content included
+        env:
+          SUMMARY_PATH: ${{ steps.summary.outputs.summary-path }}
+        run: |
+          CONTENT=$(cat "$SUMMARY_PATH")
+
+          check() {
+            if [[ "$CONTENT" != *"$1"* ]]; then
+              echo "✗ Missing expected content: $1"
+              exit 1
+            fi
+          }
+
+          check "Release Changelog"
+          check "Fixed login bug"
+          check "Build Output"
+          check "Compiled 42 modules"
+
+          echo "✓ File-based content test passed"
+
+  test-missing-files:
+    name: Test missing file handling
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Run with non-existent files
+        id: summary
+        uses: ./workflow-summary
+        with:
+          status: success
+          custom-markdown-file: /tmp/does-not-exist.md
+          details-content-file: /tmp/also-missing.txt
+
+      - name: Verify action did not fail
+        env:
+          SUMMARY_PATH: ${{ steps.summary.outputs.summary-path }}
+        run: |
+          if [[ ! -s "$SUMMARY_PATH" ]]; then
+            echo "✗ Summary file is empty or missing"
+            exit 1
+          fi
+
+          echo "✓ Missing file handling test passed (action completed with warnings)"
+
+  test-invalid-json:
+    name: Test invalid JSON handling
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Run with invalid job-results JSON
+        id: summary
+        uses: ./workflow-summary
+        with:
+          status: success
+          job-results: "this is not valid json"
+
+      - name: Verify action did not fail
+        env:
+          SUMMARY_PATH: ${{ steps.summary.outputs.summary-path }}
+        run: |
+          CONTENT=$(cat "$SUMMARY_PATH")
+
+          # Should still have the header
+          if [[ "$CONTENT" != *"✅"* ]]; then
+            echo "✗ Summary missing header despite invalid JSON"
+            exit 1
+          fi
+
+          # Should NOT have job results table
+          if [[ "$CONTENT" == *"Job Results"* ]]; then
+            echo "✗ Job results table present despite invalid JSON"
+            exit 1
+          fi
+
+          echo "✓ Invalid JSON handling test passed"
+
+  test-no-metadata:
+    name: Test with metadata disabled
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Run with metadata disabled
+        id: summary
+        uses: ./workflow-summary
+        with:
+          status: cancelled
+          title: "Cancelled Build"
+          include-run-metadata: "false"
+
+      - name: Verify no metadata
+        env:
+          SUMMARY_PATH: ${{ steps.summary.outputs.summary-path }}
+        run: |
+          CONTENT=$(cat "$SUMMARY_PATH")
+
+          if [[ "$CONTENT" != *"⚠️"* ]]; then
+            echo "✗ Missing cancelled emoji"
+            exit 1
+          fi
+
+          if [[ "$CONTENT" != *"Cancelled Build"* ]]; then
+            echo "✗ Missing custom title"
+            exit 1
+          fi
+
+          if [[ "$CONTENT" == *"**Actor**"* ]]; then
+            echo "✗ Run metadata present when it should be disabled"
+            exit 1
+          fi
+
+          echo "✓ No metadata test passed"
+
+  test-github-context:
+    name: Test with GitHub context variables
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Run with GitHub context
+        id: summary
+        uses: ./workflow-summary
+        with:
+          status: ${{ job.status }}
+          description: "Triggered by ${{ github.event_name }} on ${{ github.ref_name }}"
+          custom-markdown: |
+            **Repository:** ${{ github.repository }}
+            **SHA:** `${{ github.sha }}`
+
+      - name: Verify context values resolved
+        env:
+          SUMMARY_PATH: ${{ steps.summary.outputs.summary-path }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          CONTENT=$(cat "$SUMMARY_PATH")
+
+          if [[ "$CONTENT" != *"$REPO"* ]]; then
+            echo "✗ GitHub repository context not resolved in summary"
+            exit 1
+          fi
+
+          if [[ "$CONTENT" != *"$SHA"* ]]; then
+            echo "✗ GitHub SHA context not resolved in summary"
+            exit 1
+          fi
+
+          echo "✓ GitHub context variables test passed"
+
+  generate-summary:
+    name: Generate workflow summary
+    runs-on: ubuntu-24.04
+    needs:
+      - test-minimal
+      - test-full-inputs
+      - test-file-based
+      - test-missing-files
+      - test-invalid-json
+      - test-no-metadata
+      - test-github-context
+    if: always()
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Determine overall status
+        id: status
+        env:
+          MINIMAL: ${{ needs.test-minimal.result }}
+          FULL: ${{ needs.test-full-inputs.result }}
+          FILE: ${{ needs.test-file-based.result }}
+          MISSING: ${{ needs.test-missing-files.result }}
+          JSON: ${{ needs.test-invalid-json.result }}
+          META: ${{ needs.test-no-metadata.result }}
+          CONTEXT: ${{ needs.test-github-context.result }}
+        run: |
+          if [[ "$MINIMAL" == "success" ]] && \
+             [[ "$FULL" == "success" ]] && \
+             [[ "$FILE" == "success" ]] && \
+             [[ "$MISSING" == "success" ]] && \
+             [[ "$JSON" == "success" ]] && \
+             [[ "$META" == "success" ]] && \
+             [[ "$CONTEXT" == "success" ]]; then
+            echo "result=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "result=failure" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate test summary
+        uses: ./workflow-summary
+        with:
+          status: ${{ steps.status.outputs.result }}
+          title: "Workflow Summary Action Tests"
+          description: "Test results for the workflow-summary action"
+          job-results: |
+            [
+              {"name": "Minimal usage", "status": "${{ needs.test-minimal.result }}", "duration": "-"},
+              {"name": "Full inputs", "status": "${{ needs.test-full-inputs.result }}", "duration": "-"},
+              {"name": "File-based content", "status": "${{ needs.test-file-based.result }}", "duration": "-"},
+              {"name": "Missing file handling", "status": "${{ needs.test-missing-files.result }}", "duration": "-"},
+              {"name": "Invalid JSON handling", "status": "${{ needs.test-invalid-json.result }}", "duration": "-"},
+              {"name": "Metadata disabled", "status": "${{ needs.test-no-metadata.result }}", "duration": "-"},
+              {"name": "GitHub context variables", "status": "${{ needs.test-github-context.result }}", "duration": "-"}
+            ]
+
+      - name: Fail if tests failed
+        if: steps.status.outputs.result != 'success'
+        run: |
+          echo "::error::Some tests failed"
+          exit 1

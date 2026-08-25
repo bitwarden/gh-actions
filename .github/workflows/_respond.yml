@@ -94,7 +94,7 @@ jobs:
         with:
           fetch-depth: 1
           ref: ${{ github.event.pull_request.head.sha }}
-          persist-credentials: true
+          persist-credentials: false
 
       - name: Log in to Azure
         uses: bitwarden/gh-actions/azure-login@main
@@ -127,7 +127,7 @@ jobs:
             bitwarden-software-engineer@bitwarden-marketplace
             bitwarden-security-engineer@bitwarden-marketplace
             claude-config-validator@bitwarden-marketplace
-          prompt: ${{ github.event.comment.body || github.event.review.body || github.event.issue.body }}
           claude_args: |
             --model opus
             --allowedTools "mcp__github_comment__update_claude_comment,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*)"
+            --disallowedTools "Read(./.git/**)"

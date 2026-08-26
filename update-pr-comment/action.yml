@@ -124,9 +124,10 @@ runs:
 
         if [[ -z "$EXISTING_ID" ]]; then
           echo "No existing comment found, creating new comment"
+          # --raw-field: --field would expand {owner}, {repo}, {branch} inside the body.
           RESPONSE=$(gh api "repos/${REPOSITORY}/issues/${PR_NUMBER}/comments" \
             --method POST \
-            --field body="$BODY")
+            --raw-field body="$BODY")
 
           COMMENT_ID=$(echo "$RESPONSE" | jq -r '.id')
           COMMENT_URL=$(echo "$RESPONSE" | jq -r '.html_url')
@@ -135,7 +136,7 @@ runs:
           echo "Updating comment: $EXISTING_ID"
           RESPONSE=$(gh api "repos/${REPOSITORY}/issues/comments/${EXISTING_ID}" \
             --method PATCH \
-            --field body="$BODY")
+            --raw-field body="$BODY")
 
           COMMENT_ID=$(echo "$RESPONSE" | jq -r '.id')
           COMMENT_URL=$(echo "$RESPONSE" | jq -r '.html_url')

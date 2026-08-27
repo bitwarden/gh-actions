@@ -45,10 +45,12 @@ jobs:
           pr_number: ${{ steps.pr.outputs.number }}
           repository: ${{ github.repository }}
           marker_id: test-upsert-comment
-          body: "Test comment created by test-create job."
+          body: "Test comment created by test-create job. Placeholder tokens: {owner}/{repo}@{branch}"
 
       - name: Verify comment was created
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
           COMMENT_ID: ${{ steps.upsert.outputs.comment_id }}
           COMMENT_URL: ${{ steps.upsert.outputs.comment_url }}
           COMMENT_CREATED: ${{ steps.upsert.outputs.comment_created }}
@@ -64,6 +66,12 @@ jobs:
 
           if [[ "$COMMENT_CREATED" != "true" ]]; then
             echo "::error::Expected comment_created=true, got $COMMENT_CREATED"
+            exit 1
+          fi
+
+          POSTED=$(gh api "repos/${REPOSITORY}/issues/comments/${COMMENT_ID}" --jq .body)
+          if [[ "$POSTED" != *'{branch}'* ]]; then
+            echo "::error::Placeholder tokens did not survive; body was: $POSTED"
             exit 1
           fi
 
@@ -102,7 +110,7 @@ jobs:
           pr_number: ${{ steps.pr.outputs.number }}
           repository: ${{ github.repository }}
           marker_id: test-upsert-comment
-          body: "Test comment updated by test-update job."
+          body: "Test comment updated by test-update job. Placeholder tokens: {owner}/{repo}@{branch}"
 
       - name: Verify comment was updated
         env:
@@ -142,7 +150,7 @@ jobs:
 
           gh api "repos/${REPOSITORY}/issues/comments/${COMMENT_ID}" \
             --method PATCH \
-            --field body="$FINAL_BODY"
+            --raw-field body="$FINAL_BODY"
 
           echo "Successfully updated comment $COMMENT_ID with final content"
 

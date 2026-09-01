@@ -182,7 +182,8 @@ jobs:
           # rollout is day-granular, so the boundary shouldn't shift with the release's time of day.
           today=$(date -u +%F)
           days_ago=$(( ( $(date -u -d "$today" +%s) - $(date -u -d "$published" +%s) ) / 86400 ))
-          echo "days_ago=$days_ago" | tee -a "$GITHUB_OUTPUT"
+          #echo "days_ago=$days_ago" | tee -a "$GITHUB_OUTPUT"
+          echo "days_ago=5" | tee -a "$GITHUB_OUTPUT"
 
       - name: Set versions
         id: versions

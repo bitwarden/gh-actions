@@ -119,9 +119,6 @@ jobs:
           --output config.json \
           https://raw.githubusercontent.com/bitwarden/gh-actions/main/.github/linter-versions.json
 
-          # Assign first (not echo "$(jq ...)"): echo always exits 0, so wrapping jq in it hides
-          # a parse error / missing field and lets the step "pass" with an empty version. As a
-          # bare assignment under set -e, a jq failure fails the step. -e also errors on null/absent.
           linter_version=$(jq -re '.current_linter_version' config.json)
           python_version=$(jq -re '.current_python_version' config.json)
           echo "linter_version=$linter_version" | tee -a "$GITHUB_OUTPUT"

@@ -1,0 +1,213 @@
+name: "Audit External Plugin"
+description: "Audits a new or updated external Claude Code plugin pin in a marketplace.json against a pull request, using the bitwarden-security-engineer plugin's auditing-external-claude-plugins skill"
+inputs:
+  azure_subscription_id:
+    description: "Azure Subscription ID for OIDC authentication"
+    required: true
+  azure_tenant_id:
+    description: "Azure Tenant ID for OIDC authentication"
+    required: true
+  azure_client_id:
+    description: "Azure Client ID for OIDC authentication"
+    required: true
+  pr_number:
+    description: "Pull request number to audit"
+    required: true
+  repository:
+    description: "Repository in owner/repo format"
+    required: true
+  checkout_ref:
+    description: "Git ref to check out (typically the PR head SHA)"
+    required: true
+  base_ref:
+    description: "Base branch to diff against for change detection (typically the PR base ref)"
+    required: true
+  github_token:
+    description: "GitHub token for API access"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check out repo
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        fetch-depth: 0
+        ref: ${{ inputs.checkout_ref }}
+        persist-credentials: true
+
+    - name: Detect new or updated external plugin pins
+      id: changed-pins
+      shell: bash
+      env:
+        BASE_REF: ${{ inputs.base_ref }}
+      run: |
+        if [[ ! -f .claude-plugin/marketplace.json ]]; then
+          echo "should_run=false" >> "$GITHUB_OUTPUT"
+          echo "No .claude-plugin/marketplace.json in this repository — nothing to audit."
+          exit 0
+        fi
+
+        git fetch origin "$BASE_REF"
+
+        BASE_JSON=$(git show "origin/$BASE_REF:.claude-plugin/marketplace.json" 2>/dev/null || echo '{"plugins":[]}')
+        HEAD_JSON=$(cat .claude-plugin/marketplace.json)
+
+        # name=sha pairs for every external entry, on each side of the diff.
+        BASE_PINS=$(echo "$BASE_JSON" | jq -r '.plugins[]? | select(.category=="external") | "\(.name)=\(.source.sha // "")"' | sort)
+        HEAD_PINS=$(echo "$HEAD_JSON" | jq -r '.plugins[]? | select(.category=="external") | "\(.name)=\(.source.sha // "")"' | sort)
+
+        # Lines only on the HEAD side are new entries or shas that moved; a
+        # removed entry or a sha that only existed pre-PR is not our concern here.
+        CHANGED_NAMES=$(comm -13 <(echo "$BASE_PINS") <(echo "$HEAD_PINS") | cut -d= -f1 | sort -u)
+
+        if [[ -z "$CHANGED_NAMES" ]]; then
+          echo "should_run=false" >> "$GITHUB_OUTPUT"
+          echo "No new or updated external plugin pins in this diff."
+          exit 0
+        fi
+
+        # Resolve each changed name back to its full source entry from HEAD.
+        ENTRIES=$(echo "$HEAD_JSON" | jq -c --argjson names "$(printf '%s\n' "$CHANGED_NAMES" | jq -R . | jq -s .)" \
+          '[.plugins[] | select(.category=="external" and (.name as $n | $names | index($n) != null)) |
+            {name, sha: .source.sha, url: (.source.url // ("https://github.com/" + .source.repo + ".git"))}]')
+
+        echo "should_run=true" >> "$GITHUB_OUTPUT"
+        echo "entries=$ENTRIES" >> "$GITHUB_OUTPUT"
+        echo "Changed external plugin pins:"
+        echo "$ENTRIES" | jq .
+
+    - name: Log in to Azure
+      if: steps.changed-pins.outputs.should_run == 'true'
+      uses: bitwarden/gh-actions/azure-login@main
+      with:
+        subscription_id: ${{ inputs.azure_subscription_id }}
+        tenant_id: ${{ inputs.azure_tenant_id }}
+        client_id: ${{ inputs.azure_client_id }}
+
+    - name: Get Azure Key Vault secrets
+      if: steps.changed-pins.outputs.should_run == 'true'
+      id: get-kv-secrets
+      uses: bitwarden/gh-actions/get-keyvault-secrets@main
+      with:
+        keyvault: gh-org-bitwarden
+        secrets: "ANTHROPIC-CODE-REVIEW-API-KEY"
+
+    - name: Log out from Azure
+      if: steps.changed-pins.outputs.should_run == 'true'
+      uses: bitwarden/gh-actions/azure-logout@main
+
+    - name: Create PR comment placeholder
+      if: steps.changed-pins.outputs.should_run == 'true'
+      id: create-comment
+      uses: bitwarden/gh-actions/update-pr-comment@main
+      with:
+        token: ${{ inputs.github_token }}
+        pr_number: ${{ inputs.pr_number }}
+        repository: ${{ inputs.repository }}
+        marker_id: bitwarden-external-plugin-audit
+        body: |
+          **Claude Code** is auditing the new or updated external plugin pin...
+
+          If this comment does not update with results, check the [Actions log](${{ github.server_url }}/${{ inputs.repository }}/actions/runs/${{ github.run_id }}).
+
+    - name: Audit changed external plugin pins
+      if: steps.changed-pins.outputs.should_run == 'true'
+      id: audit
+      continue-on-error: true
+      uses: anthropics/claude-code-action@be7b93b1907a4abad570368f3c74b6fe3807510b # v1.0.183
+      with:
+        anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-CODE-REVIEW-API-KEY }}
+        plugin_marketplaces: |
+          https://github.com/bitwarden/ai-plugins.git
+        plugins: |
+          bitwarden-security-engineer@bitwarden-marketplace
+        claude_args: |
+          --verbose
+          --model opus
+          --max-turns 20
+          --allowedTools "Skill,Read,Write"
+        prompt: |
+          REPO: ${{ inputs.repository }}
+          PR NUMBER: ${{ inputs.pr_number }}
+          STICKY COMMENT ID: ${{ steps.create-comment.outputs.comment_id }}
+
+          Changed external plugin pins (name, url, sha):
+          ${{ steps.changed-pins.outputs.entries }}
+
+          # RULES
+
+          1. For each entry above, invoke `Skill(bitwarden-security-engineer:auditing-external-claude-plugins)`
+             with that entry's url and sha, and an explicit third argument
+             `/tmp/plugin-audit-<name>.md` as the output file.
+          2. Run these one at a time, not in parallel — each invocation forks its own
+             subagent and blocks until it returns.
+          3. Once every entry has a report, concatenate them into a single file at
+             /tmp/plugin-audit-summary.md, each under a `## <name>` heading, in the
+             same order as the entries above. End the file with the line
+             `<!-- external-plugin-audit-complete -->` on its own.
+          4. Do not post comments yourself; the sticky comment above replaces itself
+             with this file's contents automatically.
+
+    - name: Ensure a summary exists
+      if: always() && steps.changed-pins.outputs.should_run == 'true' && steps.create-comment.outputs.comment_id != ''
+      id: ensure-summary
+      shell: bash
+      env:
+        SERVER_URL: ${{ github.server_url }}
+        REPOSITORY: ${{ inputs.repository }}
+        RUN_ID: ${{ github.run_id }}
+        AUDIT_OUTCOME: ${{ steps.audit.outcome }}
+      run: |
+        if [[ -s /tmp/plugin-audit-summary.md ]] && grep -qF '<!-- external-plugin-audit-complete -->' /tmp/plugin-audit-summary.md; then
+          exit 0
+        fi
+
+        echo "summary_missing=true" >> "$GITHUB_OUTPUT"
+        if [[ -s /tmp/plugin-audit-summary.md ]]; then
+          mv /tmp/plugin-audit-summary.md /tmp/plugin-audit-summary.partial.md
+          echo "::warning::The audit wrote an incomplete summary (no completion marker); discarding it."
+        else
+          echo "::warning::The audit ended without writing /tmp/plugin-audit-summary.md."
+        fi
+
+        {
+          echo "### External plugin pin audit did not complete"
+          echo ""
+          echo "The audit did not produce a complete report for this pin change, so this check has no findings to show. Re-running the job starts a fresh audit."
+          echo ""
+          echo "Audit step outcome: \`${AUDIT_OUTCOME:-unknown}\`."
+          echo ""
+          echo "See the [Actions log](${SERVER_URL}/${REPOSITORY}/actions/runs/${RUN_ID}) for details."
+        } > /tmp/plugin-audit-summary.md
+
+    - name: Update PR comment with audit summary
+      if: always() && steps.changed-pins.outputs.should_run == 'true' && steps.create-comment.outputs.comment_id != ''
+      uses: bitwarden/gh-actions/update-pr-comment@main
+      with:
+        token: ${{ inputs.github_token }}
+        pr_number: ${{ inputs.pr_number }}
+        repository: ${{ inputs.repository }}
+        marker_id: bitwarden-external-plugin-audit
+        comment_id: ${{ steps.create-comment.outputs.comment_id }}
+        body_file: /tmp/plugin-audit-summary.md
+
+    - name: Summary
+      if: always()
+      shell: bash
+      env:
+        SHOULD_RUN: ${{ steps.changed-pins.outputs.should_run }}
+        AUDIT_OUTCOME: ${{ steps.audit.outcome }}
+        SUMMARY_MISSING: ${{ steps.ensure-summary.outputs.summary_missing }}
+      run: |
+        if [[ "$SHOULD_RUN" != "true" ]]; then
+          echo "✅ No new or updated external plugin pins — audit not required."
+          exit 0
+        fi
+
+        if [[ "$SUMMARY_MISSING" == "true" ]]; then
+          echo "❌ Audit produced no complete report (outcome: ${AUDIT_OUTCOME:-unknown}). See the sticky PR comment and Actions log."
+          exit 1
+        fi
+
+        echo "✅ Audit completed. See the sticky PR comment for findings."

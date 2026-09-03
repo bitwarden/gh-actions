@@ -1,4 +1,4 @@
-name: "Audit External Plugin"
+name: "Audit External Claude Plugin"
 description: "Audits a new or updated external Claude Code plugin pin in a marketplace.json against a pull request, using the bitwarden-security-engineer plugin's auditing-external-claude-plugins skill"
 inputs:
   azure_subscription_id:

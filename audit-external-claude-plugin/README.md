@@ -1,4 +1,4 @@
-# Audit External Plugin
+# Audit External Claude Plugin
 
 Audits a new or updated external Claude Code plugin pin in a repository's `.claude-plugin/marketplace.json`, using the `bitwarden-security-engineer` plugin's `auditing-external-claude-plugins` skill, and posts the report to a sticky PR comment.
 
@@ -68,7 +68,7 @@ Most repositories should call the reusable workflow rather than the action direc
 
 ```
       - name: Audit external plugin pins
-        uses: bitwarden/gh-actions/audit-external-plugin@main
+        uses: bitwarden/gh-actions/audit-external-claude-plugin@main
         with:
           azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
@@ -82,10 +82,10 @@ Most repositories should call the reusable workflow rather than the action direc
 
 ## Reusable Workflow
 
-`bitwarden/gh-actions/.github/workflows/_audit-external-plugin.yml` wraps this action with a permission gate. Add a caller workflow to any repository with a `.claude-plugin/marketplace.json`:
+`bitwarden/gh-actions/.github/workflows/_audit-external-claude-plugin.yml` wraps this action with a permission gate. Add a caller workflow to any repository with a `.claude-plugin/marketplace.json`:
 
 ```yaml
-name: Audit External Plugin
+name: Audit External Claude Plugin
 
 on:
   pull_request:
@@ -96,8 +96,8 @@ permissions: {}
 
 jobs:
   audit:
-    name: Audit External Plugin
-    uses: bitwarden/gh-actions/.github/workflows/_audit-external-plugin.yml@main
+    name: Audit External Claude Plugin
+    uses: bitwarden/gh-actions/.github/workflows/_audit-external-claude-plugin.yml@main
     secrets:
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}

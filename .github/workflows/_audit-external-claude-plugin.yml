@@ -1,4 +1,4 @@
-name: Audit External Plugin
+name: Audit External Claude Plugin
 
 on:
   workflow_call:
@@ -40,7 +40,7 @@ jobs:
 
     steps:
       - name: Audit external plugin pins
-        uses: bitwarden/gh-actions/audit-external-plugin@main
+        uses: bitwarden/gh-actions/audit-external-claude-plugin@main
         with:
           azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}

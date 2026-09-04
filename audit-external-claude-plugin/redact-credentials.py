@@ -7,6 +7,7 @@ is trying to steer, so it cannot be the only control. This runs after the
 report is written and before it replaces the pull request comment.
 """
 
+import base64
 import os
 import pathlib
 import re
@@ -36,15 +37,34 @@ PATTERNS = (
 )
 
 
+def _forms(value):
+    """Every shape a credential this job holds can wear in a report."""
+    yield value
+    # actions/checkout writes the token into .git/config as
+    # base64("x-access-token:<token>") under http.extraheader. The raw value
+    # is not a substring of that, and no `gh*_` shape matches base64 either,
+    # so without this the one credential worth catching is the one that gets
+    # through.
+    yield base64.b64encode(f"x-access-token:{value}".encode()).decode()
+    # A quoted Authorization header or an encoded secret carries the bare
+    # value the same way.
+    yield base64.b64encode(value.encode()).decode()
+
+
 def redact(text):
     hits = []
 
     for var in KNOWN_VALUE_VARS:
         value = os.environ.get(var, "")
         # A short or empty value would match everywhere or nowhere useful.
-        if len(value) >= 12 and value in text:
-            text = text.replace(value, "[REDACTED runner credential]")
-            hits.append(var.removeprefix("REDACT_").lower().replace("_", "-"))
+        if len(value) < 12:
+            continue
+        label = var.removeprefix("REDACT_").lower().replace("_", "-")
+        for form in _forms(value):
+            if form in text:
+                text = text.replace(form, "[REDACTED runner credential]")
+                if label not in hits:
+                    hits.append(label)
 
     for label, pattern in PATTERNS:
         text, count = re.subn(pattern, f"[REDACTED {label}]", text)

@@ -34,13 +34,18 @@ runs:
       with:
         fetch-depth: 0
         ref: ${{ inputs.checkout_ref }}
-        persist-credentials: true
+        # The audit runs an agent with unscoped Read against a clone of an
+        # untrusted repository, in a workspace this checkout would otherwise
+        # leave a usable token in. The one step that needs credentials
+        # supplies them for that command alone.
+        persist-credentials: false
 
     - name: Detect new or updated external plugin pins
       id: changed-pins
       shell: bash
       env:
         BASE_REF: ${{ inputs.base_ref }}
+        GH_TOKEN: ${{ inputs.github_token }}
       run: |
         if [[ ! -f .claude-plugin/marketplace.json ]]; then
           echo "should_run=false" >> "$GITHUB_OUTPUT"
@@ -48,7 +53,14 @@ runs:
           exit 0
         fi
 
-        git fetch origin "$BASE_REF"
+        # actions/checkout fetches only the ref it checks out, so the base
+        # branch has to be fetched here. GIT_CONFIG_* scopes the credential to
+        # this command: it never reaches .git/config, and unlike `git -c` it
+        # never reaches the process arguments either.
+        GIT_CONFIG_COUNT=1 \
+        GIT_CONFIG_KEY_0="http.https://github.com/.extraheader" \
+        GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')" \
+          git fetch --no-tags origin "$BASE_REF"
 
         BASE_JSON=$(git show "origin/$BASE_REF:.claude-plugin/marketplace.json" 2>/dev/null || echo '{"plugins":[]}')
         HEAD_JSON=$(cat .claude-plugin/marketplace.json)

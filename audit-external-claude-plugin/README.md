@@ -120,4 +120,8 @@ The skill runs as an isolated forked subagent (`context: fork`) pinned to the `b
 
 ## Credential Redaction
 
-The report is posted verbatim to a pull request comment, which in a public repository is world-readable. The skill is instructed never to write a credential value into its report, but that instruction constrains the same agent an audited repository is trying to steer, so it is not the only control. `redact-credentials.py` runs between the report being written and the comment being updated, replacing this job's own token and API key by exact value and any vendor-prefixed credential shape by pattern. A redaction means either the audit ignored its reporting rule or the audited repository steered it, so it annotates an error and fails the job while still posting the redacted comment.
+The report is posted verbatim to a pull request comment, which in a public repository is world-readable. The skill is instructed never to write a credential value into its report, but that instruction constrains the same agent an audited repository is trying to steer, so it is not the only control.
+
+The workspace holds no credential for a steered agent to find: the checkout does not persist one, and the single step that needs authentication supplies it for one `git fetch` through `GIT_CONFIG_*`, which keeps it out of both `.git/config` and the process arguments. `redact-credentials.py` then runs between the report being written and the comment being updated, matching this job's own token and API key by value, including the base64 forms an `Authorization` header carries, and any vendor-prefixed credential shape by pattern.
+
+A redaction means either the audit ignored its reporting rule or the audited repository steered it, so it annotates an error and fails the job while still posting the redacted comment. If the redactor does not run to completion, nothing is posted and the placeholder comment keeps pointing at the Actions log.

@@ -200,7 +200,7 @@ runs:
       id: components
       if: steps.changed-files.outputs.has_components == 'true'
       continue-on-error: true
-      uses: anthropics/claude-code-action@be7b93b1907a4abad570368f3c74b6fe3807510b # v1.0.183
+      uses: anthropics/claude-code-action@a874e9ecd7bb36efdad65429c6b35815f5a08f10 # v1.0.210
       with:
         anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-CODE-REVIEW-API-KEY }}
         plugin_marketplaces: |

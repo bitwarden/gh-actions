@@ -113,3 +113,7 @@ An entry qualifies when `"category": "external"` and its `source.sha` differs be
 ## Why `Skill(bitwarden-security-engineer:auditing-external-claude-plugins)` and Not a Slash Command
 
 The skill runs as an isolated forked subagent (`context: fork`) pinned to the `bitwarden-security-engineer` agent and the `fable` model, with its own scoped `allowed-tools` — it clones the *audited* plugin's repository, which this action treats as untrusted, adversarial input by design. The top-level `claude-code-action` invocation in this action only orchestrates: it invokes the skill once per changed entry and combines the resulting report files, and is granted nothing beyond `Skill`, `Read`, and `Write`.
+
+## Credential Redaction
+
+The report is posted verbatim to a pull request comment, which in a public repository is world-readable. The skill is instructed never to write a credential value into its report, but that instruction constrains the same agent an audited repository is trying to steer, so it is not the only control. `redact-credentials.py` runs between the report being written and the comment being updated, replacing this job's own token and API key by exact value and any vendor-prefixed credential shape by pattern. A redaction means either the audit ignored its reporting rule or the audited repository steered it, so it annotates an error and fails the job while still posting the redacted comment.

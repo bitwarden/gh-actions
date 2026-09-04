@@ -181,6 +181,15 @@ runs:
           echo "See the [Actions log](${SERVER_URL}/${REPOSITORY}/actions/runs/${RUN_ID}) for details."
         } > /tmp/plugin-audit-summary.md
 
+    - name: Redact credentials from the summary
+      if: always() && steps.changed-pins.outputs.should_run == 'true' && steps.create-comment.outputs.comment_id != ''
+      id: redact
+      shell: bash
+      env:
+        REDACT_GITHUB_TOKEN: ${{ inputs.github_token }}
+        REDACT_ANTHROPIC_KEY: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-CODE-REVIEW-API-KEY }}
+      run: python3 "$GITHUB_ACTION_PATH/redact-credentials.py" /tmp/plugin-audit-summary.md
+
     - name: Update PR comment with audit summary
       if: always() && steps.changed-pins.outputs.should_run == 'true' && steps.create-comment.outputs.comment_id != ''
       uses: bitwarden/gh-actions/update-pr-comment@main
@@ -199,6 +208,7 @@ runs:
         SHOULD_RUN: ${{ steps.changed-pins.outputs.should_run }}
         AUDIT_OUTCOME: ${{ steps.audit.outcome }}
         SUMMARY_MISSING: ${{ steps.ensure-summary.outputs.summary_missing }}
+        REDACTED: ${{ steps.redact.outputs.redacted }}
       run: |
         if [[ "$SHOULD_RUN" != "true" ]]; then
           echo "✅ No new or updated external plugin pins — audit not required."
@@ -207,6 +217,11 @@ runs:
 
         if [[ "$SUMMARY_MISSING" == "true" ]]; then
           echo "❌ Audit produced no complete report (outcome: ${AUDIT_OUTCOME:-unknown}). See the sticky PR comment and Actions log."
+          exit 1
+        fi
+
+        if [[ "$REDACTED" == "true" ]]; then
+          echo "❌ Credential material was redacted from the report before posting. Either the audit ignored its own reporting rule or the audited repository steered it into reading something it should not have. See the Actions log."
           exit 1
         fi
 

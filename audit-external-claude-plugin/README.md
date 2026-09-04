@@ -1,0 +1,127 @@
+# Audit External Claude Plugin
+
+Audits a new or updated external Claude Code plugin pin in a repository's `.claude-plugin/marketplace.json`, using the `bitwarden-security-engineer` plugin's `auditing-external-claude-plugins` skill, and posts the report to a sticky PR comment.
+
+It diffs the pull request's base and head `marketplace.json` for plugin entries with `"category": "external"` whose `source.sha` is new or has changed, then runs the audit skill once per changed entry (`Skill(bitwarden-security-engineer:auditing-external-claude-plugins)`) and combines the reports into one comment. A repository with no `.claude-plugin/marketplace.json`, or a pull request that doesn't change one, no-ops.
+
+## Inputs
+
+- Required
+  - azure_subscription_id
+    - Description: Azure Subscription ID for OIDC authentication.
+    - Example:
+      ```
+      azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ```
+  - azure_tenant_id
+    - Description: Azure Tenant ID for OIDC authentication.
+    - Example:
+      ```
+      azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+      ```
+  - azure_client_id
+    - Description: Azure Client ID for OIDC authentication.
+    - Example:
+      ```
+      azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+      ```
+  - pr_number
+    - Description: Pull request number to audit.
+    - Example:
+      ```
+      pr_number: ${{ github.event.pull_request.number }}
+      ```
+  - repository
+    - Description: Repository in `owner/repo` format.
+    - Example:
+      ```
+      repository: ${{ github.repository }}
+      ```
+  - checkout_ref
+    - Description: Git ref to check out (typically the PR head SHA).
+    - Example:
+      ```
+      checkout_ref: ${{ github.event.pull_request.head.sha }}
+      ```
+  - base_ref
+    - Description: Base branch to diff against for change detection (typically the PR base ref).
+    - Example:
+      ```
+      base_ref: ${{ github.base_ref }}
+      ```
+  - github_token
+    - Description: GitHub token for API access.
+    - Example:
+      ```
+      github_token: ${{ secrets.GITHUB_TOKEN }}
+      ```
+
+## Required Permissions
+
+This action requires the `id-token: write` permission to obtain an OIDC token for Azure authentication, and `pull-requests: write` to manage the sticky audit comment.
+
+## Usage
+
+Most repositories should call the reusable workflow rather than the action directly. See [Reusable Workflow](#reusable-workflow) below.
+
+### Job Snippet
+
+```
+      - name: Audit external plugin pins
+        uses: bitwarden/gh-actions/audit-external-claude-plugin@main
+        with:
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+          pr_number: ${{ github.event.pull_request.number }}
+          repository: ${{ github.repository }}
+          checkout_ref: ${{ github.event.pull_request.head.sha }}
+          base_ref: ${{ github.base_ref }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+## Reusable Workflow
+
+`bitwarden/gh-actions/.github/workflows/_audit-external-claude-plugin.yml` wraps this action with a permission gate. Add a caller workflow to any repository with a `.claude-plugin/marketplace.json`:
+
+```yaml
+name: Audit External Claude Plugin
+
+on:
+  pull_request:
+    paths:
+      - ".claude-plugin/marketplace.json"
+
+permissions: {}
+
+jobs:
+  audit:
+    name: Audit External Claude Plugin
+    uses: bitwarden/gh-actions/.github/workflows/_audit-external-claude-plugin.yml@main
+    secrets:
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+```
+
+The action no-ops when a pull request changes no external plugin pin, so it is safe to run on every PR that touches `marketplace.json`.
+
+## What Counts as a Changed Pin
+
+An entry qualifies when `"category": "external"` and its `source.sha` differs between the PR's base and head `marketplace.json` — this covers both a brand-new external entry and an existing one moved to a new commit. A removed entry, or any change to a non-external plugin, is ignored.
+
+## Renovate-Authored Pin Refreshes
+
+A pin refresh usually arrives as a Renovate pull request rather than a human one, and two actor gates stand in front of the audit. `renovate[bot]` is not a repository collaborator, so the reusable workflow's permission check reads its permission as `none` and the workflow admits it separately, on the condition that the branch lives in the repository rather than a fork. `claude-code-action`'s agent mode rejects any non-human actor not named in `allowed_bots`, so this action names Renovate there. The prompt is built from the diffed manifest entries rather than from anything the actor supplies, so admitting Renovate gives it no influence over what the audit is asked to do.
+
+## Why `Skill(bitwarden-security-engineer:auditing-external-claude-plugins)` and Not a Slash Command
+
+The skill runs as an isolated forked subagent (`context: fork`) pinned to the `bitwarden-security-engineer` agent and the `fable` model, with its own scoped `allowed-tools` — it clones the *audited* plugin's repository, which this action treats as untrusted, adversarial input by design. The top-level `claude-code-action` invocation in this action only orchestrates: it invokes the skill once per changed entry and combines the resulting report files, and is granted nothing beyond `Skill`, `Read`, and `Write`.
+
+## Credential Redaction
+
+The report is posted verbatim to a pull request comment, which in a public repository is world-readable. The skill is instructed never to write a credential value into its report, but that instruction constrains the same agent an audited repository is trying to steer, so it is not the only control.
+
+The workspace holds no credential for a steered agent to find: the checkout does not persist one, and the single step that needs authentication supplies it for one `git fetch` through `GIT_CONFIG_*`, which keeps it out of both `.git/config` and the process arguments. `redact-credentials.py` then runs between the report being written and the comment being updated, matching this job's own token and API key by value, including the base64 forms an `Authorization` header carries, and any vendor-prefixed credential shape by pattern.
+
+A redaction means either the audit ignored its reporting rule or the audited repository steered it, so it annotates an error and fails the job while still posting the redacted comment. If the redactor does not run to completion, nothing is posted and the placeholder comment keeps pointing at the Actions log.

@@ -1,0 +1,59 @@
+name: Audit External Claude Plugin
+
+on:
+  workflow_call:
+    secrets:
+      AZURE_SUBSCRIPTION_ID:
+        required: true
+      AZURE_TENANT_ID:
+        required: true
+      AZURE_CLIENT_ID:
+        required: true
+
+concurrency:
+  group: ${{ github.repository }}-${{ github.workflow }}-${{ github.event.pull_request.number || github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  check-permission:
+    name: Check permission
+    uses: bitwarden/gh-actions/.github/workflows/_check-permission.yml@main
+    with:
+      failure_mode: "skip"
+      require_permission: "write"
+    permissions:
+      contents: read
+
+  audit:
+    name: Audit
+    runs-on: ubuntu-24.04
+    needs: check-permission
+    # Renovate is not a repository collaborator, so the permission check reads
+    # its pin refreshes as `none` and skips them. Those are the pull requests
+    # this audit exists for, so admit them when the branch lives in this
+    # repository rather than a fork.
+    if: >-
+      needs.check-permission.outputs.should_proceed == 'true' ||
+      (github.event.pull_request.user.login == 'renovate[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository)
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      pull-requests: write
+
+    steps:
+      - name: Audit external plugin pins
+        uses: bitwarden/gh-actions/audit-external-claude-plugin@main
+        with:
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+          pr_number: ${{ github.event.pull_request.number }}
+          repository: ${{ github.repository }}
+          checkout_ref: ${{ github.event.pull_request.head.sha }}
+          base_ref: ${{ github.base_ref }}
+          github_token: ${{ github.token }}

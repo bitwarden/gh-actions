@@ -64,12 +64,16 @@ def main():
         print(f"No summary at {path}; nothing to redact.")
         return 0
 
-    text, hits = redact(path.read_text())
+    # A report can quote `strings` output from a bundled binary, which need
+    # not be valid UTF-8. surrogateescape round-trips those bytes so redaction
+    # still runs, rather than raising and leaving the gate to withhold a report
+    # that was very likely fine.
+    text, hits = redact(path.read_text(encoding="utf-8", errors="surrogateescape"))
     if not hits:
         print("No credential material in the audit summary.")
         return 0
 
-    path.write_text(text)
+    path.write_text(text, encoding="utf-8", errors="surrogateescape")
     detail = ", ".join(hits)
     print(
         f"::error::Redacted credential material from the audit summary ({detail}). "

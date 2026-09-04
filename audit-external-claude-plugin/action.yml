@@ -191,7 +191,7 @@ runs:
       run: python3 "$GITHUB_ACTION_PATH/redact-credentials.py" /tmp/plugin-audit-summary.md
 
     - name: Update PR comment with audit summary
-      if: always() && steps.changed-pins.outputs.should_run == 'true' && steps.create-comment.outputs.comment_id != ''
+      if: always() && steps.changed-pins.outputs.should_run == 'true' && steps.create-comment.outputs.comment_id != '' && steps.redact.outcome == 'success'
       uses: bitwarden/gh-actions/update-pr-comment@main
       with:
         token: ${{ inputs.github_token }}
@@ -209,6 +209,7 @@ runs:
         AUDIT_OUTCOME: ${{ steps.audit.outcome }}
         SUMMARY_MISSING: ${{ steps.ensure-summary.outputs.summary_missing }}
         REDACTED: ${{ steps.redact.outputs.redacted }}
+        REDACT_OUTCOME: ${{ steps.redact.outcome }}
       run: |
         if [[ "$SHOULD_RUN" != "true" ]]; then
           echo "✅ No new or updated external plugin pins — audit not required."
@@ -217,6 +218,11 @@ runs:
 
         if [[ "$SUMMARY_MISSING" == "true" ]]; then
           echo "❌ Audit produced no complete report (outcome: ${AUDIT_OUTCOME:-unknown}). See the sticky PR comment and Actions log."
+          exit 1
+        fi
+
+        if [[ "$REDACT_OUTCOME" == "failure" ]]; then
+          echo "❌ Credential redaction did not complete, so the report was not posted and the placeholder comment still points at this log. Re-running the job starts a fresh audit."
           exit 1
         fi
 

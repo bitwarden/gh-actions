@@ -118,6 +118,11 @@ runs:
       uses: anthropics/claude-code-action@be7b93b1907a4abad570368f3c74b6fe3807510b # v1.0.183
       with:
         anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-CODE-REVIEW-API-KEY }}
+        # A pin refresh is authored by Renovate, and agent mode rejects a
+        # non-human actor unless it is named here. The prompt below is built by
+        # this action rather than by the actor, so admitting Renovate does not
+        # hand it any influence over what the audit is asked to do.
+        allowed_bots: "renovate[bot]"
         plugin_marketplaces: |
           https://github.com/bitwarden/ai-plugins.git
         plugins: |

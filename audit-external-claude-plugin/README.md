@@ -110,6 +110,10 @@ The action no-ops when a pull request changes no external plugin pin, so it is s
 
 An entry qualifies when `"category": "external"` and its `source.sha` differs between the PR's base and head `marketplace.json` — this covers both a brand-new external entry and an existing one moved to a new commit. A removed entry, or any change to a non-external plugin, is ignored.
 
+## Renovate-Authored Pin Refreshes
+
+A pin refresh usually arrives as a Renovate pull request rather than a human one, and two actor gates stand in front of the audit. `renovate[bot]` is not a repository collaborator, so the reusable workflow's permission check reads its permission as `none` and the workflow admits it separately, on the condition that the branch lives in the repository rather than a fork. `claude-code-action`'s agent mode rejects any non-human actor not named in `allowed_bots`, so this action names Renovate there. The prompt is built from the diffed manifest entries rather than from anything the actor supplies, so admitting Renovate gives it no influence over what the audit is asked to do.
+
 ## Why `Skill(bitwarden-security-engineer:auditing-external-claude-plugins)` and Not a Slash Command
 
 The skill runs as an isolated forked subagent (`context: fork`) pinned to the `bitwarden-security-engineer` agent and the `fable` model, with its own scoped `allowed-tools` — it clones the *audited* plugin's repository, which this action treats as untrusted, adversarial input by design. The top-level `claude-code-action` invocation in this action only orchestrates: it invokes the skill once per changed entry and combines the resulting report files, and is granted nothing beyond `Skill`, `Read`, and `Write`.

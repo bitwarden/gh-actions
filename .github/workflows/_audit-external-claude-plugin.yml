@@ -30,7 +30,14 @@ jobs:
     name: Audit
     runs-on: ubuntu-24.04
     needs: check-permission
-    if: needs.check-permission.outputs.should_proceed == 'true'
+    # Renovate is not a repository collaborator, so the permission check reads
+    # its pin refreshes as `none` and skips them. Those are the pull requests
+    # this audit exists for, so admit them when the branch lives in this
+    # repository rather than a fork.
+    if: >-
+      needs.check-permission.outputs.should_proceed == 'true' ||
+      (github.event.pull_request.user.login == 'renovate[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository)
     timeout-minutes: 30
     permissions:
       actions: read

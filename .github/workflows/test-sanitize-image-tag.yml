@@ -48,6 +48,18 @@ jobs:
           - name: Branch with special characters
             ref: feature/test@special#chars
             expected: feature-test-special-chars
+          - name: Version tag with prerelease suffix
+            ref: refs/tags/v1.2.3-rc1
+            expected: 1.2.3-rc1
+          - name: Branch starting with v keeps its v
+            ref: vault-item-export
+            expected: vault-item-export
+          - name: Branch named version-bump keeps its v
+            ref: refs/heads/version-bump
+            expected: version-bump
+          - name: Short v-prefixed branch keeps its v
+            ref: vnext
+            expected: vnext
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -210,8 +222,8 @@ jobs:
             ref: feature/this-is-a-very-long-branch-name-that-exceeds-the-maximum-allowed-length-of-128-characters-for-docker-tags-and-should-be-truncated-properly-without-leaving-trailing-special-chars
             expected: feature-this-is-a-very-long-branch-name-that-exceeds-the-maximum-allowed-length-of-128-characters-for-docker-tags-and-should-be
           - name: Truncation removes trailing dot
-            ref: vaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.xxx
-            expected: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+            ref: vaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.xxx
+            expected: vaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

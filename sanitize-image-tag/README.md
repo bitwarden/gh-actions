@@ -25,7 +25,7 @@ A reusable GitHub Action that generates standardized container image tags from a
   uses: bitwarden/gh-actions/sanitize-image-tag@main
   with:
     ref: ${{ github.head_ref || github.ref }}
-    prefix: "server-"
+    prefix: 'server-'
 ```
 
 ### With fork-PR handling
@@ -41,10 +41,10 @@ A reusable GitHub Action that generates standardized container image tags from a
 
 ## Inputs
 
-| Input       | Description                                                                                                            | Required | Default |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------- | -------- | ------- |
-| `ref`       | Branch or tag reference. Accepts both `refs/heads/<name>` / `refs/tags/<name>` form and bare branch names.             | Yes      |         |
-| `prefix`    | Prepended verbatim to the final tag (include trailing dash, e.g., `server-`).                                          | No       | `""`    |
+| Input       | Description                                                                                                               | Required | Default |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------- | -------- | ------- |
+| `ref`       | Branch or tag reference. Accepts both `refs/heads/<name>` / `refs/tags/<name>` form and bare branch names.                | Yes      |         |
+| `prefix`    | Prepended verbatim to the final tag (include trailing dash, e.g., `server-`).                                             | No       | `""`    |
 | `fork_repo` | Sanitized fork repo full name (e.g., `forkuser/repo`) prepended to distinguish fork-PR builds. Empty for non-fork events. | No       | `""`    |
 
 ## Outputs
@@ -58,7 +58,8 @@ A reusable GitHub Action that generates standardized container image tags from a
 1. **Ref extraction**: strips `refs/heads/` or `refs/tags/` prefix if present.
 2. **Sanitization**:
    - Lowercases the entire string.
-   - Strips a single leading `v` (so `v1.2.3` → `1.2.3`).
+   - Strips a leading `v` only when it prefixes a semver/calver version, i.e. digits and at least one dot
+     (so `v1.2.3` → `1.2.3`, but `vault-item-export` and `vnext` keep their `v`).
    - Replaces any run of characters outside `[a-z0-9._-]` with a single `-`.
    - Collapses repeated dashes.
    - Strips leading/trailing `.` or `-`.
@@ -69,14 +70,16 @@ A reusable GitHub Action that generates standardized container image tags from a
 
 ## Examples
 
-| `ref`                       | `prefix`  | `fork_repo`        | Output                          |
-| --------------------------- | --------- | ------------------ | ------------------------------- |
-| `main`                      | `""`      | `""`               | `dev`                           |
-| `main`                      | `server-` | `""`               | `server-dev`                    |
-| `rc`                        | `""`      | `""`               | `rc`                            |
-| `hotfix-rc`                 | `web-`    | `""`               | `web-hotfix-rc`                 |
-| `feature/PM-1234_update`    | `""`      | `""`               | `feature-pm-1234_update`        |
-| `Feature/Add-Login`         | `server-` | `""`               | `server-feature-add-login`      |
-| `refs/tags/v2024.12.0`      | `""`      | `""`               | `2024.12.0`                     |
-| `feature/foo`               | `""`      | `bobuser/server`   | `bobuser-server-feature-foo`    |
-| `main`                      | `""`      | `bobuser/server`   | `bobuser-server-main`           |
+| `ref`                    | `prefix`  | `fork_repo`      | Output                       |
+| ------------------------ | --------- | ---------------- | ---------------------------- |
+| `main`                   | `""`      | `""`             | `dev`                        |
+| `main`                   | `server-` | `""`             | `server-dev`                 |
+| `rc`                     | `""`      | `""`             | `rc`                         |
+| `hotfix-rc`              | `web-`    | `""`             | `web-hotfix-rc`              |
+| `feature/PM-1234_update` | `""`      | `""`             | `feature-pm-1234_update`     |
+| `Feature/Add-Login`      | `server-` | `""`             | `server-feature-add-login`   |
+| `refs/tags/v2024.12.0`   | `""`      | `""`             | `2024.12.0`                  |
+| `v1.2.3-rc1`             | `""`      | `""`             | `1.2.3-rc1`                  |
+| `vault-item-export`      | `""`      | `""`             | `vault-item-export`          |
+| `feature/foo`            | `""`      | `bobuser/server` | `bobuser-server-feature-foo` |
+| `main`                   | `""`      | `bobuser/server` | `bobuser-server-main`        |

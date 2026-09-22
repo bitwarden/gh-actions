@@ -40,7 +40,15 @@ runs:
           BRANCH_NAME="${REF_INPUT}"
         fi
 
-        IMAGE_TAG=$(tr '[:upper:]' '[:lower:]' <<< "${BRANCH_NAME}" | sed -E 's/^v//; s/[^a-z0-9._-]+/-/g; s/-+/-/g; s/^[.-]+|[.-]+$//g')
+        IMAGE_TAG=$(tr '[:upper:]' '[:lower:]' <<< "${BRANCH_NAME}")
+
+        # Strip a leading "v" only when it prefixes a semver/calver version (v1.2.3, v2024.12.0-rc1).
+        # Branch names that merely start with "v" (vault-export, version-bump) keep theirs.
+        if [[ "${IMAGE_TAG}" =~ ^v[0-9]+(\.[0-9]+)+ ]]; then
+          IMAGE_TAG="${IMAGE_TAG#v}"
+        fi
+
+        IMAGE_TAG=$(sed -E 's/[^a-z0-9._-]+/-/g; s/-+/-/g; s/^[.-]+|[.-]+$//g' <<< "${IMAGE_TAG}")
 
         if [[ -n "${FORK_REPO}" ]]; then
           SANITIZED_REPO=$(tr '[:upper:]' '[:lower:]' <<< "${FORK_REPO}" | sed -E 's/[^a-z0-9._-]+/-/g; s/-+/-/g; s/^[.-]+|[.-]+$//g')

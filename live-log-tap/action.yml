@@ -1,0 +1,23 @@
+name: "Live Log Tap"
+description: "Stream the job's masked log output to a command and/or file while the job runs"
+
+inputs:
+  command:
+    description: "Shell command that receives masked log lines on stdin for the rest of the job"
+    required: false
+  file:
+    description: "Path to append masked log lines to"
+    required: false
+  drain-timeout:
+    description: "Seconds the post step waits for the last lines to be forwarded"
+    required: false
+    default: "30"
+
+runs:
+  using: "node24"
+  main: "main.js"
+  post: "post.js"
+
+branding:
+  icon: radio
+  color: blue

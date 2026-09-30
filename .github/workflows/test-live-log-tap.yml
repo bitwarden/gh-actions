@@ -1,0 +1,92 @@
+name: Test Live Log Tap Action
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "live-log-tap/**"
+      - ".github/workflows/test-live-log-tap.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test-live-log-tap:
+    name: Test live log tap
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Start live log tap
+        uses: ./live-log-tap
+        with:
+          file: ${{ runner.temp }}/tap-file.log
+          command: |
+            python3 -u -c '
+            import sys, time
+            out = open(sys.argv[1], "a", buffering=1)
+            markers = 0
+            for line in sys.stdin:
+                now = time.strftime("%H:%M:%S", time.gmtime()) + f".{int(time.time() * 1000) % 1000:03d}"
+                out.write(f"{now} {line}")
+                markers += line.rstrip().endswith("Z LAST-STEP-MARKER")
+            print(f"sink: saw {markers} LAST-STEP-MARKER line(s)", file=sys.stderr)
+            ' "$RUNNER_TEMP/sink.log"
+
+      - name: Emit low-volume output with a masked value
+        env:
+          FAKE_SECRET: not-a-real-secret-123
+        run: |
+          echo "::add-mask::$FAKE_SECRET"
+          for i in $(seq 1 10); do
+            echo "slow line $i at $(date -u +%H:%M:%S.%N) secret=$FAKE_SECRET"
+            sleep 1
+          done
+
+      - name: Emit high-volume output
+        run: |
+          for i in $(seq 1 100); do
+            printf 'fast line %03d at %s %s\n' "$i" "$(date -u +%H:%M:%S.%N)" "$(head -c 60 /dev/zero | tr '\0' 'x')"
+            sleep 0.05
+          done
+
+      - name: Emit 12 MB to force page rollover
+        run: seq 1 90000 | awk '{ printf "big line %06d %s\n", $1, "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy" }'
+
+      - name: Check what the sink received
+        run: |
+          # Let the sink catch up on the rollover step before comparing.
+          sleep 5
+          sink="$RUNNER_TEMP/sink.log"
+          failed=0
+          check() {
+            local got
+            got=$(grep -cE "$2" "$sink" || true)
+            if [ "$got" = "$3" ]; then
+              echo "PASS $1: $got"
+            else
+              echo "FAIL $1: got $got, want $3"
+              failed=1
+            fi
+          }
+          check "setup line forwarded once" 'Current runner version' 1
+          check "slow lines, no duplicates" 'slow line [0-9]+ at' 10
+          check "fast lines, no duplicates" 'fast line [0-9]{3} at' 100
+          check "big lines across rollover" 'big line [0-9]{6} y' 90000
+          # The env header prints before add-mask runs, so it stays unmasked, as in the UI.
+          check "masked except the env header" 'not-a-real-secret-123' 1
+          if cmp -s <(cut -d' ' -f2- "$sink") "$RUNNER_TEMP/tap-file.log"; then
+            echo "PASS file and command sinks match"
+          else
+            echo "FAIL file and command sinks differ"
+            failed=1
+          fi
+          echo "=== Arrival vs. printed time (##[ rewritten so the log viewer keeps it) ==="
+          grep -E 'slow line [0-9]+ at|fast line (0[0-9]0|100) at' "$sink" | sed 's/##\[/#-[/g'
+          exit "$failed"
+
+      - name: Emit the last-step marker
+        run: echo "LAST-STEP-""MARKER"

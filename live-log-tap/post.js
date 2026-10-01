@@ -37,6 +37,21 @@ async function main() {
     process.kill(pid);
   }
 
+  const statusFile = path.join(workDir, 'sink-status.json');
+  if (fs.existsSync(statusFile)) {
+    const { code, signal, early, linesDropped } = JSON.parse(
+      fs.readFileSync(statusFile, 'utf8'),
+    );
+    const exit = signal ? `signal ${signal}` : `code ${code}`;
+    if (early) {
+      console.log(
+        `::warning::live-log-tap: the command exited (${exit}) before the job ended; ${linesDropped} line(s) after that were not sent to it`,
+      );
+    } else if (code !== 0) {
+      console.log(`::warning::live-log-tap: the command exited with ${exit}`);
+    }
+  }
+
   console.log('::group::live-log-tap diagnostics');
   console.log(fs.readFileSync(path.join(workDir, 'tap.log'), 'utf8'));
   console.log('::endgroup::');

@@ -10,14 +10,22 @@ destination receives the same text as the GitHub UI.
 steps:
   - name: Stream job logs
     uses: bitwarden/gh-actions/live-log-tap@main
+    env:
+      INGEST_TOKEN: ${{ secrets.INGEST_TOKEN }}
     with:
-      command: curl -sS --data-binary @- https://logs.example.com/ingest
+      command: >-
+        curl -sS -T - -X POST -H "Authorization: Bearer $INGEST_TOKEN"
+        https://logs.example.com/ingest
       file: ${{ runner.temp }}/job.log
   # ...the rest of the job
 ```
 
 Put it first. Lines are forwarded exactly as they appear in the downloaded logs: the runner's
 timestamp, then the masked line.
+
+The command must stream its stdin. `curl -T -` sends it as one chunked upload as lines arrive;
+`curl --data-binary @-` reads all of stdin first, so nothing would be sent until the job ends.
+Proxies that buffer or time out long uploads need a sender that posts in batches instead.
 
 ## Inputs
 
@@ -47,6 +55,8 @@ forward what's left and waits up to `drain-timeout` seconds.
 - **Earlier steps.** Lines written before the tap started ("Set up job", or steps placed before it)
   come from the job-level page, which is flushed lazily. Anything still unflushed there when the
   job ends is not forwarded.
+- **Command failures.** If `command` exits before the job ends, or exits non-zero, the post step
+  logs a warning (with how many lines it missed) but doesn't fail the job.
 - **Its own output.** The tap step's header (the `Run ...` group listing its inputs) is forwarded
   with the earlier lines; its own output and its post step are not.
 - **Internals.** This relies on the runner's on-disk page layout, which is not a public contract

@@ -25,6 +25,17 @@ function log(message) {
 const writers = [];
 let sinkProc = null;
 let sinkExited = false;
+let sinkStatus = null;
+let stopping = false;
+let linesDropped = 0;
+
+// Read by the post step to warn when the command dies or fails.
+function writeSinkStatus() {
+  fs.writeFileSync(
+    path.join(workDir, 'sink-status.json'),
+    JSON.stringify({ ...sinkStatus, linesDropped }),
+  );
+}
 
 if (outFile) {
   const fd = fs.openSync(outFile, 'a');
@@ -39,7 +50,9 @@ if (command) {
   sinkProc.stdin.on('error', (err) => log(`sink stdin error: ${err.message}`));
   sinkProc.on('exit', (code, signal) => {
     sinkExited = true;
+    sinkStatus = { code, signal, early: !stopping };
     log(`sink command exited (code ${code}, signal ${signal})`);
+    writeSinkStatus();
   });
   writers.push((text) => {
     if (!sinkExited) {
@@ -53,6 +66,9 @@ let linesForwarded = 0;
 function emit(lines) {
   if (lines.length === 0) {
     return;
+  }
+  if (sinkExited) {
+    linesDropped += lines.length;
   }
   const text = lines.join('\n') + '\n';
   for (const write of writers) {
@@ -227,9 +243,13 @@ const timer = setInterval(() => {
 }, 100);
 
 function shutdown() {
+  stopping = true;
   log(
-    `stopping; forwarded ${linesForwarded} line(s) from ${filesFollowed} page file(s)`,
+    `stopping; forwarded ${linesForwarded} line(s) from ${filesFollowed} page file(s), ${linesDropped} after the sink command exited`,
   );
+  if (sinkExited) {
+    writeSinkStatus();
+  }
   if (!sinkProc || sinkExited) {
     process.exit(0);
   }

@@ -238,3 +238,38 @@ jobs:
               echo "artifact-build-branch is empty"
               exit 1
           fi
+
+  download-no-matching-artifacts:
+    name: Download with no matching artifacts should not crash
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: List (dry run)
+        id: dry-run
+        uses: ./download-artifacts
+        with:
+          workflow: upload-test-artifacts.yml
+          artifacts: does-not-exist
+          dry_run: true
+
+      - name: Download
+        id: download
+        uses: ./download-artifacts
+        with:
+          workflow: upload-test-artifacts.yml
+          artifacts: does-not-exist
+          if_no_artifact_found: warn
+
+      - name: Test
+        env:
+          _DRY_RUN_FOUND: ${{ steps.dry-run.outputs.found_artifact }}
+          _DOWNLOAD_FOUND: ${{ steps.download.outputs.found_artifact }}
+        run: |
+          if [[ "$_DRY_RUN_FOUND" != "false" || "$_DOWNLOAD_FOUND" != "false" ]]; then
+            echo "Expected found_artifact=false for both steps (dry run: '$_DRY_RUN_FOUND', download: '$_DOWNLOAD_FOUND')"
+            exit 1
+          fi

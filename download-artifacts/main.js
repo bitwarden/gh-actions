@@ -191,11 +191,15 @@ async function main() {
 
         core.setOutput("artifacts", artifacts)
 
-        const artifactBuildCommit = artifacts[0].workflow_run.head_sha;
-        core.setOutput("artifact-build-commit", artifactBuildCommit);
+        // The selected run can have no matching artifacts (e.g. they expired), so only read
+        // the build info when there is an artifact to read it from.
+        if (artifacts.length > 0) {
+            const artifactBuildCommit = artifacts[0].workflow_run.head_sha;
+            core.setOutput("artifact-build-commit", artifactBuildCommit);
 
-        const artifactBuildBranch = artifacts[0].workflow_run.head_branch;
-        core.setOutput("artifact-build-branch", artifactBuildBranch);
+            const artifactBuildBranch = artifacts[0].workflow_run.head_branch;
+            core.setOutput("artifact-build-branch", artifactBuildBranch);
+        }
 
         if (dryRun) {
             if (artifacts.length == 0) {

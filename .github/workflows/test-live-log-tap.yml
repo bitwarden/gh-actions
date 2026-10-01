@@ -20,9 +20,39 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Start local ingest endpoint
+        run: |
+          cat > "$RUNNER_TEMP/receiver.py" <<'EOF'
+          import os, sys
+          from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+          out = open(os.path.join(os.environ["RUNNER_TEMP"], "url.log"), "ab")
+
+          class Handler(BaseHTTPRequestHandler):
+              def do_POST(self):
+                  body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
+                  ok = self.headers.get("Authorization") == "Bearer test-token"
+                  if ok:
+                      out.write(body)
+                      out.flush()
+                  self.send_response(200 if ok else 401)
+                  self.send_header("Content-Length", "0")
+                  self.end_headers()
+
+              def log_message(self, *args):
+                  pass
+
+          ThreadingHTTPServer(("127.0.0.1", 8765), Handler).serve_forever()
+          EOF
+          nohup python3 "$RUNNER_TEMP/receiver.py" > "$RUNNER_TEMP/receiver.err" 2>&1 &
+          sleep 1
+
       - name: Start live log tap
         uses: ./live-log-tap
         with:
+          url: http://127.0.0.1:8765/
+          headers: |
+            Authorization: Bearer test-token
           file: ${{ runner.temp }}/tap-file.log
           command: |
             python3 -u -c '
@@ -82,6 +112,12 @@ jobs:
             echo "PASS file and command sinks match"
           else
             echo "FAIL file and command sinks differ"
+            failed=1
+          fi
+          if cmp -s "$RUNNER_TEMP/url.log" "$RUNNER_TEMP/tap-file.log"; then
+            echo "PASS url and file sinks match"
+          else
+            echo "FAIL url and file sinks differ ($(wc -l < "$RUNNER_TEMP/url.log") vs $(wc -l < "$RUNNER_TEMP/tap-file.log") lines)"
             failed=1
           fi
           echo "=== Arrival vs. printed time (##[ rewritten so the log viewer keeps it) ==="

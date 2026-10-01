@@ -37,11 +37,13 @@ async function main() {
     process.kill(pid);
   }
 
-  const statusFile = path.join(workDir, 'sink-status.json');
-  if (fs.existsSync(statusFile)) {
-    const { code, signal, early, linesDropped } = JSON.parse(
-      fs.readFileSync(statusFile, 'utf8'),
-    );
+  const statusFile = path.join(workDir, 'status.json');
+  const status = fs.existsSync(statusFile)
+    ? JSON.parse(fs.readFileSync(statusFile, 'utf8'))
+    : {};
+  // `early` is only set once the command has exited.
+  if (status.command && status.command.early !== undefined) {
+    const { code, signal, early, linesDropped } = status.command;
     const exit = signal ? `signal ${signal}` : `code ${code}`;
     if (early) {
       console.log(
@@ -50,6 +52,12 @@ async function main() {
     } else if (code !== 0) {
       console.log(`::warning::live-log-tap: the command exited with ${exit}`);
     }
+  }
+  if (status.url && status.url.linesFailed > 0) {
+    const { linesFailed, lastError } = status.url;
+    console.log(
+      `::warning::live-log-tap: ${linesFailed} line(s) could not be posted to the url (last error: ${lastError})`,
+    );
   }
 
   console.log('::group::live-log-tap diagnostics');

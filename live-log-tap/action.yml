@@ -1,7 +1,17 @@
 name: "Live Log Tap"
-description: "Stream the job's masked log output to a command and/or file while the job runs"
+description: "Stream the job's masked log output to a URL, command, and/or file while the job runs"
 
 inputs:
+  url:
+    description: "HTTP(S) endpoint to POST masked log lines to, in batches, as text/plain"
+    required: false
+  headers:
+    description: "Extra request headers for `url`, one `Name: value` per line (e.g. Authorization)"
+    required: false
+  batch-interval:
+    description: "Seconds between batches sent to `url`"
+    required: false
+    default: "1"
   command:
     description: "Shell command that receives masked log lines on stdin for the rest of the job"
     required: false

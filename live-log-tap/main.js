@@ -2,6 +2,7 @@ const { spawn } = require('child_process');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const { parseHeaders } = require('./headers');
 
 function input(name) {
   return (process.env[`INPUT_${name.toUpperCase()}`] || '').trim();
@@ -11,9 +12,34 @@ function saveState(key, value) {
   fs.appendFileSync(process.env.GITHUB_STATE, `${key}=${value}\n`);
 }
 
-if (!input('command') && !input('file')) {
-  console.log('::error::live-log-tap: set at least one of `command` or `file`');
+function fail(message) {
+  console.log(`::error::live-log-tap: ${message}`);
   process.exit(1);
+}
+
+if (!input('command') && !input('file') && !input('url')) {
+  fail('set at least one of `command`, `file`, or `url`');
+}
+
+if (input('url')) {
+  let url;
+  try {
+    url = new URL(input('url'));
+  } catch {
+    fail('`url` is not a valid URL');
+  }
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+    fail('`url` must be http or https');
+  }
+  try {
+    parseHeaders(process.env.INPUT_HEADERS || '');
+  } catch (err) {
+    fail(err.message);
+  }
+  const interval = Number(input('batch-interval') || 1);
+  if (!(interval > 0)) {
+    fail('`batch-interval` must be a positive number of seconds');
+  }
 }
 
 // JS actions run on <runner root>/externals/nodeXX/bin/node.

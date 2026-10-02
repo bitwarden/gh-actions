@@ -273,3 +273,67 @@ jobs:
             echo "Expected found_artifact=false for both steps (dry run: '$_DRY_RUN_FOUND', download: '$_DOWNLOAD_FOUND')"
             exit 1
           fi
+
+  download-branch-head:
+    name: Download main with require_branch_head
+    runs-on: ubuntu-22.04
+    # The triggering upload run is the build of main HEAD, so the guard should pass.
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download
+        id: download
+        uses: ./download-artifacts
+        with:
+          workflow: upload-test-artifacts.yml
+          artifacts: artifact
+          path: artifact
+          branch: main
+          require_branch_head: true
+
+      - name: Test
+        env:
+          _ARTIFACT_BUILD_COMMIT: ${{ steps.download.outputs.artifact-build-commit }}
+          _TRIGGERING_COMMIT: ${{ github.event.workflow_run.head_sha }}
+          _RUN_ID: ${{ steps.download.outputs.run_id }}
+          _TRIGGERING_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          if [[ "$_ARTIFACT_BUILD_COMMIT" != "$_TRIGGERING_COMMIT" ]]; then
+            echo "Expected the build of $_TRIGGERING_COMMIT, got $_ARTIFACT_BUILD_COMMIT"
+            exit 1
+          fi
+          if [[ "$_RUN_ID" != "$_TRIGGERING_RUN_ID" ]]; then
+            echo "Expected run_id $_TRIGGERING_RUN_ID, got $_RUN_ID"
+            exit 1
+          fi
+
+  require-branch-head-without-branch:
+    name: Download with require_branch_head but no branch should fail
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download
+        id: download
+        continue-on-error: true
+        uses: ./download-artifacts
+        with:
+          workflow: upload-test-artifacts.yml
+          artifacts: artifact
+          require_branch_head: true
+
+      - name: Test
+        env:
+          _OUTCOME: ${{ steps.download.outcome }}
+        run: |
+          if [[ "$_OUTCOME" != "failure" ]]; then
+            echo "Expected the step to fail, got $_OUTCOME"
+            exit 1
+          fi

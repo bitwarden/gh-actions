@@ -277,7 +277,7 @@ jobs:
   download-branch-head:
     name: Download main with require_branch_head
     runs-on: ubuntu-22.04
-    # The triggering upload run is the build of main HEAD, so the guard should pass.
+    # The triggering upload run is the build of main HEAD, so the guard should pass, unless main has moved since.
     if: github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main'
     steps:
       - name: Checkout
@@ -285,8 +285,23 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Check main has not moved
+        id: head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          _TRIGGERING_COMMIT: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          head=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          if [[ "$head" == "$_TRIGGERING_COMMIT" ]]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::main moved to $head after the triggering upload run; skipping the HEAD check"
+            echo "current=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Download
         id: download
+        if: steps.head.outputs.current == 'true'
         uses: ./download-artifacts
         with:
           workflow: upload-test-artifacts.yml
@@ -296,6 +311,7 @@ jobs:
           require_branch_head: true
 
       - name: Test
+        if: steps.head.outputs.current == 'true'
         env:
           _ARTIFACT_BUILD_COMMIT: ${{ steps.download.outputs.artifact-build-commit }}
           _TRIGGERING_COMMIT: ${{ github.event.workflow_run.head_sha }}

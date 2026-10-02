@@ -94,6 +94,7 @@ jobs:
     name: Download Pull Request
     runs-on: ubuntu-22.04
     permissions:
+      actions: read
       contents: read
       id-token: write
     if: github.event_name == 'pull_request'
@@ -102,6 +103,27 @@ jobs:
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           persist-credentials: false
+
+      # Upload Test Artifacts starts on the same push, so wait for its run at this commit to finish before
+      # downloading from it. Reads the unfiltered run list, because head_sha filtered queries can omit runs.
+      - name: Wait for upload run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          _HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          for _ in $(seq 1 60); do
+            run=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/upload-test-artifacts.yml/runs?per_page=50" \
+              --jq "[.workflow_runs[] | select(.head_sha == \"$_HEAD_SHA\")] | max_by(.id) // empty | \"\(.status) \(.conclusion)\"")
+            echo "Upload run at $_HEAD_SHA: ${run:-not started}"
+            if [[ "$run" == completed* ]]; then
+              [[ "$run" == "completed success" ]] && exit 0
+              echo "Upload run did not succeed"
+              exit 1
+            fi
+            sleep 10
+          done
+          echo "Timed out waiting for the upload run"
+          exit 1
 
       - name: Download
         uses: ./download-artifacts

@@ -15,6 +15,7 @@ on:
     paths:
       - "download-artifacts/**"
       - ".github/workflows/upload-test-artifacts.yml"
+      - ".github/workflows/test-download-artifacts.yml"
 
 permissions:
   contents: read

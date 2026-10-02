@@ -79,7 +79,25 @@ Let's suppose you have a workflow with a job in it that at the end uploads an ar
     # Optional, ignore forks when searching for artifacts
     # default true
     allow_forks: false
+    # Optional, fail unless the selected run was built from the latest commit on `branch`
+    # Use for releases, where silently falling back to an older build is not acceptable. Requires `branch`
+    # default false
+    require_branch_head: false
 ```
+
+## How the run is selected
+
+When `branch`, `event`, `commit` or `pr` is set, the action searches the workflow's runs with those filters. GitHub serves
+filtered run queries from a search index that intermittently leaves runs out of the response, with no sign that anything
+is missing ([dawidd6/action-download-artifact#428](https://github.com/dawidd6/action-download-artifact/issues/428)).
+To catch this, the action then checks the workflow's unfiltered run list, newest first, back to the search result. If it
+finds a newer matching run, it uses that run and logs a warning. It checks at most 2,000 runs.
+
+`require_branch_head` adds a stricter check on top: pull request runs are skipped, and the selected run must be at the
+branch's HEAD commit, or the step fails.
+
+The `run_id` output holds the selected run. To download several artifacts from one build, resolve the run once (for
+example with `dry_run: true`) and pass `run_id` to the later steps.
 
 ## Troubleshooting
 

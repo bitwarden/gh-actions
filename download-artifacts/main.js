@@ -6,6 +6,9 @@ const filesize = require('filesize')
 const pathname = require('path')
 const fs = require('fs')
 
+// How many pages of 100 unfiltered runs to check for a newer run the filtered run search missed.
+const UNFILTERED_PAGE_LIMIT = 20
+
 async function downloadAction(name, path) {
     const artifactClient = artifact.create()
     const downloadOptions = {
@@ -39,6 +42,7 @@ async function main() {
         let checkArtifacts = core.getBooleanInput("check_artifacts")
         let searchArtifacts = core.getBooleanInput("search_artifacts")
         const allowForks = core.getBooleanInput("allow_forks")
+        const requireBranchHead = core.getBooleanInput("require_branch_head")
         let dryRun = core.getInput("dry_run")
 
         const client = github.getOctokit(token)
@@ -105,8 +109,53 @@ async function main() {
 
         core.info(`==> Allow forks: ${allowForks}`)
 
+        if (requireBranchHead && !branch) {
+            throw new Error("require_branch_head needs branch to be set")
+        }
+
         if (!runID) {
-            // Note that the runs are returned in most recent first order.
+            const isWantedRun = async (run) => {
+                if (runNumber && run.run_number != runNumber) {
+                    return false
+                }
+                if (workflowConclusion && (workflowConclusion != run.conclusion && workflowConclusion != run.status)) {
+                    return false
+                }
+                if (!allowForks && run.head_repository.full_name !== `${owner}/${repo}`) {
+                    core.info(`==> Skipping run from fork: ${run.head_repository.full_name}`)
+                    return false
+                }
+                // A branch HEAD request wants a build of the branch itself, not a pull request build that shares its commit.
+                // Pull request builds are requested with `pr`.
+                if (requireBranchHead && run.event === "pull_request") {
+                    core.info(`==> Skipping pull request run: ${run.id}`)
+                    return false
+                }
+                if (checkArtifacts || searchArtifacts) {
+                    let artifacts = await client.paginate(client.rest.actions.listWorkflowRunArtifacts, {
+                        owner: owner,
+                        repo: repo,
+                        run_id: run.id,
+                    })
+                    if (!artifacts || artifacts.length == 0) {
+                        return false
+                    }
+                    if (searchArtifacts) {
+                        const artifact = artifacts.find((artifact) => {
+                            if (nameIsRegExp) {
+                                return artifact.name.match(name) !== null
+                            }
+                            return artifact.name == name
+                        })
+                        if (!artifact) {
+                            return false
+                        }
+                    }
+                }
+                return true
+            }
+
+            let foundRun
             for await (const runs of client.paginate.iterator(client.rest.actions.listWorkflowRuns, {
                 owner: owner,
                 repo: repo,
@@ -116,46 +165,67 @@ async function main() {
                 ...(commit ? { head_sha: commit } : {}),
             }
             )) {
-                for (const run of runs.data) {
-                    if (runNumber && run.run_number != runNumber) {
+                // Run IDs increase over time, so sorting by ID puts the newest run first without trusting the API order.
+                for (const run of runs.data.sort((a, b) => b.id - a.id)) {
+                    if (!(await isWantedRun(run))) {
                         continue
                     }
-                    if (workflowConclusion && (workflowConclusion != run.conclusion && workflowConclusion != run.status)) {
-                        continue
-                    }
-                    if (!allowForks && run.head_repository.full_name !== `${owner}/${repo}`) {
-                        core.info(`==> Skipping run from fork: ${run.head_repository.full_name}`)
-                        continue
-                    }
-                    if (checkArtifacts || searchArtifacts) {
-                        let artifacts = await client.paginate(client.rest.actions.listWorkflowRunArtifacts, {
-                            owner: owner,
-                            repo: repo,
-                            run_id: run.id,
-                        })
-                        if (!artifacts || artifacts.length == 0) {
+                    foundRun = run
+                    break
+                }
+                if (foundRun) {
+                    break
+                }
+            }
+
+            // GitHub serves branch, event and head_sha filtered run queries from a search index that can leave runs
+            // out with no sign anything is missing (dawidd6/action-download-artifact#428). The unfiltered list is
+            // complete, so walk it newest first back to the search result and use any newer wanted run it missed.
+            if (branch || event || commit) {
+                let pages = 0
+                walk: for await (const runs of client.paginate.iterator(client.rest.actions.listWorkflowRuns, {
+                    owner: owner,
+                    repo: repo,
+                    workflow_id: workflow,
+                    per_page: 100,
+                }
+                )) {
+                    for (const run of runs.data.sort((a, b) => b.id - a.id)) {
+                        if (foundRun && run.id <= foundRun.id) {
+                            break walk
+                        }
+                        if ((branch && run.head_branch !== branch) || (event && run.event !== event) || (commit && run.head_sha !== commit)) {
                             continue
                         }
-                        if (searchArtifacts) {
-                            const artifact = artifacts.find((artifact) => {
-                                if (nameIsRegExp) {
-                                    return artifact.name.match(name) !== null
-                                }
-                                return artifact.name == name
-                            })
-                            if (!artifact) {
-                                continue
-                            }
+                        if (await isWantedRun(run)) {
+                            core.warning(`Run search missed newer run ${run.id}` + (foundRun ? ` (returned ${foundRun.id})` : "") + `; using ${run.id}`)
+                            foundRun = run
+                            break walk
                         }
                     }
-                    runID = run.id
-                    core.info(`==> (found) Run ID: ${runID}`)
-                    core.info(`==> (found) Run date: ${run.created_at}`)
-                    break
+                    if (++pages >= UNFILTERED_PAGE_LIMIT) {
+                        core.warning(`Checked the latest ${pages * 100} runs without reaching the run search result; using the search result`)
+                        break
+                    }
                 }
-                if (runID) {
-                    break
+            }
+
+            if (foundRun && requireBranchHead) {
+                const head = await client.rest.repos.getBranch({
+                    owner: owner,
+                    repo: repo,
+                    branch: branch,
+                })
+                if (foundRun.head_sha !== head.data.commit.sha) {
+                    throw new Error(`Newest matching run ${foundRun.id} was built from ${foundRun.head_sha}, but ${branch} HEAD is ${head.data.commit.sha}. Build the branch HEAD and try again.`)
                 }
+                core.info(`==> Run is at ${branch} HEAD: ${head.data.commit.sha}`)
+            }
+
+            if (foundRun) {
+                runID = foundRun.id
+                core.info(`==> (found) Run ID: ${runID}`)
+                core.info(`==> (found) Run date: ${foundRun.created_at}`)
             }
         }
 
@@ -170,6 +240,8 @@ async function main() {
                 return setExitMessage(ifNoArtifactFound, "no matching artifact in this workflow?")
             }
         }
+
+        core.setOutput("run_id", runID)
 
         let artifacts = await client.paginate(client.rest.actions.listWorkflowRunArtifacts, {
             owner: owner,

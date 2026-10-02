@@ -59,6 +59,14 @@ inputs:
     description: Allow forks
     required: false
     default: false
+  require_branch_head:
+    description: |
+      Fail unless the selected run was built from the latest commit on `branch`.
+
+      Use for releases, where silently falling back to an older build is not acceptable. Requires `branch`.
+      Only runs of the branch itself count; pull request runs at the same commit are skipped (use `pr` for those).
+    required: false
+    default: false
   check_artifacts:
     description: Check workflow run whether it has an artifact
     required: false
@@ -91,6 +99,8 @@ outputs:
     description: Boolean output which is true if the artifact was found and false otherwise
   artifacts:
     description: JSON array with details about found artifacts
+  run_id:
+    description: ID of the workflow run the artifacts come from. Pass it to later steps as `run_id` to pin them to the same run
   artifact-build-commit:
     description: The commit related to the artifact that was found
   artifact-build-branch:

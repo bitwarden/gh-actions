@@ -1,0 +1,68 @@
+# Find Workflow Run
+
+Finds a workflow run, and optionally checks its artifacts, then outputs the run ID for a download step to pin to.
+
+GitHub's run search can't be trusted on its own. When the workflow runs API is filtered by `branch`, `event`, `head_sha` or `status`, it answers from a search index that intermittently returns a random subset of the matching runs ([dawidd6/action-download-artifact#428](https://github.com/dawidd6/action-download-artifact/issues/428)). The subset is still sorted newest first and nothing shows that runs are missing, so a lookup can silently pick an old build. `gh run list --branch` and `--commit` go through the same search.
+
+## Usage
+
+```yaml
+- name: Find build run
+  id: find
+  uses: bitwarden/gh-actions/find-workflow-run@main
+  with:
+    github_token: ${{ steps.app-token.outputs.token }}
+    repo: bitwarden/clients
+    workflow: build-cli.yml
+    branch: main
+    artifacts: '^bw-linux-\d{4}\.\d+\.\d+\.zip$'
+    name_is_regexp: true
+
+- name: Download build
+  uses: dawidd6/action-download-artifact@b6e2e70617bc3265edd6dab6c906732b2f1ae151 # v21
+  with:
+    github_token: ${{ steps.app-token.outputs.token }}
+    repo: bitwarden/clients
+    run_id: ${{ steps.find.outputs.run_id }}
+    name: '^bw-linux-\d{4}\.\d+\.\d+\.zip$'
+    name_is_regexp: true
+```
+
+Pass the run ID to the download step and drop its `branch`, `commit` and `workflow_conclusion` inputs. With a run ID, download actions skip their own run search.
+
+## Inputs
+
+| Input                 | Default                    | Description                                                                                                                            |
+| --------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `github_token`        | `${{ github.token }}`      | Token with `actions:read` on `repo`.                                                                                                   |
+| `repo`                | `${{ github.repository }}` | Repository the workflow belongs to.                                                                                                    |
+| `workflow`            |                            | Workflow file name or ID. Required unless `run_id` is set.                                                                             |
+| `run_id`              |                            | Use this run as is. Overrides `branch` and `commit`, and ignores `workflow_conclusion`. Artifacts are still checked.                   |
+| `commit`              |                            | Newest matching run built from this SHA. Cannot be used with `branch`.                                                                 |
+| `branch`              |                            | Newest matching run on this branch. Cannot be used with `commit`.                                                                      |
+| `require_branch_head` | `false`                    | Only accept a run of the branch's HEAD commit, skipping `pull_request` runs. Fails rather than fall back to an older run.              |
+| `workflow_conclusion` | `success`                  | Conclusion the run must have. Empty matches any run.                                                                                   |
+| `artifacts`           |                            | Artifacts the run must have: comma-separated names with `*` wildcards, matching whole names.                                           |
+| `name_is_regexp`      | `false`                    | Treat `artifacts` as one regular expression (commas included), matched anywhere in the name unless anchored with `^` and `$`.          |
+| `search_artifacts`    | `false`                    | Skip runs that lack the artifacts and keep looking at older ones. Otherwise the newest matching run must have them, or the step fails. |
+| `allow_forks`         | `false`                    | Accept runs from forks.                                                                                                                |
+
+With neither `branch` nor `commit`, the newest matching run of the workflow is used.
+
+## Outputs
+
+| Output         | Description                                                                         |
+| -------------- | ----------------------------------------------------------------------------------- |
+| `run_id`       | ID of the run found. Never empty: the step fails if no run matches.                 |
+| `head_sha`     | Commit the run was built from.                                                      |
+| `head_branch`  | Branch the run was built from.                                                      |
+| `artifact_ids` | Comma-separated IDs of the unexpired matching artifacts. Empty without `artifacts`. |
+
+## How the run is selected
+
+1. The filtered search (`branch` or `head_sha`) finds a candidate. Its answer is only a lower bound.
+2. The unfiltered run list, which isn't affected, is walked newest first back to that candidate. Any newer matching run wins, with a warning in the log.
+3. The walk stops after 20 pages (2,000 runs). If it hasn't reached the candidate by then, the candidate is used with a warning, so rarely built branches still work.
+4. Runs are ordered by run ID. A re-run keeps its ID, so a re-run of an old build ranks as old.
+5. Runs from forks are skipped unless `allow_forks` is set.
+6. With `require_branch_head`, the lookup is by the branch's HEAD commit, so no older build can stand in for it.

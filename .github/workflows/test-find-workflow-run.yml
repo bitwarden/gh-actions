@@ -23,6 +23,7 @@ jobs:
       pr_branch: ${{ steps.expected-modes.outputs.pr_branch }}
       pr_run_id: ${{ steps.expected-modes.outputs.pr_run_id }}
       non_pr_run_id: ${{ steps.expected-modes.outputs.non_pr_run_id }}
+      newest_is_main: ${{ steps.expected-modes.outputs.newest_is_main }}
     steps:
       - name: Find newest successful upload run on main from the unfiltered list
         id: expected
@@ -55,6 +56,9 @@ jobs:
             echo "pr_branch=$pr_branch"
             echo "pr_run_id=$(jq -r --arg b "$pr_branch" '[.[] | select(.head_branch == $b and .event == "pull_request" and .conclusion == "success")] | max_by(.id) | .id // ""' <<<"$runs")"
             echo "non_pr_run_id=$(jq -r --arg b "$pr_branch" '[.[] | select(.head_branch == $b and .event != "pull_request" and .conclusion == "success")] | max_by(.id) | .id // ""' <<<"$runs")"
+            # With max_runs_checked: 1, a main lookup can only be confirmed if the newest run is that match.
+            echo "newest_is_main=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/upload-test-artifacts.yml/runs?per_page=1" \
+              --jq ".workflow_runs[0] | .head_branch == \"main\" and .event != \"pull_request\" and .conclusion == \"success\" and .head_repository.full_name == \"$GITHUB_REPOSITORY\"")"
           } >> "$GITHUB_OUTPUT"
 
   find-branch:
@@ -295,6 +299,33 @@ jobs:
           fi
           exit "$failed"
 
+  find-run-limit:
+    name: Fail when max_runs_checked is reached
+    runs-on: ubuntu-24.04
+    needs: expected
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: Find within the newest run only
+        id: find
+        continue-on-error: true
+        uses: ./find-workflow-run
+        with:
+          workflow: upload-test-artifacts.yml
+          branch: main
+          max_runs_checked: 1
+
+      - name: Test
+        env:
+          _NEWEST_IS_MAIN: ${{ needs.expected.outputs.newest_is_main }}
+          _OUTCOME: ${{ steps.find.outcome }}
+        run: |
+          expected=$([[ "$_NEWEST_IS_MAIN" == "true" ]] && echo success || echo failure)
+          [[ "$_OUTCOME" == "$expected" ]] || { echo "Expected $expected (newest run is main's match: $_NEWEST_IS_MAIN), got $_OUTCOME"; exit 1; }
+
   find-branch-head:
     name: Find main HEAD with require_branch_head
     runs-on: ubuntu-24.04
@@ -392,6 +423,30 @@ jobs:
           require_branch_head: true
           pull_requests: only
 
+      - name: Invalid max_runs_checked
+        id: bad-max-runs
+        continue-on-error: true
+        uses: ./find-workflow-run
+        with:
+          workflow: upload-test-artifacts.yml
+          max_runs_checked: "0"
+
+      - name: Invalid retry_attempts
+        id: bad-retry-attempts
+        continue-on-error: true
+        uses: ./find-workflow-run
+        with:
+          workflow: upload-test-artifacts.yml
+          retry_attempts: "0"
+
+      - name: Invalid retry_delays
+        id: bad-retry-delays
+        continue-on-error: true
+        uses: ./find-workflow-run
+        with:
+          workflow: upload-test-artifacts.yml
+          retry_delays: "2,,5"
+
       - name: No matching run
         id: no-run
         continue-on-error: true
@@ -407,13 +462,18 @@ jobs:
           _HEAD_WITHOUT_BRANCH: ${{ steps.head-without-branch.outcome }}
           _BAD_PULL_REQUESTS: ${{ steps.bad-pull-requests.outcome }}
           _HEAD_WITH_PULL_REQUESTS: ${{ steps.head-with-pull-requests.outcome }}
+          _BAD_MAX_RUNS: ${{ steps.bad-max-runs.outcome }}
+          _BAD_RETRY_ATTEMPTS: ${{ steps.bad-retry-attempts.outcome }}
+          _BAD_RETRY_DELAYS: ${{ steps.bad-retry-delays.outcome }}
           _NO_RUN: ${{ steps.no-run.outcome }}
           _NO_RUN_ID: ${{ steps.no-run.outputs.run_id }}
         run: |
           failed=0
           for check in "missing artifact:$_MISSING" "commit and branch:$_COMMIT_AND_BRANCH" \
                        "require_branch_head without branch:$_HEAD_WITHOUT_BRANCH" "no matching run:$_NO_RUN" \
-                       "invalid pull_requests:$_BAD_PULL_REQUESTS" "require_branch_head with pull requests:$_HEAD_WITH_PULL_REQUESTS"; do
+                       "invalid pull_requests:$_BAD_PULL_REQUESTS" "require_branch_head with pull requests:$_HEAD_WITH_PULL_REQUESTS" \
+                       "invalid max_runs_checked:$_BAD_MAX_RUNS" "invalid retry_attempts:$_BAD_RETRY_ATTEMPTS" \
+                       "invalid retry_delays:$_BAD_RETRY_DELAYS"; do
             if [[ "${check##*:}" != "failure" ]]; then
               echo "Expected ${check%:*} to fail, got ${check##*:}"
               failed=1

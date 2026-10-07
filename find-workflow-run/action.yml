@@ -46,6 +46,15 @@ inputs:
   allow_forks:
     description: "Accept runs from forks of the repository."
     default: "false"
+  max_runs_checked:
+    description: "How many of the workflow's newest runs to check against the filtered search. The step fails if the newest match can't be confirmed within them. Raise it for rarely built branches in busy workflows."
+    default: "2000"
+  retry_attempts:
+    description: "Attempts per GitHub API call, including the first. Server errors, rate limits and network failures are retried; other 4xx responses are not."
+    default: "3"
+  retry_delays:
+    description: "Comma-separated seconds to wait before each retry. The last value repeats if there are more retries than values."
+    default: "2,5"
 
 outputs:
   run_id:
@@ -81,4 +90,7 @@ runs:
         NAME_IS_REGEXP: ${{ inputs.name_is_regexp }}
         SEARCH_ARTIFACTS: ${{ inputs.search_artifacts }}
         ALLOW_FORKS: ${{ inputs.allow_forks }}
+        MAX_RUNS_CHECKED: ${{ inputs.max_runs_checked }}
+        RETRY_ATTEMPTS: ${{ inputs.retry_attempts }}
+        RETRY_DELAYS: ${{ inputs.retry_delays }}
       run: bash "${{ github.action_path }}/find-workflow-run.sh"

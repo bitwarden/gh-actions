@@ -32,20 +32,21 @@ Pass the run ID to the download step and drop its `branch`, `commit` and `workfl
 
 ## Inputs
 
-| Input                 | Default                    | Description                                                                                                                            |
-| --------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `github_token`        | `${{ github.token }}`      | Token with `actions:read` on `repo`.                                                                                                   |
-| `repo`                | `${{ github.repository }}` | Repository the workflow belongs to.                                                                                                    |
-| `workflow`            |                            | Workflow file name or ID. Required unless `run_id` is set.                                                                             |
-| `run_id`              |                            | Use this run as is. Overrides `branch` and `commit`, and ignores `workflow_conclusion`. Artifacts are still checked.                   |
-| `commit`              |                            | Newest matching run built from this SHA. Cannot be used with `branch`.                                                                 |
-| `branch`              |                            | Newest matching run on this branch. Cannot be used with `commit`.                                                                      |
-| `require_branch_head` | `false`                    | Only accept a run of the branch's HEAD commit, skipping `pull_request` runs. Fails rather than fall back to an older run.              |
-| `workflow_conclusion` | `success`                  | Conclusion the run must have. Empty matches any run.                                                                                   |
-| `artifacts`           |                            | Artifacts the run must have: comma-separated names with `*` wildcards, matching whole names.                                           |
-| `name_is_regexp`      | `false`                    | Treat `artifacts` as one regular expression (commas included), matched anywhere in the name unless anchored with `^` and `$`.          |
-| `search_artifacts`    | `false`                    | Skip runs that lack the artifacts and keep looking at older ones. Otherwise the newest matching run must have them, or the step fails. |
-| `allow_forks`         | `false`                    | Accept runs from forks.                                                                                                                |
+| Input                 | Default                    | Description                                                                                                                                             |
+| --------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `github_token`        | `${{ github.token }}`      | Token with `actions:read` on `repo`.                                                                                                                    |
+| `repo`                | `${{ github.repository }}` | Repository the workflow belongs to.                                                                                                                     |
+| `workflow`            |                            | Workflow file name or ID. Required unless `run_id` is set.                                                                                              |
+| `run_id`              |                            | Use this run as is. Overrides `branch` and `commit`, and ignores `workflow_conclusion`. Artifacts are still checked.                                    |
+| `commit`              |                            | Newest matching run built from this SHA. Cannot be used with `branch`.                                                                                  |
+| `branch`              |                            | Newest matching run on this branch. Cannot be used with `commit`.                                                                                       |
+| `require_branch_head` | `false`                    | Only accept a run of the branch's HEAD commit. Fails rather than fall back to an older run. Cannot be combined with `pull_requests: include` or `only`. |
+| `workflow_conclusion` | `success`                  | Conclusion (e.g. `success`) or status (e.g. `completed`) the run must have. Empty matches any run.                                                      |
+| `pull_requests`       | `exclude`                  | `exclude`, `include` or `only` `pull_request` runs. A pull request run matches `branch` by its source branch.                                           |
+| `artifacts`           |                            | Artifacts the run must have: comma-separated names with `*` wildcards, matching whole names.                                                            |
+| `name_is_regexp`      | `false`                    | Treat `artifacts` as one regular expression (commas included), matched anywhere in the name unless anchored with `^` and `$`.                           |
+| `search_artifacts`    | `false`                    | Skip runs that lack the artifacts and keep looking at older ones. Otherwise the newest matching run must have them, or the step fails.                  |
+| `allow_forks`         | `false`                    | Accept runs from forks.                                                                                                                                 |
 
 With neither `branch` nor `commit`, the newest matching run of the workflow is used.
 
@@ -65,4 +66,5 @@ With neither `branch` nor `commit`, the newest matching run of the workflow is u
 3. The walk stops after 20 pages (2,000 runs). If it hasn't reached the candidate by then, the candidate is used with a warning, so rarely built branches still work.
 4. Runs are ordered by run ID. A re-run keeps its ID, so a re-run of an old build ranks as old.
 5. Runs from forks are skipped unless `allow_forks` is set.
-6. With `require_branch_head`, the lookup is by the branch's HEAD commit, so no older build can stand in for it.
+6. `pull_request` runs are skipped unless `pull_requests` is `include` or `only`. When that leaves no run on the branch but pull request runs exist, the log notes it.
+7. With `require_branch_head`, the lookup is by the branch's HEAD commit, so no older build can stand in for it.

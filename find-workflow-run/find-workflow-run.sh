@@ -14,8 +14,8 @@ set -euo pipefail
 #   REPO          - owner/repo the workflow belongs to.
 #   GITHUB_OUTPUT - set by GitHub Actions; receives run_id, head_sha, head_branch and artifact_ids.
 # Optional environment (see action.yml for details):
-#   WORKFLOW, RUN_ID, COMMIT, BRANCH, REQUIRE_BRANCH_HEAD, WORKFLOW_CONCLUSION, ARTIFACTS,
-#   NAME_IS_REGEXP, SEARCH_ARTIFACTS, ALLOW_FORKS
+#   WORKFLOW, RUN_ID, COMMIT, BRANCH, REQUIRE_BRANCH_HEAD, WORKFLOW_CONCLUSION, PULL_REQUESTS,
+#   ARTIFACTS, NAME_IS_REGEXP, SEARCH_ARTIFACTS, ALLOW_FORKS
 
 # Pages of the unfiltered run list to walk before keeping the search result unconfirmed.
 readonly PAGE_LIMIT="${PAGE_LIMIT:-20}"
@@ -26,7 +26,12 @@ RUN_ID="${RUN_ID:-}"
 COMMIT="${COMMIT:-}"
 BRANCH="${BRANCH:-}"
 WORKFLOW_CONCLUSION="${WORKFLOW_CONCLUSION:-}"
+PULL_REQUESTS="${PULL_REQUESTS:-exclude}"
 ARTIFACTS="${ARTIFACTS:-}"
+
+# Newest pull_request run IDs that matched everything but pull_requests: exclude, for the log.
+EXCLUDED_PRS_FILE=$(mktemp "${RUNNER_TEMP:-/tmp}/excluded-prs.XXXXXX")
+trap 'rm -f "$EXCLUDED_PRS_FILE"' EXIT
 
 fail() {
   echo "::error::$1"
@@ -49,8 +54,11 @@ api() {
 [[ -z "$RUN_ID" || "$RUN_ID" =~ ^[0-9]+$ ]] || fail "run_id must be numeric, got '$RUN_ID'"
 [[ -n "$RUN_ID" || -n "$WORKFLOW" ]] || fail "workflow is required unless run_id is set"
 [[ -z "$COMMIT" || -z "$BRANCH" ]] || fail "commit and branch cannot be used together"
-if is_true "${REQUIRE_BRANCH_HEAD:-}" && [[ -z "$BRANCH" ]]; then
-  fail "require_branch_head needs branch to be set"
+[[ "$PULL_REQUESTS" =~ ^(exclude|include|only)$ ]] || fail "pull_requests must be exclude, include or only, got '$PULL_REQUESTS'"
+if is_true "${REQUIRE_BRANCH_HEAD:-}"; then
+  [[ -n "$BRANCH" ]] || fail "require_branch_head needs branch to be set"
+  # A branch HEAD request wants a build of the branch itself, which a pull_request run is not.
+  [[ "$PULL_REQUESTS" == "exclude" ]] || fail "require_branch_head cannot be used with pull_requests: $PULL_REQUESTS"
 fi
 if is_true "${NAME_IS_REGEXP:-}" || is_true "${SEARCH_ARTIFACTS:-}"; then
   [[ -n "$ARTIFACTS" ]] || fail "name_is_regexp and search_artifacts need artifacts to be set"
@@ -96,23 +104,36 @@ has_artifacts() {
 
 # Reads runs as a JSON array, prints matching runs newest first (one compact object per line).
 # Ordered by run ID: IDs follow creation order, and a re-run keeps its ID, so a re-run of an old
-# build correctly ranks as old.
+# build correctly ranks as old. The optional argument overrides PULL_REQUESTS.
+#
+# workflow_conclusion accepts a run status (e.g. completed) as well as a conclusion.
+# A pull_request run's head_branch is the pull request's source branch, so `branch` matches it by that.
 filter_runs() {
   jq -c \
     --arg repo "$REPO" \
     --arg branch "$BRANCH" \
     --arg commit "$COMMIT" \
     --arg conclusion "$WORKFLOW_CONCLUSION" \
-    --argjson allow_forks "$(is_true "${ALLOW_FORKS:-}" && echo true || echo false)" \
-    --argjson skip_pr "$(is_true "${REQUIRE_BRANCH_HEAD:-}" && echo true || echo false)" '
+    --arg pull_requests "${1:-$PULL_REQUESTS}" \
+    --argjson allow_forks "$(is_true "${ALLOW_FORKS:-}" && echo true || echo false)" '
+    def is_status: IN("requested", "queued", "pending", "waiting", "in_progress", "completed");
     map(select(
-      ($conclusion == "" or .conclusion == $conclusion)
+      ($conclusion == ""
+        or (if ($conclusion | is_status) then .status == $conclusion else .conclusion == $conclusion end))
       and ($allow_forks or (.head_repository.full_name // "") == $repo)
       and ($branch == "" or .head_branch == $branch)
       and ($commit == "" or .head_sha == $commit)
-      and (($skip_pr | not) or .event != "pull_request")
+      and (if $pull_requests == "exclude" then .event != "pull_request"
+           elif $pull_requests == "only" then .event == "pull_request"
+           else true end)
     ))
     | sort_by(.id) | reverse | .[]'
+}
+
+# Records pull_request runs from the branch that only pull_requests: exclude kept out.
+note_excluded_prs() {
+  [[ "$PULL_REQUESTS" == "exclude" && -n "$BRANCH" ]] || return 0
+  filter_runs only | jq -rs '.[0].id // empty' >>"$EXCLUDED_PRS_FILE"
 }
 
 # Prints the first run (newest first) from stdin that is wanted, or nothing.
@@ -138,6 +159,7 @@ find_run() {
   if [[ ${#search_args[@]} -gt 0 ]]; then
     for ((page = 1; page <= PAGE_LIMIT; page++)); do
       runs=$(api "$runs_path" "${search_args[@]}" -f per_page=$PER_PAGE -f page=$page --jq '.workflow_runs')
+      note_excluded_prs <<<"$runs"
       search_run=$(filter_runs <<<"$runs" | first_wanted)
       [[ -n "$search_run" || $(jq length <<<"$runs") -lt $PER_PAGE ]] && break
     done
@@ -154,6 +176,7 @@ find_run() {
   local newer min_id
   for ((page = 1; page <= PAGE_LIMIT; page++)); do
     runs=$(api "$runs_path" -f per_page=$PER_PAGE -f page=$page --jq '.workflow_runs')
+    note_excluded_prs <<<"$runs"
     newer=$(jq --argjson after "$search_id" 'map(select(.id > $after))' <<<"$runs" | filter_runs | first_wanted)
     if [[ -n "$newer" ]]; then
       if [[ "$search_id" != "0" ]]; then
@@ -185,6 +208,7 @@ if [[ -n "$RUN_ID" ]]; then
 else
   echo "==> Workflow: $WORKFLOW"
   echo "==> Conclusion: ${WORKFLOW_CONCLUSION:-any}"
+  echo "==> Pull request runs: $PULL_REQUESTS"
   if is_true "${REQUIRE_BRANCH_HEAD:-}"; then
     # Look up by the HEAD commit itself, so an older green build can never stand in for HEAD.
     COMMIT=$(api "repos/$REPO/branches/$BRANCH" --jq .commit.sha) || fail "Branch $BRANCH not found in $REPO"
@@ -195,6 +219,9 @@ else
   fi
   run=$(find_run)
   if [[ -z "$run" ]]; then
+    if [[ -s "$EXCLUDED_PRS_FILE" ]]; then
+      echo "::notice::pull_request runs from $BRANCH exist but were excluded (pull_requests: exclude), e.g. run $(sort -rn "$EXCLUDED_PRS_FILE" | head -n 1)"
+    fi
     if is_true "${REQUIRE_BRANCH_HEAD:-}"; then
       fail "No matching run of $WORKFLOW at $BRANCH HEAD ($COMMIT). Build the branch HEAD and try again."
     fi

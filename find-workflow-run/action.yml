@@ -26,11 +26,14 @@ inputs:
     description: "Find the newest matching run on this branch. Cannot be used with commit."
     required: false
   require_branch_head:
-    description: "Only accept a run built from the branch's HEAD commit, skipping pull_request runs. Fails rather than fall back to an older run. Needs branch."
+    description: "Only accept a run of the branch's HEAD commit. Fails rather than fall back to an older run. Needs branch. Cannot be combined with pull_requests: include or only."
     default: "false"
   workflow_conclusion:
-    description: "Conclusion the run must have. Empty matches any run."
+    description: "Conclusion (e.g. success) or status (e.g. completed) the run must have. Empty matches any run."
     default: success
+  pull_requests:
+    description: "exclude, include or only pull_request runs. A pull request run matches branch by its source branch."
+    default: exclude
   artifacts:
     description: "Artifacts the run must have. Comma-separated names with * wildcards, or a single regular expression when name_is_regexp is true."
     required: false
@@ -73,6 +76,7 @@ runs:
         BRANCH: ${{ inputs.branch }}
         REQUIRE_BRANCH_HEAD: ${{ inputs.require_branch_head }}
         WORKFLOW_CONCLUSION: ${{ inputs.workflow_conclusion }}
+        PULL_REQUESTS: ${{ inputs.pull_requests }}
         ARTIFACTS: ${{ inputs.artifacts }}
         NAME_IS_REGEXP: ${{ inputs.name_is_regexp }}
         SEARCH_ARTIFACTS: ${{ inputs.search_artifacts }}

@@ -204,14 +204,17 @@ runs:
       with:
         anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-CODE-REVIEW-API-KEY }}
         plugin_marketplaces: |
-          https://github.com/anthropics/claude-code.git
+          https://github.com/anthropics/claude-plugins-official.git
           https://github.com/bitwarden/ai-plugins.git
         plugins: |
-          plugin-dev@claude-code-plugins
+          plugin-dev@claude-plugins-official
           claude-config-validator@bitwarden-marketplace
         # Bash is unscoped because the plugin-validator agent shells out to an
         # open-ended set of upstream-owned commands. The write-permission gate in
         # _validate-ai.yml limits this to trusted actors.
+        #
+        # WebFetch is scoped to code.claude.com so /validate-ai can check a finding's
+        # claim about Claude Code's schema against the official documentation.
         #
         # max-turns is a backstop against a loop, not a time bound: one Task turn is
         # a whole subagent run. Wall clock is bounded by the job timeout.
@@ -219,7 +222,7 @@ runs:
           --verbose
           --model opus
           --max-turns 80
-          --allowedTools "Task,Skill,Read,Write,Grep,Glob,Bash"
+          --allowedTools "Task,Skill,Read,Write,Grep,Glob,Bash,WebFetch(domain:code.claude.com)"
         prompt: |
           REPO: ${{ inputs.repository }}
           PR NUMBER: ${{ inputs.pr_number }}

@@ -1,0 +1,486 @@
+name: Test Find Workflow Run Action
+
+on:
+  workflow_dispatch:
+    inputs: {}
+  pull_request:
+    paths:
+      - "find-workflow-run/**"
+      - ".github/workflows/test-find-workflow-run.yml"
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  expected:
+    name: Resolve expected run
+    runs-on: ubuntu-24.04
+    outputs:
+      run_id: ${{ steps.expected.outputs.run_id }}
+      head_sha: ${{ steps.expected.outputs.head_sha }}
+      completed_run_id: ${{ steps.expected-modes.outputs.completed_run_id }}
+      pr_branch: ${{ steps.expected-modes.outputs.pr_branch }}
+      pr_run_id: ${{ steps.expected-modes.outputs.pr_run_id }}
+      non_pr_run_id: ${{ steps.expected-modes.outputs.non_pr_run_id }}
+      newest_is_main: ${{ steps.expected-modes.outputs.newest_is_main }}
+    steps:
+      - name: Find newest successful upload run on main from the unfiltered list
+        id: expected
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          run=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/upload-test-artifacts.yml/runs?per_page=100" \
+            --jq "[.workflow_runs[] | select(.head_branch == \"main\" and .conclusion == \"success\" and .head_repository.full_name == \"$GITHUB_REPOSITORY\")] | max_by(.id)")
+          if [[ -z "$run" || "$run" == "null" ]]; then
+            echo "::error::No successful upload-test-artifacts run on main in the newest 100 runs"
+            exit 1
+          fi
+          {
+            echo "run_id=$(jq -r .id <<<"$run")"
+            echo "head_sha=$(jq -r .head_sha <<<"$run")"
+          } >> "$GITHUB_OUTPUT"
+
+      # Upload runs also come from pull requests (and pushes to renovate/**), so pick the branch of the
+      # newest successful pull_request run and record what each pull_requests mode should return for it.
+      - name: Find expected runs for status and pull request lookups
+        id: expected-modes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/upload-test-artifacts.yml/runs?per_page=100" \
+            --jq "[.workflow_runs[] | select(.head_repository.full_name == \"$GITHUB_REPOSITORY\")]")
+          pr_branch=$(jq -r '[.[] | select(.event == "pull_request" and .conclusion == "success")] | max_by(.id) | .head_branch // ""' <<<"$runs")
+          {
+            echo "completed_run_id=$(jq -r '[.[] | select(.head_branch == "main" and .status == "completed")] | max_by(.id) | .id' <<<"$runs")"
+            echo "pr_branch=$pr_branch"
+            echo "pr_run_id=$(jq -r --arg b "$pr_branch" '[.[] | select(.head_branch == $b and .event == "pull_request" and .conclusion == "success")] | max_by(.id) | .id // ""' <<<"$runs")"
+            echo "non_pr_run_id=$(jq -r --arg b "$pr_branch" '[.[] | select(.head_branch == $b and .event != "pull_request" and .conclusion == "success")] | max_by(.id) | .id // ""' <<<"$runs")"
+            # With max_runs_checked: 1, a main lookup can only be confirmed if the newest run is that match.
+            echo "newest_is_main=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/upload-test-artifacts.yml/runs?per_page=1" \
+              --jq ".workflow_runs[0] | .head_branch == \"main\" and .event != \"pull_request\" and .conclusion == \"success\" and .head_repository.full_name == \"$GITHUB_REPOSITORY\"")"
+          } >> "$GITHUB_OUTPUT"
+
+  find-branch:
+    name: Find by branch
+    runs-on: ubuntu-24.04
+    needs: expected
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: Find
+        id: find
+        uses: ./find-workflow-run
+        with:
+          workflow: upload-test-artifacts.yml
+          branch: main
+          artifacts: artifact
+
+      - name: Test
+        env:
+          _EXPECTED_RUN_ID: ${{ needs.expected.outputs.run_id }}
+          _EXPECTED_SHA: ${{ needs.expected.outputs.head_sha }}
+          _RUN_ID: ${{ steps.find.outputs.run_id }}
+          _HEAD_SHA: ${{ steps.find.outputs.head_sha }}
+          _HEAD_BRANCH: ${{ steps.find.outputs.head_branch }}
+          _ARTIFACT_IDS: ${{ steps.find.outputs.artifact_ids }}
+        run: |
+          [[ "$_RUN_ID" == "$_EXPECTED_RUN_ID" ]] || { echo "run_id: expected $_EXPECTED_RUN_ID, got $_RUN_ID"; exit 1; }
+          [[ "$_HEAD_SHA" == "$_EXPECTED_SHA" ]] || { echo "head_sha: expected $_EXPECTED_SHA, got $_HEAD_SHA"; exit 1; }
+          [[ "$_HEAD_BRANCH" == "main" ]] || { echo "head_branch: expected main, got $_HEAD_BRANCH"; exit 1; }
+          [[ "$_ARTIFACT_IDS" =~ ^[0-9]+$ ]] || { echo "artifact_ids: expected one ID, got '$_ARTIFACT_IDS'"; exit 1; }
+
+  find-commit:
+    name: Find by commit
+    runs-on: ubuntu-24.04
+    needs: expected
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: Find
+        id: find
+        uses: ./find-workflow-run
+        with:
+          workflow: upload-test-artifacts.yml
+          commit: ${{ needs.expected.outputs.head_sha }}
+
+      - name: Test
+        env:
+          _EXPECTED_RUN_ID: ${{ needs.expected.outputs.run_id }}
+          _RUN_ID: ${{ steps.find.outputs.run_id }}
+        run: |
+          [[ "$_RUN_ID" == "$_EXPECTED_RUN_ID" ]] || { echo "run_id: expected $_EXPECTED_RUN_ID, got $_RUN_ID"; exit 1; }
+
+  find-run-id:
+    name: Pass run_id through
+    runs-on: ubuntu-24.04
+    needs: expected
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      # branch is ignored when run_id is set, as callers pass both when a run ID is optional.
+      - name: Find
+        id: find
+        uses: ./find-workflow-run
+        with:
+          run_id: ${{ needs.expected.outputs.run_id }}
+          branch: does-not-exist
+          workflow_conclusion: ""
+
+      - name: Test
+        env:
+          _EXPECTED_RUN_ID: ${{ needs.expected.outputs.run_id }}
+          _EXPECTED_SHA: ${{ needs.expected.outputs.head_sha }}
+          _RUN_ID: ${{ steps.find.outputs.run_id }}
+          _HEAD_SHA: ${{ steps.find.outputs.head_sha }}
+        run: |
+          [[ "$_RUN_ID" == "$_EXPECTED_RUN_ID" ]] || { echo "run_id: expected $_EXPECTED_RUN_ID, got $_RUN_ID"; exit 1; }
+          [[ "$_HEAD_SHA" == "$_EXPECTED_SHA" ]] || { echo "head_sha: expected $_EXPECTED_SHA, got $_HEAD_SHA"; exit 1; }
+
+  find-artifact-patterns:
+    name: Match artifacts by glob and regexp
+    runs-on: ubuntu-24.04
+    needs: expected
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      # upload-test-artifacts uploads artifact, artifact1, artifact2, artifact1.txt and artifact2.txt.
+      - name: Find with globs
+        id: glob
+        uses: ./find-workflow-run
+        with:
+          run_id: ${{ needs.expected.outputs.run_id }}
+          artifacts: "artifact1, artifact*.txt"
+
+      # A regexp is one pattern, so the commas in {1,2} must not split it.
+      - name: Find with a regexp
+        id: regexp
+        uses: ./find-workflow-run
+        with:
+          run_id: ${{ needs.expected.outputs.run_id }}
+          artifacts: '^artifact[0-9]{1,2}\.txt$'
+          name_is_regexp: true
+
+      - name: Test
+        env:
+          _GLOB_IDS: ${{ steps.glob.outputs.artifact_ids }}
+          _REGEXP_IDS: ${{ steps.regexp.outputs.artifact_ids }}
+        run: |
+          count() { tr ',' '\n' <<<"$1" | grep -c .; }
+          [[ $(count "$_GLOB_IDS") == 3 ]] || { echo "globs: expected 3 IDs, got '$_GLOB_IDS'"; exit 1; }
+          [[ $(count "$_REGEXP_IDS") == 2 ]] || { echo "regexp: expected 2 IDs, got '$_REGEXP_IDS'"; exit 1; }
+
+  find-search-artifacts:
+    name: Search older runs for artifacts
+    runs-on: ubuntu-24.04
+    needs: expected
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      # Every upload run has these artifacts, so the newest run must still be chosen.
+      - name: Find
+        id: find
+        uses: ./find-workflow-run
+        with:
+          workflow: upload-test-artifacts.yml
+          branch: main
+          artifacts: "^artifact[12]$"
+          name_is_regexp: true
+          search_artifacts: true
+
+      - name: Test
+        env:
+          _EXPECTED_RUN_ID: ${{ needs.expected.outputs.run_id }}
+          _RUN_ID: ${{ steps.find.outputs.run_id }}
+        run: |
+          [[ "$_RUN_ID" == "$_EXPECTED_RUN_ID" ]] || { echo "run_id: expected $_EXPECTED_RUN_ID, got $_RUN_ID"; exit 1; }
+
+  find-status:
+    name: Match a run status
+    runs-on: ubuntu-24.04
+    needs: expected
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: Find
+        id: find
+        uses: ./find-workflow-run
+        with:
+          workflow: upload-test-artifacts.yml
+          branch: main
+          workflow_conclusion: completed
+
+      - name: Test
+        env:
+          _EXPECTED_RUN_ID: ${{ needs.expected.outputs.completed_run_id }}
+          _RUN_ID: ${{ steps.find.outputs.run_id }}
+        run: |
+          [[ "$_RUN_ID" == "$_EXPECTED_RUN_ID" ]] || { echo "run_id: expected $_EXPECTED_RUN_ID, got $_RUN_ID"; exit 1; }
+
+  find-pull-requests:
+    name: Select pull request runs
+    runs-on: ubuntu-24.04
+    needs: expected
+    if: needs.expected.outputs.pr_run_id != ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: Find with pull_requests only
+        id: only
+        uses: ./find-workflow-run
+        with:
+          workflow: upload-test-artifacts.yml
+          branch: ${{ needs.expected.outputs.pr_branch }}
+          pull_requests: only
+
+      - name: Find with pull_requests include
+        id: include
+        uses: ./find-workflow-run
+        with:
+          workflow: upload-test-artifacts.yml
+          branch: ${{ needs.expected.outputs.pr_branch }}
+          pull_requests: include
+
+      # The default. Fails when the branch has no run other than pull request runs.
+      - name: Find with pull_requests exclude
+        id: exclude
+        continue-on-error: true
+        uses: ./find-workflow-run
+        with:
+          workflow: upload-test-artifacts.yml
+          branch: ${{ needs.expected.outputs.pr_branch }}
+
+      - name: Test
+        env:
+          _PR_RUN_ID: ${{ needs.expected.outputs.pr_run_id }}
+          _NON_PR_RUN_ID: ${{ needs.expected.outputs.non_pr_run_id }}
+          _ONLY: ${{ steps.only.outputs.run_id }}
+          _INCLUDE: ${{ steps.include.outputs.run_id }}
+          _EXCLUDE: ${{ steps.exclude.outputs.run_id }}
+          _EXCLUDE_OUTCOME: ${{ steps.exclude.outcome }}
+        run: |
+          failed=0
+          if [[ "$_ONLY" != "$_PR_RUN_ID" ]]; then
+            echo "only: expected $_PR_RUN_ID, got $_ONLY"
+            failed=1
+          fi
+          newest=$(( _PR_RUN_ID > ${_NON_PR_RUN_ID:-0} ? _PR_RUN_ID : _NON_PR_RUN_ID ))
+          if [[ "$_INCLUDE" != "$newest" ]]; then
+            echo "include: expected $newest, got $_INCLUDE"
+            failed=1
+          fi
+          if [[ -n "$_NON_PR_RUN_ID" && "$_EXCLUDE" != "$_NON_PR_RUN_ID" ]]; then
+            echo "exclude: expected $_NON_PR_RUN_ID, got '$_EXCLUDE'"
+            failed=1
+          elif [[ -z "$_NON_PR_RUN_ID" && "$_EXCLUDE_OUTCOME" != "failure" ]]; then
+            echo "exclude: expected failure (only pull request runs), got $_EXCLUDE_OUTCOME"
+            failed=1
+          fi
+          exit "$failed"
+
+  find-run-limit:
+    name: Fail when max_runs_checked is reached
+    runs-on: ubuntu-24.04
+    needs: expected
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: Find within the newest run only
+        id: find
+        continue-on-error: true
+        uses: ./find-workflow-run
+        with:
+          workflow: upload-test-artifacts.yml
+          branch: main
+          max_runs_checked: 1
+
+      - name: Test
+        env:
+          _NEWEST_IS_MAIN: ${{ needs.expected.outputs.newest_is_main }}
+          _OUTCOME: ${{ steps.find.outcome }}
+        run: |
+          expected=$([[ "$_NEWEST_IS_MAIN" == "true" ]] && echo success || echo failure)
+          [[ "$_OUTCOME" == "$expected" ]] || { echo "Expected $expected (newest run is main's match: $_NEWEST_IS_MAIN), got $_OUTCOME"; exit 1; }
+
+  find-branch-head:
+    name: Find main HEAD with require_branch_head
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      # Uploads only run when their paths change, so main HEAD may have no run. Either way the outcome is known.
+      - name: Check whether main HEAD has an upload run
+        id: head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          head=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          run_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/upload-test-artifacts.yml/runs?per_page=100" \
+            --jq "[.workflow_runs[] | select(.head_sha == \"$head\" and .head_branch == \"main\" and .event != \"pull_request\" and .conclusion == \"success\")] | max_by(.id) | .id // \"\"")
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+
+      - name: Find
+        id: find
+        continue-on-error: true
+        uses: ./find-workflow-run
+        with:
+          workflow: upload-test-artifacts.yml
+          branch: main
+          require_branch_head: true
+
+      - name: Test
+        env:
+          _EXPECTED_RUN_ID: ${{ steps.head.outputs.run_id }}
+          _OUTCOME: ${{ steps.find.outcome }}
+          _RUN_ID: ${{ steps.find.outputs.run_id }}
+        run: |
+          if [[ -n "$_EXPECTED_RUN_ID" ]]; then
+            [[ "$_OUTCOME" == "success" && "$_RUN_ID" == "$_EXPECTED_RUN_ID" ]] \
+              || { echo "Expected run $_EXPECTED_RUN_ID at main HEAD, got outcome $_OUTCOME and run '$_RUN_ID'"; exit 1; }
+          else
+            [[ "$_OUTCOME" == "failure" && -z "$_RUN_ID" ]] \
+              || { echo "main HEAD has no upload run, so the step should fail (outcome $_OUTCOME, run '$_RUN_ID')"; exit 1; }
+          fi
+
+  find-failures:
+    name: Fail on missing artifacts and invalid inputs
+    runs-on: ubuntu-24.04
+    needs: expected
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: Missing artifact
+        id: missing
+        continue-on-error: true
+        uses: ./find-workflow-run
+        with:
+          run_id: ${{ needs.expected.outputs.run_id }}
+          artifacts: "artifact, does-not-exist"
+
+      - name: Commit and branch together
+        id: commit-and-branch
+        continue-on-error: true
+        uses: ./find-workflow-run
+        with:
+          workflow: upload-test-artifacts.yml
+          commit: ${{ needs.expected.outputs.head_sha }}
+          branch: main
+
+      - name: Branch HEAD without branch
+        id: head-without-branch
+        continue-on-error: true
+        uses: ./find-workflow-run
+        with:
+          workflow: upload-test-artifacts.yml
+          require_branch_head: true
+
+      - name: Invalid pull_requests value
+        id: bad-pull-requests
+        continue-on-error: true
+        uses: ./find-workflow-run
+        with:
+          workflow: upload-test-artifacts.yml
+          branch: main
+          pull_requests: "yes"
+
+      - name: Branch HEAD with pull request runs
+        id: head-with-pull-requests
+        continue-on-error: true
+        uses: ./find-workflow-run
+        with:
+          workflow: upload-test-artifacts.yml
+          branch: main
+          require_branch_head: true
+          pull_requests: only
+
+      - name: Invalid max_runs_checked
+        id: bad-max-runs
+        continue-on-error: true
+        uses: ./find-workflow-run
+        with:
+          workflow: upload-test-artifacts.yml
+          max_runs_checked: "0"
+
+      - name: Invalid retry_attempts
+        id: bad-retry-attempts
+        continue-on-error: true
+        uses: ./find-workflow-run
+        with:
+          workflow: upload-test-artifacts.yml
+          retry_attempts: "0"
+
+      - name: Invalid retry_delays
+        id: bad-retry-delays
+        continue-on-error: true
+        uses: ./find-workflow-run
+        with:
+          workflow: upload-test-artifacts.yml
+          retry_delays: "2,,5"
+
+      - name: No matching run
+        id: no-run
+        continue-on-error: true
+        uses: ./find-workflow-run
+        with:
+          workflow: upload-test-artifacts.yml
+          branch: branch-that-does-not-exist
+
+      - name: Test
+        env:
+          _MISSING: ${{ steps.missing.outcome }}
+          _COMMIT_AND_BRANCH: ${{ steps.commit-and-branch.outcome }}
+          _HEAD_WITHOUT_BRANCH: ${{ steps.head-without-branch.outcome }}
+          _BAD_PULL_REQUESTS: ${{ steps.bad-pull-requests.outcome }}
+          _HEAD_WITH_PULL_REQUESTS: ${{ steps.head-with-pull-requests.outcome }}
+          _BAD_MAX_RUNS: ${{ steps.bad-max-runs.outcome }}
+          _BAD_RETRY_ATTEMPTS: ${{ steps.bad-retry-attempts.outcome }}
+          _BAD_RETRY_DELAYS: ${{ steps.bad-retry-delays.outcome }}
+          _NO_RUN: ${{ steps.no-run.outcome }}
+          _NO_RUN_ID: ${{ steps.no-run.outputs.run_id }}
+        run: |
+          failed=0
+          for check in "missing artifact:$_MISSING" "commit and branch:$_COMMIT_AND_BRANCH" \
+                       "require_branch_head without branch:$_HEAD_WITHOUT_BRANCH" "no matching run:$_NO_RUN" \
+                       "invalid pull_requests:$_BAD_PULL_REQUESTS" "require_branch_head with pull requests:$_HEAD_WITH_PULL_REQUESTS" \
+                       "invalid max_runs_checked:$_BAD_MAX_RUNS" "invalid retry_attempts:$_BAD_RETRY_ATTEMPTS" \
+                       "invalid retry_delays:$_BAD_RETRY_DELAYS"; do
+            if [[ "${check##*:}" != "failure" ]]; then
+              echo "Expected ${check%:*} to fail, got ${check##*:}"
+              failed=1
+            fi
+          done
+          if [[ -n "$_NO_RUN_ID" ]]; then
+            echo "Expected no run_id output when no run matches, got '$_NO_RUN_ID'"
+            failed=1
+          fi
+          exit "$failed"

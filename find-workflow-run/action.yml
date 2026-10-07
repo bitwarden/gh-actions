@@ -1,0 +1,96 @@
+---
+name: "Find Workflow Run"
+description: "Find a workflow run and its artifacts without trusting GitHub's filtered run search, which can silently drop runs."
+author: "Bitwarden"
+branding:
+  icon: search
+  color: blue
+
+inputs:
+  github_token:
+    description: "Token with actions:read on the repository."
+    default: ${{ github.token }}
+  repo:
+    description: "Repository the workflow belongs to, in owner/repo format."
+    default: ${{ github.repository }}
+  workflow:
+    description: "Workflow file name or ID. Required unless run_id is set."
+    required: false
+  run_id:
+    description: "Use this run as is, without searching. Overrides branch and commit, and ignores workflow_conclusion."
+    required: false
+  commit:
+    description: "Find the newest matching run built from this commit SHA. Cannot be used with branch."
+    required: false
+  branch:
+    description: "Find the newest matching run on this branch. Cannot be used with commit."
+    required: false
+  require_branch_head:
+    description: "Only accept a run of the branch's HEAD commit. Fails rather than fall back to an older run. Needs branch. Cannot be combined with pull_requests: include or only."
+    default: "false"
+  workflow_conclusion:
+    description: "Conclusion (e.g. success) or status (e.g. completed) the run must have. Empty matches any run."
+    default: success
+  pull_requests:
+    description: "exclude, include or only pull_request runs. A pull request run matches branch by its source branch."
+    default: exclude
+  artifacts:
+    description: "Artifacts the run must have. Comma-separated names with * wildcards, or a single regular expression when name_is_regexp is true."
+    required: false
+  name_is_regexp:
+    description: "Treat artifacts as a single regular expression, matched anywhere in the name unless anchored."
+    default: "false"
+  search_artifacts:
+    description: "Skip runs that lack the artifacts and keep looking at older ones. Expired artifacts count, so a run whose artifacts expired fails the step rather than give way to an older run. By default the newest matching run must have them, or the step fails."
+    default: "false"
+  allow_forks:
+    description: "Accept runs from forks of the repository."
+    default: "false"
+  max_runs_checked:
+    description: "How many of the workflow's newest runs to check against the filtered search. The step fails if the newest match can't be confirmed within them. Raise it for rarely built branches in busy workflows."
+    default: "2000"
+  retry_attempts:
+    description: "Attempts per GitHub API call, including the first. Server errors, rate limits and network failures are retried; other 4xx responses are not."
+    default: "3"
+  retry_delays:
+    description: "Comma-separated seconds to wait before each retry. The last value repeats if there are more retries than values."
+    default: "2,5"
+
+outputs:
+  run_id:
+    description: "ID of the run found. Never empty: the step fails if no run matches."
+    value: ${{ steps.find.outputs.run_id }}
+  head_sha:
+    description: "Commit the run was built from."
+    value: ${{ steps.find.outputs.head_sha }}
+  head_branch:
+    description: "Branch the run was built from."
+    value: ${{ steps.find.outputs.head_branch }}
+  artifact_ids:
+    description: "Comma-separated IDs of the unexpired artifacts that matched artifacts. Empty when artifacts is not set."
+    value: ${{ steps.find.outputs.artifact_ids }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Find workflow run
+      id: find
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        REPO: ${{ inputs.repo }}
+        WORKFLOW: ${{ inputs.workflow }}
+        RUN_ID: ${{ inputs.run_id }}
+        COMMIT: ${{ inputs.commit }}
+        BRANCH: ${{ inputs.branch }}
+        REQUIRE_BRANCH_HEAD: ${{ inputs.require_branch_head }}
+        WORKFLOW_CONCLUSION: ${{ inputs.workflow_conclusion }}
+        PULL_REQUESTS: ${{ inputs.pull_requests }}
+        ARTIFACTS: ${{ inputs.artifacts }}
+        NAME_IS_REGEXP: ${{ inputs.name_is_regexp }}
+        SEARCH_ARTIFACTS: ${{ inputs.search_artifacts }}
+        ALLOW_FORKS: ${{ inputs.allow_forks }}
+        MAX_RUNS_CHECKED: ${{ inputs.max_runs_checked }}
+        RETRY_ATTEMPTS: ${{ inputs.retry_attempts }}
+        RETRY_DELAYS: ${{ inputs.retry_delays }}
+      run: bash "${{ github.action_path }}/find-workflow-run.sh"

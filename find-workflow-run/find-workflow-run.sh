@@ -110,18 +110,20 @@ echo "==> Repository: $REPO"
 # Artifact matching
 # =============================================================
 
-# Prints {"ids": [...], "missing": [...]} for the run's unexpired artifacts. Glob patterns are
-# comma-separated, with `*` as the only wildcard, and match whole names. A regexp is a single
-# pattern (it may contain commas) and matches anywhere in the name unless anchored.
+# Prints {"ids": [...], "missing": [...]} for the run's unexpired artifacts, or for all of them when
+# the second argument is "true". Glob patterns are comma-separated, with `*` as the only wildcard,
+# and match whole names. A regexp is a single pattern (it may contain commas) and matches anywhere
+# in the name unless anchored.
 match_artifacts() {
-  local run_id="$1"
+  local run_id="$1" include_expired="${2:-false}"
   api --paginate "repos/$REPO/actions/runs/$run_id/artifacts" -f per_page=100 --jq '.artifacts[]' \
     | jq -s -c \
       --arg patterns "$ARTIFACTS" \
+      --argjson include_expired "$include_expired" \
       --argjson regexp "$(is_true "${NAME_IS_REGEXP:-}" && echo true || echo false)" '
       def glob_to_regex:
         "^" + (split("*") | map(gsub("(?<c>[.+?^${}()|\\[\\]\\\\/])"; "\\\(.c)")) | join(".*")) + "$";
-      map(select(.expired | not)) as $artifacts
+      map(select($include_expired or (.expired | not))) as $artifacts
       | (if $regexp then [{text: $patterns, re: $patterns}]
          else $patterns | split(",") | map(sub("^\\s+"; "") | sub("\\s+$"; ""))
            | map(select(. != "")) | map({text: ., re: glob_to_regex})
@@ -130,11 +132,13 @@ match_artifacts() {
       | {ids: (map(.ids[]) | unique), missing: map(select(.ids == []) | .text)}'
 }
 
-# In search_artifacts mode a run only counts if it has every requested artifact.
+# In search_artifacts mode a run only counts if it has every requested artifact. Expired ones count,
+# so a run whose artifacts expired is still chosen and then fails the final check, rather than an
+# older run being used instead.
 # Returns 1 when artifacts are missing and 2 when they could not be listed.
 has_artifacts() {
   local matched missing
-  matched=$(match_artifacts "$1") || return 2
+  matched=$(match_artifacts "$1" true) || return 2
   missing=$(jq '.missing | length' <<<"$matched") || return 2
   [[ "$missing" == "0" ]]
 }

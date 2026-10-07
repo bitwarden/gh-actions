@@ -41,7 +41,7 @@ inputs:
     description: "Treat artifacts as a single regular expression, matched anywhere in the name unless anchored."
     default: "false"
   search_artifacts:
-    description: "Skip runs that lack the artifacts and keep looking at older ones. By default the newest matching run must have them, or the step fails."
+    description: "Skip runs that lack the artifacts and keep looking at older ones. Expired artifacts count, so a run whose artifacts expired fails the step rather than give way to an older run. By default the newest matching run must have them, or the step fails."
     default: "false"
   allow_forks:
     description: "Accept runs from forks of the repository."

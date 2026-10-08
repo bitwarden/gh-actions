@@ -95,6 +95,7 @@ runs:
                   comments(first: 10) {
                     nodes {
                       id
+                      databaseId
                       body
                       author { login }
                       createdAt
@@ -157,6 +158,7 @@ runs:
                   is_outdated: .isOutdated,
                   comments: (.comments.nodes | map({
                     id: .id,
+                    database_id: .databaseId,
                     author: .author.login,
                     body: .body,
                     created_at: .createdAt

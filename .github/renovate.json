@@ -44,6 +44,13 @@
       ],
       "depNameTemplate": "getsentry/prevent-cli",
       "datasourceTemplate": "github-releases"
+    },
+    {
+      "fileMatch": ["validate-ai/action.yml$"],
+      "matchStrings": [
+        "(?<depName>ghcr\\.io/github/github-mcp-server):(?<currentValue>v\\d+\\.\\d+\\.\\d+)@(?<currentDigest>sha256:[a-f0-9]{64})"
+      ],
+      "datasourceTemplate": "docker"
     }
   ]
 }

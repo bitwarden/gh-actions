@@ -60,6 +60,8 @@ Runs an AI-powered code review using Claude Code with Bitwarden plugins.
 
 This action requires the `id-token: write` permission to obtain an OIDC token for Azure authentication.
 
+Replies on resolved threads run a pinned `github-mcp-server` container, so the runner needs Docker.
+
 ## Examples
 
 ### Job Snippet

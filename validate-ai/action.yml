@@ -182,6 +182,15 @@ runs:
       if: steps.changed-files.outputs.has_components == 'true'
       uses: bitwarden/gh-actions/azure-logout@main
 
+    - name: Retrieve existing PR threads
+      id: retrieve-pull-request-threads
+      if: steps.changed-files.outputs.has_components == 'true'
+      uses: bitwarden/gh-actions/get-pull-request-threads@main
+      with:
+        token: ${{ inputs.github_token }}
+        pr_number: ${{ inputs.pr_number }}
+        repository: ${{ inputs.repository }}
+
     - name: Create PR comment placeholder
       id: create-comment
       if: steps.changed-files.outputs.has_components == 'true'
@@ -209,12 +218,10 @@ runs:
         plugins: |
           plugin-dev@claude-plugins-official
           claude-config-validator@bitwarden-marketplace
-        # Bash is unscoped because the plugin-validator agent shells out to an
-        # open-ended set of upstream-owned commands. The write-permission gate in
-        # _validate-ai.yml limits this to trusted actors.
-        #
         # WebFetch is scoped to code.claude.com so /validate-ai can check a finding's
         # claim about Claude Code's schema against the official documentation.
+        #
+        # The built-in github server predates add_reply_to_pull_request_comment.
         #
         # max-turns is a backstop against a loop, not a time bound: one Task turn is
         # a whole subagent run. Wall clock is bounded by the job timeout.
@@ -222,11 +229,13 @@ runs:
           --verbose
           --model opus
           --max-turns 80
-          --allowedTools "Task,Skill,Read,Write,Grep,Glob,Bash,WebFetch(domain:code.claude.com)"
+          --mcp-config '{"mcpServers":{"github_replies":{"command":"docker","args":["run","-i","--rm","-e","GITHUB_PERSONAL_ACCESS_TOKEN","-e","GITHUB_TOOLS=add_reply_to_pull_request_comment","ghcr.io/github/github-mcp-server:v2.0.2@sha256:ffced0d76e77428532a2ced185516992d77fd146d69eec2f244e6237d1a97796"],"env":{"GITHUB_PERSONAL_ACCESS_TOKEN":"${GITHUB_TOKEN}"}}}}'
+          --allowedTools "Task,Skill,Read,Write,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git rev-parse:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(printenv GITHUB_ACTIONS),Bash(ls:*),WebFetch(domain:code.claude.com),mcp__github_inline_comment__create_inline_comment,mcp__github_replies__add_reply_to_pull_request_comment"
         prompt: |
           REPO: ${{ inputs.repository }}
           PR NUMBER: ${{ inputs.pr_number }}
           STICKY COMMENT ID: ${{ steps.create-comment.outputs.comment_id }}
+          PR THREADS FILE: /tmp/pr-threads.json
 
           Changed files:
           ${{ steps.changed-files.outputs.changed_files }}
@@ -254,8 +263,8 @@ runs:
           1. The repository is checked out at the PR head SHA with full git history (fetch-depth: 0).
           2. The changed-file lists above are authoritative — do not re-derive them.
           3. When the review is complete, write the report to /tmp/validation-summary.md.
-             This file replaces the sticky PR comment automatically, so do not post
-             comments yourself.
+             This file replaces the sticky PR comment automatically, so do not post or
+             edit the sticky comment yourself.
 
           /claude-config-validator:validate-ai
 

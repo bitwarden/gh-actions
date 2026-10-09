@@ -2,7 +2,7 @@
 
 Reviews Claude Code material that changed in a pull request using Claude Code with Bitwarden plugins. It works for any repository that carries Claude config, not only plugin marketplaces. A repo with its own `.claude/` directory (skills, agents, commands, hooks, settings) and `CLAUDE.md` gets the same review as a marketplace of plugins.
 
-It detects changed Claude-related files (`.claude/` config, `CLAUDE.md`, agents, skills, commands, hooks, and plugin directories), hands them to the [`/validate-ai`](https://github.com/bitwarden/ai-plugins/tree/main/plugins/claude-config-validator/commands/validate-ai) command from the `claude-config-validator` plugin, and posts the results to a sticky PR comment. That command owns the review itself — scope rules, subagent delegation to `plugin-dev`, and the report format — so a developer running `/validate-ai` or `/validate-ai-local` locally gets the same review this action performs. In a plugin marketplace repository (one with a `.claude-plugin/marketplace.json`), a pull request that touches a `plugins/` directory also runs the bundled structure, marketplace, and version-bump scripts against the checkout. Repositories without that manifest skip those steps and just get the AI-driven review.
+It detects changed Claude-related files (`.claude/` config, `CLAUDE.md`, agents, skills, commands, hooks, and plugin directories), hands them to the [`/validate-ai`](https://github.com/bitwarden/ai-plugins/tree/main/plugins/claude-config-validator/commands/validate-ai) command from the `claude-config-validator` plugin, posts CRITICAL and IMPORTANT findings as inline comments on the diff, and posts the summary to a sticky PR comment. That command owns the review itself (scope rules, subagent delegation to `plugin-dev`, and the report format), so a developer running `/validate-ai` or `/validate-ai-local` locally gets the same review this action performs. In a plugin marketplace repository (one with a `.claude-plugin/marketplace.json`), a pull request that touches a `plugins/` directory also runs the bundled structure, marketplace, and version-bump scripts against the checkout. Repositories without that manifest skip those steps and just get the AI-driven review.
 
 The validation scripts live in [`scripts/`](scripts/) and are bundled with the action — this action directory is their sole source of truth, so callers do not need to vendor anything.
 
@@ -60,7 +60,9 @@ The validation scripts live in [`scripts/`](scripts/) and are bundled with the a
 
 ## Required Permissions
 
-This action requires the `id-token: write` permission to obtain an OIDC token for Azure authentication, and `pull-requests: write` to manage the sticky validation comment.
+This action requires the `id-token: write` permission to obtain an OIDC token for Azure authentication and for the Claude App token that posts inline findings as `claude[bot]`, and `pull-requests: write` to manage the sticky validation comment.
+
+Replies on resolved threads run a pinned `github-mcp-server` container, so the runner needs Docker.
 
 ## Usage
 
@@ -117,7 +119,7 @@ The action no-ops when a pull request changes no Claude-related files, so it is 
 
 The structure, marketplace, and version-bump steps run the bundled scripts against the caller's checkout (via `REPO_ROOT`). They only trigger in a plugin marketplace repository, which the action detects by the presence of a `.claude-plugin/marketplace.json`. A repo that has an unrelated top-level `plugins/` directory but no marketplace manifest never runs them, so it won't hit spurious failures. The AI-driven validation runs in any repository.
 
-The AI-driven step and its sticky PR comment fire only when a component changed (an agent, skill, command, hook, `CLAUDE.md`, or a `.claude/` file). A pull request that touches only a plugin's `plugin.json` or `README.md`, or only the marketplace manifest, is still validated by the bundled scripts, but the outcome shows up in the job log and the check status rather than in a PR comment.
+The AI-driven step and its PR comments fire only when a component changed (an agent, skill, command, hook, `CLAUDE.md`, or a `.claude/` file). A pull request that touches only a plugin's `plugin.json` or `README.md`, or only the marketplace manifest, is still validated by the bundled scripts, but the outcome shows up in the job log and the check status rather than in a PR comment.
 
 ### Where the AI step reads Claude configuration
 

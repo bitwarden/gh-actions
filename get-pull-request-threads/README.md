@@ -75,6 +75,7 @@ Retrieve pull request review threads (including resolved) via GraphQL API.
       "comments": [
         {
           "id": "PRRC_xyz789",
+          "database_id": 1234567890,
           "author": "reviewer",
           "body": "Consider adding error handling here",
           "created_at": "2025-01-14T09:00:00Z"
@@ -91,6 +92,8 @@ Retrieve pull request review threads (including resolved) via GraphQL API.
   ]
 }
 ```
+
+Each comment carries both its GraphQL node `id` and its numeric REST `database_id`, because REST endpoints such as replying to a review comment accept only the numeric id.
 
 ## Permissions
 

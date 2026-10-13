@@ -1,0 +1,220 @@
+name: "Container Image Metadata"
+description: "Generates OCI-compliant container image labels and annotations by wrapping docker/metadata-action with a standardized Bitwarden label set"
+author: "Bitwarden"
+branding:
+  icon: package
+  color: blue
+
+inputs:
+  images:
+    description: "Image references, one per line (passthrough to docker/metadata-action images)."
+    required: false
+    default: ""
+  tags:
+    description: "Tag rules (passthrough to docker/metadata-action tags)."
+    required: false
+    default: ""
+  flavor:
+    description: "Tag flavor rules (passthrough to docker/metadata-action flavor)."
+    required: false
+    default: ""
+  title:
+    description: "Image title (org.opencontainers.image.title)."
+    required: true
+  version:
+    description: "Image version (org.opencontainers.image.version)."
+    required: true
+  revision:
+    description: "Source commit SHA (org.opencontainers.image.revision). Defaults to the PR head SHA or github.sha."
+    required: false
+    default: ""
+  vendor:
+    description: "Image vendor (org.opencontainers.image.vendor)."
+    required: false
+    default: "Bitwarden Inc."
+  url:
+    description: "Image info URL (org.opencontainers.image.url)."
+    required: false
+    default: "https://bitwarden.com"
+  description:
+    description: "Image description (org.opencontainers.image.description). Auto-detected when empty."
+    required: false
+    default: ""
+  licenses:
+    description: "SPDX license expression (org.opencontainers.image.licenses). Auto-detected when empty."
+    required: false
+    default: ""
+  source:
+    description: "Source repository URL (org.opencontainers.image.source). Auto-detected when empty."
+    required: false
+    default: ""
+  extra-labels:
+    description: "Additional key=value labels, one per line."
+    required: false
+    default: ""
+  annotation-levels:
+    description: "Comma-separated annotation levels."
+    required: false
+    default: "manifest"
+  include-ci-run-label:
+    description: "Add a com.bitwarden.ci.run label linking to this workflow run."
+    required: false
+    default: "false"
+
+outputs:
+  labels:
+    description: "Generated OCI labels."
+    value: ${{ steps.meta.outputs.labels }}
+  annotations:
+    description: "Generated OCI annotations."
+    value: ${{ steps.meta.outputs.annotations }}
+  tags:
+    description: "Generated image tags."
+    value: ${{ steps.meta.outputs.tags }}
+  json:
+    description: "Generated metadata as JSON."
+    value: ${{ steps.meta.outputs.json }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Build OCI label block
+      id: build-labels
+      shell: bash
+      env:
+        TITLE: ${{ inputs.title }}
+        VERSION: ${{ inputs.version }}
+        REVISION: ${{ inputs.revision }}
+        VENDOR: ${{ inputs.vendor }}
+        URL: ${{ inputs.url }}
+        DESCRIPTION: ${{ inputs.description }}
+        LICENSES: ${{ inputs.licenses }}
+        SOURCE: ${{ inputs.source }}
+        EXTRA_LABELS: ${{ inputs.extra-labels }}
+        INCLUDE_CI_RUN_LABEL: ${{ inputs.include-ci-run-label }}
+        ANNOTATION_LEVELS: ${{ inputs.annotation-levels }}
+        # PR builds default to the head commit, not the ephemeral merge commit.
+        DEFAULT_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+        SERVER_URL: ${{ github.server_url }}
+        REPOSITORY: ${{ github.repository }}
+        RUN_ID: ${{ github.run_id }}
+        RUN_ATTEMPT: ${{ github.run_attempt }}
+      run: |
+        set -euo pipefail
+
+        # Input validation
+
+        require_non_empty() {
+          # require_non_empty <input_name> <value>
+          if [[ -z "$2" ]]; then
+            echo "::error::${1} is required and must not be empty"
+            exit 1
+          fi
+        }
+
+        # Single-value inputs must not smuggle extra key=value lines.
+        reject_newlines() {
+          # reject_newlines <input_name> <value>
+          if [[ "$2" == *$'\n'* || "$2" == *$'\r'* ]]; then
+            echo "::error::${1} must be a single line"
+            exit 1
+          fi
+        }
+
+        require_non_empty "title" "$TITLE"
+        require_non_empty "version" "$VERSION"
+
+        reject_newlines "title" "$TITLE"
+        reject_newlines "version" "$VERSION"
+        reject_newlines "revision" "$REVISION"
+        reject_newlines "vendor" "$VENDOR"
+        reject_newlines "url" "$URL"
+        reject_newlines "description" "$DESCRIPTION"
+        reject_newlines "licenses" "$LICENSES"
+        reject_newlines "source" "$SOURCE"
+
+        if [[ "$INCLUDE_CI_RUN_LABEL" != "true" && "$INCLUDE_CI_RUN_LABEL" != "false" ]]; then
+          echo "::error::include-ci-run-label must be 'true' or 'false'; got: ${INCLUDE_CI_RUN_LABEL}"
+          exit 1
+        fi
+
+        ANNOTATION_LEVELS="${ANNOTATION_LEVELS//[[:space:]]/}"
+        require_non_empty "annotation-levels" "$ANNOTATION_LEVELS"
+
+        if [[ "$EXTRA_LABELS" == *$'\r'* ]]; then
+          echo "::error::extra-labels must not contain carriage returns"
+          exit 1
+        fi
+
+        # Assemble the label block
+
+        REVISION="${REVISION:-$DEFAULT_REVISION}"
+        LABELS=""
+
+        append_label() {
+          # append_label <key> <value>
+          if [[ $'\n'"$LABELS" == *$'\n'"${1}="* ]]; then
+            echo "::error::duplicate label key: ${1}"
+            exit 1
+          fi
+          LABELS+="${1}=${2}"$'\n'
+        }
+
+        # Empty optional fields are omitted rather than emitted as empty
+        # strings, so docker/metadata-action auto-detects them instead.
+        append_label_if_set() {
+          # append_label_if_set <key> <value>
+          [[ -n "$2" ]] && append_label "$1" "$2"
+          return 0
+        }
+
+        append_label "org.opencontainers.image.title" "$TITLE"
+        append_label "org.opencontainers.image.version" "$VERSION"
+        append_label "org.opencontainers.image.revision" "$REVISION"
+        append_label_if_set "org.opencontainers.image.vendor" "$VENDOR"
+        append_label_if_set "org.opencontainers.image.url" "$URL"
+        append_label_if_set "org.opencontainers.image.description" "$DESCRIPTION"
+        append_label_if_set "org.opencontainers.image.licenses" "$LICENSES"
+        append_label_if_set "org.opencontainers.image.source" "$SOURCE"
+
+        if [[ "$INCLUDE_CI_RUN_LABEL" == "true" ]]; then
+          append_label "com.bitwarden.ci.run" "${SERVER_URL}/${REPOSITORY}/actions/runs/${RUN_ID}/attempts/${RUN_ATTEMPT}"
+        fi
+
+        # Restricting keys keeps them out of metadata-action's '#' comment
+        # handling and away from workflow command syntax.
+        key_pattern='^[A-Za-z0-9][A-Za-z0-9._-]*$'
+        while IFS= read -r line; do
+          [[ -z "${line//[[:space:]]/}" ]] && continue
+          key="${line%%=*}"
+          if [[ "$line" != *=* || ! "$key" =~ $key_pattern ]]; then
+            echo "::error::extra-labels: invalid entry '${line}' (expected key=value)"
+            exit 1
+          fi
+          append_label "$key" "${line#*=}"
+        done <<< "$EXTRA_LABELS"
+
+        LABELS="${LABELS%$'\n'}"
+
+        # Emit outputs. A random heredoc delimiter keeps label values
+        # from terminating the block early.
+
+        delimiter="EOF_$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+        {
+          echo "labels<<${delimiter}"
+          echo "$LABELS"
+          echo "${delimiter}"
+          echo "annotation-levels=${ANNOTATION_LEVELS}"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Generate image metadata
+      id: meta
+      uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+      env:
+        DOCKER_METADATA_ANNOTATIONS_LEVELS: ${{ steps.build-labels.outputs.annotation-levels }}
+      with:
+        images: ${{ inputs.images }}
+        tags: ${{ inputs.tags }}
+        flavor: ${{ inputs.flavor }}
+        labels: ${{ steps.build-labels.outputs.labels }}
+        annotations: ${{ steps.build-labels.outputs.labels }}

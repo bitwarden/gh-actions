@@ -51,7 +51,7 @@ See [EXAMPLES.md](EXAMPLES.md) for more ways to use this action.
 | ------------- | --------------------------------------------------------------------- |
 | `labels`      | Generated labels, one `key=value` per line                            |
 | `annotations` | The same labels prefixed with each annotation level, e.g. `manifest:` |
-| `tags`        | Generated tags. Empty unless `images` is set                          |
+| `tags`        | Generated tags. Bare tag names (e.g. `pr-123`) unless `images` is set |
 | `json`        | All generated metadata as JSON                                        |
 
 ## Validation

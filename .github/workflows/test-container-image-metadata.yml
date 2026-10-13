@@ -71,9 +71,10 @@ jobs:
             echo "::error::Annotations should equal labels prefixed with manifest:"; fail=1
           fi
 
-          # No images means no tags.
-          if [[ -n "$TAGS" ]]; then
-            echo "::error::Tags should be empty without images"; fail=1
+          # Without images, docker/metadata-action emits bare tag names from its
+          # default rules (e.g. pr-123), never full image references.
+          if grep -q '[/:]' <<< "$TAGS"; then
+            echo "::error::Tags should be bare names without images: ${TAGS}"; fail=1
           fi
 
           exit "$fail"

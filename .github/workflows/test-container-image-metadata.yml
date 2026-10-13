@@ -1,0 +1,285 @@
+name: Test Container Image Metadata Action
+
+on:
+  pull_request:
+    paths:
+      - "container-image-metadata/**"
+      - ".github/workflows/test-container-image-metadata.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-defaults:
+    name: Test default labels
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Generate metadata with required inputs only
+        id: meta
+        uses: ./container-image-metadata
+        with:
+          title: api
+          version: 2024.12.0
+
+      - name: Verify defaults
+        env:
+          LABELS: ${{ steps.meta.outputs.labels }}
+          ANNOTATIONS: ${{ steps.meta.outputs.annotations }}
+          TAGS: ${{ steps.meta.outputs.tags }}
+          EXPECTED_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+          EXPECTED_SOURCE: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          echo "Labels:"; echo "$LABELS"
+          echo "Annotations:"; echo "$ANNOTATIONS"
+
+          fail=0
+          has_label() { grep -qxF -- "$1" <<< "$LABELS" || { echo "::error::Missing label: $1"; fail=1; }; }
+          has_key()   { grep -q -- "^$1=" <<< "$LABELS" || { echo "::error::Missing label key: $1"; fail=1; }; }
+
+          # Caller values and action defaults.
+          has_label "org.opencontainers.image.title=api"
+          has_label "org.opencontainers.image.version=2024.12.0"
+          has_label "org.opencontainers.image.revision=${EXPECTED_REVISION}"
+          has_label "org.opencontainers.image.vendor=Bitwarden Inc."
+          has_label "org.opencontainers.image.url=https://bitwarden.com"
+
+          # Omitted fields fall through to docker/metadata-action auto-detection.
+          has_label "org.opencontainers.image.source=${EXPECTED_SOURCE}"
+          has_key "org.opencontainers.image.description"
+          has_key "org.opencontainers.image.licenses"
+          has_key "org.opencontainers.image.created"
+
+          # Opt-in label stays off by default.
+          if grep -q "^com.bitwarden.ci.run=" <<< "$LABELS"; then
+            echo "::error::com.bitwarden.ci.run should be absent by default"; fail=1
+          fi
+
+          # Each key appears exactly once.
+          dupes=$(cut -d= -f1 <<< "$LABELS" | sort | uniq -d)
+          if [[ -n "$dupes" ]]; then
+            echo "::error::Duplicate label keys: ${dupes}"; fail=1
+          fi
+
+          # Annotations mirror labels at the default manifest level.
+          if [[ "$ANNOTATIONS" != "$(awk '{print "manifest:" $0}' <<< "$LABELS")" ]]; then
+            echo "::error::Annotations should equal labels prefixed with manifest:"; fail=1
+          fi
+
+          # No images means no tags.
+          if [[ -n "$TAGS" ]]; then
+            echo "::error::Tags should be empty without images"; fail=1
+          fi
+
+          exit "$fail"
+
+  test-caller-inputs:
+    name: Test caller-supplied labels and passthroughs
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Generate metadata with every input set
+        id: meta
+        uses: ./container-image-metadata
+        with:
+          images: |
+            ghcr.io/bitwarden/api
+            registry.example.com/bitwarden/api
+          tags: |
+            type=raw,value=main
+          flavor: |
+            latest=false
+          title: api
+          version: 2024.12.0
+          revision: abcdef1234567890
+          vendor: Example Vendor
+          url: https://example.com
+          # Commas, '#' and '=' must survive docker/metadata-action's list parsing.
+          description: "Fast, secure #1 vault: a=b"
+          licenses: GPL-3.0-only
+          source: https://github.com/bitwarden/server
+          extra-labels: |
+            com.bitwarden.team=platform
+            com.bitwarden.docs=https://example.com/?a=b
+          include-ci-run-label: "true"
+          # Whitespace is stripped before levels reach docker/metadata-action.
+          annotation-levels: " index, manifest "
+
+      - name: Verify caller values
+        env:
+          LABELS: ${{ steps.meta.outputs.labels }}
+          ANNOTATIONS: ${{ steps.meta.outputs.annotations }}
+          TAGS: ${{ steps.meta.outputs.tags }}
+          JSON: ${{ steps.meta.outputs.json }}
+          EXPECTED_CI_RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
+        run: |
+          echo "Labels:"; echo "$LABELS"
+          echo "Annotations:"; echo "$ANNOTATIONS"
+          echo "Tags:"; echo "$TAGS"
+
+          fail=0
+          has_label() { grep -qxF -- "$1" <<< "$LABELS" || { echo "::error::Missing label: $1"; fail=1; }; }
+          has_tag()   { grep -qxF -- "$1" <<< "$TAGS" || { echo "::error::Missing tag: $1"; fail=1; }; }
+
+          has_label "org.opencontainers.image.title=api"
+          has_label "org.opencontainers.image.version=2024.12.0"
+          has_label "org.opencontainers.image.revision=abcdef1234567890"
+          has_label "org.opencontainers.image.vendor=Example Vendor"
+          has_label "org.opencontainers.image.url=https://example.com"
+          has_label "org.opencontainers.image.description=Fast, secure #1 vault: a=b"
+          has_label "org.opencontainers.image.licenses=GPL-3.0-only"
+          has_label "org.opencontainers.image.source=https://github.com/bitwarden/server"
+          has_label "com.bitwarden.team=platform"
+          has_label "com.bitwarden.docs=https://example.com/?a=b"
+          has_label "com.bitwarden.ci.run=${EXPECTED_CI_RUN}"
+
+          # Annotations mirror labels once per requested level, in order.
+          expected_annotations="$(awk '{print "index:" $0}' <<< "$LABELS")"$'\n'"$(awk '{print "manifest:" $0}' <<< "$LABELS")"
+          if [[ "$ANNOTATIONS" != "$expected_annotations" ]]; then
+            echo "::error::Annotations should equal labels prefixed with index: then manifest:"; fail=1
+          fi
+
+          # images, tags and flavor pass through to docker/metadata-action.
+          has_tag "ghcr.io/bitwarden/api:main"
+          has_tag "registry.example.com/bitwarden/api:main"
+          if grep -q ":latest$" <<< "$TAGS"; then
+            echo "::error::flavor latest=false should suppress the latest tag"; fail=1
+          fi
+          if ! jq -e '.tags | index("ghcr.io/bitwarden/api:main")' <<< "$JSON" > /dev/null; then
+            echo "::error::json output should list the generated tags"; fail=1
+          fi
+
+          exit "$fail"
+
+  test-validation:
+    name: Test input validation
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      # Control case: proves the reject-* failures below come from their bad input.
+      - name: Accept valid inputs
+        id: accept-valid
+        continue-on-error: true
+        uses: ./container-image-metadata
+        with:
+          title: api
+          version: 2024.12.0
+
+      # Each reject-* step changes one input from the control case and must fail.
+      # The verify step discovers them by id prefix, so new cases need no other edits.
+      - name: Reject empty title
+        id: reject-empty-title
+        continue-on-error: true
+        uses: ./container-image-metadata
+        with:
+          title: ""
+          version: 2024.12.0
+
+      - name: Reject empty version
+        id: reject-empty-version
+        continue-on-error: true
+        uses: ./container-image-metadata
+        with:
+          title: api
+          version: ""
+
+      - name: Reject multi-line value
+        id: reject-multiline-value
+        continue-on-error: true
+        uses: ./container-image-metadata
+        with:
+          title: "api\norg.opencontainers.image.vendor=Evil"
+          version: 2024.12.0
+
+      - name: Reject non-boolean include-ci-run-label
+        id: reject-bad-ci-run-flag
+        continue-on-error: true
+        uses: ./container-image-metadata
+        with:
+          title: api
+          version: 2024.12.0
+          include-ci-run-label: "yes"
+
+      - name: Reject blank annotation-levels
+        id: reject-blank-annotation-levels
+        continue-on-error: true
+        uses: ./container-image-metadata
+        with:
+          title: api
+          version: 2024.12.0
+          annotation-levels: "  "
+
+      - name: Reject extra label without '='
+        id: reject-extra-label-no-equals
+        continue-on-error: true
+        uses: ./container-image-metadata
+        with:
+          title: api
+          version: 2024.12.0
+          extra-labels: com.bitwarden.team
+
+      - name: Reject extra label with invalid key
+        id: reject-extra-label-bad-key
+        continue-on-error: true
+        uses: ./container-image-metadata
+        with:
+          title: api
+          version: 2024.12.0
+          extra-labels: "#com.bitwarden.team=platform"
+
+      - name: Reject extra label duplicating a standard key
+        id: reject-extra-label-duplicate
+        continue-on-error: true
+        uses: ./container-image-metadata
+        with:
+          title: api
+          version: 2024.12.0
+          extra-labels: org.opencontainers.image.title=other
+
+      - name: Reject carriage return in extra labels
+        id: reject-extra-label-carriage-return
+        continue-on-error: true
+        uses: ./container-image-metadata
+        with:
+          title: api
+          version: 2024.12.0
+          extra-labels: "com.bitwarden.team=platform\r\ncom.bitwarden.env=gov"
+
+      - name: Verify outcomes
+        env:
+          STEPS: ${{ toJSON(steps) }}
+        run: |
+          fail=0
+
+          control=$(jq -r '."accept-valid".outcome' <<< "$STEPS")
+          if [[ "$control" != "success" ]]; then
+            echo "::error::accept-valid: expected success, got ${control}"; fail=1
+          fi
+
+          cases=$(jq -r 'to_entries[] | select(.key | startswith("reject-")) | "\(.key) \(.value.outcome)"' <<< "$STEPS")
+          if [[ -z "$cases" ]]; then
+            echo "::error::No reject-* steps found"; exit 1
+          fi
+
+          while read -r id outcome; do
+            if [[ "$outcome" == "failure" ]]; then
+              echo "ok   ${id}"
+            else
+              echo "::error::${id}: expected failure, got ${outcome}"; fail=1
+            fi
+          done <<< "$cases"
+
+          exit "$fail"

@@ -193,7 +193,7 @@ bash scripts/validate-marketplace.sh
   - `plugin.json` files
 - **Name consistency** - Ensures names match in marketplace and plugin manifests
 - **README catalog** - Verifies each `./plugins/` plugin appears in the README.md plugin catalog table with the correct version
-- **Completeness** - Warns if plugins exist but aren't listed in marketplace
+- **Completeness** - Errors if a plugin exists in `plugins/` but isn't listed in marketplace, or is listed with a remote source
 
 ### Output
 

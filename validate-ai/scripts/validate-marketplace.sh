@@ -356,12 +356,17 @@ check_consistency() {
                 local dir_name
                 dir_name=$(basename "$dir")
 
-                # Check if this plugin is in the marketplace as a local entry
-                local found
-                found=$(jq -r --arg name "$dir_name" '.plugins[] | select(.name == $name and (.source | type) == "string") | .name' "$MARKETPLACE_JSON")
+                # Check whether this plugin is listed, and if so whether locally
+                local entry_source_type
+                entry_source_type=$(jq -r --arg name "$dir_name" 'first(.plugins[] | select(.name == $name) | .source | type) // empty' "$MARKETPLACE_JSON")
 
-                if [[ -z "$found" ]]; then
+                if [[ -z "$entry_source_type" ]]; then
                     missing_plugins+=("$dir_name")
+                elif [[ "$entry_source_type" == "object" ]]; then
+                    # Same condition as the targeted check in main: the local copy
+                    # is never what users install.
+                    print_error "Plugin '$dir_name' exists in 'plugins/' but its marketplace.json entry uses a remote source"
+                    has_errors=1
                 fi
             fi
         done

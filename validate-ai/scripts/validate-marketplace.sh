@@ -97,6 +97,54 @@ validate_marketplace_structure() {
     return $has_errors
 }
 
+# Print the JSON type of a plugin entry's source: "string" for a local path,
+# "object" for a remote source, or "null" when absent.
+plugin_source_type() {
+    jq -r ".plugins[$1].source | type" "$MARKETPLACE_JSON"
+}
+
+# Validate a remote (object) source. Claude Code fetches these at install
+# time, so only the shape is checked here: a known source type and the fields
+# that type requires. The remote content itself is never fetched.
+validate_remote_source() {
+    local index="$1"
+    local plugin_name="$2"
+    local has_errors=0
+
+    local source_kind
+    source_kind=$(jq -r ".plugins[$index].source.source | strings" "$MARKETPLACE_JSON")
+
+    local required_fields
+    case "$source_kind" in
+        github)     required_fields="repo" ;;
+        url)        required_fields="url" ;;
+        git-subdir) required_fields="url path" ;;
+        npm)        required_fields="package" ;;
+        archive)    required_fields="url" ;;
+        command)    required_fields="command" ;;
+        "")
+            print_error "Plugin '$plugin_name' source object missing required string field: source"
+            return 1
+            ;;
+        *)
+            print_error "Plugin '$plugin_name' has an unsupported source type: '$source_kind' (expected github, url, git-subdir, npm, archive, or command)"
+            return 1
+            ;;
+    esac
+
+    local field
+    for field in $required_fields; do
+        local value
+        value=$(jq -r --arg field "$field" ".plugins[$index].source[\$field] | strings" "$MARKETPLACE_JSON")
+        if [[ -z "$value" ]]; then
+            print_error "Plugin '$plugin_name' $source_kind source missing required field: $field"
+            has_errors=1
+        fi
+    done
+
+    return $has_errors
+}
+
 # Function to validate a single plugin entry
 validate_plugin_entry() {
     local index="$1"
@@ -116,18 +164,37 @@ validate_plugin_entry() {
         has_errors=1
     fi
 
-    local source
-    source=$(jq -r ".plugins[$index].source // empty" "$MARKETPLACE_JSON")
-    if [[ -z "$source" ]]; then
-        print_error "Plugin '$plugin_name' missing required field: source"
-        has_errors=1
-    else
-        # Validate source path format
-        if [[ ! "$source" =~ ^\./plugins/ ]]; then
-            print_error "Plugin '$plugin_name' source should start with './plugins/'"
+    # Local plugins live under ./plugins/ and must carry a version, which the
+    # consistency and version-bump checks compare against plugin.json. Remote (object) sources
+    # are versioned by their own repository, so version is optional for them.
+    local source_type
+    source_type=$(plugin_source_type "$index")
+    local version_required=1
+    case "$source_type" in
+        string)
+            local source
+            source=$(jq -r ".plugins[$index].source" "$MARKETPLACE_JSON")
+            if [[ -z "$source" ]]; then
+                print_error "Plugin '$plugin_name' missing required field: source"
+                has_errors=1
+            elif [[ ! "$source" =~ ^\./plugins/ ]]; then
+                print_error "Plugin '$plugin_name' source should start with './plugins/'"
+                has_errors=1
+            fi
+            ;;
+        object)
+            version_required=0
+            validate_remote_source "$index" "$plugin_name" || has_errors=1
+            ;;
+        null)
+            print_error "Plugin '$plugin_name' missing required field: source"
             has_errors=1
-        fi
-    fi
+            ;;
+        *)
+            print_error "Plugin '$plugin_name' source must be a './plugins/' path or a source object, got $source_type"
+            has_errors=1
+            ;;
+    esac
 
     local description
     description=$(jq -r ".plugins[$index].description // empty" "$MARKETPLACE_JSON")
@@ -139,8 +206,10 @@ validate_plugin_entry() {
     local version
     version=$(jq -r ".plugins[$index].version // empty" "$MARKETPLACE_JSON")
     if [[ -z "$version" ]]; then
-        print_error "Plugin '$plugin_name' missing required field: version"
-        has_errors=1
+        if [[ $version_required -eq 1 ]]; then
+            print_error "Plugin '$plugin_name' missing required field: version"
+            has_errors=1
+        fi
     else
         # Validate version format
         if ! echo "$version" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
@@ -158,11 +227,13 @@ check_plugin_exists() {
     local plugin_name
     plugin_name=$(jq -r ".plugins[$index].name // empty" "$MARKETPLACE_JSON")
     local source
-    source=$(jq -r ".plugins[$index].source // empty" "$MARKETPLACE_JSON")
+    source=$(jq -r ".plugins[$index].source | strings" "$MARKETPLACE_JSON")
     local has_errors=0
 
+    # A missing source is reported in validate_plugin_entry, and a remote
+    # (object) source has no local directory to check.
     if [[ -z "$source" ]]; then
-        return 0  # Already reported in validate_plugin_entry
+        return 0
     fi
 
     # Resolve the marketplace-supplied source safely, constraining it under
@@ -193,10 +264,11 @@ check_consistency() {
         local plugin_name
         plugin_name=$(jq -r ".plugins[$i].name // empty" "$MARKETPLACE_JSON")
         local source
-        source=$(jq -r ".plugins[$i].source // empty" "$MARKETPLACE_JSON")
+        source=$(jq -r ".plugins[$i].source | strings" "$MARKETPLACE_JSON")
         local marketplace_version
         marketplace_version=$(jq -r ".plugins[$i].version // empty" "$MARKETPLACE_JSON")
 
+        # Remote (object) sources have no local plugin.json to compare against.
         if [[ -z "$source" ]] || [[ -z "$plugin_name" ]]; then
             continue
         fi
@@ -238,7 +310,8 @@ check_consistency() {
         fi
     done
 
-    # Check that each plugin is listed in the README catalog table
+    # Check that each local plugin is listed in the README catalog table. Remote
+    # (object) sources are cataloged by the repository that hosts them.
     local readme_file="$REPO_ROOT/README.md"
     if [[ -f "$readme_file" ]]; then
         for ((i=0; i<plugin_count; i++)); do
@@ -247,7 +320,7 @@ check_consistency() {
             local marketplace_version
             marketplace_version=$(jq -r ".plugins[$i].version // empty" "$MARKETPLACE_JSON")
 
-            if [[ -z "$plugin_name" ]]; then
+            if [[ -z "$plugin_name" ]] || [[ "$(plugin_source_type "$i")" == "object" ]]; then
                 continue
             fi
 
@@ -283,9 +356,9 @@ check_consistency() {
                 local dir_name
                 dir_name=$(basename "$dir")
 
-                # Check if this plugin is in the marketplace
+                # Check if this plugin is in the marketplace as a local entry
                 local found
-                found=$(jq -r --arg name "$dir_name" '.plugins[] | select(.name == $name) | .name' "$MARKETPLACE_JSON")
+                found=$(jq -r --arg name "$dir_name" '.plugins[] | select(.name == $name and (.source | type) == "string") | .name' "$MARKETPLACE_JSON")
 
                 if [[ -z "$found" ]]; then
                     missing_plugins+=("$dir_name")
@@ -419,11 +492,16 @@ main() {
 
             if [[ $found_index -ge 0 ]]; then
                 local source
-                source=$(jq -r ".plugins[$found_index].source // empty" "$MARKETPLACE_JSON")
+                source=$(jq -r ".plugins[$found_index].source | strings" "$MARKETPLACE_JSON")
                 local marketplace_version
                 marketplace_version=$(jq -r ".plugins[$found_index].version // empty" "$MARKETPLACE_JSON")
 
-                if [[ -n "$source" ]]; then
+                if [[ "$(plugin_source_type "$found_index")" == "object" ]]; then
+                    # The plugin directory exists locally, so an entry that points
+                    # elsewhere means the local copy is never what users install.
+                    print_error "Plugin '$target_plugin' exists in 'plugins/' but its marketplace.json entry uses a remote source"
+                    has_errors=1
+                elif [[ -n "$source" ]]; then
                     # Resolve the source safely under plugins/ (see check_plugin_exists).
                     local plugin_path
                     plugin_path="$(sanitize_plugin_path "$source" "$REPO_ROOT/plugins" 2>/dev/null)" || plugin_path=""
@@ -455,9 +533,9 @@ main() {
                     fi
                 fi
 
-                # Check README catalog version
+                # Check README catalog version (local sources only, as above)
                 local readme_file="$REPO_ROOT/README.md"
-                if [[ -f "$readme_file" ]] && [[ -n "$marketplace_version" ]]; then
+                if [[ -f "$readme_file" ]] && [[ "$(plugin_source_type "$found_index")" != "object" ]] && [[ -n "$marketplace_version" ]]; then
                     local readme_row
                     readme_row=$(grep -E "^\|.*\[${target_plugin}\]" "$readme_file" 2>/dev/null || true)
 
@@ -510,7 +588,7 @@ main() {
         echo -e "${YELLOW}To fix these issues:${RESET}"
         echo "1. Review the error messages above"
         echo "2. Ensure all required fields are present (name, owner, plugins)"
-        echo "3. Verify all plugin entries have: name, source, description, version"
+        echo "3. Verify all plugin entries have: name, source, description, and version for local ./plugins/ sources"
         echo "4. Check that versions match between marketplace.json and plugin.json files"
         echo "5. Ensure all listed plugins exist in the plugins/ directory"
         echo "6. Run validation locally: ./scripts/validate-marketplace.sh"

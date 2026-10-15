@@ -220,6 +220,48 @@ jobs:
           echo "correctly failed"
           echo "::endgroup::"
 
+          echo "::group::Positive: well-formed remote sources without a version pass"
+          TMP7=$(mktemp -d); cp -R "$FIXTURE/." "$TMP7/"
+          jq '.plugins += [
+                {"name":"remote-subdir","source":{"source":"git-subdir","url":"https://github.com/example/monorepo.git","path":"plugins/remote-subdir","ref":"main"},"description":"x"},
+                {"name":"remote-github","source":{"source":"github","repo":"example/remote-github"},"description":"x"}
+              ]' "$TMP7/.claude-plugin/marketplace.json" > "$TMP7/mj"
+          mv "$TMP7/mj" "$TMP7/.claude-plugin/marketplace.json"
+          REPO_ROOT="$TMP7" bash validate-ai/scripts/validate-marketplace.sh
+          marketplace "$TMP7"
+          echo "correctly passed"
+          echo "::endgroup::"
+
+          echo "::group::Negative: a git-subdir source missing its path fails"
+          TMP8=$(mktemp -d); cp -R "$FIXTURE/." "$TMP8/"
+          jq '.plugins += [{"name":"remote-subdir","source":{"source":"git-subdir","url":"https://github.com/example/monorepo.git"},"description":"x"}]' \
+            "$TMP8/.claude-plugin/marketplace.json" > "$TMP8/mj"
+          mv "$TMP8/mj" "$TMP8/.claude-plugin/marketplace.json"
+          if REPO_ROOT="$TMP8" bash validate-ai/scripts/validate-marketplace.sh; then
+            echo "::error::marketplace accepted a git-subdir source with no path"; exit 1
+          fi
+          echo "correctly failed"
+          echo "::endgroup::"
+
+          echo "::group::Negative: an unknown remote source type fails"
+          TMP9=$(mktemp -d); cp -R "$FIXTURE/." "$TMP9/"
+          jq '.plugins += [{"name":"remote-bogus","source":{"source":"svn","url":"https://example.com/repo"},"description":"x"}]' \
+            "$TMP9/.claude-plugin/marketplace.json" > "$TMP9/mj"
+          mv "$TMP9/mj" "$TMP9/.claude-plugin/marketplace.json"
+          if REPO_ROOT="$TMP9" bash validate-ai/scripts/validate-marketplace.sh; then
+            echo "::error::marketplace accepted an unknown source type"; exit 1
+          fi
+          echo "correctly failed"
+          echo "::endgroup::"
+
+          echo "::group::Negative: a local entry missing its version still fails"
+          TMP10=$(mktemp -d); cp -R "$FIXTURE/." "$TMP10/"
+          jq 'del(.plugins[0].version)' "$TMP10/.claude-plugin/marketplace.json" > "$TMP10/mj"
+          mv "$TMP10/mj" "$TMP10/.claude-plugin/marketplace.json"
+          if marketplace "$TMP10"; then echo "::error::marketplace passed a local entry with no version"; exit 1; fi
+          echo "correctly failed"
+          echo "::endgroup::"
+
           echo "::group::version-bump: honors REPO_ROOT via git -C, flags a missing bump, accepts a real one"
           # A git repo the version-bump script diffs against, pointed at by REPO_ROOT
           # while the script is invoked from this checkout (the documented override).

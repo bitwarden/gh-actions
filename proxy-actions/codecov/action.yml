@@ -172,7 +172,7 @@ runs:
   using: "composite"
   steps:
     - name: Run codecov upload
-      uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
+      uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
       with:
         base_sha: ${{ inputs.base_sha }}
         binary: ${{ inputs.binary }}

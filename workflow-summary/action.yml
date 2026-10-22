@@ -1,0 +1,181 @@
+name: "Workflow Summary"
+description: "Standardize job summary output for workflow runs using GITHUB_STEP_SUMMARY"
+author: "Bitwarden"
+branding:
+  icon: file-text
+  color: blue
+
+inputs:
+  status:
+    description: "Overall workflow status: 'success', 'failure', or 'cancelled'"
+    required: true
+  title:
+    description: "Custom title for the summary header. Defaults to the workflow name."
+    required: false
+    default: ""
+  description:
+    description: "Brief description displayed under the title"
+    required: false
+    default: ""
+  job-results:
+    description: 'JSON string of job results: [{"name": "Build", "status": "success", "duration": "2m 30s"}, ...]'
+    required: false
+    default: ""
+  custom-markdown:
+    description: "Arbitrary markdown content to append to the summary"
+    required: false
+    default: ""
+  custom-markdown-file:
+    description: "Path to a file containing markdown to append"
+    required: false
+    default: ""
+  details-label:
+    description: "Label for the collapsible details section"
+    required: false
+    default: "Details"
+  details-content:
+    description: "Content for the collapsible details section"
+    required: false
+    default: ""
+  details-content-file:
+    description: "Path to a file containing content for the details section"
+    required: false
+    default: ""
+  include-run-metadata:
+    description: "Whether to include run ID, actor, ref, SHA in the header"
+    required: false
+    default: "true"
+
+outputs:
+  summary-path:
+    description: "Path to the generated summary file"
+    value: ${{ steps.generate-summary.outputs.summary_path }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Generate workflow summary
+      id: generate-summary
+      shell: bash
+      env:
+        INPUT_STATUS: ${{ inputs.status }}
+        INPUT_TITLE: ${{ inputs.title }}
+        INPUT_DESCRIPTION: ${{ inputs.description }}
+        INPUT_JOB_RESULTS: ${{ inputs.job-results }}
+        INPUT_CUSTOM_MARKDOWN: ${{ inputs.custom-markdown }}
+        INPUT_CUSTOM_MARKDOWN_FILE: ${{ inputs.custom-markdown-file }}
+        INPUT_DETAILS_LABEL: ${{ inputs.details-label }}
+        INPUT_DETAILS_CONTENT: ${{ inputs.details-content }}
+        INPUT_DETAILS_CONTENT_FILE: ${{ inputs.details-content-file }}
+        INPUT_INCLUDE_RUN_METADATA: ${{ inputs.include-run-metadata }}
+        WORKFLOW_NAME: ${{ github.workflow }}
+        RUN_ID: ${{ github.run_id }}
+        RUN_ACTOR: ${{ github.actor }}
+        RUN_REF: ${{ github.ref }}
+        RUN_SHA: ${{ github.sha }}
+        SERVER_URL: ${{ github.server_url }}
+        REPOSITORY: ${{ github.repository }}
+      run: |
+        set -euo pipefail
+
+        # --- Status emoji mapping ---
+        get_status_emoji() {
+          case "$1" in
+            success)  echo "✅" ;;
+            failure)  echo "❌" ;;
+            cancelled) echo "⚠️" ;;
+            skipped)  echo "⏭️" ;;
+            *)        echo "ℹ️" ;;
+          esac
+        }
+
+        # --- Build summary content ---
+        SUMMARY=""
+
+        # 1. Status header
+        STATUS_EMOJI=$(get_status_emoji "$INPUT_STATUS")
+        TITLE="${INPUT_TITLE:-$WORKFLOW_NAME}"
+        SUMMARY+="# ${STATUS_EMOJI} ${TITLE}"$'\n\n'
+
+        if [[ -n "$INPUT_DESCRIPTION" ]]; then
+          SUMMARY+="${INPUT_DESCRIPTION}"$'\n\n'
+        fi
+
+        # 2. Run metadata
+        if [[ "$INPUT_INCLUDE_RUN_METADATA" == "true" ]]; then
+          SHORT_SHA="${RUN_SHA:0:7}"
+          RUN_URL="${SERVER_URL}/${REPOSITORY}/actions/runs/${RUN_ID}"
+
+          SUMMARY+="| | |"$'\n'
+          SUMMARY+="| --- | --- |"$'\n'
+          SUMMARY+="| **Run** | [${RUN_ID}](${RUN_URL}) |"$'\n'
+          SUMMARY+="| **Actor** | ${RUN_ACTOR} |"$'\n'
+          SUMMARY+="| **Ref** | \`${RUN_REF}\` |"$'\n'
+          SUMMARY+="| **SHA** | \`${SHORT_SHA}\` |"$'\n\n'
+        fi
+
+        # 3. Job results table
+        if [[ -n "$INPUT_JOB_RESULTS" ]]; then
+          # Validate JSON
+          if echo "$INPUT_JOB_RESULTS" | jq empty 2>/dev/null; then
+            SUMMARY+="## Job Results"$'\n\n'
+            SUMMARY+="| Job | Status | Duration |"$'\n'
+            SUMMARY+="| --- | --- | --- |"$'\n'
+
+            ITEM_COUNT=$(echo "$INPUT_JOB_RESULTS" | jq 'length')
+            for (( i=0; i<ITEM_COUNT; i++ )); do
+              JOB_NAME=$(echo "$INPUT_JOB_RESULTS" | jq -r ".[$i].name // \"\"")
+              JOB_STATUS=$(echo "$INPUT_JOB_RESULTS" | jq -r ".[$i].status // \"\"")
+              JOB_DURATION=$(echo "$INPUT_JOB_RESULTS" | jq -r ".[$i].duration // \"-\"")
+              JOB_EMOJI=$(get_status_emoji "$JOB_STATUS")
+              SUMMARY+="| ${JOB_NAME} | ${JOB_EMOJI} ${JOB_STATUS} | ${JOB_DURATION} |"$'\n'
+            done
+            SUMMARY+=$'\n'
+          else
+            echo "::warning::Invalid JSON provided for job-results input. Skipping job results table."
+          fi
+        fi
+
+        # 4. Custom markdown
+        if [[ -n "$INPUT_CUSTOM_MARKDOWN" ]]; then
+          SUMMARY+="${INPUT_CUSTOM_MARKDOWN}"$'\n\n'
+        fi
+
+        if [[ -n "$INPUT_CUSTOM_MARKDOWN_FILE" ]]; then
+          if [[ -f "$INPUT_CUSTOM_MARKDOWN_FILE" ]]; then
+            FILE_CONTENT=$(cat "$INPUT_CUSTOM_MARKDOWN_FILE")
+            SUMMARY+="${FILE_CONTENT}"$'\n\n'
+          else
+            echo "::warning::Custom markdown file not found: ${INPUT_CUSTOM_MARKDOWN_FILE}"
+          fi
+        fi
+
+        # 5. Collapsible details
+        DETAILS_BODY=""
+        if [[ -n "$INPUT_DETAILS_CONTENT" ]]; then
+          DETAILS_BODY+="${INPUT_DETAILS_CONTENT}"
+        fi
+
+        if [[ -n "$INPUT_DETAILS_CONTENT_FILE" ]]; then
+          if [[ -f "$INPUT_DETAILS_CONTENT_FILE" ]]; then
+            if [[ -n "$DETAILS_BODY" ]]; then
+              DETAILS_BODY+=$'\n'
+            fi
+            DETAILS_BODY+=$(cat "$INPUT_DETAILS_CONTENT_FILE")
+          else
+            echo "::warning::Details content file not found: ${INPUT_DETAILS_CONTENT_FILE}"
+          fi
+        fi
+
+        if [[ -n "$DETAILS_BODY" ]]; then
+          SUMMARY+="<details>"$'\n'
+          SUMMARY+="<summary>${INPUT_DETAILS_LABEL}</summary>"$'\n\n'
+          SUMMARY+="${DETAILS_BODY}"$'\n\n'
+          SUMMARY+="</details>"$'\n'
+        fi
+
+        # --- Write to GITHUB_STEP_SUMMARY ---
+        printf '%s\n' "$SUMMARY" >> "$GITHUB_STEP_SUMMARY"
+
+        # --- Set output ---
+        echo "summary_path=$GITHUB_STEP_SUMMARY" >> "$GITHUB_OUTPUT"

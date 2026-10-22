@@ -97,8 +97,10 @@ jobs:
           monorepo: "true"
           monorepo-project: web
 
-      # Projects outside the clients set. bitwarden/sdk-sm has both bws-v* and bws-cli-v*
-      # tags, so 'bws' must only resolve bws-v*.
+      # Projects outside the clients set. bitwarden/sdk-sm also has bws-cli-v* tags; today the
+      # newest is older than every bws-v* release, so this would pass without the '-v' match.
+      # It guards against a future bws-cli-v* release being resolved for 'bws'. The 'deskto'
+      # no-match case below is what exercises the '-v' match today.
       - name: Monorepo sdk-sm bws, trim=false
         id: monorepo_sdk_sm_bws
         continue-on-error: true

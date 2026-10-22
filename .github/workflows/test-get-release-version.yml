@@ -97,6 +97,27 @@ jobs:
           monorepo: "true"
           monorepo-project: web
 
+      # Projects outside the clients set. bitwarden/sdk-sm has both bws-v* and bws-cli-v*
+      # tags, so 'bws' must only resolve bws-v*.
+      - name: Monorepo sdk-sm bws, trim=false
+        id: monorepo_sdk_sm_bws
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/sdk-sm
+          monorepo: "true"
+          monorepo-project: bws
+
+      - name: Monorepo sdk-internal rust, trim=true
+        id: monorepo_sdk_internal_rust_trim
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/sdk-internal
+          trim: "true"
+          monorepo: "true"
+          monorepo-project: rust
+
       - name: Non-monorepo, prerelease=false
         id: non_monorepo_stable
         continue-on-error: true
@@ -162,6 +183,35 @@ jobs:
           repository: bitwarden/server
           prerelease: "true"
 
+      # Near-miss of 'desktop'. Matching on '<project>-v' keeps it from resolving desktop-v*.
+      - name: Monorepo-project that is a prefix of a real project
+        id: monorepo_project_prefix_no_match
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/clients
+          monorepo: "true"
+          monorepo-project: "deskto"
+
+      - name: Monorepo-project with no releases
+        id: monorepo_project_no_match
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/clients
+          monorepo: "true"
+          monorepo-project: mobile
+
+      # The project is passed to jq as data, so a quote can't change the filter.
+      - name: Monorepo-project containing jq syntax
+        id: monorepo_project_jq_syntax
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/clients
+          monorepo: "true"
+          monorepo-project: 'web") or true or ("'
+
       ### Invalid cases ###
 
       - name: Invalid trim value
@@ -198,15 +248,6 @@ jobs:
           repository: bitwarden/server
           trim: "tru"
 
-      - name: Invalid monorepo-project value that is a substring of a valid one
-        id: invalid_monorepo_project_substring
-        continue-on-error: true
-        uses: ./get-release-version
-        with:
-          repository: bitwarden/clients
-          monorepo: "true"
-          monorepo-project: "deskto"
-
       - name: Invalid monorepo value
         id: invalid_monorepo
         continue-on-error: true
@@ -222,15 +263,6 @@ jobs:
         with:
           repository: bitwarden/clients
           monorepo: "true"
-
-      - name: Invalid monorepo-project value
-        id: invalid_monorepo_project
-        continue-on-error: true
-        uses: ./get-release-version
-        with:
-          repository: bitwarden/clients
-          monorepo: "true"
-          monorepo-project: mobile
 
       ### Validate ###
 
@@ -252,6 +284,10 @@ jobs:
           MONOREPO_WEB_NO_TRIM_VERSION: ${{ steps.monorepo_web_no_trim.outputs.version }}
           MONOREPO_WEB_TRIM_OUTCOME: ${{ steps.monorepo_web_trim.outcome }}
           MONOREPO_WEB_TRIM_VERSION: ${{ steps.monorepo_web_trim.outputs.version }}
+          MONOREPO_SDK_SM_BWS_OUTCOME: ${{ steps.monorepo_sdk_sm_bws.outcome }}
+          MONOREPO_SDK_SM_BWS_VERSION: ${{ steps.monorepo_sdk_sm_bws.outputs.version }}
+          MONOREPO_SDK_INTERNAL_RUST_TRIM_OUTCOME: ${{ steps.monorepo_sdk_internal_rust_trim.outcome }}
+          MONOREPO_SDK_INTERNAL_RUST_TRIM_VERSION: ${{ steps.monorepo_sdk_internal_rust_trim.outputs.version }}
           NON_MONOREPO_STABLE_OUTCOME: ${{ steps.non_monorepo_stable.outcome }}
           NON_MONOREPO_STABLE_VERSION: ${{ steps.non_monorepo_stable.outputs.version }}
           MONOREPO_DESKTOP_STABLE_OUTCOME: ${{ steps.monorepo_desktop_stable.outcome }}
@@ -265,14 +301,15 @@ jobs:
           NON_MONOREPO_PRERELEASE_TRIM_OUTCOME: ${{ steps.non_monorepo_prerelease_trim.outcome }}
           NON_MONOREPO_PRERELEASE_TRIM_VERSION: ${{ steps.non_monorepo_prerelease_trim.outputs.version }}
           PRERELEASE_NO_MATCH_OUTCOME: ${{ steps.prerelease_no_match.outcome }}
+          MONOREPO_PROJECT_PREFIX_NO_MATCH_OUTCOME: ${{ steps.monorepo_project_prefix_no_match.outcome }}
+          MONOREPO_PROJECT_NO_MATCH_OUTCOME: ${{ steps.monorepo_project_no_match.outcome }}
+          MONOREPO_PROJECT_JQ_SYNTAX_OUTCOME: ${{ steps.monorepo_project_jq_syntax.outcome }}
           INVALID_TRIM_OUTCOME: ${{ steps.invalid_trim.outcome }}
           INVALID_PRERELEASE_OUTCOME: ${{ steps.invalid_prerelease.outcome }}
           INVALID_PRERELEASE_SUBSTRING_OUTCOME: ${{ steps.invalid_prerelease_substring.outcome }}
           INVALID_TRIM_SUBSTRING_OUTCOME: ${{ steps.invalid_trim_substring.outcome }}
-          INVALID_MONOREPO_PROJECT_SUBSTRING_OUTCOME: ${{ steps.invalid_monorepo_project_substring.outcome }}
           INVALID_MONOREPO_OUTCOME: ${{ steps.invalid_monorepo.outcome }}
           MONOREPO_NO_PROJECT_OUTCOME: ${{ steps.monorepo_no_project.outcome }}
-          INVALID_MONOREPO_PROJECT_OUTCOME: ${{ steps.invalid_monorepo_project.outcome }}
         run: |
           test_failures=()
 
@@ -329,6 +366,8 @@ jobs:
           assert_success "Monorepo desktop, trim=false" "$MONOREPO_DESKTOP_OUTCOME"         "$MONOREPO_DESKTOP_VERSION"         '^desktop-v[0-9]+\.[0-9]+\.[0-9]+$'
           assert_success "Monorepo web, trim=false"    "$MONOREPO_WEB_NO_TRIM_OUTCOME"     "$MONOREPO_WEB_NO_TRIM_VERSION"     '^web-v[0-9]+\.[0-9]+\.[0-9]+$'
           assert_success "Monorepo web, trim=true"     "$MONOREPO_WEB_TRIM_OUTCOME"        "$MONOREPO_WEB_TRIM_VERSION"        '^[0-9]+\.[0-9]+\.[0-9]+$'
+          assert_success "Monorepo sdk-sm bws, trim=false"    "$MONOREPO_SDK_SM_BWS_OUTCOME"     "$MONOREPO_SDK_SM_BWS_VERSION"     '^bws-v[0-9]+\.[0-9]+\.[0-9]+$'
+          assert_success "Monorepo sdk-internal rust, trim=true" "$MONOREPO_SDK_INTERNAL_RUST_TRIM_OUTCOME" "$MONOREPO_SDK_INTERNAL_RUST_TRIM_VERSION" '^[0-9]+\.[0-9]+\.[0-9]+$'
           assert_success "Non-monorepo, prerelease=false"     "$NON_MONOREPO_STABLE_OUTCOME"     "$NON_MONOREPO_STABLE_VERSION"     '^v[0-9]+\.[0-9]+\.[0-9]+$'
           assert_success "Monorepo desktop, prerelease=false" "$MONOREPO_DESKTOP_STABLE_OUTCOME" "$MONOREPO_DESKTOP_STABLE_VERSION" '^desktop-v[0-9]+\.[0-9]+\.[0-9]+$'
           # Pre-release tags may carry a suffix (e.g. 2025.10.0-beta.1), so this pattern allows one.
@@ -340,15 +379,16 @@ jobs:
           assert_differs "prerelease=true and prerelease=false resolve differently" "$NON_MONOREPO_PRERELEASE_VERSION" "$NON_MONOREPO_STABLE_MIXED_VERSION"
 
           assert_failure "Prerelease=true with no matching pre-release" "$PRERELEASE_NO_MATCH_OUTCOME"
+          assert_failure "Monorepo-project 'deskto' (prefix of desktop)" "$MONOREPO_PROJECT_PREFIX_NO_MATCH_OUTCOME"
+          assert_failure "Monorepo-project with no releases"  "$MONOREPO_PROJECT_NO_MATCH_OUTCOME"
+          assert_failure "Monorepo-project containing jq syntax" "$MONOREPO_PROJECT_JQ_SYNTAX_OUTCOME"
 
           assert_failure "Invalid trim value"                "$INVALID_TRIM_OUTCOME"
           assert_failure "Invalid prerelease value"          "$INVALID_PRERELEASE_OUTCOME"
           assert_failure "Invalid prerelease substring 'tru'" "$INVALID_PRERELEASE_SUBSTRING_OUTCOME"
           assert_failure "Invalid trim substring 'tru'"      "$INVALID_TRIM_SUBSTRING_OUTCOME"
-          assert_failure "Invalid monorepo-project 'deskto'" "$INVALID_MONOREPO_PROJECT_SUBSTRING_OUTCOME"
           assert_failure "Invalid monorepo value"            "$INVALID_MONOREPO_OUTCOME"
           assert_failure "Monorepo=true without project"     "$MONOREPO_NO_PROJECT_OUTCOME"
-          assert_failure "Invalid monorepo-project value"    "$INVALID_MONOREPO_PROJECT_OUTCOME"
 
           if [[ ${#test_failures[@]} -gt 0 ]]; then
             echo ""

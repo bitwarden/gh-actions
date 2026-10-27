@@ -22,8 +22,9 @@ inputs:
     description: "Image title (org.opencontainers.image.title)."
     required: true
   version:
-    description: "Image version (org.opencontainers.image.version)."
-    required: true
+    description: "Image version (org.opencontainers.image.version). Derived from the generated tags when empty."
+    required: false
+    default: ""
   revision:
     description: "Source commit SHA (org.opencontainers.image.revision). Defaults to the PR head SHA or github.sha."
     required: false
@@ -122,7 +123,6 @@ runs:
         }
 
         require_non_empty "title" "$TITLE"
-        require_non_empty "version" "$VERSION"
 
         reject_newlines "title" "$TITLE"
         reject_newlines "version" "$VERSION"
@@ -132,6 +132,12 @@ runs:
         reject_newlines "description" "$DESCRIPTION"
         reject_newlines "licenses" "$LICENSES"
         reject_newlines "source" "$SOURCE"
+
+        # An empty version is allowed, but surface it so a failed upstream
+        # version step does not silently ship a tag-derived version.
+        if [[ -z "$VERSION" ]]; then
+          echo "::warning::version is empty; org.opencontainers.image.version will be derived from the generated tags"
+        fi
 
         if [[ "$INCLUDE_CI_RUN_LABEL" != "true" && "$INCLUDE_CI_RUN_LABEL" != "false" ]]; then
           echo "::error::include-ci-run-label must be 'true' or 'false'; got: ${INCLUDE_CI_RUN_LABEL}"
@@ -169,7 +175,7 @@ runs:
         }
 
         append_label "org.opencontainers.image.title" "$TITLE"
-        append_label "org.opencontainers.image.version" "$VERSION"
+        append_label_if_set "org.opencontainers.image.version" "$VERSION"
         append_label "org.opencontainers.image.revision" "$REVISION"
         append_label_if_set "org.opencontainers.image.vendor" "$VENDOR"
         append_label_if_set "org.opencontainers.image.url" "$URL"

@@ -20,7 +20,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Generate metadata with required inputs only
+      - name: Generate metadata with title and version only
         id: meta
         uses: ./container-image-metadata
         with:
@@ -161,6 +161,48 @@ jobs:
 
           exit "$fail"
 
+  test-derived-version:
+    name: Test version derived from tags
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Generate metadata without version
+        id: meta
+        uses: ./container-image-metadata
+        with:
+          tags: |
+            type=raw,value=main-abc1234
+          title: api
+
+      - name: Verify derived version
+        env:
+          LABELS: ${{ steps.meta.outputs.labels }}
+          ANNOTATIONS: ${{ steps.meta.outputs.annotations }}
+        run: |
+          echo "Labels:"; echo "$LABELS"
+          echo "Annotations:"; echo "$ANNOTATIONS"
+
+          fail=0
+
+          # Omitted version falls through to docker/metadata-action's primary tag version.
+          if ! grep -qxF -- "org.opencontainers.image.version=main-abc1234" <<< "$LABELS"; then
+            echo "::error::Missing label: org.opencontainers.image.version=main-abc1234"; fail=1
+          fi
+          if ! grep -qxF -- "manifest:org.opencontainers.image.version=main-abc1234" <<< "$ANNOTATIONS"; then
+            echo "::error::Missing annotation: manifest:org.opencontainers.image.version=main-abc1234"; fail=1
+          fi
+
+          dupes=$(cut -d= -f1 <<< "$LABELS" | sort | uniq -d)
+          if [[ -n "$dupes" ]]; then
+            echo "::error::Duplicate label keys: ${dupes}"; fail=1
+          fi
+
+          exit "$fail"
+
   test-validation:
     name: Test input validation
     runs-on: ubuntu-24.04
@@ -188,14 +230,6 @@ jobs:
         with:
           title: ""
           version: 2024.12.0
-
-      - name: Reject empty version
-        id: reject-empty-version
-        continue-on-error: true
-        uses: ./container-image-metadata
-        with:
-          title: api
-          version: ""
 
       - name: Reject multi-line value
         id: reject-multiline-value

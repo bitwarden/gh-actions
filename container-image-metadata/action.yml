@@ -22,8 +22,9 @@ inputs:
     description: "Image title (org.opencontainers.image.title)."
     required: true
   version:
-    description: "Image version (org.opencontainers.image.version)."
-    required: true
+    description: "Image version (org.opencontainers.image.version). Derived from the generated tags when empty."
+    required: false
+    default: ""
   revision:
     description: "Source commit SHA (org.opencontainers.image.revision). Defaults to the PR head SHA or github.sha."
     required: false
@@ -122,7 +123,6 @@ runs:
         }
 
         require_non_empty "title" "$TITLE"
-        require_non_empty "version" "$VERSION"
 
         reject_newlines "title" "$TITLE"
         reject_newlines "version" "$VERSION"
@@ -169,7 +169,7 @@ runs:
         }
 
         append_label "org.opencontainers.image.title" "$TITLE"
-        append_label "org.opencontainers.image.version" "$VERSION"
+        append_label_if_set "org.opencontainers.image.version" "$VERSION"
         append_label "org.opencontainers.image.revision" "$REVISION"
         append_label_if_set "org.opencontainers.image.vendor" "$VENDOR"
         append_label_if_set "org.opencontainers.image.url" "$URL"

@@ -45,7 +45,7 @@ See [EXAMPLES.md](EXAMPLES.md) for more ways to use this action.
 
 "Auto-detected" means `docker/metadata-action` fills the field from the repository running the workflow. Cross-repository builds should set `description`, `licenses` and `source` explicitly.
 
-"Derived from tags" means `docker/metadata-action` uses the primary tag version from the `tags` rules (or its default rules when `tags` is empty), e.g. `pr-123` or `main`. Set `version` explicitly when the image has a release version that differs from its tags. If no tag rule produces a version, the label is emitted with an empty value.
+"Derived from tags" means `docker/metadata-action` uses the primary tag version from the `tags` rules (or its default rules when `tags` is empty), e.g. `pr-123` or `main`. Set `version` explicitly when the image has a release version that differs from its tags. If no tag rule produces a version, the label is emitted with an empty value. The action emits a workflow warning whenever `version` is empty.
 
 ## Outputs
 

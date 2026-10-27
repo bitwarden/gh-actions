@@ -203,6 +203,40 @@ jobs:
 
           exit "$fail"
 
+      - name: Generate metadata without version or tags
+        id: meta-default-rules
+        uses: ./container-image-metadata
+        with:
+          title: api
+
+      - name: Verify version derived from default tag rules
+        env:
+          LABELS: ${{ steps.meta-default-rules.outputs.labels }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          echo "Labels:"; echo "$LABELS"
+
+          fail=0
+          version=$(grep -m1 '^org.opencontainers.image.version=' <<< "$LABELS" | cut -d= -f2-)
+
+          # docker/metadata-action's default rules tag pull requests as pr-<number>.
+          # Other triggers (e.g. workflow_dispatch) only require a non-empty value.
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            if [[ "$version" != "pr-${PR_NUMBER}" ]]; then
+              echo "::error::Expected version pr-${PR_NUMBER}, got '${version}'"; fail=1
+            fi
+          elif [[ -z "$version" ]]; then
+            echo "::error::Expected a non-empty derived version"; fail=1
+          fi
+
+          dupes=$(cut -d= -f1 <<< "$LABELS" | sort | uniq -d)
+          if [[ -n "$dupes" ]]; then
+            echo "::error::Duplicate label keys: ${dupes}"; fail=1
+          fi
+
+          exit "$fail"
+
   test-validation:
     name: Test input validation
     runs-on: ubuntu-24.04

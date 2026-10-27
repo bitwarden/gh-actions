@@ -133,6 +133,12 @@ runs:
         reject_newlines "licenses" "$LICENSES"
         reject_newlines "source" "$SOURCE"
 
+        # An empty version is allowed, but surface it so a failed upstream
+        # version step does not silently ship a tag-derived version.
+        if [[ -z "$VERSION" ]]; then
+          echo "::warning::version is empty; org.opencontainers.image.version will be derived from the generated tags"
+        fi
+
         if [[ "$INCLUDE_CI_RUN_LABEL" != "true" && "$INCLUDE_CI_RUN_LABEL" != "false" ]]; then
           echo "::error::include-ci-run-label must be 'true' or 'false'; got: ${INCLUDE_CI_RUN_LABEL}"
           exit 1

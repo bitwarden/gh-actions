@@ -1,6 +1,6 @@
 ---
 name: "Get GitHub Latest Release Version"
-description: "Retrieves the lasted release tag from a GitHub repository."
+description: "Retrieves the latest release tag from a GitHub repository."
 inputs:
   repository:
     description: "This is the repository that we get the latest release version from"
@@ -14,7 +14,7 @@ inputs:
     required: false
     default: "false"
   monorepo-project:
-    description: "Identifies the monorepo project: ('', 'browser', 'cli', 'desktop', 'web')"
+    description: "Tag prefix of the monorepo project, matched as '<monorepo-project>-v*', e.g. 'desktop' -> 'desktop-v2026.10.0', 'rust' -> 'rust-v1.0.0'"
     required: false
     default: ""
   prerelease:
@@ -62,13 +62,6 @@ runs:
           echo "[!] using the 'monorepo' option requires the use of 'monorepo-project'"
           exit 1
         fi
-        case "${INPUT_MONOREPO_PROJECT}" in
-          "" | "browser" | "cli" | "desktop" | "web") ;;
-          *)
-            echo "[!] 'monorepo-project' option only supports the following values: ('', 'browser', 'cli', 'desktop', 'web')"
-            exit 1
-            ;;
-        esac
 
     - name: Check Runner OS
       shell: bash
@@ -100,10 +93,14 @@ runs:
 
         case "${INPUT_MONOREPO}" in
             "true")
+              # Match '<project>-v' so a near-miss project ('deskto') or a shared prefix
+              # ('bws' vs 'bws-cli') can't resolve another project's tag. The prefix is
+              # passed with --arg so it is never parsed as part of the jq program.
               LATEST_RELEASE_TAG_VERSION=$(
                 gh release list --repo "$REPOSITORY" --limit 100 --order desc \
                   --json tagName,isPrerelease,isDraft \
-                  --jq "[.[] | select(.tagName | startswith(\"$INPUT_MONOREPO_PROJECT\")) | $SELECT | .tagName][0] // \"\""
+                  | jq -r --arg prefix "${INPUT_MONOREPO_PROJECT}-v" \
+                    "[.[] | select(.tagName | startswith(\$prefix)) | $SELECT | .tagName][0] // \"\""
               )
               ;;
             "false")

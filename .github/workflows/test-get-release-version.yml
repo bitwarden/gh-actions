@@ -120,6 +120,40 @@ jobs:
           monorepo: "true"
           monorepo-project: rust
 
+      # Mobile repos tag both apps as v<version>-<app>, so the app is a suffix, not a prefix.
+      - name: Tag-suffix android bwpm, trim=false
+        id: tag_suffix_android_bwpm
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/android
+          tag-suffix: bwpm
+
+      - name: Tag-suffix android bwa, trim=true
+        id: tag_suffix_android_bwa_trim
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/android
+          trim: "true"
+          tag-suffix: bwa
+
+      - name: Tag-suffix ios bwpm, trim=false
+        id: tag_suffix_ios_bwpm
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/ios
+          tag-suffix: bwpm
+
+      - name: Tag-suffix ios bwa, trim=false
+        id: tag_suffix_ios_bwa
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/ios
+          tag-suffix: bwa
+
       - name: Non-monorepo, prerelease=false
         id: non_monorepo_stable
         continue-on-error: true
@@ -214,6 +248,35 @@ jobs:
           monorepo: "true"
           monorepo-project: 'web") or true or ("'
 
+      # Near-miss of 'bwa'. Matching on '-<suffix>' keeps it from resolving *-bwa.
+      - name: Tag-suffix that is a suffix of a real one
+        id: tag_suffix_partial_no_match
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/android
+          tag-suffix: wa
+
+      # The suffix is passed to jq as data, so a quote can't change the filter.
+      - name: Tag-suffix containing jq syntax
+        id: tag_suffix_jq_syntax
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/android
+          tag-suffix: 'bwpm") or true or ("'
+
+      # Each filter alone matches desktop-v* or nothing; together they must both hold.
+      - name: Monorepo-project and tag-suffix both applied
+        id: monorepo_project_tag_suffix_no_match
+        continue-on-error: true
+        uses: ./get-release-version
+        with:
+          repository: bitwarden/clients
+          monorepo: "true"
+          monorepo-project: desktop
+          tag-suffix: bwpm
+
       ### Invalid cases ###
 
       - name: Invalid trim value
@@ -290,6 +353,14 @@ jobs:
           MONOREPO_SDK_SM_BWS_VERSION: ${{ steps.monorepo_sdk_sm_bws.outputs.version }}
           MONOREPO_SDK_INTERNAL_RUST_TRIM_OUTCOME: ${{ steps.monorepo_sdk_internal_rust_trim.outcome }}
           MONOREPO_SDK_INTERNAL_RUST_TRIM_VERSION: ${{ steps.monorepo_sdk_internal_rust_trim.outputs.version }}
+          TAG_SUFFIX_ANDROID_BWPM_OUTCOME: ${{ steps.tag_suffix_android_bwpm.outcome }}
+          TAG_SUFFIX_ANDROID_BWPM_VERSION: ${{ steps.tag_suffix_android_bwpm.outputs.version }}
+          TAG_SUFFIX_ANDROID_BWA_TRIM_OUTCOME: ${{ steps.tag_suffix_android_bwa_trim.outcome }}
+          TAG_SUFFIX_ANDROID_BWA_TRIM_VERSION: ${{ steps.tag_suffix_android_bwa_trim.outputs.version }}
+          TAG_SUFFIX_IOS_BWPM_OUTCOME: ${{ steps.tag_suffix_ios_bwpm.outcome }}
+          TAG_SUFFIX_IOS_BWPM_VERSION: ${{ steps.tag_suffix_ios_bwpm.outputs.version }}
+          TAG_SUFFIX_IOS_BWA_OUTCOME: ${{ steps.tag_suffix_ios_bwa.outcome }}
+          TAG_SUFFIX_IOS_BWA_VERSION: ${{ steps.tag_suffix_ios_bwa.outputs.version }}
           NON_MONOREPO_STABLE_OUTCOME: ${{ steps.non_monorepo_stable.outcome }}
           NON_MONOREPO_STABLE_VERSION: ${{ steps.non_monorepo_stable.outputs.version }}
           MONOREPO_DESKTOP_STABLE_OUTCOME: ${{ steps.monorepo_desktop_stable.outcome }}
@@ -306,6 +377,9 @@ jobs:
           MONOREPO_PROJECT_PREFIX_NO_MATCH_OUTCOME: ${{ steps.monorepo_project_prefix_no_match.outcome }}
           MONOREPO_PROJECT_NO_MATCH_OUTCOME: ${{ steps.monorepo_project_no_match.outcome }}
           MONOREPO_PROJECT_JQ_SYNTAX_OUTCOME: ${{ steps.monorepo_project_jq_syntax.outcome }}
+          TAG_SUFFIX_PARTIAL_NO_MATCH_OUTCOME: ${{ steps.tag_suffix_partial_no_match.outcome }}
+          TAG_SUFFIX_JQ_SYNTAX_OUTCOME: ${{ steps.tag_suffix_jq_syntax.outcome }}
+          MONOREPO_PROJECT_TAG_SUFFIX_NO_MATCH_OUTCOME: ${{ steps.monorepo_project_tag_suffix_no_match.outcome }}
           INVALID_TRIM_OUTCOME: ${{ steps.invalid_trim.outcome }}
           INVALID_PRERELEASE_OUTCOME: ${{ steps.invalid_prerelease.outcome }}
           INVALID_PRERELEASE_SUBSTRING_OUTCOME: ${{ steps.invalid_prerelease_substring.outcome }}
@@ -370,6 +444,10 @@ jobs:
           assert_success "Monorepo web, trim=true"     "$MONOREPO_WEB_TRIM_OUTCOME"        "$MONOREPO_WEB_TRIM_VERSION"        '^[0-9]+\.[0-9]+\.[0-9]+$'
           assert_success "Monorepo sdk-sm bws, trim=false"    "$MONOREPO_SDK_SM_BWS_OUTCOME"     "$MONOREPO_SDK_SM_BWS_VERSION"     '^bws-v[0-9]+\.[0-9]+\.[0-9]+$'
           assert_success "Monorepo sdk-internal rust, trim=true" "$MONOREPO_SDK_INTERNAL_RUST_TRIM_OUTCOME" "$MONOREPO_SDK_INTERNAL_RUST_TRIM_VERSION" '^[0-9]+\.[0-9]+\.[0-9]+$'
+          assert_success "Tag-suffix android bwpm, trim=false" "$TAG_SUFFIX_ANDROID_BWPM_OUTCOME"     "$TAG_SUFFIX_ANDROID_BWPM_VERSION"     '^v[0-9]+\.[0-9]+\.[0-9]+-bwpm$'
+          assert_success "Tag-suffix android bwa, trim=true"   "$TAG_SUFFIX_ANDROID_BWA_TRIM_OUTCOME" "$TAG_SUFFIX_ANDROID_BWA_TRIM_VERSION" '^[0-9]+\.[0-9]+\.[0-9]+-bwa$'
+          assert_success "Tag-suffix ios bwpm, trim=false"     "$TAG_SUFFIX_IOS_BWPM_OUTCOME"         "$TAG_SUFFIX_IOS_BWPM_VERSION"         '^v[0-9]+\.[0-9]+\.[0-9]+-bwpm$'
+          assert_success "Tag-suffix ios bwa, trim=false"      "$TAG_SUFFIX_IOS_BWA_OUTCOME"          "$TAG_SUFFIX_IOS_BWA_VERSION"          '^v[0-9]+\.[0-9]+\.[0-9]+-bwa$'
           assert_success "Non-monorepo, prerelease=false"     "$NON_MONOREPO_STABLE_OUTCOME"     "$NON_MONOREPO_STABLE_VERSION"     '^v[0-9]+\.[0-9]+\.[0-9]+$'
           assert_success "Monorepo desktop, prerelease=false" "$MONOREPO_DESKTOP_STABLE_OUTCOME" "$MONOREPO_DESKTOP_STABLE_VERSION" '^desktop-v[0-9]+\.[0-9]+\.[0-9]+$'
           # Pre-release tags may carry a suffix (e.g. 2025.10.0-beta.1), so this pattern allows one.
@@ -384,6 +462,10 @@ jobs:
           assert_failure "Monorepo-project 'deskto' (prefix of desktop)" "$MONOREPO_PROJECT_PREFIX_NO_MATCH_OUTCOME"
           assert_failure "Monorepo-project with no releases"  "$MONOREPO_PROJECT_NO_MATCH_OUTCOME"
           assert_failure "Monorepo-project containing jq syntax" "$MONOREPO_PROJECT_JQ_SYNTAX_OUTCOME"
+
+          assert_failure "Tag-suffix 'wa' (suffix of bwa)"   "$TAG_SUFFIX_PARTIAL_NO_MATCH_OUTCOME"
+          assert_failure "Tag-suffix containing jq syntax"   "$TAG_SUFFIX_JQ_SYNTAX_OUTCOME"
+          assert_failure "Monorepo-project and tag-suffix both applied" "$MONOREPO_PROJECT_TAG_SUFFIX_NO_MATCH_OUTCOME"
 
           assert_failure "Invalid trim value"                "$INVALID_TRIM_OUTCOME"
           assert_failure "Invalid prerelease value"          "$INVALID_PRERELEASE_OUTCOME"

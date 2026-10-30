@@ -11,6 +11,8 @@ Caching `target/` alone is not enough. Cargo decides whether a workspace crate i
 
 Without a stored list of hashes (nothing restored, or a cache saved without one), every workspace crate is rebuilt. That is slower but never stale.
 
+Cargo has an unstable `build.fingerprint = "content"` setting that compares file contents instead of modification times ([cargo#14136](https://github.com/rust-lang/cargo/issues/14136)). Once it is stable and also covers build scripts, which it does not yet, the actions can set it and drop the hashing and marking, while callers keep the same `restore` and `save` steps.
+
 ## How to Use It
 
 Run `restore` after installing Rust and before the build, and `save` after the build, only if the build succeeded.

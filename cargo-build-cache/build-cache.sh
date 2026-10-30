@@ -21,6 +21,10 @@
 #
 # If there is no stored record, `mark` leaves every file at its checkout time, so Cargo rebuilds all
 # workspace crates. That is slower but never stale.
+#
+# Cargo's unstable `build.fingerprint = "content"` setting (rust-lang/cargo#14136) compares file
+# contents instead of modification times. Once it is stable and covers build scripts, it can
+# replace this script.
 set -euo pipefail
 
 INPUTS_FILE="target/.build-cache-inputs"

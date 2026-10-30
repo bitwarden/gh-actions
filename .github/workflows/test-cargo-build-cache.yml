@@ -1,0 +1,150 @@
+name: Test Cargo Build Cache Actions
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "cargo-build-cache/**"
+      - ".github/workflows/test-cargo-build-cache.yml"
+
+permissions:
+  contents: read
+
+env:
+  # Both jobs must use the same compiler, because it is part of the cache key.
+  RUSTUP_TOOLCHAIN: "1.90.0"
+  WORKSPACE_DIR: cargo-build-cache/tests/fixtures/workspace
+
+jobs:
+  cold-build:
+    name: Cold build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-24.04
+          - macos-14
+          - windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install Rust
+        shell: bash
+        run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal
+
+      - name: Restore build output
+        id: restore
+        uses: ./cargo-build-cache/restore
+        with:
+          key: test-${{ github.run_id }}-${{ github.run_attempt }}
+          working_directory: ${{ env.WORKSPACE_DIR }}
+
+      - name: Verify nothing was restored
+        shell: bash
+        env:
+          _MATCHED_KEY: ${{ steps.restore.outputs.cache_matched_key }}
+          _PRIMARY_KEY: ${{ steps.restore.outputs.cache_primary_key }}
+        run: |
+          echo "Primary key: $_PRIMARY_KEY"
+          if [ -n "$_MATCHED_KEY" ]; then
+            echo "::error::Expected no cache entry, restored $_MATCHED_KEY"
+            exit 1
+          fi
+
+      - name: Build
+        id: build
+        shell: bash
+        working-directory: ${{ env.WORKSPACE_DIR }}
+        run: cargo build --locked
+
+      # Like a test that updates a snapshot. The record must describe the content that was compiled,
+      # or the warm build would rebuild the other crate.
+      - name: Change a tracked file after the build
+        shell: bash
+        working-directory: ${{ env.WORKSPACE_DIR }}
+        run: sed -i.bak 's/42/43/' other/src/lib.rs && rm other/src/lib.rs.bak
+
+      - name: Save build output
+        if: always() && steps.build.outcome == 'success'
+        uses: ./cargo-build-cache/save
+
+  warm-build:
+    name: Warm build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: cold-build
+    strategy:
+      matrix:
+        os:
+          - ubuntu-24.04
+          - macos-14
+          - windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install Rust
+        shell: bash
+        run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal
+
+      - name: Change the base crate
+        shell: bash
+        working-directory: ${{ env.WORKSPACE_DIR }}
+        run: sed -i.bak 's/hello/hi/' base/src/lib.rs && rm base/src/lib.rs.bak
+
+      - name: Restore build output
+        id: restore
+        uses: ./cargo-build-cache/restore
+        with:
+          key: test-${{ github.run_id }}-${{ github.run_attempt }}
+          working_directory: ${{ env.WORKSPACE_DIR }}
+          toolchain: ${{ env.RUSTUP_TOOLCHAIN }}
+          reset_sysroot_mtimes: true
+
+      - name: Verify the cache was restored
+        shell: bash
+        env:
+          _CACHE_HIT: ${{ steps.restore.outputs.cache_hit }}
+          _MATCHED_KEY: ${{ steps.restore.outputs.cache_matched_key }}
+        run: |
+          echo "Restored: $_MATCHED_KEY"
+          if [ "$_CACHE_HIT" != "true" ]; then
+            echo "::error::Expected an exact cache hit"
+            exit 1
+          fi
+
+      - name: Build
+        id: build
+        shell: bash
+        working-directory: ${{ env.WORKSPACE_DIR }}
+        run: |
+          cargo build --locked --message-format=json > "$RUNNER_TEMP/build.json"
+          actual=$(jq -r 'select(.reason == "compiler-artifact") | "\(.target.name)=\(.fresh)"' \
+            "$RUNNER_TEMP/build.json" | sort | tr '\n' ' ')
+          expected="app=false base=false other=true "
+          echo "Crates (name=fresh): $actual"
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::Expected '$expected', got '$actual'"
+            exit 1
+          fi
+
+      - name: Save build output
+        if: always() && steps.build.outcome == 'success'
+        uses: ./cargo-build-cache/save
+
+      # The restore step moved the record of the cached build's inputs away, and save only records
+      # new inputs when it saves.
+      - name: Verify the save was skipped
+        shell: bash
+        working-directory: ${{ env.WORKSPACE_DIR }}
+        run: |
+          if [ -e target/.build-cache-inputs ]; then
+            echo "::error::Expected save to skip an exact cache hit"
+            exit 1
+          fi

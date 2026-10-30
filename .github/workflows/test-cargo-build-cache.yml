@@ -13,8 +13,6 @@ permissions:
 env:
   # Both jobs must use the same compiler, because it is part of the cache key.
   RUSTUP_TOOLCHAIN: "1.90.0"
-  # The fixture also tracks a dangling symlink and a symlink to a directory, which must not stop the
-  # build inputs from being hashed.
   WORKSPACE_DIR: cargo-build-cache/tests/fixtures/workspace
 
 jobs:
@@ -37,6 +35,21 @@ jobs:
       - name: Install Rust
         shell: bash
         run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal
+
+      # A dangling symlink and a symlink to a directory must not stop the build inputs from being
+      # hashed. They are added to the index here, not committed: the runner fails to download an
+      # action from a repository that contains a dangling symlink. `git checkout` then writes them
+      # the way a checkout of a commit would.
+      - name: Add symlinks to the fixture
+        shell: bash
+        run: |
+          add_symlink() {
+            local path="$WORKSPACE_DIR/$1"
+            git update-index --add --cacheinfo "120000,$(printf '%s' "$2" | git hash-object -w --stdin),$path"
+            git checkout -- "$path"
+          }
+          add_symlink links/dangling does-not-exist
+          add_symlink links/directory ../base/src
 
       - name: Restore build output
         id: restore
@@ -117,6 +130,21 @@ jobs:
       - name: Install Rust
         shell: bash
         run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal
+
+      # A dangling symlink and a symlink to a directory must not stop the build inputs from being
+      # hashed. They are added to the index here, not committed: the runner fails to download an
+      # action from a repository that contains a dangling symlink. `git checkout` then writes them
+      # the way a checkout of a commit would.
+      - name: Add symlinks to the fixture
+        shell: bash
+        run: |
+          add_symlink() {
+            local path="$WORKSPACE_DIR/$1"
+            git update-index --add --cacheinfo "120000,$(printf '%s' "$2" | git hash-object -w --stdin),$path"
+            git checkout -- "$path"
+          }
+          add_symlink links/dangling does-not-exist
+          add_symlink links/directory ../base/src
 
       # Git can check symlinks out as plain files containing the link target, e.g. on Windows.
       - name: Show how symlinks were checked out

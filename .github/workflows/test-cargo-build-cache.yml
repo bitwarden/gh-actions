@@ -95,6 +95,19 @@ jobs:
         shell: bash
         run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal
 
+      # Git can check symlinks out as plain files containing the link target, e.g. on Windows.
+      - name: Show how symlinks were checked out
+        shell: bash
+        working-directory: ${{ env.WORKSPACE_DIR }}
+        run: |
+          for link in links/*; do
+            if [ -L "$link" ]; then
+              echo "$link: symlink to $(readlink -- "$link")"
+            else
+              echo "$link: plain file containing $(cat -- "$link")"
+            fi
+          done
+
       - name: Change the base crate
         shell: bash
         working-directory: ${{ env.WORKSPACE_DIR }}
@@ -127,8 +140,9 @@ jobs:
         working-directory: ${{ env.WORKSPACE_DIR }}
         run: |
           cargo build --locked --message-format=json > "$RUNNER_TEMP/build.json"
+          # jq on Windows ends lines with CRLF.
           actual=$(jq -r 'select(.reason == "compiler-artifact") | "\(.target.name)=\(.fresh)"' \
-            "$RUNNER_TEMP/build.json" | sort | tr '\n' ' ')
+            "$RUNNER_TEMP/build.json" | tr -d '\r' | sort | tr '\n' ' ')
           expected="app=false base=false other=true "
           echo "Crates (name=fresh): $actual"
           if [ "$actual" != "$expected" ]; then

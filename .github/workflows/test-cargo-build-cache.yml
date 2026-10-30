@@ -193,3 +193,54 @@ jobs:
             echo "::error::Expected '$expected', got '$actual'"
             exit 1
           fi
+
+  # TEMP: verifies once that a failing job saves nothing. Removed after the check, because this job
+  # always fails.
+  failing-build:
+    name: Failing build (temporary)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install Rust
+        shell: bash
+        run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal
+
+      - name: Cache build output
+        uses: ./cargo-build-cache
+        with:
+          key: failing-${{ github.run_id }}-${{ github.run_attempt }}
+          working_directory: ${{ env.WORKSPACE_DIR }}
+
+      - name: Build
+        shell: bash
+        working-directory: ${{ env.WORKSPACE_DIR }}
+        run: cargo build --locked
+
+      - name: Fail after the build
+        shell: bash
+        run: exit 1
+
+  check-failing-build:
+    name: Check the failing build saved nothing (temporary)
+    runs-on: ubuntu-24.04
+    needs: failing-build
+    if: always()
+    permissions:
+      actions: read
+    steps:
+      - name: Check no cache was saved
+        env:
+          GH_TOKEN: ${{ github.token }}
+          _REPO: ${{ github.repository }}
+          _KEY: cargo-build-Linux-failing-${{ github.run_id }}-${{ github.run_attempt }}-
+        run: |
+          count=$(gh api "repos/$_REPO/actions/caches?key=$_KEY" --jq '.total_count')
+          echo "Caches with key prefix $_KEY: $count"
+          if [ "$count" != "0" ]; then
+            echo "::error::Expected the failing job to save nothing"
+            exit 1
+          fi

@@ -5,13 +5,11 @@
 # source files with those of its build output. A fresh checkout gives every file the current time,
 # which makes every workspace crate look changed.
 #
-#   build-cache.sh mark <pending>     After restoring the cache, before the build: set all tracked
-#                                     files to a fixed old time, then mark as new only the files
-#                                     whose hash differs from the record stored with the cache. Writes
-#                                     the hashes of the files the build is about to compile to
-#                                     <pending>.
-#   build-cache.sh record <pending>   After a successful build: store <pending> next to the build
-#                                     output, as the record of its inputs.
+#   build-cache.sh mark   After restoring the cache, before the build: set all tracked files to a
+#                         fixed old time, then mark as new only the files whose hash differs from
+#                         the record stored with the cache. Then store the hashes of the files the
+#                         build is about to compile as the new record, which is saved with the
+#                         build output.
 #
 # The hashes are taken before the build, so a later step that rewrites a tracked file (a test that
 # updates a snapshot, for example) can't make the record claim content that was never compiled.
@@ -74,43 +72,39 @@ list_build_inputs() {
   return "$status"
 }
 
-record() {
-  local pending=$1
-  if [ ! -f "$pending" ]; then
-    echo "No build inputs were listed before the build, can't record them." >&2
-    return 1
-  fi
-  mkdir -p target
-  cp "$pending" "$INPUTS_FILE"
-  echo "Recorded $(wc -l < "$INPUTS_FILE" | tr -d ' ') build inputs"
-}
-
 mark() {
-  local pending=$1
-  rm -f "$pending"
-  if ! list_build_inputs > "$pending"; then
-    rm -f "$pending"
-    echo "Building all workspace crates."
-    return
-  fi
-
-  if [ ! -f "$INPUTS_FILE" ]; then
-    echo "No record of the cached build's inputs, building all workspace crates."
-    return
-  fi
-
-  local recorded changed count
+  local current recorded changed count
+  current=$(mktemp)
   recorded=$(mktemp)
   changed=$(mktemp)
-  # The record only describes the restored build output. Remove it, so a cache saved later without
-  # a fresh record makes the next run rebuild everything instead of trusting an old record.
-  mv "$INPUTS_FILE" "$recorded"
+  # The stored record only describes the restored build output, so it is removed here. If no new
+  # record can be written, the cache saved after this build has none, and the next run rebuilds
+  # everything instead of trusting an old record.
+  local has_record=""
+  if [ -f "$INPUTS_FILE" ]; then
+    mv "$INPUTS_FILE" "$recorded"
+    has_record=1
+  fi
+
+  if ! list_build_inputs > "$current"; then
+    echo "Building all workspace crates."
+    rm -f "$current" "$recorded" "$changed"
+    return
+  fi
+  mkdir -p target
+  cp "$current" "$INPUTS_FILE"
+
+  if [ -z "$has_record" ]; then
+    echo "No record of the cached build's inputs, building all workspace crates."
+    rm -f "$current" "$recorded" "$changed"
+    return
+  fi
 
   # A file is changed if it is new or its content differs from the recorded list. The hash is
   # everything before the first tab, the path everything after it.
   awk 'NR == FNR { i = index($0, "\t"); recorded[substr($0, i + 1)] = substr($0, 1, i - 1); next }
     { i = index($0, "\t"); path = substr($0, i + 1); if (recorded[path] != substr($0, 1, i - 1)) print path }' \
-    "$recorded" "$pending" > "$changed"
+    "$recorded" "$current" > "$changed"
 
   # Cargo follows symlinks and compares the modification times of their targets, so a symlink that
   # now points elsewhere can lead to files whose times say they are unchanged. Marking the link
@@ -124,7 +118,7 @@ mark() {
   done < "$changed"
   if [ -n "$changed_link" ]; then
     echo "Symlink $changed_link changed since the cached build, building all workspace crates."
-    rm -f "$recorded" "$changed"
+    rm -f "$current" "$recorded" "$changed"
     return
   fi
 
@@ -136,19 +130,13 @@ mark() {
     tr '\n' '\0' < "$changed" | xargs -0 touch -h -c --
     head -50 "$changed"
   fi
-  rm -f "$recorded" "$changed"
+  rm -f "$current" "$recorded" "$changed"
 }
 
-if [ $# -ne 2 ]; then
-  echo "Usage: $0 record|mark <pending>" >&2
-  exit 2
-fi
-
-case "$1" in
-  record) record "$2" ;;
-  mark) mark "$2" ;;
+case "${1:-}" in
+  mark) mark ;;
   *)
-    echo "Usage: $0 record|mark <pending>" >&2
+    echo "Usage: $0 mark" >&2
     exit 2
     ;;
 esac

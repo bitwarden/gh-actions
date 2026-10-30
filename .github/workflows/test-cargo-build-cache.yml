@@ -1,4 +1,4 @@
-name: Test Cargo Build Cache Actions
+name: Test Cargo Build Cache Action
 
 on:
   workflow_dispatch:
@@ -61,9 +61,11 @@ jobs:
           add_symlink links/dangling does-not-exist
           add_symlink links/directory ../base/src
 
-      - name: Restore build output
-        id: restore
-        uses: ./cargo-build-cache/restore
+      # Saves the build output at the end of the job. The warm build checks that it was saved, by
+      # expecting an exact key match.
+      - name: Cache build output
+        id: cache
+        uses: ./cargo-build-cache
         with:
           key: test-${{ github.run_id }}-${{ github.run_attempt }}
           working_directory: ${{ env.WORKSPACE_DIR }}
@@ -71,12 +73,12 @@ jobs:
       - name: Verify nothing was restored
         shell: bash
         env:
-          _MATCHED_KEY: ${{ steps.restore.outputs.cache_matched_key }}
-          _PRIMARY_KEY: ${{ steps.restore.outputs.cache_primary_key }}
+          _CACHE_HIT: ${{ steps.cache.outputs.cache_hit }}
+          _PRIMARY_KEY: ${{ steps.cache.outputs.cache_primary_key }}
         run: |
           echo "Primary key: $_PRIMARY_KEY"
-          if [ -n "$_MATCHED_KEY" ]; then
-            echo "::error::Expected no cache entry, restored $_MATCHED_KEY"
+          if [ -n "$_CACHE_HIT" ]; then
+            echo "::error::Expected no cache entry, got cache_hit '$_CACHE_HIT'"
             exit 1
           fi
 
@@ -93,30 +95,12 @@ jobs:
         working-directory: ${{ env.WORKSPACE_DIR }}
         run: sed -i.bak 's/42/43/' other/src/lib.rs && rm other/src/lib.rs.bak
 
-      # Like a failing test after the build. The build output must still be saved.
-      - name: Fail after the build
-        id: fail
-        continue-on-error: true
-        shell: bash
-        run: exit 1
-
-      - name: Save build output
-        if: always() && steps.build.outcome == 'success'
-        uses: ./cargo-build-cache/save
-
-      # The warm build checks that the cache was saved, by expecting an exact key match.
       - name: Verify the build inputs were recorded
         shell: bash
         working-directory: ${{ env.WORKSPACE_DIR }}
-        env:
-          _FAIL_OUTCOME: ${{ steps.fail.outcome }}
         run: |
-          if [ "$_FAIL_OUTCOME" != "failure" ]; then
-            echo "::error::Expected the failing step to fail, got '$_FAIL_OUTCOME'"
-            exit 1
-          fi
           if [ ! -f target/.build-cache-inputs ]; then
-            echo "::error::Expected save to record the build inputs"
+            echo "::error::Expected the action to record the build inputs"
             exit 1
           fi
 
@@ -174,9 +158,10 @@ jobs:
         working-directory: ${{ env.WORKSPACE_DIR }}
         run: sed -i.bak 's/hello/hi/' base/src/lib.rs && rm base/src/lib.rs.bak
 
-      - name: Restore build output
-        id: restore
-        uses: ./cargo-build-cache/restore
+      # Restored from an exact key match, so the build output is not saved again.
+      - name: Cache build output
+        id: cache
+        uses: ./cargo-build-cache
         with:
           key: test-${{ github.run_id }}-${{ github.run_attempt }}
           working_directory: ${{ env.WORKSPACE_DIR }}
@@ -186,10 +171,8 @@ jobs:
       - name: Verify the cache was restored
         shell: bash
         env:
-          _CACHE_HIT: ${{ steps.restore.outputs.cache_hit }}
-          _MATCHED_KEY: ${{ steps.restore.outputs.cache_matched_key }}
+          _CACHE_HIT: ${{ steps.cache.outputs.cache_hit }}
         run: |
-          echo "Restored: $_MATCHED_KEY"
           if [ "$_CACHE_HIT" != "true" ]; then
             echo "::error::Expected an exact cache hit"
             exit 1
@@ -208,20 +191,5 @@ jobs:
           echo "Crates (name=fresh): $actual"
           if [ "$actual" != "$expected" ]; then
             echo "::error::Expected '$expected', got '$actual'"
-            exit 1
-          fi
-
-      - name: Save build output
-        if: always() && steps.build.outcome == 'success'
-        uses: ./cargo-build-cache/save
-
-      # The restore step moved the record of the cached build's inputs away, and save only records
-      # new inputs when it saves.
-      - name: Verify the save was skipped
-        shell: bash
-        working-directory: ${{ env.WORKSPACE_DIR }}
-        run: |
-          if [ -e target/.build-cache-inputs ]; then
-            echo "::error::Expected save to skip an exact cache hit"
             exit 1
           fi

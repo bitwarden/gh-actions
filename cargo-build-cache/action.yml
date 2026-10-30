@@ -1,5 +1,5 @@
-name: "Cargo Build Cache Restore"
-description: "Restore a cached Cargo target directory so only the crates that changed are rebuilt. Pair with cargo-build-cache/save."
+name: "Cargo Build Cache"
+description: "Cache the Cargo target directory between runs, so only the crates that changed are rebuilt."
 author: "Bitwarden"
 branding:
   icon: archive
@@ -38,14 +38,13 @@ inputs:
 
 outputs:
   cache_hit:
-    description: "'true' if the cache was restored from an exact match of the primary key."
-    value: ${{ steps.restore.outputs.cache-hit }}
+    description: |
+      'true' if the cache was restored from an exact match of the primary key, 'false' if it was
+      restored from an older entry, and empty if nothing was restored.
+    value: ${{ steps.cache.outputs.cache-hit }}
   cache_primary_key:
     description: "The key the build output is saved under."
     value: ${{ steps.keys.outputs.primary_key }}
-  cache_matched_key:
-    description: "The key of the restored cache entry. Empty when nothing was restored."
-    value: ${{ steps.restore.outputs.cache-matched-key }}
 
 runs:
   using: "composite"
@@ -61,7 +60,6 @@ runs:
         _RUNNER_OS: ${{ runner.os }}
         _EVENT_NAME: ${{ github.event_name }}
         _SHA: ${{ github.sha }}
-        _STATE_DIR: ${{ runner.temp }}/cargo-build-cache
       run: |
         if [[ ! "$_KEY" =~ ^[A-Za-z0-9._-]+$ ]]; then
           echo "::error::Invalid key '$_KEY'. Use letters, digits, '.', '_' and '-' only."
@@ -73,12 +71,6 @@ runs:
         fi
         if [ ! -d "$_WORKING_DIRECTORY" ]; then
           echo "::error::Working directory '$_WORKING_DIRECTORY' does not exist."
-          exit 1
-        fi
-        # The save action finds the key and paths in the state directory, so it can only pair with
-        # one restore per job.
-        if [ -e "$_STATE_DIR" ]; then
-          echo "::error::cargo-build-cache/restore can only be used once per job."
           exit 1
         fi
 
@@ -125,42 +117,22 @@ runs:
           echo "${delimiter}"
         } >> "$GITHUB_OUTPUT"
 
+    # Saves the build output in its post step at the end of the job, only if the job succeeded and
+    # the cache was not restored from an exact match of the key.
     - name: Restore build output
-      id: restore
-      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      id: cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ${{ steps.keys.outputs.paths }}
         key: ${{ steps.keys.outputs.primary_key }}
         restore-keys: ${{ steps.keys.outputs.restore_keys }}
 
-    - name: Store build cache state
-      shell: bash
-      env:
-        _PRIMARY_KEY: ${{ steps.keys.outputs.primary_key }}
-        _PATHS: ${{ steps.keys.outputs.paths }}
-        _WORKING_DIRECTORY: ${{ steps.keys.outputs.working_directory }}
-        _CACHE_HIT: ${{ steps.restore.outputs.cache-hit }}
-        _STATE_DIR: ${{ runner.temp }}/cargo-build-cache
-      run: |
-        mkdir -p "$_STATE_DIR"
-        printf '%s' "$_PRIMARY_KEY" > "$_STATE_DIR/primary_key"
-        printf '%s' "$_PATHS" > "$_STATE_DIR/paths"
-        printf '%s' "$_WORKING_DIRECTORY" > "$_STATE_DIR/working_directory"
-        printf '%s' "${_CACHE_HIT:-false}" > "$_STATE_DIR/cache_hit"
-
-    # Also lists the hashes of the files the build is about to compile, which save stores as the
-    # record of the build's inputs.
+    # Also stores the hashes of the files the build is about to compile in the target directory, as
+    # the record of the build's inputs that is saved with it.
     - name: Mark changed files
       shell: bash
       working-directory: ${{ steps.keys.outputs.working_directory }}
-      env:
-        _STATE_DIR: ${{ runner.temp }}/cargo-build-cache
-      run: |
-        state_dir="$_STATE_DIR"
-        if command -v cygpath > /dev/null; then
-          state_dir=$(cygpath -u "$state_dir")
-        fi
-        bash "${{ github.action_path }}/../build-cache.sh" mark "$state_dir/pending_inputs"
+      run: bash "${{ github.action_path }}/build-cache.sh" mark
 
     # The toolchain is part of the cache key, so the cached build output always comes from these
     # same sysroot files.

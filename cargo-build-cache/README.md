@@ -1,21 +1,18 @@
-# Cargo Build Cache Actions
+# Cargo Build Cache Action
 
 ## Description
 
-`cargo-build-cache/restore` and `cargo-build-cache/save` cache a Cargo `target/` directory between workflow runs, including the build output of the workspace's own crates. A run then only recompiles the crates that changed and the crates that depend on them.
+`cargo-build-cache` caches a Cargo `target/` directory between workflow runs, including the build output of the workspace's own crates. A run then only recompiles the crates that changed and the crates that depend on them.
 
-Caching `target/` alone is not enough. Cargo decides whether a workspace crate is up to date by comparing the modification times of its source files with those of its build output, and a fresh checkout gives every file the current time. So:
-
-- **restore** restores the cache, sets every tracked file to a fixed old time, and marks as new only the files whose hash differs from the hashes stored with the cache. It keeps the current hashes for save.
-- **save** stores those hashes next to the build output as the record of its inputs, then saves the cache.
+Caching `target/` alone is not enough. Cargo decides whether a workspace crate is up to date by comparing the modification times of its source files with those of its build output, and a fresh checkout gives every file the current time. So the action restores the cache, sets every tracked file to a fixed old time, and marks as new only the files whose hash differs from the hashes stored with the cache. It then stores the current hashes next to the build output, as the record of the inputs of the build that follows. The cache is saved at the end of the job.
 
 Without a stored list of hashes (nothing restored, or a cache saved without one), every workspace crate is rebuilt. That is slower but never stale.
 
-Cargo has an unstable `build.fingerprint = "content"` setting that compares file contents instead of modification times ([cargo#14136](https://github.com/rust-lang/cargo/issues/14136)). Once it is stable and also covers build scripts, which it does not yet, the actions can set it and drop the hashing and marking, while callers keep the same `restore` and `save` steps.
+Cargo has an unstable `build.fingerprint = "content"` setting that compares file contents instead of modification times ([cargo#14136](https://github.com/rust-lang/cargo/issues/14136)). Once it is stable and also covers build scripts, which it does not yet, the action can set it and drop the hashing and marking, while callers keep the same step.
 
 ## How to Use It
 
-Run `restore` after installing Rust and before the build, and `save` after the build, only if the build succeeded.
+Run the action after installing Rust and before the build.
 
 ```yaml
 - name: Install Rust
@@ -29,24 +26,18 @@ Run `restore` after installing Rust and before the build, and `save` after the b
   with:
     cache-targets: false
 
-- name: Restore build output
-  uses: bitwarden/gh-actions/cargo-build-cache/restore@main
+- name: Cache build output
+  uses: bitwarden/gh-actions/cargo-build-cache@main
   with:
     key: test
-
-- name: Build
-  id: build
-  run: cargo test --workspace --no-run
-
-- name: Save build output
-  if: always() && steps.build.outcome == 'success'
-  uses: bitwarden/gh-actions/cargo-build-cache/save@main
 
 - name: Test
   run: cargo test --workspace
 ```
 
-The hashes are taken when `restore` runs, so steps between the build and `save`, such as tests, may change tracked files. Steps between `restore` and the build must not change them.
+The build output is saved by the post step of [actions/cache](https://github.com/actions/cache) at the end of the job, only if the job succeeded. A run whose build succeeded but whose tests failed saves nothing, and the next run builds from the previous cache entry.
+
+The hashes are taken when the action runs, so steps after the build, such as tests, may change tracked files. Steps between the action and the build must not change them.
 
 ### Cache key
 
@@ -54,10 +45,10 @@ The build output is saved under `cargo-build-<runner os>-<key>-<compiler>-<YYYY-
 
 - Runs start a new cache every month, so build output of old dependency versions doesn't accumulate. Schedule a run on the default branch early each month (e.g. `cron: "0 2 1 * *"`) so pull requests don't wait for the next merge to get the new month's cache.
 - Pull requests fall back to the previous month's cache until the default branch has built the new one. Other events only restore caches from the current month.
-- `save` skips saving when `restore` found an exact match of the key, because that entry already exists.
+- Nothing is saved when the cache was restored from an exact match of the key, because that entry already exists.
 - Every build that produces different output needs its own `key`: a different command, profile, feature set or target. If the output also depends on something Cargo doesn't track, such as a container image with the linker, add it to the `key`.
 
-### Restore inputs
+### Inputs
 
 | Input                  | Required | Default | Description                                                                                                                                                          |
 | ---------------------- | -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -67,15 +58,12 @@ The build output is saved under `cargo-build-<runner os>-<key>-<compiler>-<YYYY-
 | `toolchain`            | No       | `""`    | Rustup toolchain the build uses, when it is not the default one for the working directory (e.g. a pinned nightly). Used for the cache key and for the sysroot reset. |
 | `reset_sysroot_mtimes` | No       | `false` | Set all files in the toolchain's sysroot to a fixed old time. Needed for builds that track sysroot files, see below.                                                 |
 
-### Restore outputs
+### Outputs
 
-| Output              | Description                                                           |
-| ------------------- | --------------------------------------------------------------------- |
-| `cache_hit`         | `true` if the cache was restored from an exact match of the key.      |
-| `cache_primary_key` | The key the build output is saved under.                              |
-| `cache_matched_key` | The key of the restored cache entry. Empty when nothing was restored. |
-
-`save` has no inputs: it reads the key and paths that `restore` stored for the job. Each job can use one build cache.
+| Output              | Description                                                                                                                                     |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cache_hit`         | `true` if the cache was restored from an exact match of the key, `false` if it was restored from an older entry, empty if nothing was restored. |
+| `cache_primary_key` | The key the build output is saved under.                                                                                                        |
 
 ### Builds that track the toolchain's files
 
@@ -87,8 +75,8 @@ Some builds make Cargo compare the modification times of files inside the Rust t
 Set `reset_sysroot_mtimes: true` for these, and `toolchain` when the build uses another toolchain than the default one. The toolchain is part of the cache key, so the cached output always comes from the same toolchain files.
 
 ```yaml
-- name: Restore build output
-  uses: bitwarden/gh-actions/cargo-build-cache/restore@main
+- name: Cache build output
+  uses: bitwarden/gh-actions/cargo-build-cache@main
   with:
     key: lint-udeps
     toolchain: ${{ steps.nightly-toolchain.outputs.RUST_NIGHTLY_TOOLCHAIN }}
@@ -99,5 +87,5 @@ Set `reset_sysroot_mtimes: true` for these, and `toolchain` when the build uses 
 
 - Path dependencies outside `working_directory` keep their checkout time, so crates that use them are rebuilt on every run.
 - Builds in containers, such as `cross`, must see the workspace with the same file times. `cross` mounts it at the same path.
-- Symlinks are hashed by the path they point to, like git stores them. When a tracked symlink changed since the cached build, `restore` rebuilds all workspace crates: Cargo follows symlinks, so the file times of the new target can't tell it what changed. Submodules are not hashed, so crates that use their files are rebuilt on every run.
-- Tracked paths that contain a newline can't be hashed. `restore` then rebuilds all workspace crates, and `save` fails.
+- Symlinks are hashed by the path they point to, like git stores them. When a tracked symlink changed since the cached build, all workspace crates are rebuilt: Cargo follows symlinks, so the file times of the new target can't tell it what changed. Submodules are not hashed, so crates that use their files are rebuilt on every run.
+- Tracked paths that contain a newline can't be hashed. All workspace crates are then rebuilt, and the cache is saved without a record, so the next run rebuilds them too.

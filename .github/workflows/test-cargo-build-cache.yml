@@ -70,9 +70,32 @@ jobs:
         working-directory: ${{ env.WORKSPACE_DIR }}
         run: sed -i.bak 's/42/43/' other/src/lib.rs && rm other/src/lib.rs.bak
 
+      # Like a failing test after the build. The build output must still be saved.
+      - name: Fail after the build
+        id: fail
+        continue-on-error: true
+        shell: bash
+        run: exit 1
+
       - name: Save build output
         if: always() && steps.build.outcome == 'success'
         uses: ./cargo-build-cache/save
+
+      # The warm build checks that the cache was saved, by expecting an exact key match.
+      - name: Verify the build inputs were recorded
+        shell: bash
+        working-directory: ${{ env.WORKSPACE_DIR }}
+        env:
+          _FAIL_OUTCOME: ${{ steps.fail.outcome }}
+        run: |
+          if [ "$_FAIL_OUTCOME" != "failure" ]; then
+            echo "::error::Expected the failing step to fail, got '$_FAIL_OUTCOME'"
+            exit 1
+          fi
+          if [ ! -f target/.build-cache-inputs ]; then
+            echo "::error::Expected save to record the build inputs"
+            exit 1
+          fi
 
   warm-build:
     name: Warm build (${{ matrix.os }})

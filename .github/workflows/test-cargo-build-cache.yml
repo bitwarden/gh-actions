@@ -13,6 +13,8 @@ permissions:
 env:
   # Both jobs must use the same compiler, because it is part of the cache key.
   RUSTUP_TOOLCHAIN: "1.90.0"
+  # The fixture also tracks a dangling symlink and a symlink to a directory, which must not stop the
+  # build inputs from being hashed.
   WORKSPACE_DIR: cargo-build-cache/tests/fixtures/workspace
 
 jobs:

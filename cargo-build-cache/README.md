@@ -97,4 +97,5 @@ Set `reset_sysroot_mtimes: true` for these, and `toolchain` when the build uses 
 
 - Path dependencies outside `working_directory` keep their checkout time, so crates that use them are rebuilt on every run.
 - Builds in containers, such as `cross`, must see the workspace with the same file times. `cross` mounts it at the same path.
+- Symlinks are hashed by the path they point to, like git stores them. When a tracked symlink changed since the cached build, `restore` rebuilds all workspace crates: Cargo follows symlinks, so the file times of the new target can't tell it what changed. Submodules are not hashed, so crates that use their files are rebuilt on every run.
 - Tracked paths that contain a newline can't be hashed. `restore` then rebuilds all workspace crates, and `save` fails.

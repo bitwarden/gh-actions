@@ -36,6 +36,16 @@ jobs:
         shell: bash
         run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal
 
+      - name: Check the repository tracks no symlinks
+        if: matrix.os == 'ubuntu-24.04'
+        shell: bash
+        run: |
+          links=$(git ls-files -s | awk '$1 == "120000" { print $4 }')
+          if [ -n "$links" ]; then
+            echo "::error::The repository must not track symlinks. The Actions runner fails to download any action from a repository that contains a dangling symlink, which breaks every workflow using bitwarden/gh-actions. Tracked symlinks: $links"
+            exit 1
+          fi
+
       # A dangling symlink and a symlink to a directory must not stop the build inputs from being
       # hashed. They are added to the index here, not committed: the runner fails to download an
       # action from a repository that contains a dangling symlink. `git checkout` then writes them

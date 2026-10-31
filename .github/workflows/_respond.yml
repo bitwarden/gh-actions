@@ -116,7 +116,7 @@ jobs:
       - name: Run Claude Code
         id: claude
         timeout-minutes: 10
-        uses: anthropics/claude-code-action@6fed3ca145920b639991cb756090506e1bcaf515 # v1.0.245
+        uses: anthropics/claude-code-action@16f9f71ab9c490faf367f94dd294897edc25be33 # v1.0.261
         with:
           anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-RESPONSE-API-KEY }}
           track_progress: true

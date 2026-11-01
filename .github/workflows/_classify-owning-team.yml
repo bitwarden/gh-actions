@@ -1,0 +1,51 @@
+name: Owning-Team Classification
+
+on:
+  workflow_call:
+    secrets:
+      AZURE_SUBSCRIPTION_ID:
+        required: true
+      AZURE_TENANT_ID:
+        required: true
+      AZURE_CLIENT_ID:
+        required: true
+
+concurrency:
+  group: ${{ github.repository }}-${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  check-permission:
+    name: Check permission
+    if: github.event.action == 'labeled' && github.event.label.name == 'owner-classification'
+    uses: bitwarden/gh-actions/.github/workflows/_check-permission.yml@main
+    with:
+      failure_mode: "skip"
+      require_permission: "write"
+    permissions:
+      contents: read
+
+  # Pull requests from forks get no secrets or OIDC token, so the job skips them.
+  classify:
+    name: Classify
+    runs-on: ubuntu-24.04
+    needs: check-permission
+    if: needs.check-permission.outputs.should_proceed == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+
+    steps:
+      - name: Classify owning teams
+        uses: bitwarden/gh-actions/classify-owning-team@main
+        with:
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+          pr_number: ${{ github.event.pull_request.number }}
+          repository: ${{ github.repository }}
+          github_token: ${{ github.token }}

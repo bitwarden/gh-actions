@@ -1,9 +1,19 @@
 name: "Setup Aikido Endpoint Protection"
 description: "Installs a pinned, checksum-verified Aikido Endpoint Protection agent so package downloads in later steps are checked against Aikido policy"
 inputs:
-  token:
-    description: "Aikido Endpoint Protection enrollment token"
+  azure-subscription-id:
+    description: "The Azure Subscription ID that contains the Key Vault with the enrollment token"
     required: true
+  azure-tenant-id:
+    description: "The Azure Tenant ID that contains the Key Vault with the enrollment token"
+    required: true
+  azure-client-id:
+    description: "The Azure Client ID used to log in to Azure"
+    required: true
+  azure-keyvault-name:
+    description: "The name of the Key Vault that holds the AIKIDO-ENDPOINT-TOKEN secret"
+    required: false
+    default: "gh-org-bitwarden"
 runs:
   using: "composite"
   steps:
@@ -11,7 +21,7 @@ runs:
       id: check
       shell: bash
       env:
-        AIKIDO_TOKEN: ${{ inputs.token }}
+        AZURE_CLIENT_ID: ${{ inputs.azure-client-id }}
         IS_FORK_PR: ${{ github.event.pull_request != null && github.event.pull_request.head.repo.full_name != github.repository }}
       run: |
         if [[ "$RUNNER_OS" != "Linux" || "$RUNNER_ARCH" != "X64" ]]; then
@@ -19,18 +29,38 @@ runs:
           exit 1
         fi
 
-        if [[ -z "$AIKIDO_TOKEN" ]]; then
-          # Fork pull requests can't read secrets. Anything else with an empty token is a misconfiguration.
+        if [[ -z "$AZURE_CLIENT_ID" ]]; then
+          # Fork pull requests can't read secrets. Anything else without Azure credentials is a misconfiguration.
           if [[ "$IS_FORK_PR" == "true" ]]; then
             echo "::warning::Skipping Aikido Endpoint Protection because fork pull requests can't read secrets"
             echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          echo "::error::The token input is empty"
+          echo "::error::The azure-client-id input is empty"
           exit 1
         fi
 
         echo "skip=false" >> "$GITHUB_OUTPUT"
+
+    - name: Log in to Azure
+      if: ${{ steps.check.outputs.skip != 'true' }}
+      uses: bitwarden/gh-actions/azure-login@main
+      with:
+        subscription_id: ${{ inputs.azure-subscription-id }}
+        tenant_id: ${{ inputs.azure-tenant-id }}
+        client_id: ${{ inputs.azure-client-id }}
+
+    - name: Get Azure Key Vault secrets
+      id: get-kv-secrets
+      if: ${{ steps.check.outputs.skip != 'true' }}
+      uses: bitwarden/gh-actions/get-keyvault-secrets@main
+      with:
+        keyvault: ${{ inputs.azure-keyvault-name }}
+        secrets: "AIKIDO-ENDPOINT-TOKEN"
+
+    - name: Log out from Azure
+      if: ${{ steps.check.outputs.skip != 'true' }}
+      uses: bitwarden/gh-actions/azure-logout@main
 
     # Pinned by version and SHA-256 rather than piping Aikido's install script from main.
     # Renovate bumps both values together through the regex manager in .github/renovate.json.
@@ -38,12 +68,17 @@ runs:
       if: ${{ steps.check.outputs.skip != 'true' }}
       shell: bash
       env:
-        AIKIDO_TOKEN: ${{ inputs.token }}
+        AIKIDO_TOKEN: ${{ steps.get-kv-secrets.outputs.AIKIDO-ENDPOINT-TOKEN }}
         AIKIDO_CONTAINER: "1"
         AIKIDO_CI_CD: "1"
         _AIKIDO_ENDPOINT_VERSION: v1.10.29
         _AIKIDO_ENDPOINT_SHA256: c26c9a3dbab38a0db8892eb1b96b23f777d9b1419f2b892089cf09058f18111b
       run: |
+        if [[ -z "$AIKIDO_TOKEN" ]]; then
+          echo "::error::AIKIDO-ENDPOINT-TOKEN is empty in the Key Vault"
+          exit 1
+        fi
+
         DEB="$RUNNER_TEMP/aikido-endpoint-protection.deb"
         curl -fsSL --proto '=https' -o "$DEB" \
           "https://github.com/AikidoSec/safechain-internals/releases/download/${_AIKIDO_ENDPOINT_VERSION}/EndpointProtection-amd64.deb"

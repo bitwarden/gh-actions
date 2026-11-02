@@ -15,6 +15,9 @@ jobs:
     name: Test install
     runs-on: ubuntu-24.04
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout
@@ -25,7 +28,9 @@ jobs:
       - name: Run action
         uses: ./setup-aikido-endpoint-protection
         with:
-          token: ${{ secrets.AIKIDO_TOKEN }}
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Verify proxy environment is exported to later steps
         run: |

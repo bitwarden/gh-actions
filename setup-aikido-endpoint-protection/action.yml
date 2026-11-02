@@ -90,23 +90,56 @@ runs:
 
     # The agent writes its proxy and CA settings to /etc/profile.d, which step shells never read.
     # Export whatever those files add or change so every later step in the job picks them up.
+    # On the L7 datapath the daemon can write aikido-proxy.sh after it reports healthy, so fall back
+    # to the proxy.addr.txt file the agent's own health check reads.
     - name: Export Aikido proxy environment
       if: ${{ steps.check.outputs.skip != 'true' }}
       shell: bash
       run: |
-        if [[ ! -f /etc/profile.d/aikido-proxy.sh ]]; then
-          echo "::error::/etc/profile.d/aikido-proxy.sh was not created by the agent"
-          exit 1
+        RUN_DIR=/var/lib/aikidosecurity/endpoint-protection/run
+        MODE=$(sudo jq -r '.proxy_mode // "l4"' "$RUN_DIR/config.json")
+        echo "Aikido datapath: $MODE"
+
+        if [[ "$MODE" == "l7" ]]; then
+          for _ in $(seq 1 20); do
+            if [[ -f /etc/profile.d/aikido-proxy.sh ]] || sudo test -s "$RUN_DIR/proxy.addr.txt"; then
+              break
+            fi
+            sleep 1
+          done
+        else
+          echo "::warning::Aikido is using the $MODE datapath instead of the L7 proxy that container mode selects"
         fi
 
         export LC_ALL=C
-        comm -13 <(env | sort) <(
+        AFTER="$RUNNER_TEMP/aikido-env-after"
+        (
+          shopt -s nullglob
           for f in /etc/profile.d/aikido-*.sh; do
             # shellcheck source=/dev/null
             . "$f"
           done
-          env | sort
-        ) | grep -v '^_=' >> "$GITHUB_ENV"
+
+          if [[ "$MODE" == "l7" && -z "${HTTPS_PROXY:-}" ]]; then
+            ADDR=$(sudo cat "$RUN_DIR/proxy.addr.txt" 2>/dev/null | tr -d '[:space:]')
+            if [[ -z "$ADDR" ]]; then
+              echo "::error::Neither /etc/profile.d/aikido-proxy.sh nor $RUN_DIR/proxy.addr.txt gave an L7 proxy address"
+              exit 1
+            fi
+            export http_proxy="http://$ADDR" https_proxy="http://$ADDR"
+            export HTTP_PROXY="http://$ADDR" HTTPS_PROXY="http://$ADDR"
+            export no_proxy="localhost,127.0.0.1,::1" NO_PROXY="localhost,127.0.0.1,::1"
+          fi
+
+          env | sort > "$AFTER"
+        )
+        CHANGED=$(comm -13 <(env | sort) "$AFTER" | { grep -v '^_=' || true; })
+        rm -f "$AFTER"
+
+        echo "Exporting to later steps: $(cut -d= -f1 <<< "$CHANGED" | paste -sd' ' -)"
+        if [[ -n "$CHANGED" ]]; then
+          echo "$CHANGED" >> "$GITHUB_ENV"
+        fi
 
     - name: Verify Aikido Endpoint Protection
       if: ${{ steps.check.outputs.skip != 'true' }}

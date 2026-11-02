@@ -43,8 +43,14 @@ jobs:
       - name: Verify npm is blocked from installing a flagged package
         working-directory: ${{ runner.temp }}
         run: |
-          if npm pack safe-chain-test@0.0.1-security; then
+          if OUTPUT=$(npm pack safe-chain-test@0.0.1-security 2>&1); then
             echo "::error::npm downloaded safe-chain-test, so Aikido is not filtering npm traffic"
+            exit 1
+          fi
+          echo "$OUTPUT"
+          # Anything other than a 403 (a TLS error from a missing CA, for example) means npm isn't going through Aikido correctly.
+          if ! grep -q '403' <<< "$OUTPUT"; then
+            echo "::error::npm failed, but not with the 403 Aikido returns for blocked packages"
             exit 1
           fi
           echo "npm was blocked as expected"

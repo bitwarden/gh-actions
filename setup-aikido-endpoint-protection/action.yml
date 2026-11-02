@@ -71,8 +71,8 @@ runs:
         AIKIDO_TOKEN: ${{ steps.get-kv-secrets.outputs.AIKIDO-ENDPOINT-TOKEN }}
         AIKIDO_CONTAINER: "1"
         AIKIDO_CI_CD: "1"
-        _AIKIDO_ENDPOINT_VERSION: v1.10.29
-        _AIKIDO_ENDPOINT_SHA256: c26c9a3dbab38a0db8892eb1b96b23f777d9b1419f2b892089cf09058f18111b
+        _AIKIDO_ENDPOINT_VERSION: v1.10.20
+        _AIKIDO_ENDPOINT_SHA256: 224db25c1d0004d12f68048aa7df7868d3b52643a137e6368ee94cf287b7af3e
       run: |
         if [[ -z "$AIKIDO_TOKEN" ]]; then
           echo "::error::AIKIDO-ENDPOINT-TOKEN is empty in the Key Vault"

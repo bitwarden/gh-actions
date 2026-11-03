@@ -1,0 +1,154 @@
+name: "Setup Aikido Endpoint Protection"
+description: "Installs a pinned, checksum-verified Aikido Endpoint Protection agent so package downloads in later steps are checked against Aikido policy"
+inputs:
+  azure-subscription-id:
+    description: "The Azure Subscription ID that contains the Key Vault with the enrollment token"
+    required: true
+  azure-tenant-id:
+    description: "The Azure Tenant ID that contains the Key Vault with the enrollment token"
+    required: true
+  azure-client-id:
+    description: "The Azure Client ID used to log in to Azure"
+    required: true
+  azure-keyvault-name:
+    description: "The name of the Key Vault that holds the AIKIDO-ENDPOINT-TOKEN secret"
+    required: false
+    default: "gh-org-bitwarden"
+runs:
+  using: "composite"
+  steps:
+    - name: Check prerequisites
+      id: check
+      shell: bash
+      env:
+        AZURE_CLIENT_ID: ${{ inputs.azure-client-id }}
+        IS_FORK_PR: ${{ github.event.pull_request != null && github.event.pull_request.head.repo.full_name != github.repository }}
+      run: |
+        if [[ "$RUNNER_OS" != "Linux" || "$RUNNER_ARCH" != "X64" ]]; then
+          echo "::error::This action only supports Linux X64 runners"
+          exit 1
+        fi
+
+        if [[ -z "$AZURE_CLIENT_ID" ]]; then
+          # Fork pull requests can't read secrets. Anything else without Azure credentials is a misconfiguration.
+          if [[ "$IS_FORK_PR" == "true" ]]; then
+            echo "::warning::Skipping Aikido Endpoint Protection because fork pull requests can't read secrets"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "::error::The azure-client-id input is empty"
+          exit 1
+        fi
+
+        echo "skip=false" >> "$GITHUB_OUTPUT"
+
+    - name: Log in to Azure
+      if: ${{ steps.check.outputs.skip != 'true' }}
+      uses: bitwarden/gh-actions/azure-login@main
+      with:
+        subscription_id: ${{ inputs.azure-subscription-id }}
+        tenant_id: ${{ inputs.azure-tenant-id }}
+        client_id: ${{ inputs.azure-client-id }}
+
+    - name: Get Azure Key Vault secrets
+      id: get-kv-secrets
+      if: ${{ steps.check.outputs.skip != 'true' }}
+      uses: bitwarden/gh-actions/get-keyvault-secrets@main
+      with:
+        keyvault: ${{ inputs.azure-keyvault-name }}
+        secrets: "AIKIDO-ENDPOINT-TOKEN"
+
+    - name: Log out from Azure
+      if: ${{ steps.check.outputs.skip != 'true' }}
+      uses: bitwarden/gh-actions/azure-logout@main
+
+    # Pinned by version and SHA-256 rather than piping Aikido's install script from main.
+    # Renovate bumps both values together through the regex manager in .github/renovate.json.
+    - name: Install Aikido Endpoint Protection
+      if: ${{ steps.check.outputs.skip != 'true' }}
+      shell: bash
+      env:
+        AIKIDO_TOKEN: ${{ steps.get-kv-secrets.outputs.AIKIDO-ENDPOINT-TOKEN }}
+        AIKIDO_CONTAINER: "1"
+        AIKIDO_CI_CD: "1"
+        _AIKIDO_ENDPOINT_VERSION: v1.10.20
+        _AIKIDO_ENDPOINT_SHA256: 224db25c1d0004d12f68048aa7df7868d3b52643a137e6368ee94cf287b7af3e
+      run: |
+        if [[ -z "$AIKIDO_TOKEN" ]]; then
+          echo "::error::AIKIDO-ENDPOINT-TOKEN is empty in the Key Vault"
+          exit 1
+        fi
+
+        DEB="$RUNNER_TEMP/aikido-endpoint-protection.deb"
+        curl -fsSL --proto '=https' -o "$DEB" \
+          "https://github.com/AikidoSec/safechain-internals/releases/download/${_AIKIDO_ENDPOINT_VERSION}/EndpointProtection-amd64.deb"
+        echo "${_AIKIDO_ENDPOINT_SHA256}  ${DEB}" | sha256sum --check --strict
+        sudo --preserve-env=AIKIDO_TOKEN,AIKIDO_CONTAINER,AIKIDO_CI_CD \
+          apt-get install -y --no-install-recommends "$DEB"
+        rm -f "$DEB"
+        sudo aikido-endpoint-protection-start --wait-for-healthy
+
+    # The agent writes its proxy and CA settings to /etc/profile.d, which step shells never read.
+    # Export whatever those files add or change so every later step in the job picks them up.
+    # On the L7 datapath the daemon can write aikido-proxy.sh after it reports healthy, so fall back
+    # to the proxy.addr.txt file the agent's own health check reads.
+    - name: Export Aikido proxy environment
+      if: ${{ steps.check.outputs.skip != 'true' }}
+      shell: bash
+      run: |
+        RUN_DIR=/var/lib/aikidosecurity/endpoint-protection/run
+        MODE=$(sudo jq -r '.proxy_mode // "l4"' "$RUN_DIR/config.json")
+        echo "Aikido datapath: $MODE"
+
+        if [[ "$MODE" == "l7" ]]; then
+          for _ in $(seq 1 20); do
+            if [[ -f /etc/profile.d/aikido-proxy.sh ]] || sudo test -s "$RUN_DIR/proxy.addr.txt"; then
+              break
+            fi
+            sleep 1
+          done
+        else
+          echo "::warning::Aikido is using the $MODE datapath instead of the L7 proxy that container mode selects"
+        fi
+
+        export LC_ALL=C
+        AFTER="$RUNNER_TEMP/aikido-env-after"
+        (
+          shopt -s nullglob
+          for f in /etc/profile.d/aikido-*.sh; do
+            # shellcheck source=/dev/null
+            . "$f"
+          done
+
+          if [[ "$MODE" == "l7" && -z "${HTTPS_PROXY:-}" ]]; then
+            ADDR=$(sudo cat "$RUN_DIR/proxy.addr.txt" 2>/dev/null | tr -d '[:space:]')
+            if [[ -z "$ADDR" ]]; then
+              echo "::error::Neither /etc/profile.d/aikido-proxy.sh nor $RUN_DIR/proxy.addr.txt gave an L7 proxy address"
+              exit 1
+            fi
+            export http_proxy="http://$ADDR" https_proxy="http://$ADDR"
+            export HTTP_PROXY="http://$ADDR" HTTPS_PROXY="http://$ADDR"
+            export no_proxy="localhost,127.0.0.1,::1" NO_PROXY="localhost,127.0.0.1,::1"
+          fi
+
+          env | sort > "$AFTER"
+        )
+        CHANGED=$(comm -13 <(env | sort) "$AFTER" | { grep -v '^_=' || true; })
+        rm -f "$AFTER"
+
+        echo "Exporting to later steps: $(cut -d= -f1 <<< "$CHANGED" | paste -sd' ' -)"
+        if [[ -n "$CHANGED" ]]; then
+          echo "$CHANGED" >> "$GITHUB_ENV"
+        fi
+
+    - name: Verify Aikido Endpoint Protection
+      if: ${{ steps.check.outputs.skip != 'true' }}
+      shell: bash
+      run: |
+        STATUS=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 15 \
+          https://registry.npmjs.org/safe-chain-test/-/safe-chain-test-0.0.1-security.tgz)
+        if [[ "$STATUS" != "403" ]]; then
+          echo "::error::Expected Aikido to block the safe-chain-test package (403), got $STATUS"
+          exit 1
+        fi
+        echo "Aikido Endpoint Protection is blocking flagged packages"

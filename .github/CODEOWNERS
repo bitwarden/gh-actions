@@ -13,6 +13,10 @@
 **/entrypoint.sh @bitwarden/team-appsec @bitwarden/dept-bre
 **/docker-compose.yml @bitwarden/team-appsec @bitwarden/dept-bre
 
+# Supply chain tooling
+setup-aikido-endpoint-protection/ @bitwarden/team-appsec @bitwarden/dept-bre
+.github/workflows/test-setup-aikido-endpoint-protection.yml @bitwarden/team-appsec @bitwarden/dept-bre
+
 # Claude related files
 .claude/ @bitwarden/team-ai-sme
 .github/workflows/_respond.yml @bitwarden/team-ai-sme

@@ -1,0 +1,56 @@
+name: Test Setup Aikido Endpoint Protection Action
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "setup-aikido-endpoint-protection/**"
+      - ".github/workflows/test-setup-aikido-endpoint-protection.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test install
+    runs-on: ubuntu-24.04
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Run action
+        uses: ./setup-aikido-endpoint-protection
+        with:
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+
+      - name: Verify proxy environment is exported to later steps
+        run: |
+          if [[ -z "${HTTPS_PROXY:-}" ]]; then
+            echo "::error::HTTPS_PROXY was not exported to later steps"
+            exit 1
+          fi
+          echo "HTTPS_PROXY=$HTTPS_PROXY"
+
+      - name: Verify npm is blocked from installing a flagged package
+        working-directory: ${{ runner.temp }}
+        run: |
+          if OUTPUT=$(npm pack safe-chain-test@0.0.1-security 2>&1); then
+            echo "::error::npm downloaded safe-chain-test, so Aikido is not filtering npm traffic"
+            exit 1
+          fi
+          echo "$OUTPUT"
+          # Anything other than a 403 (a TLS error from a missing CA, for example) means npm isn't going through Aikido correctly.
+          if ! grep -q '403' <<< "$OUTPUT"; then
+            echo "::error::npm failed, but not with the 403 Aikido returns for blocked packages"
+            exit 1
+          fi
+          echo "npm was blocked as expected"

@@ -34,6 +34,14 @@
       "matchUpdateTypes": ["patch"],
       "groupName": null,
       "dependencyDashboardApproval": false
+    },
+    {
+      "matchDepNames": ["AikidoSec/safechain-internals"],
+      "commitMessagePrefix": "[deps] setup-aikido-endpoint-protection:",
+      "automerge": false,
+      "prBodyNotes": [
+        "Before approving, confirm the new SHA-256 matches the `digest` GitHub reports for `EndpointProtection-amd64.deb` on the release (`gh release view <tag> -R AikidoSec/safechain-internals --json assets`) and `SHA256_AMD64_DEB` in Aikido's `install-scripts/install-endpoint-linux.sh`."
+      ]
     }
   ],
   "regexManagers": [
@@ -51,6 +59,15 @@
         "(?<depName>ghcr\\.io/github/github-mcp-server):(?<currentValue>v\\d+\\.\\d+\\.\\d+)@(?<currentDigest>sha256:[a-f0-9]{64})"
       ],
       "datasourceTemplate": "docker"
+    },
+    {
+      "fileMatch": ["setup-aikido-endpoint-protection/action.yml$"],
+      "matchStrings": [
+        "_AIKIDO_ENDPOINT_VERSION: (?<currentValue>v[0-9.]+)\\s+_AIKIDO_ENDPOINT_SHA256: (?<currentDigest>[a-f0-9]{64})"
+      ],
+      "depNameTemplate": "AikidoSec/safechain-internals",
+      "datasourceTemplate": "github-release-attachments",
+      "versioningTemplate": "semver-coerced"
     }
   ]
 }

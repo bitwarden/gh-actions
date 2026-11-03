@@ -1,0 +1,151 @@
+name: "Cargo Build Cache"
+description: "Cache the Cargo target directory between runs, so only the crates that changed are rebuilt."
+author: "Bitwarden"
+branding:
+  icon: archive
+  color: blue
+
+inputs:
+  key:
+    description: |
+      Name of the build variant, part of the cache key. Builds that produce different output need
+      different names, e.g. "test", "lint-clippy" or "android-aarch64-linux-android". Letters,
+      digits, ".", "_" and "-" only.
+    required: true
+  path:
+    description: |
+      Additional paths and exclusions to cache, one per line, relative to the repository root
+      (actions/cache syntax). The Cargo target directory is always cached.
+    required: false
+    default: ""
+  working_directory:
+    description: "Root of the Cargo workspace, relative to the repository root."
+    required: false
+    default: "."
+  toolchain:
+    description: |
+      Rustup toolchain the build uses, when it is not the default one for the working directory
+      (e.g. a pinned nightly). Used for the cache key and for reset_sysroot_mtimes.
+    required: false
+    default: ""
+  reset_sysroot_mtimes:
+    description: |
+      Set the modification times of all files in the toolchain's sysroot to a fixed old time. Needed
+      when Cargo tracks the sysroot files, which a fresh toolchain install gives the current time:
+      builds with -Zbuild-std (the rust-src sources) and with -Zbinary-dep-depinfo (e.g. cargo-udeps).
+    required: false
+    default: "false"
+
+outputs:
+  cache_hit:
+    description: |
+      'true' if the cache was restored from an exact match of the primary key, 'false' if it was
+      restored from an older entry, and empty if nothing was restored.
+    value: ${{ steps.cache.outputs.cache-hit }}
+  cache_primary_key:
+    description: "The key the build output is saved under."
+    value: ${{ steps.keys.outputs.primary_key }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Compute build cache keys
+      id: keys
+      shell: bash
+      env:
+        _KEY: ${{ inputs.key }}
+        _EXTRA_PATHS: ${{ inputs.path }}
+        _WORKING_DIRECTORY: ${{ inputs.working_directory }}
+        _TOOLCHAIN: ${{ inputs.toolchain }}
+        _RUNNER_OS: ${{ runner.os }}
+        _EVENT_NAME: ${{ github.event_name }}
+        _SHA: ${{ github.sha }}
+      run: |
+        if [[ ! "$_KEY" =~ ^[A-Za-z0-9._-]+$ ]]; then
+          echo "::error::Invalid key '$_KEY'. Use letters, digits, '.', '_' and '-' only."
+          exit 1
+        fi
+        if [[ ! "$_TOOLCHAIN" =~ ^[A-Za-z0-9._-]*$ ]]; then
+          echo "::error::Invalid toolchain '$_TOOLCHAIN'."
+          exit 1
+        fi
+        if [ ! -d "$_WORKING_DIRECTORY" ]; then
+          echo "::error::Working directory '$_WORKING_DIRECTORY' does not exist."
+          exit 1
+        fi
+
+        working_directory="${_WORKING_DIRECTORY%/}"
+        working_directory="${working_directory#./}"
+        if [ -z "$working_directory" ] || [ "$working_directory" = "." ]; then
+          target_dir="target"
+        else
+          target_dir="$working_directory/target"
+        fi
+
+        # Cargo rebuilds everything for a different compiler, so its build output gets its own cache.
+        compiler=$(cd "$working_directory" && rustc ${_TOOLCHAIN:+"+$_TOOLCHAIN"} -vV | git hash-object --stdin)
+        compiler="${compiler:0:16}"
+
+        # Runs on the default branch start a new cache every month, so build output of old dependency
+        # versions doesn't accumulate. Pull requests fall back to the previous month's cache until
+        # the default branch has built the new one.
+        year=$(date -u +%Y)
+        month=$((10#$(date -u +%m)))
+        if [ "$month" -eq 1 ]; then
+          previous=$(printf '%d-12' $((year - 1)))
+        else
+          previous=$(printf '%d-%02d' "$year" $((month - 1)))
+        fi
+        period=$(printf '%d-%02d' "$year" "$month")
+
+        prefix="cargo-build-${_RUNNER_OS}-${_KEY}-${compiler}"
+        delimiter="EOF_$(git hash-object --stdin <<< "$RANDOM$RANDOM$_SHA")"
+        {
+          echo "primary_key=${prefix}-${period}-${_SHA}"
+          echo "working_directory=${working_directory:-.}"
+          echo "restore_keys<<${delimiter}"
+          echo "${prefix}-${period}-"
+          if [ "$_EVENT_NAME" = "pull_request" ]; then
+            echo "${prefix}-${previous}-"
+          fi
+          echo "${delimiter}"
+          echo "paths<<${delimiter}"
+          echo "$target_dir"
+          if [ -n "$_EXTRA_PATHS" ]; then
+            echo "$_EXTRA_PATHS"
+          fi
+          echo "${delimiter}"
+        } >> "$GITHUB_OUTPUT"
+
+    # Saves the build output in its post step at the end of the job, only if the job succeeded and
+    # the cache was not restored from an exact match of the key.
+    - name: Restore build output
+      id: cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ steps.keys.outputs.paths }}
+        key: ${{ steps.keys.outputs.primary_key }}
+        restore-keys: ${{ steps.keys.outputs.restore_keys }}
+
+    # Also stores the hashes of the files the build is about to compile in the target directory, as
+    # the record of the build's inputs that is saved with it.
+    - name: Mark changed files
+      shell: bash
+      working-directory: ${{ steps.keys.outputs.working_directory }}
+      run: bash "${{ github.action_path }}/build-cache.sh" mark
+
+    # The toolchain is part of the cache key, so the cached build output always comes from these
+    # same sysroot files.
+    - name: Mark toolchain files as unchanged
+      if: inputs.reset_sysroot_mtimes == 'true'
+      shell: bash
+      working-directory: ${{ steps.keys.outputs.working_directory }}
+      env:
+        _TOOLCHAIN: ${{ inputs.toolchain }}
+      run: |
+        sysroot=$(rustc ${_TOOLCHAIN:+"+$_TOOLCHAIN"} --print sysroot)
+        if command -v cygpath > /dev/null; then
+          sysroot=$(cygpath -u "$sysroot")
+        fi
+        echo "Resetting modification times in $sysroot"
+        find "$sysroot" -exec touch -h -c -t 200001010000 -- {} +

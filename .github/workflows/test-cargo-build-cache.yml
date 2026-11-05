@@ -1,0 +1,195 @@
+name: Test Cargo Build Cache Action
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "cargo-build-cache/**"
+      - ".github/workflows/test-cargo-build-cache.yml"
+
+permissions:
+  contents: read
+
+env:
+  # Both jobs must use the same compiler, because it is part of the cache key.
+  RUSTUP_TOOLCHAIN: "1.90.0"
+  WORKSPACE_DIR: cargo-build-cache/tests/fixtures/workspace
+
+jobs:
+  cold-build:
+    name: Cold build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-24.04
+          - macos-14
+          - windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install Rust
+        shell: bash
+        run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal
+
+      - name: Check the repository tracks no symlinks
+        if: matrix.os == 'ubuntu-24.04'
+        shell: bash
+        run: |
+          links=$(git ls-files -s | awk '$1 == "120000" { print $4 }')
+          if [ -n "$links" ]; then
+            echo "::error::The repository must not track symlinks. The Actions runner fails to download any action from a repository that contains a dangling symlink, which breaks every workflow using bitwarden/gh-actions. Tracked symlinks: $links"
+            exit 1
+          fi
+
+      # A dangling symlink and a symlink to a directory must not stop the build inputs from being
+      # hashed. They are added to the index here, not committed: the runner fails to download an
+      # action from a repository that contains a dangling symlink. `git checkout` then writes them
+      # the way a checkout of a commit would.
+      - name: Add symlinks to the fixture
+        shell: bash
+        run: |
+          add_symlink() {
+            local path="$WORKSPACE_DIR/$1"
+            git update-index --add --cacheinfo "120000,$(printf '%s' "$2" | git hash-object -w --stdin),$path"
+            git checkout -- "$path"
+          }
+          add_symlink links/dangling does-not-exist
+          add_symlink links/directory ../base/src
+
+      # Saves the build output at the end of the job. The warm build checks that it was saved, by
+      # expecting an exact key match.
+      - name: Cache build output
+        id: cache
+        uses: ./cargo-build-cache
+        with:
+          key: test-${{ github.run_id }}-${{ github.run_attempt }}
+          working_directory: ${{ env.WORKSPACE_DIR }}
+
+      - name: Verify nothing was restored
+        shell: bash
+        env:
+          _CACHE_HIT: ${{ steps.cache.outputs.cache_hit }}
+          _PRIMARY_KEY: ${{ steps.cache.outputs.cache_primary_key }}
+        run: |
+          echo "Primary key: $_PRIMARY_KEY"
+          if [ -n "$_CACHE_HIT" ]; then
+            echo "::error::Expected no cache entry, got cache_hit '$_CACHE_HIT'"
+            exit 1
+          fi
+
+      - name: Build
+        id: build
+        shell: bash
+        working-directory: ${{ env.WORKSPACE_DIR }}
+        run: cargo build --locked
+
+      # Like a test that updates a snapshot. The record must describe the content that was compiled,
+      # or the warm build would rebuild the other crate.
+      - name: Change a tracked file after the build
+        shell: bash
+        working-directory: ${{ env.WORKSPACE_DIR }}
+        run: sed -i.bak 's/42/43/' other/src/lib.rs && rm other/src/lib.rs.bak
+
+      - name: Verify the build inputs were recorded
+        shell: bash
+        working-directory: ${{ env.WORKSPACE_DIR }}
+        run: |
+          if [ ! -f target/.build-cache-inputs ]; then
+            echo "::error::Expected the action to record the build inputs"
+            exit 1
+          fi
+
+  warm-build:
+    name: Warm build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: cold-build
+    strategy:
+      matrix:
+        os:
+          - ubuntu-24.04
+          - macos-14
+          - windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install Rust
+        shell: bash
+        run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal
+
+      # A dangling symlink and a symlink to a directory must not stop the build inputs from being
+      # hashed. They are added to the index here, not committed: the runner fails to download an
+      # action from a repository that contains a dangling symlink. `git checkout` then writes them
+      # the way a checkout of a commit would.
+      - name: Add symlinks to the fixture
+        shell: bash
+        run: |
+          add_symlink() {
+            local path="$WORKSPACE_DIR/$1"
+            git update-index --add --cacheinfo "120000,$(printf '%s' "$2" | git hash-object -w --stdin),$path"
+            git checkout -- "$path"
+          }
+          add_symlink links/dangling does-not-exist
+          add_symlink links/directory ../base/src
+
+      # Git can check symlinks out as plain files containing the link target, e.g. on Windows.
+      - name: Show how symlinks were checked out
+        shell: bash
+        working-directory: ${{ env.WORKSPACE_DIR }}
+        run: |
+          for link in links/*; do
+            if [ -L "$link" ]; then
+              echo "$link: symlink to $(readlink -- "$link")"
+            else
+              echo "$link: plain file containing $(cat -- "$link")"
+            fi
+          done
+
+      - name: Change the base crate
+        shell: bash
+        working-directory: ${{ env.WORKSPACE_DIR }}
+        run: sed -i.bak 's/hello/hi/' base/src/lib.rs && rm base/src/lib.rs.bak
+
+      # Restored from an exact key match, so the build output is not saved again.
+      - name: Cache build output
+        id: cache
+        uses: ./cargo-build-cache
+        with:
+          key: test-${{ github.run_id }}-${{ github.run_attempt }}
+          working_directory: ${{ env.WORKSPACE_DIR }}
+          toolchain: ${{ env.RUSTUP_TOOLCHAIN }}
+          reset_sysroot_mtimes: true
+
+      - name: Verify the cache was restored
+        shell: bash
+        env:
+          _CACHE_HIT: ${{ steps.cache.outputs.cache_hit }}
+        run: |
+          if [ "$_CACHE_HIT" != "true" ]; then
+            echo "::error::Expected an exact cache hit"
+            exit 1
+          fi
+
+      - name: Build
+        id: build
+        shell: bash
+        working-directory: ${{ env.WORKSPACE_DIR }}
+        run: |
+          cargo build --locked --message-format=json > "$RUNNER_TEMP/build.json"
+          # jq on Windows ends lines with CRLF.
+          actual=$(jq -r 'select(.reason == "compiler-artifact") | "\(.target.name)=\(.fresh)"' \
+            "$RUNNER_TEMP/build.json" | tr -d '\r' | sort | tr '\n' ' ')
+          expected="app=false base=false other=true "
+          echo "Crates (name=fresh): $actual"
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::Expected '$expected', got '$actual'"
+            exit 1
+          fi

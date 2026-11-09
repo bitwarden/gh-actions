@@ -109,13 +109,26 @@ runs:
           SUFFIX="-${INPUT_TAG_SUFFIX}"
         fi
 
+        # List each matching tag as '<sort key><TAB><tag>', e.g.
+        # 'desktop-v2026.10.0-beta.2' -> '2026.10.0~beta.2'. The key drops the prefix,
+        # suffix and any leading 'v', so 'v2026.8.0' and '2026.9.0' compare as versions.
         # The prefix and suffix are passed with --arg so they are never parsed as part
         # of the jq program.
-        LATEST_RELEASE_TAG_VERSION=$(
+        RELEASES=$(
           gh release list --repo "$REPOSITORY" --limit 100 --order desc \
             --json tagName,isPrerelease,isDraft \
             | jq -r --arg prefix "$PREFIX" --arg suffix "$SUFFIX" \
-              "[.[] | select((.tagName | startswith(\$prefix)) and (.tagName | endswith(\$suffix))) | $SELECT | .tagName][0] // \"\""
+              ".[] | $SELECT | .tagName
+                   | select(startswith(\$prefix) and endswith(\$suffix))
+                   | (ltrimstr(\$prefix) | rtrimstr(\$suffix) | ltrimstr(\"v\") | sub(\"-\"; \"~\")) + \"\t\" + ."
+        )
+
+        # Pick the highest version rather than the first in API order, which follows
+        # the tagged commit's date, not the version. sort -V ranks '2026.10.0-beta.1'
+        # above '2026.10.0'; the '~' in the key sorts before everything, which ranks a
+        # stable release above its own pre-releases. -s keeps API order for equal keys.
+        LATEST_RELEASE_TAG_VERSION=$(
+          sort -t $'\t' -k 1,1Vr -s <<< "$RELEASES" | cut -f 2 | sed -n 1p
         )
 
         if [[ -z "$LATEST_RELEASE_TAG_VERSION" ]]; then

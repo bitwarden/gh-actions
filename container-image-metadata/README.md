@@ -29,7 +29,7 @@ See [EXAMPLES.md](EXAMPLES.md) for more ways to use this action.
 | Input                  | Required | Default                     | Description                                                                                                                                          |
 | ---------------------- | -------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `title`                | Yes      |                             | `org.opencontainers.image.title`                                                                                                                     |
-| `version`              | Yes      |                             | `org.opencontainers.image.version`                                                                                                                   |
+| `version`              | No       | derived from tags           | `org.opencontainers.image.version`                                                                                                                   |
 | `revision`             | No       | PR head SHA or `github.sha` | `org.opencontainers.image.revision`                                                                                                                  |
 | `vendor`               | No       | `Bitwarden Inc.`            | `org.opencontainers.image.vendor`                                                                                                                    |
 | `url`                  | No       | `https://bitwarden.com`     | `org.opencontainers.image.url`                                                                                                                       |
@@ -45,6 +45,8 @@ See [EXAMPLES.md](EXAMPLES.md) for more ways to use this action.
 
 "Auto-detected" means `docker/metadata-action` fills the field from the repository running the workflow. Cross-repository builds should set `description`, `licenses` and `source` explicitly.
 
+"Derived from tags" means `docker/metadata-action` uses the primary tag version from the `tags` rules (or its default rules when `tags` is empty), e.g. `pr-123` or `main`. Set `version` explicitly when the image has a release version that differs from its tags. If no tag rule produces a version, the label is emitted with an empty value. The action emits a workflow warning whenever `version` is empty.
+
 ## Outputs
 
 | Output        | Description                                                           |
@@ -58,7 +60,7 @@ See [EXAMPLES.md](EXAMPLES.md) for more ways to use this action.
 
 The action fails when:
 
-- `title` or `version` is empty
+- `title` is empty
 - a single-value input contains a line break
 - an `extra-labels` line is not `key=value`, or its key does not match `^[A-Za-z0-9][A-Za-z0-9._-]*$`
 - a label key appears twice, including an `extra-labels` key that repeats a standard one

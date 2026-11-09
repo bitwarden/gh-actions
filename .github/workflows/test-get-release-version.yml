@@ -445,7 +445,7 @@ jobs:
           assert_success "Monorepo sdk-sm bws, trim=false"    "$MONOREPO_SDK_SM_BWS_OUTCOME"     "$MONOREPO_SDK_SM_BWS_VERSION"     '^bws-v[0-9]+\.[0-9]+\.[0-9]+$'
           assert_success "Monorepo sdk-internal rust, trim=true" "$MONOREPO_SDK_INTERNAL_RUST_TRIM_OUTCOME" "$MONOREPO_SDK_INTERNAL_RUST_TRIM_VERSION" '^[0-9]+\.[0-9]+\.[0-9]+$'
           assert_success "Tag-suffix android bwpm, trim=false" "$TAG_SUFFIX_ANDROID_BWPM_OUTCOME"     "$TAG_SUFFIX_ANDROID_BWPM_VERSION"     '^v[0-9]+\.[0-9]+\.[0-9]+-bwpm$'
-          assert_success "Tag-suffix android bwa, trim=true"   "$TAG_SUFFIX_ANDROID_BWA_TRIM_OUTCOME" "$TAG_SUFFIX_ANDROID_BWA_TRIM_VERSION" '^[0-9]+\.[0-9]+\.[0-9]+-bwa$'
+          assert_success "Tag-suffix android bwa, trim=true"   "$TAG_SUFFIX_ANDROID_BWA_TRIM_OUTCOME" "$TAG_SUFFIX_ANDROID_BWA_TRIM_VERSION" '^[0-9]+\.[0-9]+\.[0-9]+$'
           assert_success "Tag-suffix ios bwpm, trim=false"     "$TAG_SUFFIX_IOS_BWPM_OUTCOME"         "$TAG_SUFFIX_IOS_BWPM_VERSION"         '^v[0-9]+\.[0-9]+\.[0-9]+-bwpm$'
           assert_success "Tag-suffix ios bwa, trim=false"      "$TAG_SUFFIX_IOS_BWA_OUTCOME"          "$TAG_SUFFIX_IOS_BWA_VERSION"          '^v[0-9]+\.[0-9]+\.[0-9]+-bwa$'
           assert_success "Non-monorepo, prerelease=false"     "$NON_MONOREPO_STABLE_OUTCOME"     "$NON_MONOREPO_STABLE_VERSION"     '^v[0-9]+\.[0-9]+\.[0-9]+$'

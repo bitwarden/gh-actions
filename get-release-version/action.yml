@@ -6,7 +6,7 @@ inputs:
     description: "This is the repository that we get the latest release version from"
     required: true
   trim:
-    description: "Strips any tag prefix before the version number, keeping any pre-release suffix, e.g. 'desktop-v2026.10.0-beta.1' -> '2026.10.0-beta.1': ('true', 'false')"
+    description: "Strips any tag prefix before the version number and any 'tag-suffix', keeping any pre-release suffix, e.g. 'desktop-v2026.10.0-beta.1' -> '2026.10.0-beta.1', 'v2026.10.0-bwpm' -> '2026.10.0': ('true', 'false')"
     required: false
     default: "false"
   monorepo:
@@ -18,7 +18,7 @@ inputs:
     required: false
     default: ""
   tag-suffix:
-    description: "Tag suffix after the version, matched as '*-<tag-suffix>', e.g. 'bwpm' -> 'v2026.10.0-bwpm'. Independent of 'monorepo'; when both are set, a tag must match both. 'trim' keeps the suffix."
+    description: "Tag suffix after the version, matched as '*-<tag-suffix>', e.g. 'bwpm' -> 'v2026.10.0-bwpm'. Independent of 'monorepo'; when both are set, a tag must match both. 'trim' drops the suffix."
     required: false
     default: ""
   prerelease:
@@ -134,6 +134,11 @@ runs:
         if [[ -z "$LATEST_RELEASE_TAG_VERSION" ]]; then
           echo "[!] No release found for '$REPOSITORY' matching prerelease='${INPUT_PRERELEASE}' monorepo-project='${INPUT_MONOREPO_PROJECT}' tag-suffix='${INPUT_TAG_SUFFIX}'"
           exit 1
+        fi
+
+        # The tag suffix names the app rather than the version, so 'trim' drops it like the prefix.
+        if [[ "${INPUT_TRIM}" == "true" ]]; then
+          LATEST_RELEASE_TAG_VERSION="${LATEST_RELEASE_TAG_VERSION%"$SUFFIX"}"
         fi
 
         case "${INPUT_TRIM}" in

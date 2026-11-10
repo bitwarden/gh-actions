@@ -15,7 +15,7 @@ GitHub's run search can't be trusted on its own. When the workflow runs API is f
     repo: bitwarden/clients
     workflow: build-cli.yml
     branch: main
-    artifacts: '^bw-linux-\d{4}\.\d+\.\d+\.zip$'
+    artifacts: '^bw-bit-linux-\d{4}\.\d+\.\d+\.zip$'
     name_is_regexp: true
 
 - name: Download build
@@ -24,7 +24,7 @@ GitHub's run search can't be trusted on its own. When the workflow runs API is f
     github_token: ${{ steps.app-token.outputs.token }}
     repo: bitwarden/clients
     run_id: ${{ steps.find.outputs.run_id }}
-    name: '^bw-linux-\d{4}\.\d+\.\d+\.zip$'
+    name: '^bw-bit-linux-\d{4}\.\d+\.\d+\.zip$'
     name_is_regexp: true
 ```
 

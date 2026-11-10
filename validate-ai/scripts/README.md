@@ -183,16 +183,17 @@ bash scripts/validate-marketplace.sh
   - `plugins` - Array of plugin entries
 - **Plugin entries** - Checks each plugin has:
   - `name` - Plugin identifier
-  - `source` - Path to plugin directory
+  - `source` - Either a `./plugins/<name>` path or a remote source object
   - `description` - Plugin description
-  - `version` - Semantic version (X.Y.Z)
+  - `version` - Semantic version (X.Y.Z), required for `./plugins/` sources and checked for format when a remote entry sets it
+- **Remote sources** - Checks a source object names a known type (`github`, `url`, `git-subdir`, `npm`, `archive`, `command`) and has that type's required fields (for example `repo` for `github`, `url` and `path` for `git-subdir`). The remote content is fetched by Claude Code at install time and is not checked here, so the existence and consistency checks below apply only to `./plugins/` sources.
 - **Plugin existence** - Verifies plugin directories actually exist
 - **Version consistency** - Ensures versions match between:
   - `marketplace.json`
   - `plugin.json` files
 - **Name consistency** - Ensures names match in marketplace and plugin manifests
-- **README catalog** - Verifies each plugin appears in the README.md plugin catalog table with the correct version
-- **Completeness** - Warns if plugins exist but aren't listed in marketplace
+- **README catalog** - Verifies each `./plugins/` plugin appears in the README.md plugin catalog table with the correct version
+- **Completeness** - Errors if a plugin exists in `plugins/` but isn't listed in marketplace, or is listed with a remote source
 
 ### Output
 

@@ -1,0 +1,76 @@
+---
+name: Test - Get PR ID
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/_get_pr_id.yml
+      - .github/workflows/test_get_pr_id.yml
+
+
+jobs:
+  main_commit:
+    uses: .github/workflows/_get_pr_id.yml
+    with:
+      commit-sha: "7d46c75af91adbfdfc70689f4d8b3405b26bda6b"
+
+
+  branch_commit:
+    uses: .github/workflows/_get_pr_id.yml
+    with:
+      commit-sha: "f30be53c2a5b3d61928c0f41a2e25605a9901d6a"
+
+
+  dne_commit:
+    uses: .github/workflows/_get_pr_id.yml
+    with:
+      commit-sha: "f30be53c2a5b3d61928c0f41a2e25605a9901d6b"
+
+
+  test_main_commit:
+    name: Test Get PR ID - Success
+    runs-on: ubuntu-22.04
+    needs:
+      - main_commit
+    steps:
+      - name: Assert
+        env:
+          ID: ${{ needs.main_commit.outputs.id }}
+        run: |
+          if [[ "$ID" != "196" ]]; then
+            exit 1
+          fi
+          exit 0
+
+  test_branch_pr:
+    name: Test Get PR ID - empty for non-main commit
+    runs-on: ubuntu-22.04
+    needs:
+      - branch_commit
+    steps:
+      - name: Assert
+        env:
+          ID: ${{ needs.branch_commit.outputs.id }}
+        run: |
+          if [[ "$ID" != "" ]]; then
+            exit 1
+          fi
+          exit 0
+
+
+  test_dne_commit:
+    name: Test Get PR ID - empty for non-existent commit
+    runs-on: ubuntu-22.04
+    needs:
+      - dne_commit
+    steps:
+      - name: Assert
+        env:
+          ID: ${{ needs.dne_commit.outputs.id }}
+        run: |
+          if [[ "$ID" != "" ]]; then
+            exit 1
+          fi
+          exit 0

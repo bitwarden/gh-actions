@@ -504,3 +504,45 @@ jobs:
             echo "Expected the step to fail, got $_OUTCOME"
             exit 1
           fi
+
+  upload-same-run:
+    name: Upload for same-run download
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Dump
+        run: |
+          mkdir same-run
+          echo "$GITHUB_SHA" > same-run/sha
+
+      - name: Upload
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: same-run-artifact
+          path: same-run
+
+  download-same-run:
+    name: Download from the current, still running run
+    runs-on: ubuntu-22.04
+    needs: upload-same-run
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      # The pattern older release branches of clients use in build-desktop.yml: no workflow, and
+      # run_id is the run the step is part of.
+      - name: Download
+        id: download
+        uses: ./download-artifacts
+        with:
+          run_id: ${{ github.run_id }}
+          artifacts: same-run-artifact
+          path: same-run
+
+      - name: Test
+        env:
+          _RUN_ID: ${{ steps.download.outputs.run_id }}
+        run: |
+          [[ "$(cat same-run/sha)" == "$GITHUB_SHA" ]] || { echo "Downloaded the wrong artifact"; exit 1; }
+          [[ "$_RUN_ID" == "$GITHUB_RUN_ID" ]] || { echo "Expected run_id $GITHUB_RUN_ID, got $_RUN_ID"; exit 1; }

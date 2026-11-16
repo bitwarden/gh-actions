@@ -1,110 +1,164 @@
-name: Download workflow artifact
-description: Download and extract an artifact associated with given workflow and commit or other criteria
-author: dawidd6 && bitwarden
+---
+name: "Download workflow artifact"
+description: "Find a workflow run with find-workflow-run, then download its artifacts with actions/download-artifact."
+author: "Bitwarden"
 branding:
   icon: download
   color: blue
+
 inputs:
   github_token:
-    description: GitHub token
-    required: false
+    description: "Token with actions:read on the repository."
     default: ${{ github.token }}
   workflow:
-    description: |
-      Workflow name.
-
-      If not specified, will be inferred from run_id (if run_id is specified), or will be the current workflow
+    description: "Workflow file name or ID. If not set, inferred from run_id, or the current workflow."
     required: false
   workflow_conclusion:
-    description: |
-      Wanted status or conclusion to search for in recent runs
-
-      https://docs.github.com/en/free-pro-team@latest/rest/reference/actions#list-workflow-runs
-    required: false
+    description: "Conclusion (e.g. success) or status (e.g. completed) the run must have. Empty matches any run."
     default: success
   repo:
-    description: Repository name with owner (like actions/checkout)
-    required: false
+    description: "Repository the workflow belongs to, in owner/repo format."
     default: ${{ github.repository }}
   pr:
-    description: Pull request number
+    description: "Pull request number. Finds the newest matching run of the pull request's head commit."
     required: false
   commit:
-    description: Commit hash
+    description: "Find the newest matching run built from this commit SHA."
     required: false
   branch:
-    description: Branch name
+    description: "Find the newest matching run on this branch."
     required: false
   event:
-    description: Event type
+    description: "No longer supported. Fails the step if set."
     required: false
   run_id:
-    description: Workflow run id
+    description: "Use this run as is, without searching."
     required: false
   run_number:
-    description: Workflow run number
+    description: "No longer supported. Fails the step if set."
     required: false
   artifacts:
-    description: Artifact names (download all artifacts if not specified)
+    description: "Artifacts to download. Comma-separated names with * wildcards. Downloads all artifacts if not set."
     required: false
   name_is_regexp:
-    description: Treat artifact name as a regular expression and download only artifacts with matching names
-    required: false
-    default: false
+    description: "With search_artifacts, treat artifacts as a single regular expression when searching for a run."
+    default: "false"
   path:
-    description: Where to unpack the artifact
-    required: false
+    description: "Where to put the artifacts. Every artifact is extracted into it directly."
     default: "./"
   allow_forks:
-    description: Allow forks
-    required: false
-    default: false
+    description: "Accept runs from forks of the repository."
+    default: "false"
   require_branch_head:
     description: |
       Fail unless the selected run was built from the latest commit on `branch`.
 
       Use for releases, where silently falling back to an older build is not acceptable. Requires `branch`.
       Only runs of the branch itself count; pull request runs at the same commit are skipped (use `pr` for those).
-    required: false
-    default: false
+    default: "false"
   check_artifacts:
-    description: Check workflow run whether it has an artifact
-    required: false
-    default: false
+    description: "Skip runs without any artifacts when searching."
+    default: "false"
   search_artifacts:
-    description: Search workflow runs for artifact with specified name
-    required: false
-    default: false
+    description: "Skip runs that lack the artifacts and keep looking at older ones. Needs artifacts."
+    default: "false"
   skip_unpack:
-    description: Choose to skip unpacking the downloaded artifact(s)
-    required: false
-    default: false
+    description: "Save each artifact as <path>/<name>.zip instead of extracting it."
+    default: "false"
   dry_run:
-    description: Check the existence of artifact(s) without downloading
+    description: "Find the run and its artifacts without downloading them."
     required: false
   if_no_artifact_found:
-    required: false
-    description: |
-      Choose how to exit the action if no artifact is found
-
-      fail, warn or ignore
+    description: "What to do when no run or artifact is found: fail, warn or ignore."
     default: fail
+
 outputs:
   error_message:
-    description: The error message, if an error occurs
-  # TODO: dry_run should be merged with found_artifact output
+    description: "The error message, if the run lookup fails."
+    value: ${{ steps.match.outputs.error_message }}
   dry_run:
-    description: Boolean output which is true if the dry run was successful and false otherwise
+    description: "With dry_run, true if artifacts were found and false otherwise."
+    value: ${{ steps.match.outputs.dry_run }}
   found_artifact:
-    description: Boolean output which is true if the artifact was found and false otherwise
+    description: "True if artifacts were found and false otherwise."
+    value: ${{ steps.match.outputs.found_artifact }}
   artifacts:
-    description: JSON array with details about found artifacts
+    description: "JSON array of the matching artifacts, as returned by the GitHub API."
+    value: ${{ steps.match.outputs.artifacts }}
   run_id:
-    description: ID of the workflow run the artifacts come from. Pass it to later steps as `run_id` to pin them to the same run
+    description: "ID of the workflow run the artifacts come from. Pass it to later steps as `run_id` to pin them to the same run."
+    value: ${{ steps.match.outputs.run_id }}
   artifact-build-commit:
-    description: The commit related to the artifact that was found
+    description: "The commit the artifacts were built from."
+    value: ${{ steps.match.outputs.artifact-build-commit }}
   artifact-build-branch:
-    description: The branch related to the artifact that was found
+    description: "The branch the artifacts were built from."
+    value: ${{ steps.match.outputs.artifact-build-branch }}
+
 runs:
-  using: node20
-  main: main.js
+  using: "composite"
+  steps:
+    - name: Prepare run lookup
+      id: prepare
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        REPO: ${{ inputs.repo }}
+        WORKFLOW: ${{ inputs.workflow }}
+        PR: ${{ inputs.pr }}
+        COMMIT: ${{ inputs.commit }}
+        BRANCH: ${{ inputs.branch }}
+        EVENT: ${{ inputs.event }}
+        RUN_ID: ${{ inputs.run_id }}
+        RUN_NUMBER: ${{ inputs.run_number }}
+        ARTIFACTS: ${{ inputs.artifacts }}
+        NAME_IS_REGEXP: ${{ inputs.name_is_regexp }}
+        REQUIRE_BRANCH_HEAD: ${{ inputs.require_branch_head }}
+        CHECK_ARTIFACTS: ${{ inputs.check_artifacts }}
+        SEARCH_ARTIFACTS: ${{ inputs.search_artifacts }}
+      run: bash "$GITHUB_ACTION_PATH/prepare.sh"
+
+    # A failed lookup is handled by the next step, which follows if_no_artifact_found.
+    - name: Find workflow run
+      id: find
+      continue-on-error: true
+      uses: bitwarden/gh-actions/find-workflow-run@main
+      with:
+        github_token: ${{ inputs.github_token }}
+        repo: ${{ inputs.repo }}
+        workflow: ${{ steps.prepare.outputs.workflow }}
+        run_id: ${{ inputs.run_id }}
+        commit: ${{ steps.prepare.outputs.commit }}
+        branch: ${{ steps.prepare.outputs.branch }}
+        require_branch_head: ${{ inputs.require_branch_head }}
+        workflow_conclusion: ${{ inputs.workflow_conclusion }}
+        pull_requests: ${{ steps.prepare.outputs.pull_requests }}
+        artifacts: ${{ steps.prepare.outputs.find_artifacts }}
+        name_is_regexp: ${{ steps.prepare.outputs.find_name_is_regexp }}
+        search_artifacts: ${{ steps.prepare.outputs.find_search_artifacts }}
+        allow_forks: ${{ inputs.allow_forks }}
+
+    - name: Match artifacts
+      id: match
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        REPO: ${{ inputs.repo }}
+        FIND_OUTCOME: ${{ steps.find.outcome }}
+        RUN_ID: ${{ steps.find.outputs.run_id }}
+        ARTIFACTS: ${{ inputs.artifacts }}
+        DRY_RUN: ${{ inputs.dry_run }}
+        IF_NO_ARTIFACT_FOUND: ${{ inputs.if_no_artifact_found }}
+      run: bash "$GITHUB_ACTION_PATH/match-artifacts.sh"
+
+    - name: Download artifacts
+      if: steps.match.outputs.download == 'true'
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        github-token: ${{ inputs.github_token }}
+        repository: ${{ inputs.repo }}
+        run-id: ${{ steps.match.outputs.run_id }}
+        artifact-ids: ${{ steps.match.outputs.artifact_ids }}
+        path: ${{ inputs.path }}
+        merge-multiple: true
+        skip-decompress: ${{ inputs.skip_unpack }}

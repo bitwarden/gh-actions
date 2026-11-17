@@ -2,7 +2,8 @@
 set -euo pipefail
 
 # Match the found run's artifacts against the requested names, set the action's outputs, and decide
-# whether to download. Follows if_no_artifact_found when there is no run or nothing to download.
+# whether to download. Follows if_no_artifact_found when the run has nothing to download. A failed
+# run lookup always fails the step, as it did in the node action.
 #
 # Names are comma-separated, with `*` as the only wildcard, and match whole names. An artifact is
 # downloaded if it matches any name, so a name that matches nothing is not an error on its own.
@@ -41,8 +42,10 @@ no_artifacts() {
 }
 
 if [[ "${FIND_OUTCOME:-}" != "success" || -z "$RUN_ID" ]]; then
-  output error_message "No matching workflow run found; see the Find workflow run step"
-  no_artifacts "no matching workflow run found"
+  output found_artifact false
+  output error_message "Run lookup failed; see the Find workflow run step for the reason"
+  echo "::error::Run lookup failed; see the Find workflow run step for the reason"
+  exit 1
 fi
 
 output run_id "$RUN_ID"

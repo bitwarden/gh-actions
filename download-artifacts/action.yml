@@ -69,12 +69,12 @@ inputs:
     description: "Find the run and its artifacts without downloading them."
     required: false
   if_no_artifact_found:
-    description: "What to do when no run or artifact is found: fail, warn or ignore."
+    description: "What to do when the run has no matching artifacts, or a matching artifact has expired: fail, warn or ignore. Lookup errors (no matching run, require_branch_head mismatch, API or auth errors) always fail."
     default: fail
 
 outputs:
   error_message:
-    description: "The error message, if the run lookup fails."
+    description: "Set when the run lookup fails. The reason is in the Find workflow run step's log."
     value: ${{ steps.match.outputs.error_message }}
   dry_run:
     description: "With dry_run, true if artifacts were found and false otherwise."

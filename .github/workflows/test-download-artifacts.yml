@@ -375,3 +375,201 @@ jobs:
             echo "Expected the step to fail, got $_OUTCOME"
             exit 1
           fi
+
+  download-cross-platform:
+    name: Download on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # clients downloads SDK builds on macOS and Windows runners.
+        os: [macos-15, windows-2022]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download one
+        uses: ./download-artifacts
+        with:
+          workflow: upload-test-artifacts.yml
+          artifacts: artifact
+          path: artifact
+
+      - name: Download several
+        uses: ./download-artifacts
+        with:
+          workflow: upload-test-artifacts.yml
+          artifacts: "artifact1, artifact2"
+          path: several
+
+      - name: Test
+        shell: bash
+        run: |
+          cat artifact/sha
+          cat several/sha1 several/sha2
+
+  download-skip-unpack:
+    name: Download several with skip_unpack
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download
+        uses: ./download-artifacts
+        with:
+          workflow: upload-test-artifacts.yml
+          artifacts: "artifact1,artifact2"
+          path: zips
+          skip_unpack: true
+
+      - name: Test
+        run: |
+          ls -atlh zips
+          unzip -l zips/artifact1.zip | grep -q sha1
+          unzip -l zips/artifact2.zip | grep -q sha2
+
+  list-then-download:
+    name: List with dry_run, then download by run_id
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      # The pattern deploy's release-cli, release-desktop and release-browser use.
+      - name: List
+        id: list
+        uses: ./download-artifacts
+        with:
+          workflow: upload-test-artifacts.yml
+          check_artifacts: true
+          dry_run: true
+
+      - name: Test list outputs
+        env:
+          _ARTIFACTS: ${{ steps.list.outputs.artifacts }}
+          _RUN_ID: ${{ steps.list.outputs.run_id }}
+          _BUILD_COMMIT: ${{ steps.list.outputs.artifact-build-commit }}
+          _FOUND: ${{ steps.list.outputs.found_artifact }}
+        run: |
+          [[ "$_RUN_ID" =~ ^[0-9]+$ ]] || { echo "Bad run_id '$_RUN_ID'"; exit 1; }
+          [[ "$_BUILD_COMMIT" =~ ^[0-9a-f]{40}$ ]] || { echo "Bad artifact-build-commit '$_BUILD_COMMIT'"; exit 1; }
+          [[ "$_FOUND" == "true" ]] || { echo "Expected found_artifact=true, got '$_FOUND'"; exit 1; }
+          jq -r '.[].name' <<<"$_ARTIFACTS" | grep -qx artifact1 || { echo "artifact1 not listed"; exit 1; }
+          [[ ! -e sha1 ]] || { echo "dry_run downloaded files"; exit 1; }
+
+      - name: Download
+        id: download
+        uses: ./download-artifacts
+        with:
+          run_id: ${{ steps.list.outputs.run_id }}
+          artifacts: artifact1
+
+      - name: Test download
+        env:
+          _LIST_COMMIT: ${{ steps.list.outputs.artifact-build-commit }}
+          _DOWNLOAD_COMMIT: ${{ steps.download.outputs.artifact-build-commit }}
+        run: |
+          cat sha1
+          [[ "$_LIST_COMMIT" == "$_DOWNLOAD_COMMIT" ]] || { echo "Commits differ: $_LIST_COMMIT vs $_DOWNLOAD_COMMIT"; exit 1; }
+
+  unsupported-input:
+    name: Download with an unsupported input should fail
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download
+        id: download
+        continue-on-error: true
+        uses: ./download-artifacts
+        with:
+          workflow: upload-test-artifacts.yml
+          event: push
+
+      - name: Test
+        env:
+          _OUTCOME: ${{ steps.download.outcome }}
+        run: |
+          if [[ "$_OUTCOME" != "failure" ]]; then
+            echo "Expected the step to fail, got $_OUTCOME"
+            exit 1
+          fi
+
+  upload-same-run:
+    name: Upload for same-run download
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Dump
+        run: |
+          mkdir same-run
+          echo "$GITHUB_SHA" > same-run/sha
+
+      - name: Upload
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: same-run-artifact
+          path: same-run
+
+  download-same-run:
+    name: Download from the current, still running run
+    runs-on: ubuntu-22.04
+    needs: upload-same-run
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      # The pattern older release branches of clients use in build-desktop.yml: no workflow, and
+      # run_id is the run the step is part of.
+      - name: Download
+        id: download
+        uses: ./download-artifacts
+        with:
+          run_id: ${{ github.run_id }}
+          artifacts: same-run-artifact
+          path: same-run
+
+      - name: Test
+        env:
+          _RUN_ID: ${{ steps.download.outputs.run_id }}
+        run: |
+          [[ "$(cat same-run/sha)" == "$GITHUB_SHA" ]] || { echo "Downloaded the wrong artifact"; exit 1; }
+          [[ "$_RUN_ID" == "$GITHUB_RUN_ID" ]] || { echo "Expected run_id $GITHUB_RUN_ID, got $_RUN_ID"; exit 1; }
+
+  lookup-error-fails-with-ignore:
+    name: Run lookup error should fail even with if_no_artifact_found ignore
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download
+        id: download
+        continue-on-error: true
+        uses: ./download-artifacts
+        with:
+          workflow: upload-test-artifacts.yml
+          branch: bre-2372-branch-that-never-built
+          if_no_artifact_found: ignore
+
+      - name: Test
+        env:
+          _OUTCOME: ${{ steps.download.outcome }}
+        run: |
+          if [[ "$_OUTCOME" != "failure" ]]; then
+            echo "Expected the step to fail, got $_OUTCOME"
+            exit 1
+          fi

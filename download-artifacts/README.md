@@ -1,107 +1,80 @@
-Thanks to dawidd6 and his [Download Artifact](https://github.com/dawidd6/action-download-artifact) action! Most of the 
-functionality of this action comes from that. Unfortunately, we needed to handle downloads in a slightly different
-manner. 
+# Download workflow artifact
 
-# Download workflow artifact GitHub Action
+Downloads the artifacts of another workflow run, found by workflow and branch, commit, pull request or run ID.
 
-An action that downloads and extracts uploaded artifacts associated with a given workflow and commit or other criteria.
+A composite of two steps:
 
-Let's suppose you have a workflow with a job in it that at the end uploads an artifact using `actions/upload-artifact` action and you want to download this artifact in another workflow that is run after the first one. Official `actions/download-artifact` does not allow this. That's why I decided to create this action. By knowing only the workflow name and commit SHA or other details, you can download the previously uploaded artifact from different workflow associated with that commit or other criteria and use it.
+1. [`find-workflow-run`](../find-workflow-run) finds the run. GitHub's filtered run search can silently drop runs, so it
+   checks the search result against the unfiltered run list rather than trust it.
+2. [`actions/download-artifact`](https://github.com/actions/download-artifact) downloads the run's matching artifacts.
+
+Earlier versions were a node action forked from
+[dawidd6/action-download-artifact](https://github.com/dawidd6/action-download-artifact). The inputs and outputs are
+unchanged, apart from the two noted below.
 
 ## Usage
 
-> If `commit` or `pr` or `branch` or `run_id` or `workflow_conclusion` is not specified then the artifact from the most recent successfully completed workflow run will be downloaded.
-
-**Do not specify `pr`, `commit`, `branch`, `run_id` together or `workflow_conclusion` and `run_id` together. Pick just one of each or none.**
-
 ```yaml
-- name: Download artifact
-  id: download-artifact
-  uses: dawidd6/action-download-artifact@v3
+- name: Download build
+  id: download
+  uses: bitwarden/gh-actions/download-artifacts@main
   with:
-    # Optional, GitHub token, a Personal Access Token with `public_repo` scope if needed
-    # Required, if the artifact is from a different repo
-    # Required, if the repo is private a Personal Access Token with `repo` scope is needed or GitHub token in a job where the permissions `action` scope set to `read`
-    github_token: ${{secrets.GITHUB_TOKEN}}
-    # Optional, workflow file name or ID
-    # If not specified, will be inferred from run_id (if run_id is specified), or will be the current workflow
-    workflow: workflow_name.yml
-    # Optional, the status or conclusion of a completed workflow to search for
-    # Can be one of a workflow conclusion:
-    #   "failure", "success", "neutral", "cancelled", "skipped", "timed_out", "action_required"
-    # Or a workflow status:
-    #   "completed", "in_progress", "queued"
-    # Use the empty string ("") to ignore status or conclusion in the search
-    workflow_conclusion: success
-    # Optional, will get head commit SHA
-    pr: ${{github.event.pull_request.number}}
-    # Optional, no need to specify if PR is
-    commit: ${{github.event.pull_request.head.sha}}
-    # Optional, will use the specified branch. Defaults to all branches
-    branch: master
-    # Optional, defaults to all types
-    event: push
-    # Optional, will use specified workflow run
-    # use ${{ github.event.workflow_run.id }} when your action runs in a workflow_run event
-    # and wants to download from the triggering workflow run
-    run_id: 1122334455
-    # Optional, run number from the workflow
-    run_number: 34
-    # Optional, uploaded artifact name,
-    # will download all artifacts if not specified
-    # and extract them into respective subdirectories
-    # https://github.com/actions/download-artifact#download-all-artifacts
-    # is treated as a regular expression if input name_is_regexp is true
-    # will download only those artifacts with a name that matches this regular expression
-    # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions
-    name: artifact_name
-    # Optional, name is treated as a regular expression if set true
-    name_is_regexp: true
-    # Optional, a directory where to extract artifact(s), defaults to the current directory
-    path: extract_here
-    # Optional, defaults to current repo
-    repo: ${{ github.repository }}
-    # Optional, check the workflow run to whether it has an artifact
-    # then will get the last available artifact from the previous workflow
-    # default false, just try to download from the last one
-    check_artifacts: false
-    # Optional, search for the last workflow run whose stored an artifact named as in `name` input
-    # default false
-    search_artifacts: false
-    # Optional, choose to skip unpacking the downloaded artifact(s)
-    # default false
-    skip_unpack: false
-    # Optional, choose how to exit the action if no artifact is found
-    # can be one of:
-    #  "fail", "warn", "ignore"
-    # default fail
-    if_no_artifact_found: fail
-    # Optional, ignore forks when searching for artifacts
-    # default true
-    allow_forks: false
-    # Optional, fail unless the selected run was built from the latest commit on `branch`
-    # Use for releases, where silently falling back to an older build is not acceptable. Requires `branch`
-    # default false
-    require_branch_head: false
+    github_token: ${{ steps.app-token.outputs.token }}
+    repo: bitwarden/clients
+    workflow: build-cli.yml
+    commit: ${{ steps.client_info.outputs.sha }}
+    artifacts: 'bw-linux-*.zip, bw-macos-*.zip'
+    path: artifacts
 ```
 
-## How the run is selected
+To download several times from one build, resolve the run once (for example with `dry_run: true`) and pass its
+`run_id` output to the later steps.
 
-When `branch`, `event`, `commit` or `pr` is set, the action searches the workflow's runs with those filters. GitHub serves
-filtered run queries from a search index that intermittently leaves runs out of the response, with no sign that anything
-is missing ([dawidd6/action-download-artifact#428](https://github.com/dawidd6/action-download-artifact/issues/428)).
-To catch this, the action then checks the workflow's unfiltered run list, newest first, back to the search result. If it
-finds a newer matching run, it uses that run and logs a warning. It checks at most 2,000 runs.
+## Inputs
 
-`require_branch_head` adds a stricter check on top: pull request runs are skipped, and the selected run must be at the
-branch's HEAD commit, or the step fails.
+| Input                  | Default                    | Description                                                                                                                      |
+| ---------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `github_token`         | `${{ github.token }}`      | Token with `actions:read` on `repo`.                                                                                             |
+| `repo`                 | `${{ github.repository }}` | Repository the workflow belongs to.                                                                                              |
+| `workflow`             | current workflow           | Workflow file name or ID. Not needed with `run_id`.                                                                              |
+| `workflow_conclusion`  | `success`                  | Conclusion or status the run must have. Empty matches any run.                                                                   |
+| `branch`               |                            | Newest matching run on this branch (or tag). `refs/heads/` is stripped.                                                          |
+| `commit`               |                            | Newest matching run built from this commit.                                                                                      |
+| `pr`                   |                            | Newest matching run of this pull request's head commit.                                                                          |
+| `run_id`               |                            | Use this run as is, without searching.                                                                                           |
+| `require_branch_head`  | `false`                    | Fail unless the run was built from `branch`'s HEAD commit. Pull request runs are skipped.                                        |
+| `allow_forks`          | `false`                    | Accept runs from forks.                                                                                                          |
+| `check_artifacts`      | `false`                    | Skip runs without any artifacts when searching.                                                                                  |
+| `search_artifacts`     | `false`                    | Skip runs that lack `artifacts` when searching.                                                                                  |
+| `name_is_regexp`       | `false`                    | With `search_artifacts`, treat `artifacts` as one regular expression for the search.                                             |
+| `artifacts`            | all                        | Comma-separated names with `*` wildcards. Artifacts matching any name are downloaded.                                            |
+| `path`                 | `./`                       | Where to put the artifacts. Every artifact is extracted into `path` directly.                                                    |
+| `skip_unpack`          | `false`                    | Save each artifact as `<path>/<name>.zip` instead of extracting it.                                                              |
+| `dry_run`              |                            | Find the run and its artifacts without downloading.                                                                              |
+| `if_no_artifact_found` | `fail`                     | `fail`, `warn` or `ignore` when the run has no matching artifact, or a matching artifact has expired. Lookup errors always fail. |
 
-The `run_id` output holds the selected run. To download several artifacts from one build, resolve the run once (for
-example with `dry_run: true`) and pass `run_id` to the later steps.
+`pr`, `commit`, `branch` and `run_id` can't be combined. Without any of them, the newest matching run of the workflow is
+used. Pull request runs count as matches, except with `require_branch_head`.
 
-## Troubleshooting
+## Outputs
 
-### GLIBC_2.28 not found
+| Output                  | Description                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------- |
+| `run_id`                | The run the artifacts come from.                                                  |
+| `artifact-build-commit` | Commit the artifacts were built from. Set when at least one artifact matched.     |
+| `artifact-build-branch` | Branch the artifacts were built from. Set when at least one artifact matched.     |
+| `artifacts`             | JSON array of the matching artifacts, as returned by the GitHub API.              |
+| `found_artifact`        | `true` if matching artifacts were found.                                          |
+| `dry_run`               | With `dry_run`, `true` if matching artifacts were found.                          |
+| `error_message`         | Set when the run lookup fails. The reason is in the Find workflow run step's log. |
 
-`v3` release of this action switched from `node16` to `node20` as runtime.
-Node 20 requires `glibc>=2.28`. If your self-hosted runner has older `glibc`, pin to `v2` release, but note it won't receive any updates.
+## Changes from the node action
+
+- **`event` and `run_number` are no longer supported**, and fail the step if set.
+- **The run search fails if it can't be confirmed.** `find-workflow-run` checks up to 2,000 of the workflow's newest
+  runs against the search result. The node action warned and used the search result when it reached that limit; this
+  version fails, rather than risk an old build.
+- `dry_run: false` no longer means a dry run.
+- **A failed run lookup always fails the step.** The node action applied `if_no_artifact_found` when
+  no run matched; now `warn` and `ignore` only cover a run without matching artifacts. To allow
+  "no run" again, `find-workflow-run` would need to report it separately from other lookup errors.

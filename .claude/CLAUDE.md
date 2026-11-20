@@ -86,6 +86,15 @@ For containerized actions (e.g., `version-bump`):
 - Python scripts use `main.py` as entry point
 - **No local build required** - Docker builds during action execution
 
+### Documentation Updates
+
+Every change to a workflow or action **must follow the [Bitwarden documentation standard](https://contributing.bitwarden.com/contributing/documentation/)**:
+
+- **Same PR**: Update every `README.md` and diagram the change affects
+- **Reusable workflows**: `_[name].yml` is documented in `[name]/README.md` when that directory exists; do not create one for a workflow that has none unless asked
+- **Other READMEs**: Search for the changed workflow or action name
+- **Stale README**: If it contradicts correct code, fix it
+
 ## Project Layout and Architecture
 
 ### Repository Structure

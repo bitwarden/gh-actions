@@ -85,18 +85,20 @@ Both modes retrieve existing PR review threads before invoking Claude and load t
 
 ### `current` (default)
 
-Uses the built-in `claude-code-action` features `use_sticky_comment` and `track_progress` for comment management.
+Creates a placeholder PR comment via `update-pr-comment`, then passes the comment ID to Claude. Claude writes its final summary to `/tmp/review-summary.md`. A post-step updates the PR comment from that file. Grants the `Write` tool so Claude can produce the summary file.
 
 ### `vnext`
 
-Creates a placeholder PR comment via `update-pr-comment`, then passes the comment ID to Claude. Claude writes its final summary to `/tmp/review-summary.md`. A post-step updates the PR comment from that file. Grants the `Write` tool so Claude can produce the summary file.
+Runs the same steps as `current`. No step in `action.yml` is gated on `mode`.
 
 ## Development Lifecycle
 
-1. **Understand** -- Read `action.yml` and this README. Steps are gated by `if: inputs.mode == 'current'` or `if: inputs.mode == 'vnext'`. The caller workflow (`_review-code.yml`) maps PR labels to the `mode` input; this action only sees the mode value.
+1. **Understand** -- Read `action.yml` and this README. Steps that differ between modes are gated by `if: inputs.mode == 'current'` or `if: inputs.mode == 'vnext'`. The caller workflow (`_review-code.yml`) maps PR labels to the `mode` input; this action only sees the mode value.
 2. **Plan** -- Define what you want to change and why. Know which mode you are targeting before editing.
 3. **Modify** -- Add or edit vnext-gated steps in `action.yml`. Do not change current-mode steps.
 4. **Test** -- Apply the `ai-review-vnext` label to PRs in downstream repos and compare against current-mode reviews.
 5. **Iterate** -- Repeat steps 3-4 until satisfied.
 6. **Promote** -- In a separate PR, update current-mode steps to match vnext, remove the vnext-specific steps, and merge.
 7. **Document** -- Update the Modes section of this README to describe the new current and vnext behaviors.
+
+The [workflow diagram](../review-code/README.md#how-it-works) in the review code README shows where this action sits in the full review flow. Update it when the steps in `action.yml` change.

@@ -10,7 +10,7 @@
   },
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "25.5.0",
+    "@types/node": "26.6.6",
     "@vercel/ncc": "0.38.4",
     "typescript": "5.9.3"
   },

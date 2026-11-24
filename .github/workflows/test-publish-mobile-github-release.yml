@@ -1,0 +1,70 @@
+name: Test Publish Mobile GitHub Release
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/_publish-mobile-github-release.yml
+      - .github/workflows/test-publish-mobile-github-release.yml
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  setup-test-release:
+    name: Setup Test Release
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Create draft release for testing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "workflow-test-${{ github.run_id }}" \
+            --draft \
+            --prerelease \
+            --title "Password Manager Workflow Test 1999.3.${{ github.run_number }} (0)" \
+            --notes "Test draft release for workflow testing - created by test-publish-mobile-github-release.yml"
+
+  test-publish-workflow:
+    name: Test Publish Workflow
+    needs: setup-test-release
+    uses: ./.github/workflows/_publish-mobile-github-release.yml
+    permissions:
+      actions: write
+      contents: write
+      id-token: write
+    with:
+      release_name: "Password Manager"
+      workflow_name: "test-publish-mobile-github-release.yml"
+      credentials_filename: ""
+      check_release_command: "echo 'version_name: 1999.3.${{ github.run_number }}'; echo 'version_number: 0'"
+      project_type: "ios"
+      make_latest: false
+      dry_run: true
+    secrets:
+        AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+
+  cleanup-test-release:
+    name: Cleanup Test Release
+    needs: [setup-test-release, test-publish-workflow]
+    if: always()
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Delete workflow test release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          TAG="workflow-test-${{ github.run_id }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Deleting workflow test release [$TAG]"
+            gh release delete "$TAG" --yes
+          else
+            echo "Release [$TAG] not found, nothing to clean up"
+          fi

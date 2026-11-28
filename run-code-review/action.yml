@@ -86,7 +86,7 @@ runs:
           If this comment does not update with results, check the [Actions log](${{ github.server_url }}/${{ inputs.repository }}/actions/runs/${{ github.run_id }}).
 
     - name: Review with Claude Code
-      uses: anthropics/claude-code-action@925afb53776cf1a2b738c6bdbed37b4d4000ef13 # v1.0.262
+      uses: anthropics/claude-code-action@acfe7992852970efb4fee683d63d628e3e52df67 # v1.0.286
       with:
         anthropic_api_key: ${{ steps.get-kv-secrets.outputs.ANTHROPIC-CODE-REVIEW-API-KEY }}
         allowed_bots: "aikido-autofix[bot]"
